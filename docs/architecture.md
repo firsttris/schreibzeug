@@ -54,3 +54,14 @@ screenshots**, which commits the pictures that changed. The run seeds the server
 folders and the letter from `test-files/angebot.docx`, pins their dates in the database and the
 browser's clock, and ships Geist as the interface font, so an unchanged page gives an unchanged
 picture.
+
+## Format fidelity
+
+`test-files/fidelity` holds real .docx files from LibreOffice's test suite (MPL-2.0), one per area:
+tables, lists, footnotes, headers, images, text boxes, columns, a table of contents, comments,
+charts and shapes. `e2e/formats.fidelity.ts` opens each one and compares the first screen with its
+reference picture in `test-files/fidelity/screenshots`; then it saves the file unchanged, opens the
+saved version and compares again, so a round trip through the engine and x2t must not change how
+a document looks. The references are taken in CI with **Actions → Update screenshots**
+(`bun run fidelity:update`); CI checks them on every push (`bun run test:fidelity`). An engine
+update passes only when they stay the same.

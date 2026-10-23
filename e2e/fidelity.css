@@ -1,0 +1,5 @@
+/* The engine's text cursor (sdkjs word/api.js #id_target_cursor) blinks; hide it for comparisons. */
+#id_target_cursor {
+  /* biome-ignore lint/complexity/noImportantStyles: the engine sets the cursor's style inline */
+  visibility: hidden !important;
+}

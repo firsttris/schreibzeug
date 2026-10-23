@@ -24,6 +24,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } },
     },
     {
+      // test-files/fidelity against their reference pictures (formats.fidelity.ts).
+      name: "fidelity",
+      testMatch: "**/*.fidelity.ts",
+      snapshotPathTemplate: "{testDir}/../test-files/fidelity/screenshots/{arg}{ext}",
+      expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001 } },
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } },
+    },
+    {
       // docs/screenshots, taken by hand (screenshots.shot.ts); one after the other, on one seed.
       name: "screenshots",
       testMatch: "**/*.shot.ts",

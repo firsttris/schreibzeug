@@ -1,8 +1,9 @@
 name: Update screenshots
 
 # Started by hand after a change to the look: Actions → Update screenshots → Run workflow.
-# Takes the pictures in docs/screenshots with the real engine and a seeded server, in the official
-# Playwright image (same browser and fonts every run), and commits the ones that changed.
+# Takes the pictures in docs/screenshots and the format-fidelity references with the real engine
+# and a seeded server, in the official Playwright image (same browser and fonts every run), and
+# commits the ones that changed.
 # It follows firsttris/workflows screenshots.yml, plus the engine cache that one has no input for.
 on:
   workflow_dispatch:
@@ -69,6 +70,10 @@ jobs:
       - run: bun run screenshots
         env:
           HOME: /root
+      # The reference pictures of the format-fidelity test (only those that changed)
+      - run: bun run fidelity:update
+        env:
+          HOME: /root
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -77,5 +82,7 @@ jobs:
           retention-days: 7
       - uses: firsttris/workflows/actions/commit-changes@v1
         with:
-          paths: docs/screenshots
+          paths: |
+            docs/screenshots
+            test-files/fidelity/screenshots
           message: Update screenshots

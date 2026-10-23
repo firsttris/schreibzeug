@@ -21,7 +21,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test -c e2e/playwright.config.ts --project chromium",
     "server": "bun run --filter @stapel/server dev",
-    "screenshots": "playwright test -c e2e/playwright.config.ts --project screenshots --workers 1"
+    "screenshots": "playwright test -c e2e/playwright.config.ts --project screenshots --workers 1",
+    "test:fidelity": "playwright test -c e2e/playwright.config.ts --project fidelity",
+    "fidelity:update": "playwright test -c e2e/playwright.config.ts --project fidelity --update-snapshots"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.2",

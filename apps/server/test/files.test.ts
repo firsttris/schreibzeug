@@ -209,6 +209,20 @@ describe("files", () => {
     expect(document && strFromU8(document)).toContain("<w:body>");
   });
 
+  it("creates a blank spreadsheet with one sheet", async () => {
+    const created = await expectNode(
+      await api.files.blank.$post({ json: { name: "Zahlen", parentId: null, format: "xlsx" } }),
+      201,
+    );
+    expect(created).toMatchObject({
+      name: "Zahlen.xlsx",
+      mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const zip = unzipSync(new Uint8Array(await (await content(created.id)).arrayBuffer()));
+    const workbook = zip["xl/workbook.xml"];
+    expect(workbook && strFromU8(workbook)).toContain('name="Tabelle1"');
+  });
+
   it("does not read a folder as a file", async () => {
     const box = await folder("Kein Inhalt");
     await expectError(await content(box.id), 400, "invalid");

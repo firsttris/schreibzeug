@@ -1,11 +1,20 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import { useFiles } from "./api/context";
-import { refreshFiles } from "./api/files";
-import { EditorView } from "./editor-view";
-import { VersionsDialog } from "./files/versions-dialog";
+import { type ComponentType, useCallback, useState } from "react";
+import { useFiles } from "../api/context";
+import { refreshFiles } from "../api/files";
+import { VersionsDialog } from "../files/versions-dialog";
+import { kindOf } from "../lib/format";
+import type { EditorViewProps } from "./props";
+import { SheetView } from "./sheet-view";
 import { useSessionFile } from "./use-session-file";
+import { WordView } from "./word-view";
+
+/** The editor view for each kind of file Stapel opens (lib/format.ts isEditable). */
+const VIEWS: Partial<Record<ReturnType<typeof kindOf>, ComponentType<EditorViewProps>>> = {
+  docx: WordView,
+  xlsx: SheetView,
+};
 
 /** Opens a file from the server in its editing session and saves it back as a new version. */
 export const EditPage = ({ fileId }: { fileId: string }) => {
@@ -41,9 +50,18 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
   }
 
   const { parentId } = opened.file;
+  const View = VIEWS[kindOf({ kind: "file", name: opened.file.name })];
+  if (!View) {
+    return (
+      <div role="alert" className="flex flex-col items-start gap-3 p-8 text-sm">
+        <p className="m-0">Diese Datei kann Stapel noch nicht bearbeiten.</p>
+        <Link to="/">Zu meinen Dateien</Link>
+      </div>
+    );
+  }
   return (
     <>
-      <EditorView
+      <View
         file={opened.file}
         onClose={() =>
           parentId

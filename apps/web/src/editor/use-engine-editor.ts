@@ -1,34 +1,38 @@
 import {
+  type CoreState,
   createConverter,
-  type EditorState,
-  initialEditorState,
+  type EditorKind,
+  type EngineWindow,
   mountEngineFrame,
-  openWordDocument,
-  type WordEditor,
+  type OpenedDocument,
+  type OpenOptions,
+  type Store,
 } from "@stapel/editor-core";
-import { type RefObject, useEffect, useState, useSyncExternalStore } from "react";
-import { useUser } from "./account/context";
-import type { OpenedFile } from "./files";
+import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useUser } from "../account/context";
+import type { OpenedFile } from "./opened-file";
 
-const noStore = {
-  get: () => initialEditorState,
-  subscribe: () => () => {},
-};
-
-export type WordEditorHandle = {
-  editor: WordEditor | null;
-  state: EditorState;
+export type EngineEditorHandle<E extends OpenedDocument<S>, S extends CoreState> = {
+  editor: E | null;
+  state: S;
   failure: string | null;
 };
 
-/** Mounts the engine in the container and opens the file; closes both when the file changes. */
-export const useWordEditor = (
+/**
+ * Mounts the engine of one editor in the container and opens the file with it; closes both when the
+ * file changes. `open` is the editor's entry point in editor-core (openWordDocument, …) and must be
+ * a stable function.
+ */
+export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState>(
   container: RefObject<HTMLDivElement | null>,
   file: OpenedFile,
-): WordEditorHandle => {
+  kind: EditorKind,
+  open: (win: EngineWindow, options: OpenOptions) => Promise<E>,
+  initialState: S,
+): EngineEditorHandle<E, S> => {
   // Who edits: the engine shows the name at the cursor and on comments; the relay checks the id.
   const { id: userId, name: userName } = useUser();
-  const [editor, setEditor] = useState<WordEditor | null>(null);
+  const [editor, setEditor] = useState<E | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,14 +45,14 @@ export const useWordEditor = (
     setFailure(null);
     const converter = createConverter();
     cleanup = converter.terminate;
-    mountEngineFrame(host, { kind: "word" })
+    mountEngineFrame(host, { kind })
       .then(async (frame) => {
         cleanup = () => {
           converter.terminate();
           frame.remove();
         };
         if (cancelled) return cleanup();
-        const opened = await openWordDocument(frame.window, {
+        const opened = await open(frame.window, {
           bytes: file.bytes,
           title: file.name,
           user: { id: userId, name: userName },
@@ -71,7 +75,7 @@ export const useWordEditor = (
       cancelled = true;
       cleanup();
     };
-  }, [container, file, userId, userName]);
+  }, [container, file, kind, open, userId, userName]);
 
   useEffect(() => {
     if (!editor) return;
@@ -80,7 +84,11 @@ export const useWordEditor = (
     return () => window.removeEventListener("resize", onResize);
   }, [editor]);
 
-  const store = editor?.store ?? noStore;
+  const idle = useMemo<Pick<Store<S>, "get" | "subscribe">>(
+    () => ({ get: () => initialState, subscribe: () => () => {} }),
+    [initialState],
+  );
+  const store = editor?.store ?? idle;
   const state = useSyncExternalStore(store.subscribe, store.get);
   return { editor, state, failure };
 };

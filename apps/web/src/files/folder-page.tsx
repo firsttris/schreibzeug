@@ -6,13 +6,28 @@ import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
 import { Button } from "../ui/button";
+import { MenuButton } from "../ui/menu";
+import { FileBadge } from "./file-badge";
 import { NameDialog } from "./name-dialog";
 import { NodeActions } from "./node-actions";
 import { NodeTable } from "./node-table";
 import { PageHeader, PageMessage } from "./page";
 import { useUpload } from "./use-upload";
 
-type Creating = "folder" | "document" | null;
+type NewFile = "docx" | "xlsx";
+
+/** What "Neu" offers, with the words the name dialog uses for each. */
+const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; name: string }> = {
+  docx: {
+    item: "Dokument",
+    title: "Neues Dokument",
+    label: "Name des Dokuments",
+    name: "Unbenanntes Dokument",
+  },
+  xlsx: { item: "Tabelle", title: "Neue Tabelle", label: "Name der Tabelle", name: "Unbenannte Tabelle" },
+};
+
+type Creating = "folder" | NewFile | null;
 
 const Breadcrumb = ({ path }: { path: { id: string; name: string }[] }) => (
   <nav aria-label="Pfad" className="flex min-w-0 items-center gap-1 text-sm text-[var(--muted-foreground)]">
@@ -49,7 +64,9 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
   const picker = useRef<HTMLInputElement>(null);
   const { upload, state, dragging, dropZone, dismiss } = useUpload(folderId);
   const createFolder = useFileMutation((name: string) => commands.createFolder(folderId, name));
-  const createDocument = useFileMutation((name: string) => commands.createBlank(folderId, name, "docx"));
+  const createFile = useFileMutation((format: NewFile, name: string) =>
+    commands.createBlank(folderId, name, format),
+  );
 
   const title = listing.data?.folder?.name ?? "Meine Dateien";
 
@@ -60,10 +77,21 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
           <FolderPlus size={15} />
           Neuer Ordner
         </Button>
-        <Button variant="outline" onClick={() => setCreating("document")}>
+        <MenuButton
+          label="Neu"
+          variant="outline"
+          align="right"
+          groups={[
+            (Object.keys(NEW_FILES) as NewFile[]).map((format) => ({
+              label: NEW_FILES[format].item,
+              icon: <FileBadge kind={format} size={22} />,
+              onSelect: () => setCreating(format),
+            })),
+          ]}
+        >
           <FilePlus2 size={15} />
-          Neues Dokument
-        </Button>
+          Neu
+        </MenuButton>
         <Button variant="primary" onClick={() => picker.current?.click()}>
           <Upload size={15} />
           Hochladen
@@ -133,18 +161,21 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
         onSubmit={(name) => createFolder.mutateAsync([name])}
         onClose={() => setCreating(null)}
       />
-      <NameDialog
-        open={creating === "document"}
-        title="Neues Dokument"
-        label="Name des Dokuments"
-        initialName="Unbenanntes Dokument"
-        confirm="Anlegen und öffnen"
-        onSubmit={async (name) => {
-          const created = await createDocument.mutateAsync([name]);
-          await navigate({ to: "/edit/$fileId", params: { fileId: created.id } });
-        }}
-        onClose={() => setCreating(null)}
-      />
+      {(Object.keys(NEW_FILES) as NewFile[]).map((format) => (
+        <NameDialog
+          key={format}
+          open={creating === format}
+          title={NEW_FILES[format].title}
+          label={NEW_FILES[format].label}
+          initialName={NEW_FILES[format].name}
+          confirm="Anlegen und öffnen"
+          onSubmit={async (name) => {
+            const created = await createFile.mutateAsync([format, name]);
+            await navigate({ to: "/edit/$fileId", params: { fileId: created.id } });
+          }}
+          onClose={() => setCreating(null)}
+        />
+      ))}
     </section>
   );
 };

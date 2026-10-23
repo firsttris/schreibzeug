@@ -30,6 +30,40 @@ describe("collaboration session", () => {
     { type: "saveChanges", changes: JSON.stringify(changes), startSaveChanges: true, endSaveChanges: true },
   ];
 
+  it("ends a save without changes and gives back the locks, to the client and to the others", () => {
+    const { log } = run([
+      ["a", auth("anna")],
+      ["b", auth("ben")],
+      ["a", { type: "getLock", block: ["p1"] }],
+      ["a", { type: "unLockDocument", isSave: true, releaseLocks: true }],
+    ]);
+    expect(types(log[3]?.out ?? [])).toEqual(["self:releaseLock", "others:releaseLock", "self:unSaveLock"]);
+    expect(log[3]?.out.at(-1)?.message).toEqual({
+      type: "unSaveLock",
+      index: -1,
+      time: -1,
+      syncChangesIndex: -1,
+    });
+  });
+
+  it("sends spreadsheet locks to a newcomer as a list", () => {
+    const sheetAuth = (user: string) => ({ ...auth(user), editorType: 1 });
+    const block = {
+      guid: "g1",
+      sheetId: "1",
+      type: 1,
+      subType: null,
+      rangeOrObjectId: { c1: 0, r1: 0, c2: 0, r2: 0 },
+    };
+    const { log } = run([
+      ["a", sheetAuth("anna")],
+      ["a", { type: "getLock", block: [block] }],
+      ["b", sheetAuth("ben")],
+    ]);
+    const authMessage = log[2]?.out.find(({ message }) => message.type === "auth")?.message;
+    expect(authMessage?.locks).toEqual([{ time: expect.any(Number), user: "anna1", block }]);
+  });
+
   it("tells everyone how much of the log a stored version holds, never less than before", () => {
     const { session, log } = run([
       ["a", auth("anna")],

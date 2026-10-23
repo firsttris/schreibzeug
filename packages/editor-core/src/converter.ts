@@ -1,5 +1,8 @@
+/** The Office formats the editors open and save. */
+export type OfficeFormat = "docx" | "xlsx" | "pptx";
+
 /** Formats the converter moves between: Office files and the engine's own binary format. */
-export type ConvertFormat = "docx" | "bin";
+export type ConvertFormat = OfficeFormat | "bin";
 
 export type Convert = (bytes: Uint8Array, from: ConvertFormat, to: ConvertFormat) => Promise<Uint8Array>;
 
@@ -23,7 +26,7 @@ export const converterPath = (enginePath = "/engine"): string =>
 
 /**
  * Converts with x2t in a worker (engine/frame/x2t/worker.js). The engine of this build cannot read
- * or write .docx itself — its OOXML reader is not part of Euro-Office — so every open and save
+ * or write Office files itself — its OOXML reader is not part of Euro-Office — so every open and save
  * goes through x2t, as in CryptPad.
  */
 export const createConverter = (

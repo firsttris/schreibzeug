@@ -57,11 +57,16 @@ The relay (`apps/server/src/collab/session.ts`) answers the messages `sdkjs` sen
 | `auth` with `sessionId` | a reconnect, see below. |
 | `isSaveLock` | `saveLock: false`: the engine may send. |
 | `saveChanges` | to the others `saveChanges` with the new changes; to the sender `unSaveLock` (or `savePartChanges` for a part of a longer save). `deleteIndex` drops changes a reconnected client sends again. |
-| `getLock` | the lock to everyone. Text documents grant every lock (`_checkLockWord`). |
-| `unLockDocument` | `releaseLock` to the others. |
+| `getLock` | all locks to everyone. Blocks nobody holds are taken; if one asked for is held already, the editor's rule decides (`src/collab/locks.ts`, ported from `_checkLockWord`, `_checkLockExcel`, `_checkLockPresentation`): text grants everything, spreadsheets refuse overlapping ranges on the same sheet, presentations the same slide or object. |
+| `unLockDocument` | drops changes from `deleteIndex` on; with `releaseLocks` `releaseLock` to the sender and the others; with `isSave` `unSaveLock` (-1) to the sender, which waits for it before it sends again. |
 | `cursor` | the cursor to the others. |
 | `stapel:saved` (ours) | `stapel:saved` with the highest stored index to everyone; see [saving](#saving). |
 | (disconnect) | `connectState` to the others; the person's locks are released. |
+
+`auth` hands the locks over as a map for text documents and as a list for the other editors, and
+spreadsheets' `excelAdditionalInfo` goes on to the others with their changes, as DocsCoServer does.
+What it does not do yet: move other people's range locks when someone inserts or deletes rows or
+columns (`_recalcLockArray`); their next lock request sets them right.
 
 The hub (`hub.ts`) keeps one session per file in memory and delivers the answers;
 `routes.ts` does the WebSocket upgrade with Hono on Bun. Malformed messages close the socket with

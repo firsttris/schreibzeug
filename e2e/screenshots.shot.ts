@@ -15,6 +15,7 @@ const out = (name: string) => join(import.meta.dirname, "../docs/screenshots", `
 const testFile = (name: string) => readFile(join(import.meta.dirname, "../test-files", name));
 
 const LETTER = "Angebot Lagerverwaltung.docx";
+const PRICES = "Preisliste Hardware.xlsx";
 
 /** What "Meine Dateien" holds, with how long before NOW each was last changed. */
 const FOLDERS = [
@@ -26,6 +27,7 @@ const DOCUMENTS = [
   { name: LETTER, file: "angebot.docx", ago: { minutes: 12 } },
   { name: "Protokoll Kick-off.docx", file: "hello.docx", ago: { hours: 4, minutes: 40 } },
   { name: "Wartungsvertrag Entwurf.docx", file: "hello.docx", ago: { days: 3 } },
+  { name: PRICES, file: "preise.xlsx", ago: { hours: 1, minutes: 5 } },
 ];
 
 type Ago = { days?: number; hours?: number; minutes?: number };
@@ -38,7 +40,9 @@ const seed = async (api: APIRequestContext) => {
   }
   for (const { name, file } of DOCUMENTS) {
     const buffer = await testFile(file);
-    const mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const mimeType = name.endsWith(".xlsx")
+      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     expect((await api.post("/api/files", { multipart: { file: { name, mimeType, buffer } } })).ok()).toBe(
       true,
     );
@@ -112,7 +116,8 @@ for (const scheme of schemes) {
       await page.clock.setFixedTime(NOW);
       await page.goto("/");
       await expect(row(page, LETTER)).toBeVisible();
-      await page.getByRole("button", { name: "Neues Dokument" }).click();
+      await page.getByRole("button", { name: "Neu", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Dokument" }).click();
       await expect(page.getByLabel("Name des Dokuments")).toBeFocused();
       await shoot(page, "new-document", scheme);
     });
@@ -126,6 +131,19 @@ for (const scheme of schemes) {
       // for "all pages drawn", so give it a moment.
       await page.waitForTimeout(2_000);
       await shoot(page, "editor", scheme);
+    });
+
+    test("spreadsheet", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto("/");
+      await page.getByRole("link", { name: PRICES, exact: true }).click();
+      await expectEditorReady(page, errors);
+      // The total, so the formula bar shows a formula.
+      const nameBox = page.frameLocator('[data-testid="engine-frame"]').locator("#name-box");
+      await nameBox.fill("D5");
+      await nameBox.press("Enter");
+      await page.waitForTimeout(2_000);
+      await shoot(page, "spreadsheet", scheme);
     });
 
     test("comments", async ({ page }) => {

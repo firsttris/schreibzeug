@@ -1,9 +1,9 @@
 import { joinSession } from "@stapel/editor-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { messageOf } from "./api/client";
-import { useFiles } from "./api/context";
-import type { OpenedFile } from "./files";
+import { messageOf } from "../api/client";
+import { useFiles } from "../api/context";
+import type { OpenedFile } from "./opened-file";
 
 export type SessionFile =
   | { status: "loading" }

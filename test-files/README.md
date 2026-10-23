@@ -7,6 +7,7 @@ belong here; note each file's source below.
 |---|---|---|
 | `hello.docx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/word-roundtrip.spec.ts`, `e2e/files.spec.ts` |
 | `angebot.docx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/screenshots.shot.ts` |
+| `preise.xlsx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/spreadsheet.spec.ts`, `e2e/screenshots.shot.ts` |
 
 `fidelity/` holds documents for the format-fidelity test (`e2e/formats.fidelity.ts`), each with its
 reference picture in `fidelity/screenshots/`. They come unchanged from LibreOffice
@@ -29,3 +30,16 @@ under the [Mozilla Public License 2.0](https://www.mozilla.org/MPL/2.0/):
 | `preset-shape.docx` | a DrawingML preset shape |
 
 Regenerate the generated files with `bun run test-files`; the same content gives the same bytes.
+
+The spreadsheets in `fidelity/` come unchanged from the same LibreOffice commit
+(`sc/qa/unit/data/xlsx`, Mozilla Public License 2.0):
+
+| File | What it covers |
+|---|---|
+| `formats.xlsx` | number formats |
+| `Test_ThemeColor_Text_Background_Border.xlsx` | theme colours for text, fills and borders |
+| `cell-borders.xlsx` | cell borders |
+| `colorscale.xlsx` | conditional formatting with colour scales |
+| `databar.xlsx` | conditional formatting with data bars |
+| `autofilter.xlsx` | an autofilter |
+| `chart_hyperlink.xlsx` | charts |

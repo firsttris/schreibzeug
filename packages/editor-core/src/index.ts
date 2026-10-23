@@ -1,3 +1,20 @@
+export { openSheetDocument, type SheetEditor } from "./cell";
+export {
+  type CellCommands,
+  isValidSheetName,
+  MAX_CELL_FONT_SIZE,
+  nextSheetName,
+  type SheetCommands,
+} from "./cell-commands";
+export { NUMBER_FORMATS } from "./cell-format";
+export {
+  type CellFormat,
+  initialSheetState,
+  type NumberFormat,
+  type SheetEvent,
+  type SheetState,
+  type SheetTab,
+} from "./cell-state";
 export { type ChannelListener, type CollabChannel, type JoinOptions, joinSession } from "./collab";
 export type { TextColor } from "./colors";
 export { clampFontSize, MAX_FONT_SIZE, MIN_FONT_SIZE, type TextCommands } from "./commands";
@@ -8,8 +25,18 @@ export {
   type ConvertFormat,
   converterPath,
   createConverter,
+  type OfficeFormat,
   type WorkerLike,
 } from "./converter";
+export {
+  type CoreEvent,
+  type CoreState,
+  type DocumentState,
+  type EditorStatus,
+  hasUnsavedChanges,
+  initialCoreState,
+} from "./core-state";
+export type { DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
 export {
@@ -25,11 +52,8 @@ export {
   type CatalogState,
   type Comment,
   type CommentEntry,
-  type DocumentState,
   type EditorEvent,
   type EditorState,
-  type EditorStatus,
-  hasUnsavedChanges,
   initialEditorState,
   type ListKind,
   type ParagraphState,
@@ -37,10 +61,4 @@ export {
   type TextState,
 } from "./state";
 export { createStore, type Store } from "./store";
-export {
-  type DocumentUser,
-  type OpenWordOptions,
-  openWordDocument,
-  type SavedDocument,
-  type WordEditor,
-} from "./word";
+export { type OpenWordOptions, openWordDocument, type WordEditor } from "./word";

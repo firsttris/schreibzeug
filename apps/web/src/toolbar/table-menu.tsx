@@ -2,6 +2,7 @@ import type { TextCommands } from "@stapel/editor-core";
 import { Table } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
+import { type MenuItem, MenuList } from "../ui/menu";
 import { popoverPanel, usePopover } from "../ui/use-popover";
 
 const GRID = { columns: 8, rows: 6 };
@@ -43,19 +44,17 @@ const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
   );
 };
 
-type Action = { label: string; run: (commands: TextCommands) => void; danger?: boolean };
-
-const ACTIONS: Action[][] = [
+const actions = (run: (action: (commands: TextCommands) => void) => void): MenuItem[][] => [
   [
-    { label: "Zeile oberhalb einfügen", run: (c) => c.addRow("above") },
-    { label: "Zeile unterhalb einfügen", run: (c) => c.addRow("below") },
-    { label: "Spalte links einfügen", run: (c) => c.addColumn("left") },
-    { label: "Spalte rechts einfügen", run: (c) => c.addColumn("right") },
+    { label: "Zeile oberhalb einfügen", onSelect: () => run((c) => c.addRow("above")) },
+    { label: "Zeile unterhalb einfügen", onSelect: () => run((c) => c.addRow("below")) },
+    { label: "Spalte links einfügen", onSelect: () => run((c) => c.addColumn("left")) },
+    { label: "Spalte rechts einfügen", onSelect: () => run((c) => c.addColumn("right")) },
   ],
   [
-    { label: "Zeile löschen", run: (c) => c.deleteRow(), danger: true },
-    { label: "Spalte löschen", run: (c) => c.deleteColumn(), danger: true },
-    { label: "Tabelle löschen", run: (c) => c.deleteTable(), danger: true },
+    { label: "Zeile löschen", onSelect: () => run((c) => c.deleteRow()), danger: true },
+    { label: "Spalte löschen", onSelect: () => run((c) => c.deleteColumn()), danger: true },
+    { label: "Tabelle löschen", onSelect: () => run((c) => c.deleteTable()), danger: true },
   ],
 ];
 
@@ -67,8 +66,8 @@ export type TableMenuProps = { inTable: boolean; disabled: boolean; commands: Te
  */
 export const TableMenu = ({ inTable, disabled, commands }: TableMenuProps) => {
   const { open, toggle, close, ref } = usePopover();
-  const run = (action: (commands: TextCommands) => void) => {
-    if (commands) action(commands);
+  const insert = (columns: number, rows: number) => {
+    commands?.insertTable(columns, rows);
     close();
   };
 
@@ -88,28 +87,13 @@ export const TableMenu = ({ inTable, disabled, commands }: TableMenuProps) => {
       {open && (
         <div className={popoverPanel}>
           {inTable ? (
-            <div role="menu" aria-label="Tabelle bearbeiten" className="flex min-w-52 flex-col">
-              {ACTIONS.map((group, index) => (
-                <div
-                  key={group[0]?.label}
-                  className={`flex flex-col ${index > 0 ? "mt-1 border-t border-[var(--border)] pt-1" : ""}`}
-                >
-                  {group.map(({ label, run: action, danger }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => run(action)}
-                      className={`h-8 rounded-md px-2 text-left text-sm hover:bg-[var(--muted)] ${danger ? "text-red-600 dark:text-red-400" : ""}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
+            <MenuList
+              label="Tabelle bearbeiten"
+              groups={actions((action) => commands && action(commands))}
+              onDone={close}
+            />
           ) : (
-            <SizeGrid onPick={({ columns, rows }) => run((c) => c.insertTable(columns, rows))} />
+            <SizeGrid onPick={({ columns, rows }) => insert(columns, rows)} />
           )}
         </div>
       )}

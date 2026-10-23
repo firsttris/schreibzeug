@@ -1,5 +1,5 @@
 import type { TextColor } from "@stapel/editor-core";
-import { Baseline, Check } from "lucide-react";
+import { Baseline, Check, PaintBucket } from "lucide-react";
 import { Button } from "../ui/button";
 import { popoverPanel, usePopover } from "../ui/use-popover";
 
@@ -17,10 +17,25 @@ const COLORS: Array<{ value: string; name: string }> = [
   { value: "#7030a0", name: "Lila" },
 ];
 
-export type ColorPickerProps = { color: TextColor; disabled: boolean; onPick: (color: TextColor) => void };
+export type ColorPickerProps = {
+  color: TextColor;
+  disabled: boolean;
+  onPick: (color: TextColor) => void;
+  /** What is coloured: the text (default) or a cell's fill. */
+  target?: "text" | "fill";
+};
 
-/** Text colour: the letter with a bar in the current colour, opening a palette with "Automatisch". */
-export const ColorPicker = ({ color, disabled, onPick }: ColorPickerProps) => {
+const TARGETS = {
+  text: { label: "Schriftfarbe", palette: "Schriftfarben", none: "Automatisch", Icon: Baseline },
+  fill: { label: "Füllfarbe", palette: "Füllfarben", none: "Keine Füllung", Icon: PaintBucket },
+} as const;
+
+/**
+ * A colour button: the icon with a bar in the current colour, opening Word's palette and the
+ * colour-less choice ("Automatisch" for text, "Keine Füllung" for a fill).
+ */
+export const ColorPicker = ({ color, disabled, onPick, target = "text" }: ColorPickerProps) => {
+  const { label, palette, none, Icon } = TARGETS[target];
   const { open, toggle, close, ref } = usePopover();
   const pick = (value: TextColor) => {
     onPick(value);
@@ -31,30 +46,32 @@ export const ColorPicker = ({ color, disabled, onPick }: ColorPickerProps) => {
     <div ref={ref} className="relative">
       <Button
         variant="ghost"
-        aria-label="Schriftfarbe"
+        aria-label={label}
         aria-haspopup="true"
         aria-expanded={open}
         disabled={disabled}
         onClick={toggle}
         className="flex-col gap-0"
       >
-        <Baseline size={16} />
+        <Icon size={16} />
         <span
           aria-hidden
           className="-mt-0.5 h-1 w-4 rounded-sm"
-          style={{ background: color ?? "var(--foreground)" }}
+          style={{ background: color ?? (target === "text" ? "var(--foreground)" : "transparent") }}
         />
       </Button>
       {open && (
         <fieldset className={popoverPanel}>
-          <legend className="sr-only">Schriftfarben</legend>
+          <legend className="sr-only">{palette}</legend>
           <button
             type="button"
             onClick={() => pick(null)}
             className="flex h-8 items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-[var(--muted)]"
           >
-            <span className="size-4 rounded-sm border border-[var(--border)] bg-[var(--foreground)]" />
-            Automatisch
+            <span
+              className={`size-4 rounded-sm border border-[var(--border)] ${target === "text" ? "bg-[var(--foreground)]" : ""}`}
+            />
+            {none}
             {color === null && <Check size={14} className="ml-auto" aria-hidden />}
           </button>
           <div className="grid grid-cols-10 gap-1">

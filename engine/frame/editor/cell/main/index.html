@@ -1,0 +1,114 @@
+<!doctype html>
+<!--
+  Hosts the spreadsheet engine, four folders below the engine root like the text editor's page
+  (see ../../word/main/index.html for why).
+
+  The formula bar lives here, not in the app: sdkjs takes its input by id from its own document
+  (cell/api.js reads config["id-input"] with document.getElementById) and types into it while a
+  cell is edited, as the web-apps editors do (spreadsheeteditor/mobile CellEditor.jsx). The name
+  box beside it is filled and read by packages/editor-core (cell.ts).
+-->
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Stapel engine</title>
+    <link rel="stylesheet" href="../../../../sdkjs/cell/css/main.css" />
+    <style>
+      :root {
+        --bar-background: #ffffff;
+        --bar-border: #e4e4e7;
+        --bar-text: #09090b;
+        --bar-muted: #71717a;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bar-background: #09090b;
+          --bar-border: #27272a;
+          --bar-text: #fafafa;
+          --bar-muted: #a1a1aa;
+          color-scheme: dark;
+        }
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #f4f4f5;
+        font-family: system-ui, sans-serif;
+      }
+      #formula-bar {
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 32px;
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        border-bottom: 1px solid var(--bar-border);
+        background: var(--bar-background);
+        color: var(--bar-text);
+        font-size: 13px;
+      }
+      #name-box {
+        width: 96px;
+        border: 0;
+        border-right: 1px solid var(--bar-border);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        padding: 0 8px;
+        outline: none;
+      }
+      #formula-sign {
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        color: var(--bar-muted);
+        font-style: italic;
+        border-right: 1px solid var(--bar-border);
+        user-select: none;
+      }
+      #ce-cell-content {
+        flex: 1;
+        border: 0;
+        resize: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        line-height: 20px;
+        padding: 6px 8px 0;
+        outline: none;
+        overflow: hidden;
+      }
+      #editor_sdk {
+        position: absolute;
+        inset: 33px 0 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="formula-bar">
+      <input id="name-box" aria-label="Zellbezug" spellcheck="false" autocomplete="off" />
+      <span id="formula-sign" aria-hidden="true">fx</span>
+      <textarea id="ce-cell-content" aria-label="Inhalt der Zelle" spellcheck="false"></textarea>
+    </div>
+    <div id="editor_sdk"></div>
+    <script>
+      // The flat look of the canvas controls (scroll bars, headings); web-apps sets the same flag.
+      window["flat_desine"] = true;
+      // sdkjs catches its own errors and reports them only to the Document Server; show them in
+      // the console so tests and developers can see why a document failed to open.
+      window.addEventListener("error", (event) => {
+        console.error("[engine]", event.message, event.filename + ":" + event.lineno, event.error?.stack ?? "");
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        console.error("[engine] unhandled rejection", event.reason?.stack ?? String(event.reason));
+      });
+    </script>
+    <script src="../../../../vendor/jquery/jquery.min.js"></script>
+    <script src="../../../../vendor/xregexp/xregexp-all-min.js"></script>
+    <script src="../../../../sdkjs/common/AllFonts.js"></script>
+    <script src="../../../../sdkjs/cell/sdk-all-min.js"></script>
+  </body>
+</html>

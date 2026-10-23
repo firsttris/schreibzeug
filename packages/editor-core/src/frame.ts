@@ -1,6 +1,7 @@
 import type { EngineWindow } from "./engine-types";
 
-export type EditorKind = "word";
+/** The three editors of the engine: text documents, spreadsheets, presentations. */
+export type EditorKind = "word" | "cell" | "slide";
 
 export type FrameOptions = {
   kind: EditorKind;
@@ -23,9 +24,16 @@ export type EngineFrame = {
 export const framePath = (kind: EditorKind, enginePath = "/engine"): string =>
   `${enginePath.replace(/\/$/, "")}/frame/editor/${kind}/main/index.html`;
 
-const isEngineLoaded = (win: Window | null): win is EngineWindow => {
-  const candidate = win as Partial<EngineWindow> | null;
-  return Boolean(candidate?.Asc?.asc_docs_api && candidate.AscCommon);
+/** The constructor each editor's sdk-all defines (word/api.js, cell/api.js, slide/api.js). */
+const API_CONSTRUCTOR: Record<EditorKind, string> = {
+  word: "asc_docs_api",
+  cell: "spreadsheet_api",
+  slide: "asc_docs_api",
+};
+
+const isEngineLoaded = (win: Window | null, kind: EditorKind): win is EngineWindow => {
+  const candidate = win as (Partial<EngineWindow> & { Asc?: Record<string, unknown> }) | null;
+  return Boolean(candidate?.Asc?.[API_CONSTRUCTOR[kind]] && candidate.AscCommon);
 };
 
 type FocusableWindow = Pick<Window, "addEventListener"> & {
@@ -72,7 +80,7 @@ export const mountEngineFrame = (container: HTMLElement, options: FrameOptions):
     element.addEventListener("load", () => {
       clearTimeout(timer);
       const win = element.contentWindow;
-      if (isEngineLoaded(win)) {
+      if (isEngineLoaded(win, options.kind)) {
         resolve({ window: win, element, remove });
       } else {
         remove();

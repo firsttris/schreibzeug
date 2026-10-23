@@ -10,7 +10,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { collectErrors, expectEditorReady, openDocument, openOwnFolder, save, upload } from "./app";
 
 const folder = join(import.meta.dirname, "../test-files/fidelity");
-const documents = readdirSync(folder).filter((name) => name.endsWith(".docx"));
+const documents = readdirSync(folder).filter((name) => /\.(docx|xlsx)$/.test(name));
 
 /** The first screen of the document, with the blinking cursor hidden (fidelity.css). */
 const expectPicture = (page: Page, name: string) =>
@@ -32,7 +32,7 @@ for (const name of documents) {
     if (testInfo.config.updateSnapshots !== "none" && testInfo.config.updateSnapshots !== "missing") return;
 
     // Save without a change, so the file goes through the engine and x2t once, then open it again.
-    await page.getByRole("button", { name: "Alles auswählen" }).click();
+    if (name.endsWith(".docx")) await page.getByRole("button", { name: "Alles auswählen" }).click();
     await save(page);
     await page.reload();
     await expectEditorReady(page, errors);

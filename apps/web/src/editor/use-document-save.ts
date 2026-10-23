@@ -1,4 +1,4 @@
-import { AUTOSAVE_DELAY, autosaveDelay, type EditorState, type WordEditor } from "@stapel/editor-core";
+import { AUTOSAVE_DELAY, autosaveDelay, type CoreState, type OpenedDocument } from "@stapel/editor-core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type DocumentSave = {
@@ -13,9 +13,9 @@ export type DocumentSave = {
  * of the newest change first, everyone else later if that did not happen (editor-core
  * session-progress.ts). After a failed save it tries again at the slower pace.
  */
-export const useDocumentSave = (
-  editor: WordEditor | null,
-  state: EditorState,
+export const useDocumentSave = <S extends CoreState>(
+  editor: OpenedDocument<S> | null,
+  state: S,
   store: (bytes: Uint8Array) => Promise<unknown>,
 ): DocumentSave => {
   const [saving, setSaving] = useState(false);

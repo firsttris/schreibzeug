@@ -2,15 +2,17 @@ import { join } from "node:path";
 import { type Browser, expect, type Page, type TestInfo, test, type WebSocketRoute } from "@playwright/test";
 import {
   collectErrors,
+  createFile,
   credentialsFor,
   expectEditorReady,
   openOwnFolder,
   save,
   signIn,
+  storedDocx,
   storedXml,
   upload,
 } from "./app";
-import { paragraphTexts } from "./docx";
+import { paragraphTexts, partXml } from "./docx";
 
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
@@ -150,5 +152,53 @@ test("changes are stored on their own, and everyone sees when they are", async (
     await expect(someone.getByTestId("editor-status")).toHaveAttribute("data-modified", "false");
     await expect(someone.getByTestId("editor-status")).toHaveText("Gespeichert");
   }
+  expect([...errors, ...ben.errors].filter((line) => line.includes("[engine]"))).toEqual([]);
+});
+
+/** The texts of a workbook; empty before the first save, as the blank file has none. */
+const sharedStrings = (xlsx: Uint8Array): string => {
+  try {
+    return partXml(xlsx, "xl/sharedStrings.xml");
+  } catch {
+    return "";
+  }
+};
+
+test("two people fill the same spreadsheet", async ({ page, browser }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await createFile(page, "Tabelle", "Gemeinsam");
+  await expectEditorReady(page, errors);
+  const url = page.url();
+  const fileId = url.split("/").at(-1) as string;
+  const ben = await openAs(browser, url, testInfo);
+
+  const typeInto = async (who: Page, reference: string, text: string) => {
+    await who.bringToFront();
+    const box = who.frameLocator('[data-testid="engine-frame"]').locator("#name-box");
+    await box.fill(reference);
+    await box.press("Enter");
+    await who.keyboard.type(text);
+    await who.keyboard.press("Enter");
+  };
+  const valueAt = async (who: Page, reference: string) => {
+    const frame = who.frameLocator('[data-testid="engine-frame"]');
+    await frame.locator("#name-box").fill(reference);
+    await frame.locator("#name-box").press("Enter");
+    return frame.locator("#ce-cell-content").inputValue();
+  };
+
+  await typeInto(page, "A1", "Anna");
+  await expect.poll(() => valueAt(ben.page, "A1"), { timeout: 30_000 }).toBe("Anna");
+  await typeInto(ben.page, "B1", "Ben");
+  await expect.poll(() => valueAt(page, "B1"), { timeout: 30_000 }).toBe("Ben");
+
+  // Stored on its own, with both texts (spreadsheets keep texts in the shared strings).
+  await expect
+    .poll(async () => sharedStrings(await storedDocx(page, fileId)), {
+      timeout: 30_000,
+      intervals: [1_000],
+    })
+    .toMatch(/Anna[\s\S]*Ben|Ben[\s\S]*Anna/);
   expect([...errors, ...ben.errors].filter((line) => line.includes("[engine]"))).toEqual([]);
 });

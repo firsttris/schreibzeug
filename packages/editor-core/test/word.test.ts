@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Convert } from "../src/converter";
-import { hasUnsavedChanges } from "../src/state";
+import { hasUnsavedChanges } from "../src/core-state";
 import { openWordDocument } from "../src/word";
 import { createFakeEngine } from "./fake-engine";
 

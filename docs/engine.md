@@ -27,9 +27,11 @@ the result by the hash of the spec, the script and the frame pages).
 
 sdkjs resolves its own files relative to the page as `../../../../sdkjs/…` and `../../../../fonts/`
 (`common/libfont/loader.js`, `common/GlobalLoaders.js`, `common/zlib/zlib.js`). The host page
-therefore sits four folders below the engine root: `/engine/frame/editor/word/main/index.html`.
+therefore sits four folders below the engine root: `/engine/frame/editor/<editor>/main/index.html`,
+with `word` for text documents and `cell` for spreadsheets.
 
-`mountEngineFrame` loads that page in a same-origin iframe. The iframe keeps the engine's globals
+`mountEngineFrame` loads that page in a same-origin iframe and checks that the editor's API
+constructor is there (`asc_docs_api` for text, `spreadsheet_api` for spreadsheets). The iframe keeps the engine's globals
 (`Asc`, `AscCommon`, `AscFonts`, …) out of the app and gives each document its own engine.
 
 The iframe has its own `Object`, `Array` and so on. sdkjs sometimes checks values with
@@ -47,10 +49,14 @@ CryptPad does. x2t runs in a worker (`createConverter`), so its large heap stays
 
 ## How a document opens without a server
 
-`openWordDocument` converts the .docx (`docx → bin`) and then follows the mobile editor of web-apps
-(`apps/documenteditor/mobile/src/controller/Main.jsx`):
+Opening is the same for every editor (`src/document.ts` `openDocument`); each editor adds its part
+as an `EditorBinding`: the format, how its API is made, its state and events, its commands, what it
+sets once the document is shown. `openWordDocument` (`src/word.ts`) and `openSheetDocument`
+(`src/cell.ts`) are the two bindings. The flow converts the file (`docx → bin`, `xlsx → bin`) and
+then follows the mobile editors of web-apps (`apps/*editor/mobile/src/controller/Main.jsx`):
 
-1. `new Asc.asc_docs_api({"id-view": "editor_sdk"})` inside the frame.
+1. The editor's API inside the frame: `new Asc.asc_docs_api({"id-view": "editor_sdk"})`, or
+   `new Asc.spreadsheet_api({"id-view": "editor_sdk", "id-input": "ce-cell-content"})`.
 2. Register the callbacks (state events, `asc_onGetEditorPermissions`, `asc_onDocumentContentReady`,
    `asc_onError`).
 3. `asc_setDocInfo(info)` with the URL `AscCommon.offlineMode`. That switches off the server
@@ -137,3 +143,41 @@ focus out of the app: after a toolbar button had the focus, typing went nowhere.
 listens for `pointerdown` in the frame and, when nothing in the frame holds the keys, focuses the
 engine's input (`api.getFocusElement()`, `common/apiBase.js`); the engine's own `focus` handler
 then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`).
+
+## Spreadsheets
+
+`src/cell.ts` binds the spreadsheet engine (`cell/api.js`), following web-apps'
+`spreadsheeteditor/mobile`:
+
+- **Formula bar.** The engine types into an input it finds by id in its own document
+  (`config["id-input"]`, `document.getElementById`), so the formula bar is part of the frame page
+  (`engine/frame/editor/cell/main/index.html`), with the name box beside it. The name box shows
+  `asc_onSelectionNameChanged` and jumps with `asc_findCell` on Enter.
+- **German regional format.** `asc_setLocale(0x0407)` before loading: decimal comma, `;` between
+  function arguments. Function names stay English (`SUM`), as the engine has no German names
+  without a translation file.
+- **State.** `asc_onSelectionChanged` brings the active cell (`asc_CCellInfo` →
+  `CellXfs`: font, colours, alignment, wrap, number format; merge state), `asc_onSheetsChanged` and
+  `asc_onActiveSheetChanged` the sheet tabs, read with `asc_getWorksheetsCount`,
+  `asc_getWorksheetName`, `asc_isWorksheetHidden`, `asc_getActiveWorksheetIndex`.
+- **The handler list.** The engine keeps one function per event as is and only several as a list.
+  While opening it unregisters a callback of its own for `asc_onSelectionChanged`, which deletes
+  the whole event when only one function is there (`cell/view/HandlerList.js` `remove`). An empty
+  first callback keeps ours. It also calls only what its `asc_typeOf` calls "function", so callbacks
+  are never `async` functions.
+
+| Command | Engine call (cell/api.js) |
+|---|---|
+| bold, italic, underline, strikethrough | `asc_setCellBold/Italic/Underline/Strikeout(value)` |
+| font, size | `asc_setCellFontName(name)`, `asc_setCellFontSize(size)` (at most 409) |
+| text colour, fill | `asc_setCellTextColor(asc_CColor)`, `asc_setCellBackgroundColor(asc_CColor \| null)` |
+| alignment, wrap | `asc_setCellAlign(AscCommon.align_*)`, `asc_setCellTextWrap(value)` |
+| number format | `asc_setCellFormat(code)`: `General`, `#,##0.00`, `#,##0.00\ [$€-407]`, `0.00%`, `dd.mm.yyyy`, `@` |
+| merge | `asc_mergeCells(c_oAscMergeOptions.Merge \| None)` |
+| rows, columns | `asc_insertCells(c_oAscInsertOptions.InsertRows \| InsertColumns)`, `asc_deleteCells(…)` |
+| undo, redo | `asc_Undo()`, `asc_Redo()`; state from `asc_onCanUndoChanged`, `asc_onCanRedoChanged` |
+| sheets | `asc_showWorksheet(i)`, `asc_addWorksheet(name)`, `asc_renameWorksheet(name)`, `asc_deleteWorksheet()` |
+
+The spreadsheet has no `SetUnchangedDocument`; its "modified" flag drops once the relay has the
+changes (`asc_isDocumentModified`, `History.Have_Changes`).
+

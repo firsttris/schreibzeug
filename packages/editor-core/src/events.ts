@@ -1,6 +1,7 @@
 import { toTextColor } from "./colors";
 import { readComment } from "./comments";
-import type { EngineEventArgs, EngineEventName } from "./engine-types";
+import type { CoreEvent } from "./core-state";
+import type { CommonEventArgs, WordEventArgs } from "./engine-types";
 import type { Align, EditorEvent } from "./state";
 
 /** Paragraph alignment values from common/commonDefines.js (align_Right = 0 … align_Justify = 3). */
@@ -28,12 +29,15 @@ export const fromAlign = (align: Align, constants: AlignConstants): number =>
   })[align];
 
 /** Font names without duplicates, in the order a person looks for them. */
-const uniqueSorted = (names: string[]): string[] =>
+export const uniqueSorted = (names: string[]): string[] =>
   [...new Set(names.filter((name) => name.length > 0))].sort((a, b) => a.localeCompare(b, "de"));
 
-type Translator<N extends EngineEventName> = (...args: EngineEventArgs[N]) => EditorEvent | null;
+/** Turns the arguments of engine events into the editor's events; null when there is nothing to tell. */
+export type Translators<Events, Out> = {
+  [N in keyof Events]?: (...args: Extract<Events[N], unknown[]>) => Out | null;
+};
 
-export type EventTranslators = { [N in EngineEventName]?: Translator<N> };
+export type EventTranslators = Translators<WordEventArgs, EditorEvent>;
 
 /**
  * The engine starts its "Disconnect" action when the connection to the other editors drops and
@@ -43,11 +47,18 @@ export type EventTranslators = { [N in EngineEventName]?: Translator<N> };
 const connectionEvent = (disconnect: number, connected: boolean) => (_type: number, id: number) =>
   id === disconnect ? ({ type: "connected", value: connected } as const) : null;
 
+/** What every editor's engine tells the same way. */
+export const coreEvents = (disconnectAction: number): Translators<CommonEventArgs, CoreEvent> => ({
+  asc_onStartAction: connectionEvent(disconnectAction, false),
+  asc_onEndAction: connectionEvent(disconnectAction, true),
+});
+
 /**
  * Engine events that become state. Each entry turns the arguments of one sdkjs event into an
  * EditorEvent; events not listed here are handled by the open/close flow in word.ts.
  */
 export const stateEvents = (aligns: AlignConstants, disconnectAction: number): EventTranslators => ({
+  ...coreEvents(disconnectAction),
   asc_onBold: (value) => ({ type: "bold", value: Boolean(value) }),
   asc_onItalic: (value) => ({ type: "italic", value: Boolean(value) }),
   asc_onUnderline: (value) => ({ type: "underline", value: Boolean(value) }),
@@ -73,6 +84,4 @@ export const stateEvents = (aligns: AlignConstants, disconnectAction: number): E
   asc_onCanUndo: (value) => ({ type: "canUndo", value: Boolean(value) }),
   asc_onCanRedo: (value) => ({ type: "canRedo", value: Boolean(value) }),
   asc_onCountPages: (value) => ({ type: "pages", value }),
-  asc_onStartAction: connectionEvent(disconnectAction, false),
-  asc_onEndAction: connectionEvent(disconnectAction, true),
 });

@@ -1,4 +1,5 @@
-import { initialProgress, isAhead, readProgress, type SessionProgress } from "./session-progress";
+import { type CoreEvent, type CoreState, initialCoreState, isCoreEvent, reduceCore } from "./core-state";
+
 export type Align = "left" | "center" | "right" | "justify";
 
 export type ListKind = "bullet" | "number";
@@ -47,23 +48,8 @@ export type Comment = CommentEntry & {
   replies: CommentEntry[];
 };
 
-export type DocumentState = {
-  canUndo: boolean;
-  canRedo: boolean;
-  modified: boolean;
-  pages: number;
-  /**
-   * False while the connection to the other editors is lost; the engine takes no edits meanwhile
-   * and catches up once it is back.
-   */
-  connected: boolean;
-};
-
-export type EditorStatus = "loading" | "ready" | "error";
-
-export type EditorState = {
-  status: EditorStatus;
-  error: string | null;
+/** The text editor's state: what every document has, and the formatting at the cursor. */
+export type EditorState = CoreState & {
   text: TextState;
   paragraph: ParagraphState;
   catalog: CatalogState;
@@ -71,13 +57,10 @@ export type EditorState = {
   comments: Comment[];
   /** The comments on the text at the cursor. */
   activeComments: string[];
-  document: DocumentState;
-  /** A shared session's change log against the stored file; stays empty when editing alone. */
-  session: SessionProgress;
 };
 
-/** What the engine told us, already translated from sdkjs arguments (see events.ts). */
-export type EditorEvent =
+/** What the text engine told us, already translated from sdkjs arguments (see events.ts). */
+export type WordEvent =
   | { type: "bold"; value: boolean }
   | { type: "italic"; value: boolean }
   | { type: "underline"; value: boolean }
@@ -91,22 +74,14 @@ export type EditorEvent =
   | { type: "fontSize"; value: number }
   | { type: "fontName"; value: string | null }
   | { type: "align"; value: Align | null }
-  | { type: "canUndo"; value: boolean }
-  | { type: "canRedo"; value: boolean }
-  | { type: "modified"; value: boolean }
-  | { type: "pages"; value: number }
-  | { type: "connected"; value: boolean }
   | { type: "commentSet"; comment: Comment }
   | { type: "commentRemoved"; id: string }
-  | { type: "activeComments"; ids: string[] }
-  /** A message from the collaboration relay, as JSON text. */
-  | { type: "message"; json: string }
-  | { type: "ready" }
-  | { type: "error"; message: string };
+  | { type: "activeComments"; ids: string[] };
+
+export type EditorEvent = WordEvent | CoreEvent;
 
 export const initialEditorState: EditorState = {
-  status: "loading",
-  error: null,
+  ...initialCoreState,
   text: {
     bold: false,
     italic: false,
@@ -121,8 +96,6 @@ export const initialEditorState: EditorState = {
   catalog: { fonts: [], styles: [] },
   comments: [],
   activeComments: [],
-  document: { canUndo: false, canRedo: false, modified: false, pages: 0, connected: true },
-  session: initialProgress,
 };
 
 const withText = (state: EditorState, text: Partial<TextState>): EditorState => ({
@@ -140,11 +113,6 @@ const withCatalog = (state: EditorState, catalog: Partial<CatalogState>): Editor
   catalog: { ...state.catalog, ...catalog },
 });
 
-const withDocument = (state: EditorState, document: Partial<DocumentState>): EditorState => ({
-  ...state,
-  document: { ...state.document, ...document },
-});
-
 /** Replaces the comment with the same id in place, or adds it at the end. */
 const setComment = (comments: Comment[], comment: Comment): Comment[] =>
   comments.some((existing) => existing.id === comment.id)
@@ -152,6 +120,7 @@ const setComment = (comments: Comment[], comment: Comment): Comment[] =>
     : [...comments, comment];
 
 export const reduceEditorState = (state: EditorState, event: EditorEvent): EditorState => {
+  if (isCoreEvent(event)) return reduceCore(state, event);
   switch (event.type) {
     case "bold":
       return withText(state, { bold: event.value });
@@ -179,16 +148,6 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withText(state, { fontName: event.value });
     case "align":
       return withText(state, { align: event.value });
-    case "canUndo":
-      return withDocument(state, { canUndo: event.value });
-    case "canRedo":
-      return withDocument(state, { canRedo: event.value });
-    case "modified":
-      return withDocument(state, { modified: event.value });
-    case "pages":
-      return withDocument(state, { pages: event.value });
-    case "connected":
-      return withDocument(state, { connected: event.value });
     case "commentSet":
       return { ...state, comments: setComment(state.comments, event.comment) };
     case "commentRemoved":
@@ -199,17 +158,5 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       };
     case "activeComments":
       return { ...state, activeComments: event.ids };
-    case "message": {
-      const session = readProgress(state.session, event.json);
-      return session === state.session ? state : { ...state, session };
-    }
-    case "ready":
-      return { ...state, status: "ready", error: null };
-    case "error":
-      return { ...state, status: "error", error: event.message };
   }
 };
-
-/** Changes that are not in a stored version yet: the engine's own, or the session's. */
-export const hasUnsavedChanges = (state: EditorState): boolean =>
-  state.document.modified || isAhead(state.session);

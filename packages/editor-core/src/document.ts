@@ -1,0 +1,252 @@
+import type { CollabChannel } from "./collab";
+import type { Convert, OfficeFormat } from "./converter";
+import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
+import type { CommonEventArgs, EngineApiBase, EngineWindow } from "./engine-types";
+import { coreEvents, type Translators } from "./events";
+import { keepFocusOnClick } from "./frame";
+import { createFrameSocketIO } from "./frame-socket";
+import { createStore, type Store } from "./store";
+
+export type DocumentUser = { id: string; name: string };
+
+export type OpenOptions = {
+  /** The Office file (.docx, .xlsx, .pptx). */
+  bytes: Uint8Array;
+  title: string;
+  user: DocumentUser;
+  /** Turns the file into the engine's binary format and back (converter.ts). */
+  convert: Convert;
+  lang?: string;
+  /** How long to wait until the document is shown, in milliseconds. */
+  timeoutMs?: number;
+  /**
+   * Edit together with others: the relay session (collab.ts joinSession) and the id every
+   * participant uses for this document. `bytes` must be the session's base version.
+   */
+  collaboration?: { channel: CollabChannel; documentId: string };
+};
+
+/** An Office file made from the document, and how many of the session's changes it holds. */
+export type SavedDocument = { bytes: Uint8Array; seen: number };
+
+/** What every open document offers, whatever the editor. */
+export type OpenedDocument<S extends CoreState> = {
+  store: Store<S>;
+  /** The document as an Office file: the engine's binary, converted in the browser. */
+  save: () => Promise<SavedDocument>;
+  /**
+   * The copy from `save` is stored: "modified" turns false until the next change, and in a shared
+   * session everyone learns how much of the change log the stored version holds.
+   */
+  markSaved: (saved: SavedDocument) => void;
+  resize: () => void;
+  close: () => void;
+};
+
+/** What one editor's engine needs on top of the shared opening flow. */
+export type EditorBinding<
+  W extends EngineWindow,
+  Events extends CommonEventArgs,
+  Api extends EngineApiBase<Events>,
+  S extends CoreState,
+  E extends { type: string },
+  Parts,
+> = {
+  /** The Office format the converter reads and writes for this editor. */
+  format: OfficeFormat;
+  /** The editor's API object, created in the frame (word/api.js, cell/api.js, slide/api.js). */
+  createApi: (win: W) => Api;
+  initialState: S;
+  /** The editor's own events; the shared ones go through reduceCore. */
+  reduce: (state: S, event: E) => S;
+  /** Engine events that become the editor's own events. */
+  events: (win: W) => Translators<Events, E | CoreEvent>;
+  /** Callbacks and commands of this editor: its part of the opened document. */
+  setup: (context: KindContext<W, Api, S, E>) => Parts;
+  /** What the editor sets once the document is shown (spell check, zoom, …). */
+  contentReady: (api: Api, win: W, shared: boolean) => void;
+  resize: (api: Api) => void;
+  /** Marks the current state as saved in the engine, where the editor can. */
+  markUnchanged: (api: Api) => void;
+};
+
+export type KindContext<W, Api, S, E> = {
+  win: W;
+  api: Api;
+  store: Store<S>;
+  dispatch: (event: E | CoreEvent) => void;
+  options: OpenOptions;
+};
+
+/** common/errorCodes.js `c_oAscError.Level.Critical`: the document cannot be used. */
+const CRITICAL_ERROR_LEVEL = -1;
+
+const subscribe = <Events extends CommonEventArgs, Out>(
+  api: EngineApiBase<Events>,
+  translators: Translators<Events, Out>,
+  dispatch: (event: Out) => void,
+): void => {
+  for (const name of Object.keys(translators) as Array<keyof Events>) {
+    const translate = translators[name] as (...args: unknown[]) => Out | null;
+    api.asc_registerCallback(name, (...args) => {
+      const event = translate(...args);
+      if (event) dispatch(event);
+    });
+  }
+};
+
+const createDocInfo = (win: EngineWindow, options: OpenOptions, format: OfficeFormat, url: string) => {
+  const user = new win.Asc.asc_CUserInfo();
+  user.put_Id(options.user.id);
+  user.put_FullName(options.user.name);
+
+  const info = new win.Asc.asc_CDocInfo();
+  info.put_Id(options.collaboration?.documentId ?? crypto.randomUUID());
+  info.put_Url(url);
+  info.put_Title(options.title);
+  info.put_Format(format);
+  info.put_UserInfo(user);
+  info.put_Permissions({ edit: true, download: true, print: true, comment: true, review: true });
+  info.put_Mode("edit");
+  info.put_Lang(options.lang ?? "de");
+  // Fast co-editing, as web-apps chooses by default (documenteditor/mobile Main.jsx coEditMode).
+  if (options.collaboration) info.put_CoEditingMode("fast");
+  return info;
+};
+
+/** Feeds the relay's messages into the session progress (session-progress.ts). */
+const followProgress = (channel: CollabChannel | undefined, dispatch: (event: CoreEvent) => void) =>
+  channel?.observe((json) => dispatch({ type: "message", json })) ?? (() => {});
+
+/**
+ * Where the engine gets the document from, and whether it talks to anyone.
+ *
+ * Alone: the offline URL makes sdkjs skip the Document Server (no socket, a local license answer)
+ * and ask for the file through `_openChartOrLocalDocument`, which gets our bytes
+ * (common/apiBase.js asc_setDocInfo, _coAuthoringInit).
+ *
+ * Together: sdkjs connects with what it finds in `window.io` (frame-socket.ts) and, after `auth`,
+ * opens the "Editor.bin" URL the relay names in `documentOpen`, which is the URL it was given:
+ * our binary as a blob in the frame, the same bytes for every participant.
+ */
+const connectEngine = (
+  win: EngineWindow,
+  api: EngineApiBase<CommonEventArgs>,
+  binary: Uint8Array,
+  collaboration: OpenOptions["collaboration"],
+): string => {
+  if (!collaboration) {
+    api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
+    return win.AscCommon.offlineMode;
+  }
+  win.io = createFrameSocketIO(win, collaboration.channel);
+  return win.URL.createObjectURL(new win.Blob([binary as BlobPart]));
+};
+
+/**
+ * What web-apps switches on once a shared document is shown (common/mobile/lib/controller/
+ * collaboration/Collaboration.jsx onDocumentReady): changes go out as they happen, every second.
+ * Without the autosave gap the engine sends nothing.
+ */
+const startCoEditing = (api: EngineApiBase<CommonEventArgs>): void => {
+  api.asc_SetFastCollaborative(true);
+  api.asc_setAutoSaveGap(1);
+};
+
+/**
+ * Opens an Office file in the engine of an already mounted frame. The engine of this build reads
+ * only its binary format — its OOXML readers are not part of Euro-Office — so the file is converted
+ * with x2t first, and saving converts back. The sequence follows the mobile editors of web-apps
+ * (apps/*editor/mobile/src/controller/Main.jsx): create the API, set the document info, ask for
+ * permissions, load.
+ */
+export const openDocument = <
+  W extends EngineWindow,
+  Events extends CommonEventArgs,
+  Api extends EngineApiBase<Events>,
+  S extends CoreState,
+  E extends { type: string },
+  Parts,
+>(
+  win: W,
+  options: OpenOptions,
+  binding: EditorBinding<W, Events, Api, S, E, Parts>,
+): Promise<OpenedDocument<S> & Parts> => {
+  const store = createStore<S>(binding.initialState);
+  const dispatch = (event: E | CoreEvent) =>
+    store.set((state) => (isCoreEvent(event) ? reduceCore(state, event) : binding.reduce(state, event as E)));
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (finish: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      finish();
+    };
+    const onFailure = (message: string) =>
+      settle(() => {
+        dispatch({ type: "error", message });
+        reject(new Error(message));
+      });
+    const timer = setTimeout(
+      () => onFailure("The document did not open in time."),
+      options.timeoutMs ?? 60_000,
+    );
+
+    const start = (binary: Uint8Array) => {
+      const api = binding.createApi(win);
+      const base = api as unknown as EngineApiBase<CommonEventArgs>;
+      const stopProgress = followProgress(options.collaboration?.channel, dispatch);
+      const url = connectEngine(win, base, binary, options.collaboration);
+      subscribe(base, coreEvents(win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
+      subscribe(api, binding.events(win), dispatch);
+      keepFocusOnClick(win, () => api.getFocusElement());
+      // The event carries no value in word and slide; web-apps reads the flag on it.
+      base.asc_registerCallback("asc_onDocumentModifiedChanged", () =>
+        dispatch({ type: "modified", value: api.isDocumentModified() }),
+      );
+      const parts = binding.setup({ win, api, store, dispatch, options });
+
+      const opened: OpenedDocument<S> & Parts = {
+        ...parts,
+        store,
+        save: async () => {
+          const seen = store.get().session.seen;
+          const binaryNow = new TextEncoder().encode(api.asc_nativeGetFile());
+          return { bytes: await options.convert(binaryNow, "bin", binding.format), seen };
+        },
+        markSaved: ({ seen }) => {
+          binding.markUnchanged(api);
+          options.collaboration?.channel.send(JSON.stringify({ type: "stapel:saved", index: seen }));
+        },
+        resize: () => binding.resize(api),
+        close: () => {
+          stopProgress();
+          api.asc_CloseFile?.();
+        },
+      };
+
+      base.asc_registerCallback("asc_onGetEditorPermissions", () => api.asc_LoadDocument());
+      base.asc_registerCallback("asc_onDocumentContentReady", () => {
+        if (options.collaboration) startCoEditing(base);
+        binding.contentReady(api, win, Boolean(options.collaboration));
+        settle(() => {
+          dispatch({ type: "ready" });
+          resolve(opened);
+        });
+      });
+      base.asc_registerCallback("asc_onError", (id, level) => {
+        if (level === CRITICAL_ERROR_LEVEL) onFailure(`The engine reported error ${id}.`);
+      });
+
+      api.asc_setDocInfo(createDocInfo(win, options, binding.format, url));
+      api.asc_getEditorPermissions();
+    };
+
+    options
+      .convert(options.bytes, binding.format, "bin")
+      .then(start)
+      .catch((error: unknown) => onFailure(error instanceof Error ? error.message : String(error)));
+  });
+};

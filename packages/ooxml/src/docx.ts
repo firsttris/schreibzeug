@@ -1,4 +1,4 @@
-import { strToU8, zipSync } from "fflate";
+import { escapeXml, officePackage } from "./zip";
 
 /** One run of text with optional run properties, e.g. `<w:i/>` (ECMA-376 Part 1, 17.3.2). */
 export type Run = { text: string; properties?: string };
@@ -39,9 +39,6 @@ const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 const sectionProperties =
   '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1134" w:left="1417" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>';
 
-const escapeXml = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
 const runXml = ({ text, properties }: Run): string =>
   `<w:r>${properties ? `<w:rPr>${properties}</w:rPr>` : ""}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>`;
 
@@ -60,21 +57,15 @@ const documentXml = (paragraphs: string[]): string => `<?xml version="1.0" encod
   </w:body>
 </w:document>`;
 
-/** A fixed date for the zip entries, so the same content always gives the same bytes. */
-const ZIP_DATE = new Date(1980, 0, 1);
-
 /** A .docx package with the given paragraphs (as built by `paragraphXml`). */
 export const docx = (paragraphs: string[]): Uint8Array =>
-  zipSync(
-    {
-      "[Content_Types].xml": strToU8(contentTypes),
-      "_rels/.rels": strToU8(rootRels),
-      "word/document.xml": strToU8(documentXml(paragraphs)),
-      "word/_rels/document.xml.rels": strToU8(documentRels),
-      "word/styles.xml": strToU8(styles),
-    },
-    { mtime: ZIP_DATE },
-  );
+  officePackage({
+    "[Content_Types].xml": contentTypes,
+    "_rels/.rels": rootRels,
+    "word/document.xml": documentXml(paragraphs),
+    "word/_rels/document.xml.rels": documentRels,
+    "word/styles.xml": styles,
+  });
 
 /** A new, empty Word document: one empty paragraph, so the cursor has somewhere to go. */
 export const blankDocx = (): Uint8Array => docx([paragraphXml([])]);

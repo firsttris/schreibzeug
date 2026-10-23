@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { docx, paragraphXml, type Run } from "@stapel/ooxml";
+import { docx, paragraphXml, type Run, xlsx } from "@stapel/ooxml";
 
 /** Run properties (ECMA-376 Part 1, 17.3.2); sizes are in half-points. */
 const bold = "<w:b/>";
@@ -60,6 +60,21 @@ const files: Record<string, Uint8Array> = {
       ],
       `<w:jc w:val="both"/>${spaced(10)}`,
     ),
+  ]),
+  // A small price list with a formula: the spreadsheet the tests and the screenshots open.
+  "preise.xlsx": xlsx([
+    {
+      name: "Preise",
+      rows: [
+        ["Artikel", "Menge", "Preis", "Summe"],
+        ["Barcode-Scanner", 4, 189, "=B2*C2"],
+        ["Etikettendrucker", 2, 349, "=B3*C3"],
+        ["Regaletiketten", 500, 0.12, "=B4*C4"],
+        ["Gesamt", "", "", "=SUM(D2:D4)"],
+      ],
+      widths: [22, 10, 10, 12],
+    },
+    { name: "Notizen", rows: [["Angebot gültig bis 30.11.2026"]] },
   ]),
 };
 

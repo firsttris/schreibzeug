@@ -7,6 +7,7 @@
  * The messages are the ones sdkjs speaks with the Document Server (sdkjs common/docscoapi.js
  * `_onServerMessage`, server DocService/sources/DocsCoServer.js); docs/collaboration.md lists them.
  */
+import { acquireLocks, EDITOR_TYPE, type Locks, lockKey, locksForAuth } from "./locks";
 
 export type Participant = {
   /** Our connection id; sdkjs sees it as the session id. */
@@ -28,14 +29,14 @@ export type StoredChange = {
   useridoriginal: string;
 };
 
-export type Lock = { time: number; user: string; block: unknown };
-
 export type Session = {
   fileId: string;
   /** The file version every participant opens; the changes apply on top of it. */
   baseVersion: number;
   changes: StoredChange[];
-  locks: Record<string, Lock>;
+  locks: Locks;
+  /** Which editor the session's document is in (locks.ts EDITOR_TYPE), from the first `auth`. */
+  editorType: number;
   participants: Participant[];
   nextIndexUser: number;
   /** How many changes of the log a stored version holds: the rest exists only in this session. */
@@ -54,6 +55,7 @@ export const createSession = (fileId: string, baseVersion: number): Session => (
   baseVersion,
   changes: [],
   locks: {},
+  editorType: EDITOR_TYPE.document,
   participants: [],
   nextIndexUser: 1,
   savedIndex: 0,
@@ -162,7 +164,7 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
         result: 1,
         sessionId: connectionId,
         participants: next.participants,
-        locks: next.locks,
+        locks: locksForAuth(next.locks, next.editorType),
         indexUser,
         licenseType: 3,
         ...BUILD,
@@ -173,12 +175,6 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
     ],
   };
 };
-
-/** A lock's key: the block's guid, or the block itself for the editors that send plain ids. */
-const lockKey = (block: unknown): string =>
-  typeof block === "object" && block && "guid" in block
-    ? String((block as { guid: unknown }).guid)
-    : String(block);
 
 /**
  * A connection authenticates: it becomes a participant and gets everything it needs to catch up,
@@ -202,6 +198,8 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
     ...session,
     nextIndexUser: indexUser + 1,
     participants: [...session.participants.filter((p) => p.connectionId !== connectionId), participant],
+    // DocsCoServer keeps the editor type per connection; one file is always in one editor.
+    editorType: typeof data.editorType === "number" ? data.editorType : session.editorType,
   };
   const openCmd = data.openCmd as { url?: unknown } | undefined;
   const out: Outgoing[] = [
@@ -212,7 +210,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
       sessionId: connectionId,
       sessionTimeConnect: now,
       participants: next.participants,
-      locks: session.locks,
+      locks: locksForAuth(session.locks, next.editorType),
       indexUser,
       licenseType: 3,
       ...BUILD,
@@ -233,15 +231,12 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
   return { session: next, out };
 };
 
-/** Blocks a client asks to edit. Word grants every lock (DocsCoServer `_checkLockWord` is true). */
+/** Blocks a client asks to edit; whether it gets them depends on the editor (locks.ts). */
 export const getLock = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
   const participant = participantOf(session, connectionId);
   if (!participant) return { session, out: [] };
   const blocks = Array.isArray(data.block) ? data.block : [];
-  const added = Object.fromEntries(
-    blocks.map((block) => [lockKey(block), { time: now, user: participant.id, block }]),
-  );
-  const locks = { ...session.locks, ...added };
+  const locks = acquireLocks(session.locks, blocks, participant.id, now, session.editorType);
   return { session: { ...session, locks }, out: [{ to: "all", message: { type: "getLock", locks } }] };
 };
 
@@ -322,6 +317,8 @@ export const saveChanges = (session: Session, connectionId: string, data: Incomi
         syncChangesIndex: changes.length,
         endSaveChanges: true,
         locks: released,
+        // Spreadsheets send how rows and columns moved, for the others to follow (DocsCoServer saveChanges).
+        excelAdditionalInfo: data.excelAdditionalInfo,
       }),
       self({ type: "unSaveLock", index: changesIndex, time: now, syncChangesIndex: changes.length }),
     ],
@@ -329,13 +326,36 @@ export const saveChanges = (session: Session, connectionId: string, data: Incomi
 };
 
 /** The client leaves the document's locks (DocsCoServer `unLockDocument`). */
+/** The answer to a save that ended without changes: the client may send again (DocsCoServer unSaveLock). */
+const SAVE_UNLOCKED = { type: "unSaveLock", index: -1, time: -1, syncChangesIndex: -1 };
+
+/**
+ * The client is done with a step: it may drop changes from `deleteIndex` on (sent again after a
+ * reconnect), give back its locks, and end a save that had nothing to send, which it waits for
+ * before sending anything else (DocsCoServer checkEndAuthLock).
+ */
 export const unlockDocument = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
   const participant = participantOf(session, connectionId);
-  if (!participant || !data.releaseLocks) return { session, out: [] };
-  const { locks, released } = releaseLocksOf(session, participant.id, now);
+  if (!participant) return { session, out: [] };
+  const deleteIndex = typeof data.deleteIndex === "number" ? data.deleteIndex : -1;
+  const changes =
+    deleteIndex >= 0 && deleteIndex < session.changes.length
+      ? session.changes.slice(0, deleteIndex)
+      : session.changes;
+  const { locks, released } = data.releaseLocks
+    ? releaseLocksOf(session, participant.id, now)
+    : { locks: session.locks, released: [] };
+  const out: Outgoing[] = [];
+  if (released.length) {
+    out.push(
+      self({ type: "releaseLock", locks: released }),
+      others({ type: "releaseLock", locks: released }),
+    );
+  }
+  if (data.isSave) out.push(self(SAVE_UNLOCKED));
   return {
-    session: { ...session, locks },
-    out: released.length ? [others({ type: "releaseLock", locks: released })] : [],
+    session: { ...session, changes, locks, savedIndex: Math.min(session.savedIndex, changes.length) },
+    out,
   };
 };
 
@@ -388,10 +408,8 @@ export const receive = (session: Session, connectionId: string, data: Incoming, 
       // One relay process orders all saves, so nobody has to wait for another's save.
       return { session, out: [self({ type: "saveLock", saveLock: false })] };
     case "unSaveLock":
-      return {
-        session,
-        out: [self({ type: "unSaveLock", index: -1, time: now, syncChangesIndex: session.changes.length })],
-      };
+      // A client giving up a save without changes; -1 everywhere, as DocsCoServer answers.
+      return { session, out: [self(SAVE_UNLOCKED)] };
     case "stapel:saved":
       return markSaved(session, data);
     case "getMessages":

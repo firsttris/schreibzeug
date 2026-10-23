@@ -13,8 +13,9 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
 > password, a file browser (folders,
-> upload, new document, rename, move, versions, trash) and a Word editor with styles, fonts, colours, lists, tables and comments that
-> saves on its own, every save a new version. Several people can edit the same document at once. All without a document server.
+> upload, new document or spreadsheet, rename, move, versions, trash), a Word editor with styles, fonts, colours, lists, tables and
+> comments, and a spreadsheet editor with formulas, formatting, number formats and sheets. Both save on their own, every save a
+> new version, and several people can edit the same file at once. All without a document server.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
@@ -22,8 +23,13 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/spreadsheet-dark.png">
+  <img src="docs/screenshots/spreadsheet-light.png" alt="The Stapel spreadsheet editor: toolbar with font, size, bold, italic, colours, alignment, wrap, merge and number format, the formula bar with the formula of the selected cell, the grid, and the sheet tabs below">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/files-dark.png">
-  <img src="docs/screenshots/files-light.png" alt="The Stapel file browser: folders and Word documents with their last change and size, and buttons for a new folder, a new document and upload">
+  <img src="docs/screenshots/files-light.png" alt="The Stapel file browser: folders, Word documents and a spreadsheet with their last change and size, and buttons for a new folder, a new file and upload">
 </picture>
 
 ## 💡 Why Stapel?

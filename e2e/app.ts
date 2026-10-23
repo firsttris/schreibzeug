@@ -86,10 +86,19 @@ export const rename = async (page: Page, from: string, to: string) => {
   await fillNameDialog(page, "Neuer Name", to, "Umbenennen");
 };
 
-export const createDocument = async (page: Page, name: string) => {
-  await page.getByRole("button", { name: "Neues Dokument" }).click();
-  await fillNameDialog(page, "Name des Dokuments", name, "Anlegen und öffnen");
+/** "Neu" → Dokument or Tabelle, named, created and opened. */
+export const createFile = async (page: Page, kind: "Dokument" | "Tabelle", name: string) => {
+  await page.getByRole("button", { name: "Neu", exact: true }).click();
+  await page.getByRole("menuitem", { name: kind }).click();
+  await fillNameDialog(
+    page,
+    kind === "Dokument" ? "Name des Dokuments" : "Name der Tabelle",
+    name,
+    "Anlegen und öffnen",
+  );
 };
+
+export const createDocument = (page: Page, name: string) => createFile(page, "Dokument", name);
 
 /** Waits until the editor has opened the document, and fails with the engine's errors if it did not. */
 export const expectEditorReady = async (page: Page, errors: string[]) => {

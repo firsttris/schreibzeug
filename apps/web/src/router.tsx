@@ -11,7 +11,7 @@ import { z } from "zod";
 import { UserProvider } from "./account/context";
 import { LoginPage } from "./account/login-page";
 import type { Account } from "./api/account";
-import { EditPage } from "./edit-page";
+import { EditPage } from "./editor/edit-page";
 import { FolderPage } from "./files/folder-page";
 import { RecentPage } from "./files/recent-page";
 import { TrashPage } from "./files/trash-page";

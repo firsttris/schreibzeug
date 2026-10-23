@@ -41,8 +41,24 @@ export interface EngineCommentData {
   asc_addReply(reply: EngineCommentData): void;
 }
 
-/** Engine event names we subscribe to, with the arguments sdkjs passes (word/api.js `sendEvent`). */
-export type EngineEventArgs = {
+/**
+ * Events every editor sends (common/apiBase.js `sendEvent`), with their arguments.
+ */
+export type CommonEventArgs = {
+  /** common/apiBase.js sync_InitEditorFonts: every font the engine can draw */
+  asc_onInitEditorFonts: [fonts: Array<{ asc_getFontName(): string }>];
+  /** Sent without arguments by word and slide (SetDocumentModified); read `isDocumentModified()`. */
+  asc_onDocumentModifiedChanged: [];
+  asc_onGetEditorPermissions: [permissions: unknown];
+  asc_onDocumentContentReady: [];
+  asc_onError: [id: number, level: number, data?: unknown];
+  /** common/apiBase.js sync_StartAction / sync_EndAction: c_oAscAsyncActionType, c_oAscAsyncAction. */
+  asc_onStartAction: [type: number, id: number];
+  asc_onEndAction: [type: number, id: number];
+};
+
+/** Events of the text editor we subscribe to, with the arguments sdkjs passes (word/api.js `sendEvent`). */
+export type WordEventArgs = CommonEventArgs & {
   asc_onBold: [isBold: boolean];
   asc_onItalic: [isItalic: boolean];
   asc_onUnderline: [isUnderline: boolean];
@@ -51,8 +67,6 @@ export type EngineEventArgs = {
   asc_onTextColor: [color: EngineColor];
   /** word/api.js sync_ParaStyleName */
   asc_onParaStyleName: [name: string];
-  /** common/apiBase.js sync_InitEditorFonts: every font the engine can draw */
-  asc_onInitEditorFonts: [fonts: Array<{ asc_getFontName(): string }>];
   /** word/api.js sync_InitEditorStyles: the paragraph styles of the document and the defaults */
   asc_onInitEditorStyles: [styles: { get_MergedStyles(): Array<{ get_Name(): string }> }];
   /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
@@ -69,18 +83,10 @@ export type EngineEventArgs = {
   asc_onPrAlign: [align: number];
   asc_onCanUndo: [canUndo: boolean];
   asc_onCanRedo: [canRedo: boolean];
-  /** Sent without arguments (word/api.js SetDocumentModified); read `isDocumentModified()`. */
-  asc_onDocumentModifiedChanged: [];
   asc_onCountPages: [pages: number];
-  /** common/apiBase.js sync_StartAction / sync_EndAction: c_oAscAsyncActionType, c_oAscAsyncAction. */
-  asc_onStartAction: [type: number, id: number];
-  asc_onEndAction: [type: number, id: number];
-  asc_onGetEditorPermissions: [permissions: unknown];
-  asc_onDocumentContentReady: [];
-  asc_onError: [id: number, level: number, data?: unknown];
 };
 
-export type EngineEventName = keyof EngineEventArgs;
+export type WordEventName = keyof WordEventArgs;
 
 /** common/apiCommon.js `asc_CUserInfo` */
 export interface EngineUserInfo {
@@ -102,11 +108,11 @@ export interface EngineDocInfo {
   put_CoEditingMode(mode: "fast" | "strict"): void;
 }
 
-/** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
-export interface WordEngineApi {
-  asc_registerCallback<N extends EngineEventName>(
+/** What every editor's API offers (common/apiBase.js `baseEditorsApi`), typed by its events. */
+export interface EngineApiBase<Events extends CommonEventArgs> {
+  asc_registerCallback<N extends keyof Events>(
     name: N,
-    callback: (...args: EngineEventArgs[N]) => void,
+    callback: (...args: Extract<Events[N], unknown[]>) => void,
   ): void;
   asc_setDocInfo(info: EngineDocInfo): void;
   asc_getEditorPermissions(): void;
@@ -114,8 +120,24 @@ export interface WordEngineApi {
   asc_openDocumentFromBytes(data: Uint8Array): void;
   /** apiBase.js: called by onEndLoadDocInfo in offline mode to open the local file. */
   _openChartOrLocalDocument(): void;
-  /** word/api.js: the document in the engine's binary format, as "DOCY;v5;<size>;<base64>". */
+  /**
+   * The document in the engine's binary format, which x2t reads: "DOCY;…" (word/api.js),
+   * "XLSY;…" (cell/api.js), "PPTY;…" (slide/api.js).
+   */
   asc_nativeGetFile(): string;
+  /** common/apiBase.js: the hidden input that takes the keys (g_inputContext.HtmlArea). */
+  getFocusElement(): HTMLElement;
+  /** Whether there are changes not yet saved or, in co-editing, not yet sent. */
+  isDocumentModified(): boolean;
+  /** Send changes as they happen, instead of when the user saves. */
+  asc_SetFastCollaborative(isOn: boolean): void;
+  /** common/apiBase.js: seconds between sends of the changes; 0 sends none. */
+  asc_setAutoSaveGap(seconds: number): void;
+  asc_CloseFile?(): void;
+}
+
+/** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
+export interface WordEngineApi extends EngineApiBase<WordEventArgs> {
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   zoomFitToWidth(): void;
@@ -155,26 +177,17 @@ export interface WordEngineApi {
   put_PrAlign(align: number): void;
   /** word/api.js */
   asc_EditSelectAll(): void;
-  /** common/apiBase.js: the hidden input that takes the keys (g_inputContext.HtmlArea). */
-  getFocusElement(): HTMLElement;
-  /** word/api.js: whether there are changes since opening or since `SetUnchangedDocument`. */
-  isDocumentModified(): boolean;
-  /** word/api.js: send changes as they happen, instead of when the user saves. */
-  asc_SetFastCollaborative(isOn: boolean): void;
   /** word/api.js: how others' changes are marked (common/commonDefines.js c_oAscCollaborativeMarksShowType). */
   SetCollaborativeMarksShowType(type: number): void;
-  /** common/apiBase.js: seconds between sends of the changes; 0 sends none. */
-  asc_setAutoSaveGap(seconds: number): void;
   /** word/api.js: turns the red underlines of the spell checker on or off. */
   asc_setSpellCheck(isOn: boolean): void;
   /** word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged. */
   SetUnchangedDocument(): void;
   Undo(): void;
   Redo(): void;
-  asc_CloseFile?(): void;
 }
 
-/** The window of the engine frame after sdkjs has loaded (engine/frame/editor/word/main). */
+/** The window of an engine frame after sdkjs has loaded (engine/frame/editor/<kind>/main). */
 export interface EngineWindow extends Window {
   /** The socket.io client sdkjs connects with, if set (common/editorscommon.js getSocketIO). */
   io?: unknown;
@@ -183,20 +196,11 @@ export interface EngineWindow extends Window {
   URL: typeof URL;
   Blob: typeof Blob;
   Asc: {
-    asc_docs_api: new (config: Record<string, unknown>) => WordEngineApi;
     asc_CDocInfo: new () => EngineDocInfo;
     asc_CUserInfo: new () => EngineUserInfo;
     asc_CColor: EngineColorConstructor;
-    asc_CCommentDataWord: new (data: null) => EngineCommentData;
-    c_oAscNumberingFormat: NumberingFormats;
-    /** common/commonDefines.js */
     /** common/commonDefines.js */
     c_oAscAsyncAction: { Disconnect: number };
-    c_oAscCollaborativeMarksShowType: { None: number };
-    /** common/commonDefines.js: what a selected object is. */
-    c_oAscTypeSelectElement: { Table: number };
-    /** common/commonDefines.js */
-    c_oAscFileType: { DOCX: number; XLSX: number; PPTX: number };
   };
   AscCommon: {
     /** common/commonDefines.js `offlineMode`: a document URL that switches off the server connection. */
@@ -205,5 +209,105 @@ export interface EngineWindow extends Window {
     align_Left: number;
     align_Center: number;
     align_Justify: number;
+  };
+}
+
+/** The text editor's frame (engine/frame/editor/word/main). */
+export interface WordWindow extends EngineWindow {
+  Asc: EngineWindow["Asc"] & {
+    asc_docs_api: new (config: Record<string, unknown>) => WordEngineApi;
+    asc_CCommentDataWord: new (data: null) => EngineCommentData;
+    c_oAscNumberingFormat: NumberingFormats;
+    /** common/commonDefines.js */
+    c_oAscCollaborativeMarksShowType: { None: number };
+    /** common/commonDefines.js: what a selected object is. */
+    c_oAscTypeSelectElement: { Table: number };
+  };
+}
+
+/** cell/model/WorkbookElems.js `CellXfs`: the formatting of the active cell. */
+export interface EngineCellXfs {
+  asc_getFontName(): string;
+  asc_getFontSize(): number;
+  asc_getFontColor(): EngineColor | null;
+  asc_getFontBold(): boolean;
+  asc_getFontItalic(): boolean;
+  asc_getFontUnderline(): boolean;
+  asc_getFontStrikeout(): boolean;
+  asc_getFillColor(): EngineColor | null;
+  asc_getHorAlign(): number;
+  asc_getWrapText(): boolean;
+  /** The number format code, e.g. "General" or "0.00%". */
+  asc_getNumFormat(): string;
+}
+
+/** cell/model/CellInfo.js `asc_CCellInfo`: what asc_onSelectionChanged reports. */
+export interface EngineCellInfo {
+  asc_getXfs(): EngineCellXfs;
+  /** cell/apiDefines.js c_oAscMergeOptions: None, Merge, … for the selection. */
+  asc_getMerge(): number;
+}
+
+/** Events of the spreadsheet editor we subscribe to (cell/api.js `handlers.trigger`). */
+export type CellEventArgs = CommonEventArgs & {
+  asc_onSelectionChanged: [info: EngineCellInfo];
+  /** The reference of the selection, e.g. "A1" or "B2:C4" (a string, or an object with asc_getName). */
+  asc_onSelectionNameChanged: [name: string | { asc_getName(): string }];
+  asc_onSheetsChanged: [];
+  asc_onActiveSheetChanged: [index: number];
+  asc_onCanUndoChanged: [canUndo: boolean];
+  asc_onCanRedoChanged: [canRedo: boolean];
+};
+
+/** cell/api.js `spreadsheet_api` (with common/apiBase.js `baseEditorsApi`). */
+export interface CellEngineApi extends EngineApiBase<CellEventArgs> {
+  asc_setFontRenderingMode(mode: number): void;
+  /** cell/api.js: the regional format (LCID), e.g. 0x0407 for German: decimal comma, ";" between arguments. */
+  asc_setLocale(lcid: number): void;
+  asc_Resize(): void;
+  asc_Undo(): void;
+  asc_Redo(): void;
+  asc_getCellInfo(): EngineCellInfo;
+  asc_setCellBold(value: boolean): void;
+  asc_setCellItalic(value: boolean): void;
+  asc_setCellUnderline(value: boolean): void;
+  asc_setCellStrikeout(value: boolean): void;
+  asc_setCellFontName(name: string): void;
+  asc_setCellFontSize(size: number): void;
+  asc_setCellTextColor(color: EngineColor): void;
+  /** null takes the fill away. */
+  asc_setCellBackgroundColor(color: EngineColor | null): void;
+  asc_setCellAlign(align: number): void;
+  asc_setCellTextWrap(wrap: boolean): void;
+  /** A number format code, e.g. "0.00%". */
+  asc_setCellFormat(format: string): void;
+  /** cell/apiDefines.js c_oAscMergeOptions */
+  asc_mergeCells(option: number): void;
+  /** common/commonDefines.js c_oAscInsertOptions */
+  asc_insertCells(option: number): void;
+  /** common/commonDefines.js c_oAscDeleteOptions */
+  asc_deleteCells(option: number): void;
+  asc_getWorksheetsCount(): number;
+  asc_getWorksheetName(index: number): string;
+  asc_isWorksheetHidden(index: number): boolean;
+  asc_getActiveWorksheetIndex(): number;
+  asc_showWorksheet(index: number): void;
+  asc_addWorksheet(name: string): void;
+  asc_renameWorksheet(name: string): boolean;
+  /** Deletes the active sheet; false when it cannot (the last visible one). */
+  asc_deleteWorksheet(): boolean;
+  /** Moves the selection to a reference, e.g. "C7" or "Tabelle2!A1". */
+  asc_findCell(reference: string): void;
+  /** Leaves the cell being typed into; `cancel` drops what was typed. */
+  asc_closeCellEditor(cancel?: boolean): void;
+}
+
+/** The spreadsheet editor's frame (engine/frame/editor/cell/main). */
+export interface CellWindow extends EngineWindow {
+  Asc: EngineWindow["Asc"] & {
+    spreadsheet_api: new (config: Record<string, unknown>) => CellEngineApi;
+    c_oAscMergeOptions: { Disabled: number; None: number; Merge: number; MergeCenter: number };
+    c_oAscInsertOptions: { InsertColumns: number; InsertRows: number };
+    c_oAscDeleteOptions: { DeleteColumns: number; DeleteRows: number };
   };
 }

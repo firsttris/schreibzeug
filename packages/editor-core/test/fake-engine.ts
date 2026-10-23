@@ -2,16 +2,16 @@ import type {
   EngineColor,
   EngineColorConstructor,
   EngineCommentData,
-  EngineEventArgs,
-  EngineEventName,
-  EngineWindow,
   WordEngineApi,
+  WordEventArgs,
+  WordEventName,
+  WordWindow,
 } from "../src/engine-types";
 
-type Callbacks = { [N in EngineEventName]?: Array<(...args: EngineEventArgs[N]) => void> };
+type Callbacks = { [N in WordEventName]?: Array<(...args: WordEventArgs[N]) => void> };
 
 export type FakeEngine = {
-  window: EngineWindow;
+  window: WordWindow;
   api: () => FakeApi;
   /** Presses the mouse in the frame; returns how often the engine's input was focused so far. */
   press: () => number;
@@ -20,7 +20,7 @@ export type FakeEngine = {
 export type FakeApi = WordEngineApi & {
   calls: Array<[string, ...unknown[]]>;
   docInfo: Record<string, unknown>;
-  emit: <N extends EngineEventName>(name: N, ...args: EngineEventArgs[N]) => void;
+  emit: <N extends WordEventName>(name: N, ...args: WordEventArgs[N]) => void;
   nativeFile: string;
   modified: boolean;
   /** The numbering format at the cursor (c_oAscNumberingFormat), or null outside a list. */
@@ -272,7 +272,7 @@ export const createFakeEngine = (): FakeEngine => {
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },
     },
     AscCommon: { offlineMode: "_offline_", align_Right: 0, align_Left: 1, align_Center: 2, align_Justify: 3 },
-  } as unknown as EngineWindow;
+  } as unknown as WordWindow;
 
   return {
     window,

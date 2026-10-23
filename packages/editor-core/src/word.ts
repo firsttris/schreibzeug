@@ -107,6 +107,9 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
 
   api.asc_registerCallback("asc_onGetEditorPermissions", () => api.asc_LoadDocument());
   api.asc_registerCallback("asc_onDocumentContentReady", () => {
+    // Spell checking needs the Document Server's dictionary service, which Stapel does not run:
+    // without it every word is marked. web-apps switches it here too (documenteditor/mobile Main.jsx).
+    api.asc_setSpellCheck(false);
     api.Resize();
     api.zoomFitToWidth();
     onReady(editor);

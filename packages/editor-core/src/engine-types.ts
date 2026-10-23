@@ -68,6 +68,8 @@ export interface WordEngineApi {
   asc_EditSelectAll(): void;
   /** word/api.js: whether there are changes since opening or since `SetUnchangedDocument`. */
   isDocumentModified(): boolean;
+  /** word/api.js: turns the red underlines of the spell checker on or off. */
+  asc_setSpellCheck(isOn: boolean): void;
   /** word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged. */
   SetUnchangedDocument(): void;
   Undo(): void;

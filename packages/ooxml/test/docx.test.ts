@@ -9,12 +9,22 @@ const documentOf = (bytes: Uint8Array): string => {
 };
 
 describe("docx", () => {
-  it("writes the three parts a word processor needs", () => {
+  it("writes the parts a word processor needs", () => {
     expect(Object.keys(unzipSync(blankDocx())).sort()).toEqual([
       "[Content_Types].xml",
       "_rels/.rels",
+      "word/_rels/document.xml.rels",
       "word/document.xml",
+      "word/styles.xml",
     ]);
+  });
+
+  it("sets the defaults of a new Word document: Calibri 11 pt, German", () => {
+    const part = unzipSync(blankDocx())["word/styles.xml"];
+    const styles = part ? strFromU8(part) : "";
+    expect(styles).toContain('<w:rFonts w:ascii="Calibri"');
+    expect(styles).toContain('<w:sz w:val="22"/>');
+    expect(styles).toContain('<w:lang w:val="de-DE"');
   });
 
   it("keeps runs and their properties", () => {

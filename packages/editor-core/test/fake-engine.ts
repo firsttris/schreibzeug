@@ -72,6 +72,7 @@ export const createFakeEngine = (): FakeEngine => {
         put_PrAlign: record(calls, "put_PrAlign"),
         asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
         isDocumentModified: () => api.modified,
+        asc_setSpellCheck: record(calls, "asc_setSpellCheck"),
         SetUnchangedDocument: () => {
           calls.push(["SetUnchangedDocument"]);
           api.modified = false;

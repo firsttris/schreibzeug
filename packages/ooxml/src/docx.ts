@@ -8,12 +8,32 @@ const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`;
 
 const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`;
+
+const documentRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+/**
+ * The defaults of a new Word document (Calibri 11 pt, 8 pt after a paragraph, 1.08 lines), in
+ * German. Without them a document falls back to Times New Roman; the engine shows Calibri with
+ * its metric twin Carlito, which it ships.
+ */
+const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="de-DE" w:eastAsia="en-US" w:bidi="ar-SA"/></w:rPr></w:rPrDefault>
+    <w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Standard"><w:name w:val="Normal"/><w:qFormat/></w:style>
+</w:styles>`;
 
 /** A4 with the margins Word uses for German documents (twentieths of a point). */
 const sectionProperties =
@@ -50,6 +70,8 @@ export const docx = (paragraphs: string[]): Uint8Array =>
       "[Content_Types].xml": strToU8(contentTypes),
       "_rels/.rels": strToU8(rootRels),
       "word/document.xml": strToU8(documentXml(paragraphs)),
+      "word/_rels/document.xml.rels": strToU8(documentRels),
+      "word/styles.xml": strToU8(styles),
     },
     { mtime: ZIP_DATE },
   );

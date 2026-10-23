@@ -70,6 +70,11 @@ describe("openWordDocument", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
+  it("switches the spell checker off, since no dictionaries are served", async () => {
+    const { engine } = await openReady();
+    expect(engine.api().calls).toContainEqual(["asc_setSpellCheck", false]);
+  });
+
   it("is ready once the content is shown", async () => {
     const { editor } = await openReady();
     expect(editor.store.get().status).toBe("ready");

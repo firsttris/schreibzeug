@@ -1,0 +1,75 @@
+/** Formats the converter moves between: Office files and the engine's own binary format. */
+export type ConvertFormat = "docx" | "bin";
+
+export type Convert = (bytes: Uint8Array, from: ConvertFormat, to: ConvertFormat) => Promise<Uint8Array>;
+
+export type Converter = {
+  convert: Convert;
+  terminate: () => void;
+};
+
+type Reply = { id: number; bytes?: Uint8Array; error?: string };
+
+export type WorkerLike = {
+  postMessage: (message: unknown, transfer?: Transferable[]) => void;
+  terminate: () => void;
+  onmessage: ((event: MessageEvent<Reply>) => void) | null;
+  onerror: ((event: ErrorEvent) => void) | null;
+};
+
+/** The converter worker (engine/frame/x2t/worker.js) below the engine root. */
+export const converterPath = (enginePath = "/engine"): string =>
+  `${enginePath.replace(/\/$/, "")}/frame/x2t/worker.js`;
+
+/**
+ * Converts with x2t in a worker (engine/frame/x2t/worker.js). The engine of this build cannot read
+ * or write .docx itself — its OOXML reader is not part of Euro-Office — so every open and save
+ * goes through x2t, as in CryptPad.
+ */
+export const createConverter = (
+  createWorker: () => WorkerLike = () => new Worker(converterPath()) as unknown as WorkerLike,
+): Converter => {
+  let worker: WorkerLike | null = null;
+  let nextId = 1;
+  const pending = new Map<number, { resolve: (bytes: Uint8Array) => void; reject: (error: Error) => void }>();
+
+  const failAll = (error: Error) => {
+    for (const { reject } of pending.values()) reject(error);
+    pending.clear();
+  };
+
+  const ensureWorker = (): WorkerLike => {
+    if (worker) return worker;
+    const created = createWorker();
+    created.onmessage = ({ data }) => {
+      const request = pending.get(data.id);
+      if (!request) return;
+      pending.delete(data.id);
+      if (data.bytes) request.resolve(data.bytes);
+      else request.reject(new Error(data.error ?? "The converter returned nothing."));
+    };
+    created.onerror = (event) => {
+      failAll(new Error(`The converter stopped: ${event.message}`));
+      created.terminate();
+      worker = null;
+    };
+    worker = created;
+    return created;
+  };
+
+  return {
+    convert: (bytes, from, to) =>
+      new Promise<Uint8Array>((resolve, reject) => {
+        const id = nextId++;
+        pending.set(id, { resolve, reject });
+        // A copy is sent, so the caller keeps its bytes (the open document stays usable).
+        const copy = bytes.slice();
+        ensureWorker().postMessage({ id, bytes: copy, from, to }, [copy.buffer]);
+      }),
+    terminate: () => {
+      failAll(new Error("The converter was closed."));
+      worker?.terminate();
+      worker = null;
+    },
+  };
+};

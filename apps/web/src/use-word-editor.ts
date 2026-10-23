@@ -1,4 +1,5 @@
 import {
+  createConverter,
   type EditorState,
   initialEditorState,
   mountEngineFrame,
@@ -35,17 +36,24 @@ export const useWordEditor = (
 
     setEditor(null);
     setFailure(null);
+    const converter = createConverter();
+    cleanup = converter.terminate;
     mountEngineFrame(host, { kind: "word" })
       .then(async (frame) => {
-        cleanup = frame.remove;
-        if (cancelled) return frame.remove();
+        cleanup = () => {
+          converter.terminate();
+          frame.remove();
+        };
+        if (cancelled) return cleanup();
         const opened = await openWordDocument(frame.window, {
           bytes: file.bytes,
           title: file.name,
           user: { id: "local", name: "Ich" },
+          convert: converter.convert,
         });
         cleanup = () => {
           opened.close();
+          converter.terminate();
           frame.remove();
         };
         if (cancelled) return cleanup();

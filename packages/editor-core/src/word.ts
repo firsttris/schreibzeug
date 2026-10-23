@@ -1,4 +1,5 @@
 import { createTextCommands, type TextCommands } from "./commands";
+import type { Convert } from "./converter";
 import type { EngineEventArgs, EngineEventName, EngineWindow, WordEngineApi } from "./engine-types";
 import { type EventTranslators, stateEvents } from "./events";
 import { type EditorEvent, type EditorState, initialEditorState, reduceEditorState } from "./state";
@@ -7,9 +8,12 @@ import { createStore, type Store } from "./store";
 export type DocumentUser = { id: string; name: string };
 
 export type OpenWordOptions = {
+  /** The .docx file. */
   bytes: Uint8Array;
   title: string;
   user: DocumentUser;
+  /** Turns the .docx into the engine's binary format and back (converter.ts). */
+  convert: Convert;
   lang?: string;
   /** How long to wait until the document is shown, in milliseconds. */
   timeoutMs?: number;
@@ -18,7 +22,7 @@ export type OpenWordOptions = {
 export type WordEditor = {
   store: Store<EditorState>;
   commands: TextCommands;
-  /** The document as .docx, written by the engine in the browser. */
+  /** The document as .docx: the engine's binary, converted in the browser. */
   save: () => Promise<Uint8Array>;
   resize: () => void;
   close: () => void;
@@ -63,61 +67,86 @@ const createDocInfo = (win: EngineWindow, options: OpenWordOptions) => {
   return info;
 };
 
+type EngineStart = {
+  win: EngineWindow;
+  binary: Uint8Array;
+  options: OpenWordOptions;
+  store: Store<EditorState>;
+  dispatch: (event: EditorEvent) => void;
+  onReady: (editor: WordEditor) => void;
+  onFailure: (message: string) => void;
+};
+
 /**
- * Opens a .docx in the engine of an already mounted frame. The sequence follows the mobile editor
- * in Euro-Office/web-apps (apps/documenteditor/mobile/src/controller/Main.jsx): create the API, set
- * the document info, ask for permissions, load. In offline mode sdkjs asks for the file through
+ * Starts the engine on a document in its binary format. The sequence follows the mobile editor in
+ * Euro-Office/web-apps (apps/documenteditor/mobile/src/controller/Main.jsx): create the API, set the
+ * document info, ask for permissions, load. In offline mode sdkjs asks for the file through
  * `_openChartOrLocalDocument`, which normally opens an empty document; here it gets our bytes.
  */
-export const openWordDocument = (win: EngineWindow, options: OpenWordOptions): Promise<WordEditor> => {
-  const store = createStore<EditorState>(initialEditorState);
-  const dispatch = (event: EditorEvent) => store.set((state) => reduceEditorState(state, event));
-
-  // The Euro-Office build carries the OOXML reader and writer (OpenDocumentFromZip, fromXml/toXml)
-  // but only registers the "forms" addon, so the feature flag is set here. Without it the engine
-  // expects the converter's binary format and fails to open a .docx (error -82).
-  win.Asc.Addons = { ...win.Asc.Addons, ooxml: true };
+const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure }: EngineStart): void => {
   const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: {} });
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
-  api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(options.bytes);
+  api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
   subscribe(api, stateEvents(win.AscCommon), dispatch);
 
   const editor: WordEditor = {
     store,
     commands: createTextCommands(api, store.get, win.AscCommon),
-    save: () =>
-      new Promise<Uint8Array>((resolve, reject) => {
-        api.saveLogicDocumentToZip(win.Asc.c_oAscFileType.DOCX, undefined, (data) =>
-          data ? resolve(data) : reject(new Error("The engine could not write the document.")),
-        );
-      }),
+    // word/api.js asc_nativeGetFile: the document as "DOCY;v5;<size>;<base64>", which x2t reads.
+    save: () => options.convert(new TextEncoder().encode(api.asc_nativeGetFile()), "bin", "docx"),
     resize: () => api.Resize(),
     close: () => api.asc_CloseFile?.(),
   };
 
+  api.asc_registerCallback("asc_onGetEditorPermissions", () => api.asc_LoadDocument());
+  api.asc_registerCallback("asc_onDocumentContentReady", () => {
+    api.Resize();
+    api.zoomFitToWidth();
+    onReady(editor);
+  });
+  api.asc_registerCallback("asc_onError", (id, level) => {
+    if (level === CRITICAL_ERROR_LEVEL) onFailure(`The engine reported error ${id}.`);
+  });
+
+  api.asc_setDocInfo(createDocInfo(win, options));
+  api.asc_getEditorPermissions();
+};
+
+/**
+ * Opens a .docx in the engine of an already mounted frame. The engine of this build reads only its
+ * binary format — its OOXML reader (CDocument.fromZip) is not part of Euro-Office — so the file is
+ * converted with x2t first, and saving converts back.
+ */
+export const openWordDocument = (win: EngineWindow, options: OpenWordOptions): Promise<WordEditor> => {
+  const store = createStore<EditorState>(initialEditorState);
+  const dispatch = (event: EditorEvent) => store.set((state) => reduceEditorState(state, event));
+
   return new Promise<WordEditor>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      dispatch({ type: "error", message: "The document did not open in time." });
-      reject(new Error("The document did not open in time."));
-    }, options.timeoutMs ?? 60_000);
-
-    api.asc_registerCallback("asc_onGetEditorPermissions", () => api.asc_LoadDocument());
-    api.asc_registerCallback("asc_onDocumentContentReady", () => {
+    let settled = false;
+    const settle = (finish: () => void) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
-      api.Resize();
-      api.zoomFitToWidth();
-      dispatch({ type: "ready" });
-      resolve(editor);
-    });
-    api.asc_registerCallback("asc_onError", (id, level) => {
-      if (level !== CRITICAL_ERROR_LEVEL) return;
-      clearTimeout(timer);
-      const message = `The engine reported error ${id}.`;
-      dispatch({ type: "error", message });
-      reject(new Error(message));
-    });
+      finish();
+    };
+    const onFailure = (message: string) =>
+      settle(() => {
+        dispatch({ type: "error", message });
+        reject(new Error(message));
+      });
+    const onReady = (editor: WordEditor) =>
+      settle(() => {
+        dispatch({ type: "ready" });
+        resolve(editor);
+      });
+    const timer = setTimeout(
+      () => onFailure("The document did not open in time."),
+      options.timeoutMs ?? 60_000,
+    );
 
-    api.asc_setDocInfo(createDocInfo(win, options));
-    api.asc_getEditorPermissions();
+    options
+      .convert(options.bytes, "docx", "bin")
+      .then((binary) => startEngine({ win, binary, options, store, dispatch, onReady, onFailure }))
+      .catch((error: unknown) => onFailure(error instanceof Error ? error.message : String(error)));
   });
 };

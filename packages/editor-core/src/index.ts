@@ -1,4 +1,12 @@
 export { clampFontSize, MAX_FONT_SIZE, MIN_FONT_SIZE, type TextCommands } from "./commands";
+export {
+  type Convert,
+  type Converter,
+  type ConvertFormat,
+  converterPath,
+  createConverter,
+  type WorkerLike,
+} from "./converter";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
 export {

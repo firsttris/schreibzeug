@@ -1,8 +1,15 @@
 {
-  "$comment": "The editing engine. A change here is its own commit and must keep the format-fidelity screenshots unchanged.",
+  "$comment": "The editing engine and its converter. A change here is its own commit and must keep the format-fidelity screenshots unchanged.",
   "source": "https://github.com/Euro-Office/DocumentServer",
   "version": "v9.3.4-hotfix.1",
   "asset": "euro-office-documentserver_9.3.4-hotfix.1_amd64.deb",
   "sha256": "167ecf4b82bfb28a3c541f134d1508b4072b668cada0786611d90079459f975e",
-  "editors": ["word", "cell", "slide"]
+  "editors": ["word", "cell", "slide"],
+  "converter": {
+    "$comment": "x2t (ONLYOFFICE core) compiled to WebAssembly by CryptPad; turns .docx/.xlsx/.pptx into the engine's binary format and back.",
+    "source": "https://github.com/cryptpad/onlyoffice-x2t-wasm",
+    "version": "v9.3.0+0",
+    "asset": "x2t.zip",
+    "sha256": "c209894d10d96fe1c4912e21fe518dca1bcdc0b4bc40778b4e6886e7227ef001"
+  }
 }

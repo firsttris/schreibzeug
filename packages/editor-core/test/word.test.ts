@@ -1,18 +1,55 @@
 import { describe, expect, it } from "vitest";
+import type { Convert } from "../src/converter";
 import { openWordDocument } from "../src/word";
 import { createFakeEngine } from "./fake-engine";
 
-const bytes = new Uint8Array([80, 75, 3, 4, 1, 2, 3]);
-const options = { bytes, title: "Angebot.docx", user: { id: "u1", name: "Tristan" } };
+const docx = new Uint8Array([80, 75, 3, 4, 1, 2, 3]);
+const binary = new Uint8Array([68, 79, 67, 89]);
+const savedDocx = new Uint8Array([80, 75, 9, 9]);
+
+type Conversion = { bytes: Uint8Array; from: string; to: string };
+
+const fakeConverter = () => {
+  const conversions: Conversion[] = [];
+  const convert: Convert = async (bytes, from, to) => {
+    conversions.push({ bytes, from, to });
+    return from === "docx" ? binary : savedDocx;
+  };
+  return { convert, conversions };
+};
+
+const optionsWith = (convert: Convert, extra: Partial<Parameters<typeof openWordDocument>[1]> = {}) => ({
+  bytes: docx,
+  title: "Angebot.docx",
+  user: { id: "u1", name: "Tristan" },
+  convert,
+  ...extra,
+});
+
+/** Lets the conversion promise settle, so the engine API exists. */
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const openReady = async () => {
   const engine = createFakeEngine();
-  const opening = openWordDocument(engine.window, options);
+  const converter = fakeConverter();
+  const opening = openWordDocument(engine.window, optionsWith(converter.convert));
+  await flush();
   engine.api().emit("asc_onDocumentContentReady");
-  return { engine, editor: await opening };
+  return { engine, converter, editor: await opening };
 };
 
 describe("openWordDocument", () => {
+  it("converts the .docx into the engine's binary format before opening", async () => {
+    const { converter } = await openReady();
+    expect(converter.conversions[0]).toEqual({ bytes: docx, from: "docx", to: "bin" });
+  });
+
+  it("hands the converted bytes to the engine when it asks for the local document", async () => {
+    const { engine } = await openReady();
+    const call = engine.api().calls.find(([name]) => name === "asc_openDocumentFromBytes");
+    expect(call?.[1]).toBe(binary);
+  });
+
   it("opens in offline mode with the document info sdkjs needs", async () => {
     const { engine } = await openReady();
     expect(engine.api().docInfo).toMatchObject({
@@ -21,21 +58,6 @@ describe("openWordDocument", () => {
       Format: "docx",
       Mode: "edit",
     });
-  });
-
-  it("switches on the engine's own OOXML reader and keeps other addons", async () => {
-    const engine = createFakeEngine();
-    engine.window.Asc.Addons = { forms: true };
-    const opening = openWordDocument(engine.window, options);
-    engine.api().emit("asc_onDocumentContentReady");
-    await opening;
-    expect(engine.window.Asc.Addons).toEqual({ forms: true, ooxml: true });
-  });
-
-  it("hands the bytes to the engine when it asks for the local document", async () => {
-    const { engine } = await openReady();
-    const call = engine.api().calls.find(([name]) => name === "asc_openDocumentFromBytes");
-    expect(call?.[1]).toBe(bytes);
   });
 
   it("follows the web-apps sequence: doc info, permissions, load", async () => {
@@ -74,29 +96,35 @@ describe("openWordDocument", () => {
     expect(calls).toBe(1);
   });
 
-  it("saves the document as .docx bytes from the engine", async () => {
-    const { engine, editor } = await openReady();
+  it("saves by converting the engine's binary back to .docx", async () => {
+    const { engine, converter, editor } = await openReady();
     const saved = await editor.save();
-    expect(saved).toEqual(new Uint8Array([80, 75, 3, 4]));
-    expect(engine.api().calls).toContainEqual(["saveLogicDocumentToZip", 0x41]);
+    expect(saved).toBe(savedDocx);
+    const conversion = converter.conversions.at(-1);
+    expect(conversion).toMatchObject({ from: "bin", to: "docx" });
+    expect(new TextDecoder().decode(conversion?.bytes)).toBe(engine.api().nativeFile);
   });
 
-  it("rejects saving when the engine returns nothing", async () => {
-    const { engine, editor } = await openReady();
-    engine.api().saveResult = null;
-    await expect(editor.save()).rejects.toThrow("could not write");
+  it("fails when the file cannot be converted", async () => {
+    const engine = createFakeEngine();
+    const convert: Convert = async () => {
+      throw new Error("x2t could not convert docx to bin (code 89)");
+    };
+    await expect(openWordDocument(engine.window, optionsWith(convert))).rejects.toThrow("code 89");
   });
 
   it("fails on a critical engine error", async () => {
     const engine = createFakeEngine();
-    const opening = openWordDocument(engine.window, options);
+    const opening = openWordDocument(engine.window, optionsWith(fakeConverter().convert));
+    await flush();
     engine.api().emit("asc_onError", -82, -1);
     await expect(opening).rejects.toThrow("error -82");
   });
 
   it("ignores non-critical engine errors", async () => {
     const engine = createFakeEngine();
-    const opening = openWordDocument(engine.window, options);
+    const opening = openWordDocument(engine.window, optionsWith(fakeConverter().convert));
+    await flush();
     engine.api().emit("asc_onError", 3, 0);
     engine.api().emit("asc_onDocumentContentReady");
     await expect(opening).resolves.toBeDefined();
@@ -104,6 +132,8 @@ describe("openWordDocument", () => {
 
   it("gives up when the document does not open in time", async () => {
     const engine = createFakeEngine();
-    await expect(openWordDocument(engine.window, { ...options, timeoutMs: 10 })).rejects.toThrow("in time");
+    await expect(
+      openWordDocument(engine.window, optionsWith(fakeConverter().convert, { timeoutMs: 10 })),
+    ).rejects.toThrow("in time");
   });
 });

@@ -11,7 +11,7 @@ export type FakeApi = WordEngineApi & {
   calls: Array<[string, ...unknown[]]>;
   docInfo: Record<string, unknown>;
   emit: <N extends EngineEventName>(name: N, ...args: EngineEventArgs[N]) => void;
-  saveResult: Uint8Array | null;
+  nativeFile: string;
 };
 
 const record =
@@ -34,7 +34,7 @@ export const createFakeEngine = (): FakeEngine => {
       const api: FakeApi = {
         calls,
         docInfo,
-        saveResult: new Uint8Array([80, 75, 3, 4]),
+        nativeFile: "DOCY;v5;4;AAAA",
         emit: (name, ...args) => {
           for (const callback of callbacks[name] ?? []) (callback as (...a: unknown[]) => void)(...args);
         },
@@ -56,9 +56,9 @@ export const createFakeEngine = (): FakeEngine => {
         asc_LoadDocument: record(calls, "asc_LoadDocument"),
         asc_openDocumentFromBytes: record(calls, "asc_openDocumentFromBytes"),
         _openChartOrLocalDocument: record(calls, "_openChartOrLocalDocument"),
-        saveLogicDocumentToZip: (fileType, _options, callback) => {
-          calls.push(["saveLogicDocumentToZip", fileType]);
-          callback(api.saveResult);
+        asc_nativeGetFile: () => {
+          calls.push(["asc_nativeGetFile"]);
+          return api.nativeFile;
         },
         SetFontRenderingMode: record(calls, "SetFontRenderingMode"),
         Resize: record(calls, "Resize"),

@@ -53,11 +53,8 @@ export interface WordEngineApi {
   asc_openDocumentFromBytes(data: Uint8Array): void;
   /** apiBase.js: called by onEndLoadDocInfo in offline mode to open the local file. */
   _openChartOrLocalDocument(): void;
-  saveLogicDocumentToZip(
-    fileType: number,
-    options: unknown,
-    callback: (data: Uint8Array | null) => void,
-  ): void;
+  /** word/api.js: the document in the engine's binary format, as "DOCY;v5;<size>;<base64>". */
+  asc_nativeGetFile(): string;
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   zoomFitToWidth(): void;
@@ -79,11 +76,6 @@ export interface EngineWindow extends Window {
     asc_CUserInfo: new () => EngineUserInfo;
     /** common/commonDefines.js */
     c_oAscFileType: { DOCX: number; XLSX: number; PPTX: number };
-    /**
-     * Optional engine features, read by `asc_isSupportFeature` (common/apiBase.js). `ooxml` makes the
-     * engine read and write .docx/.xlsx/.pptx itself instead of the converter's binary format.
-     */
-    Addons?: Record<string, boolean>;
   };
   AscCommon: {
     /** common/commonDefines.js `offlineMode`: a document URL that switches off the server connection. */

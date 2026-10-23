@@ -17,7 +17,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
-  <img src="docs/screenshots/editor-light.png" alt="The Stapel editor with a Word document open: toolbar with undo, font size, bold, italic, underline and alignment above the page">
+  <img src="docs/screenshots/editor-light.png" alt="The Stapel editor with a Word document open: toolbar with undo, paragraph style, font, size, bold, italic, underline, strikethrough, text colour, lists and alignment above the page">
 </picture>
 
 <picture>

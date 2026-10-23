@@ -46,7 +46,7 @@ Green before every push, then check CI:
 bun install --frozen-lockfile
 bun run typecheck        # tsc --noEmit in every workspace
 bun run lint             # biome check
-bun run test             # vitest: unit + integration
+bun run test             # vitest: unit + integration (needs PostgreSQL, see docs/files.md)
 bun run test:e2e         # playwright: engine, flows, collaboration, format fidelity
 bun run build
 cargo fmt --check && cargo clippy -- -D warnings && cargo test   # in apps/desktop, when it changed
@@ -74,6 +74,11 @@ Technology choices follow `tech-stack.md` in firsttris/workflows. Deviations of 
 
 - **Bun** is package manager and runtime (allowed by the stack where Bun is the runtime). Node stays
   only inside the Playwright image and, if needed, for the engine build.
+- **A SPA and a Hono API instead of TanStack Start.** Server functions only exist while the Start
+  server runs; the Tauri app ships the interface as static files and needs a plain HTTP API anyway.
+  So `apps/web` is a Vite SPA (TanStack Router and Query) and `apps/server` is Hono on Bun, whose
+  typed client (`hc<AppType>`) gives the same end-to-end types. The collaboration relay goes into
+  the same server (Hono WebSocket upgrade). Details in `docs/architecture.md`.
 - **`sdkjs` is vendored, not rewritten.** It is not React and keeps its own canvas; Tailwind applies
   to the UI around it only.
 - **`packages/editor-core` is framework-free TypeScript.** It is the only code that calls `sdkjs`;

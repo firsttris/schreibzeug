@@ -34,6 +34,22 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stapel
+          POSTGRES_PASSWORD: stapel
+          POSTGRES_DB: stapel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stapel"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://stapel:stapel@localhost:5432/stapel
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

@@ -1,8 +1,23 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/editor-core" },
-    { "path": "apps/web" },
-    { "path": "tsconfig.tools.json" }
+    {
+      "path": "packages/editor-core"
+    },
+    {
+      "path": "packages/files-api"
+    },
+    {
+      "path": "packages/ooxml"
+    },
+    {
+      "path": "apps/server"
+    },
+    {
+      "path": "apps/web"
+    },
+    {
+      "path": "tsconfig.tools.json"
+    }
   ]
 }

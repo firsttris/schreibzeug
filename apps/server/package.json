@@ -1,0 +1,29 @@
+{
+  "name": "@stapel/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "The Stapel server: the files API (folders, uploads, versions, trash) on Bun with Hono and PostgreSQL.",
+  "exports": {
+    ".": "./src/app.ts"
+  },
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "0.9.1",
+    "@stapel/files-api": "workspace:*",
+    "@stapel/ooxml": "workspace:*",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.13",
+    "postgres": "3.4.9",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.11",
+    "fflate": "0.8.3"
+  }
+}

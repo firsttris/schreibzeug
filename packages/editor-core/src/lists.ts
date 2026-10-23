@@ -5,8 +5,12 @@ import type { ListKind } from "./state";
  * List presets for put_ListTypeCustom (word/api.js, parsed by AscWord.CNumInfo.Parse), taken from
  * web-apps documenteditor/mobile store/textSettings.js: the round bullet ("id-markers-1") and
  * "1." ("id-numbers-1"), the first entries Word offers too.
+ *
+ * Sent as JSON text, not as objects: Parse accepts an object only if `value instanceof Object`
+ * (word/Editor/Numbering/NumInfo.js), and an object from the app's window fails that check in the
+ * engine's frame, which has an Object of its own. Parse then returns null and nothing happens.
  */
-export const LIST_PRESETS: Record<ListKind | "remove", object> = {
+const PRESETS: Record<ListKind | "remove", object> = {
   bullet: {
     Type: "bullet",
     Lvl: [
@@ -25,6 +29,12 @@ export const LIST_PRESETS: Record<ListKind | "remove", object> = {
   },
   remove: { Type: "remove" },
 };
+
+export const LIST_PRESETS = {
+  bullet: JSON.stringify(PRESETS.bullet),
+  number: JSON.stringify(PRESETS.number),
+  remove: JSON.stringify(PRESETS.remove),
+} satisfies Record<ListKind | "remove", string>;
 
 /**
  * The list the cursor is in, read the way web-apps does on asc_onFocusObject

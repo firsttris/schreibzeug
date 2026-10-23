@@ -107,7 +107,7 @@ export const createFakeEngine = (): FakeEngine => {
         put_Style: record(calls, "put_Style"),
         put_ListTypeCustom: (preset) => {
           calls.push(["put_ListTypeCustom", preset]);
-          const type = (preset as { Type: string }).Type;
+          const { Type: type } = JSON.parse(preset) as { Type: string };
           // Like the engine: the list is set after a promise, without asc_onFocusObject.
           return Promise.resolve().then(() => {
             api.numbering =

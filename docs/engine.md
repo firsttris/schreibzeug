@@ -32,6 +32,11 @@ therefore sits four folders below the engine root: `/engine/frame/editor/word/ma
 `mountEngineFrame` loads that page in a same-origin iframe. The iframe keeps the engine's globals
 (`Asc`, `AscCommon`, `AscFonts`, …) out of the app and gives each document its own engine.
 
+The iframe has its own `Object`, `Array` and so on. sdkjs sometimes checks values with
+`instanceof` (`CNumInfo.Parse` takes an object only if `value instanceof Object`), which fails for
+objects made in the app's window. So everything handed to the engine is a primitive, JSON text, or
+an object made with the frame's own constructors (`new win.Asc.asc_CColor(…)`).
+
 ## Why a converter
 
 The engine opens and saves its own binary format ("DOCY", "XLSY", "PPTY"). Reading and writing

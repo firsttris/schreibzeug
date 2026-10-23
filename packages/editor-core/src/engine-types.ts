@@ -94,10 +94,10 @@ export interface WordEngineApi {
   /** Applies a paragraph style by its name. */
   put_Style(name: string): void;
   /**
-   * A list from a preset object (see lists.ts); `{ Type: "remove" }` ends the list. Asynchronous:
+   * A list from a preset in JSON (see lists.ts); `{"Type":"remove"}` ends the list. Asynchronous:
    * it first loads the font of the bullet, then applies the list (returns undefined for a bad preset).
    */
-  put_ListTypeCustom(value: object): Promise<unknown> | undefined;
+  put_ListTypeCustom(value: string): Promise<unknown> | undefined;
   asc_GetCurrentNumberingId(): string | null;
   asc_GetCurrentNumberingLvl(): number;
   asc_GetNumberingPr(id: string): { get_Lvl(level: number): { get_Format(): number } | null } | null;

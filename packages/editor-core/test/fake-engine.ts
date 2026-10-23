@@ -12,6 +12,7 @@ export type FakeApi = WordEngineApi & {
   docInfo: Record<string, unknown>;
   emit: <N extends EngineEventName>(name: N, ...args: EngineEventArgs[N]) => void;
   nativeFile: string;
+  modified: boolean;
 };
 
 const record =
@@ -35,6 +36,7 @@ export const createFakeEngine = (): FakeEngine => {
         calls,
         docInfo,
         nativeFile: "DOCY;v5;4;AAAA",
+        modified: false,
         emit: (name, ...args) => {
           for (const callback of callbacks[name] ?? []) (callback as (...a: unknown[]) => void)(...args);
         },
@@ -69,6 +71,12 @@ export const createFakeEngine = (): FakeEngine => {
         put_TextPrFontSize: record(calls, "put_TextPrFontSize"),
         put_PrAlign: record(calls, "put_PrAlign"),
         asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
+        isDocumentModified: () => api.modified,
+        SetUnchangedDocument: () => {
+          calls.push(["SetUnchangedDocument"]);
+          api.modified = false;
+          api.emit("asc_onDocumentModifiedChanged");
+        },
         Undo: record(calls, "Undo"),
         Redo: record(calls, "Redo"),
         asc_CloseFile: record(calls, "asc_CloseFile"),

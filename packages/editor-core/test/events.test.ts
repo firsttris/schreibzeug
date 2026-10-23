@@ -48,7 +48,6 @@ describe("stateEvents", () => {
   it("translates document events", () => {
     expect(events.asc_onCanUndo?.(true)).toEqual({ type: "canUndo", value: true });
     expect(events.asc_onCanRedo?.(true)).toEqual({ type: "canRedo", value: true });
-    expect(events.asc_onDocumentModifiedChanged?.(true)).toEqual({ type: "modified", value: true });
     expect(events.asc_onCountPages?.(4)).toEqual({ type: "pages", value: 4 });
   });
 });

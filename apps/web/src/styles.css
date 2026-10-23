@@ -15,6 +15,12 @@
   --primary-foreground: #fafafa;
   --docx: #1d4ed8;
   --docx-muted: #eff6ff;
+  --xlsx: #15803d;
+  --xlsx-muted: #f0fdf4;
+  --pptx: #c2410c;
+  --pptx-muted: #fff7ed;
+  --pdf: #b91c1c;
+  --pdf-muted: #fef2f2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +34,12 @@
     --primary-foreground: #09090b;
     --docx: #60a5fa;
     --docx-muted: #172554;
+    --xlsx: #4ade80;
+    --xlsx-muted: #052e16;
+    --pptx: #fb923c;
+    --pptx-muted: #431407;
+    --pdf: #f87171;
+    --pdf-muted: #450a0a;
   }
 }
 

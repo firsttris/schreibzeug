@@ -1,76 +1,61 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { expect, type Page, test } from "@playwright/test";
-import { documentXml, paragraphTexts, runPropertiesOf } from "./docx";
+import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { collectErrors, openDocument, openFileId, openOwnFolder, save, storedXml, upload } from "./app";
+import { paragraphTexts, runPropertiesOf } from "./docx";
 
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
-const openHello = async (page: Page) => {
-  // The engine reports its errors only to the console; keep them for the failure message.
-  const errors: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
-  });
-  page.on("pageerror", (error) => errors.push(error.stack ?? error.message));
-
-  await page.goto("/");
-  await page.getByTestId("open-file").setInputFiles(helloDocx);
-  const status = page.getByTestId("editor-status");
-  await expect(status).not.toHaveAttribute("data-status", "loading", { timeout: 90_000 });
-  if ((await status.getAttribute("data-status")) !== "ready") {
-    throw new Error(`The document did not open: ${await status.textContent()}\n${errors.join("\n")}`);
-  }
+/** Uploads hello.docx into a folder of the test's own and opens it in the editor. */
+const openHello = async (page: Page, testInfo: TestInfo): Promise<string> => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, helloDocx, "hello.docx");
+  await openDocument(page, "hello.docx", errors);
+  return openFileId(page);
 };
 
-const saveAndRead = async (page: Page): Promise<string> => {
-  const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Speichern" }).click();
-  const file = await (await download).path();
-  return documentXml(new Uint8Array(await readFile(file)));
-};
-
-const selectAllInDocument = async (page: Page) => {
-  await page.getByRole("button", { name: "Alles auswählen" }).click();
-};
+const selectAllInDocument = (page: Page) => page.getByRole("button", { name: "Alles auswählen" }).click();
 
 test.describe("text document round trip without a document server", () => {
-  test("opens a .docx and saves it back with its content", async ({ page }) => {
-    await openHello(page);
+  test("opens a .docx and saves it back with its content", async ({ page }, testInfo) => {
+    const fileId = await openHello(page, testInfo);
 
-    const xml = await saveAndRead(page);
+    await save(page);
 
+    const xml = await storedXml(page, fileId);
     expect(paragraphTexts(xml)).toEqual(["Hallo Stapel", "Zweiter Absatz mit kursivem Text."]);
     expect(runPropertiesOf(xml, "kursivem").join("")).toContain("<w:i");
   });
 
-  test("makes the selection bold and writes it into the .docx", async ({ page }) => {
-    await openHello(page);
+  test("makes the selection bold and writes it into the .docx", async ({ page }, testInfo) => {
+    const fileId = await openHello(page, testInfo);
     await selectAllInDocument(page);
 
     const bold = page.getByRole("button", { name: "Fett" });
     await bold.click();
     await expect(bold).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByRole("button", { name: "Rückgängig" })).toBeEnabled();
+    await expect(page.getByTestId("editor-status")).toHaveAttribute("data-modified", "true");
 
-    const xml = await saveAndRead(page);
+    await save(page);
 
-    expect(runPropertiesOf(xml, "Hallo Stapel").join("")).toContain("<w:b");
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toContain("<w:b");
   });
 
-  test("undoes a change", async ({ page }) => {
-    await openHello(page);
+  test("undoes a change", async ({ page }, testInfo) => {
+    const fileId = await openHello(page, testInfo);
     await selectAllInDocument(page);
 
     await page.getByRole("button", { name: "Fett" }).click();
     await page.getByRole("button", { name: "Rückgängig" }).click();
 
     await expect(page.getByRole("button", { name: "Fett" })).toHaveAttribute("aria-pressed", "false");
-    const xml = await saveAndRead(page);
-    expect(runPropertiesOf(xml, "Hallo Stapel").join("")).not.toContain("<w:b");
+    await save(page);
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).not.toContain("<w:b");
   });
 
-  test("shows the font size of the selection", async ({ page }) => {
-    await openHello(page);
+  test("shows the font size of the selection", async ({ page }, testInfo) => {
+    await openHello(page, testInfo);
     await selectAllInDocument(page);
 
     const size = page.getByTestId("font-size");
@@ -78,5 +63,15 @@ test.describe("text document round trip without a document server", () => {
     const before = Number(await size.textContent());
     await page.getByRole("button", { name: "Schrift vergrößern" }).click();
     await expect(size).toHaveText(String(before + 1));
+  });
+
+  test("keeps every save as a version", async ({ page }, testInfo) => {
+    const fileId = await openHello(page, testInfo);
+    await selectAllInDocument(page);
+    await page.getByRole("button", { name: "Kursiv" }).click();
+    await save(page);
+
+    const versions = await (await page.request.get(`/api/files/${fileId}/versions`)).json();
+    expect(versions.map((version: { number: number }) => version.number)).toEqual([2, 1]);
   });
 });

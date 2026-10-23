@@ -24,6 +24,8 @@ export type WordEditor = {
   commands: TextCommands;
   /** The document as .docx: the engine's binary, converted in the browser. */
   save: () => Promise<Uint8Array>;
+  /** Tells the engine the current state is stored, so "modified" turns false until the next change. */
+  markSaved: () => void;
   resize: () => void;
   close: () => void;
 };
@@ -88,12 +90,17 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
   api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
   subscribe(api, stateEvents(win.AscCommon), dispatch);
+  // The event carries no value; web-apps reads the flag on it (documenteditor/mobile Main.jsx).
+  api.asc_registerCallback("asc_onDocumentModifiedChanged", () =>
+    dispatch({ type: "modified", value: api.isDocumentModified() }),
+  );
 
   const editor: WordEditor = {
     store,
     commands: createTextCommands(api, store.get, win.AscCommon),
     // word/api.js asc_nativeGetFile: the document as "DOCY;v5;<size>;<base64>", which x2t reads.
     save: () => options.convert(new TextEncoder().encode(api.asc_nativeGetFile()), "bin", "docx"),
+    markSaved: () => api.SetUnchangedDocument(),
     resize: () => api.Resize(),
     close: () => api.asc_CloseFile?.(),
   };

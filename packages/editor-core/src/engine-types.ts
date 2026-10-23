@@ -14,7 +14,8 @@ export type EngineEventArgs = {
   asc_onPrAlign: [align: number];
   asc_onCanUndo: [canUndo: boolean];
   asc_onCanRedo: [canRedo: boolean];
-  asc_onDocumentModifiedChanged: [modified: boolean];
+  /** Sent without arguments (word/api.js SetDocumentModified); read `isDocumentModified()`. */
+  asc_onDocumentModifiedChanged: [];
   asc_onCountPages: [pages: number];
   asc_onGetEditorPermissions: [permissions: unknown];
   asc_onDocumentContentReady: [];
@@ -65,6 +66,10 @@ export interface WordEngineApi {
   put_PrAlign(align: number): void;
   /** word/api.js */
   asc_EditSelectAll(): void;
+  /** word/api.js: whether there are changes since opening or since `SetUnchangedDocument`. */
+  isDocumentModified(): boolean;
+  /** word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged. */
+  SetUnchangedDocument(): void;
   Undo(): void;
   Redo(): void;
   asc_CloseFile?(): void;

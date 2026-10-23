@@ -7,5 +7,15 @@
     "types": ["vite/client", "bun"]
   },
   "include": ["src", "vite.config.ts", "engine-plugin.ts"],
-  "references": [{ "path": "../../packages/editor-core" }]
+  "references": [
+    {
+      "path": "../../packages/editor-core"
+    },
+    {
+      "path": "../../packages/files-api"
+    },
+    {
+      "path": "../../apps/server"
+    }
+  ]
 }

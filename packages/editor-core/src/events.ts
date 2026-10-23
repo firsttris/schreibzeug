@@ -42,6 +42,5 @@ export const stateEvents = (aligns: AlignConstants): EventTranslators => ({
   asc_onPrAlign: (value) => ({ type: "align", value: toAlign(value, aligns) }),
   asc_onCanUndo: (value) => ({ type: "canUndo", value: Boolean(value) }),
   asc_onCanRedo: (value) => ({ type: "canRedo", value: Boolean(value) }),
-  asc_onDocumentModifiedChanged: (value) => ({ type: "modified", value: Boolean(value) }),
   asc_onCountPages: (value) => ({ type: "pages", value }),
 });

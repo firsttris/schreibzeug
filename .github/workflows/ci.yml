@@ -100,6 +100,21 @@ jobs:
     container:
       image: ${{ needs.playwright-image.outputs.image }}
       options: --ipc=host
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stapel
+          POSTGRES_PASSWORD: stapel
+          POSTGRES_DB: stapel
+        options: >-
+          --health-cmd "pg_isready -U stapel"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # The job runs in a container, so the service is reached by its name.
+      E2E_DATABASE_URL: postgres://stapel:stapel@postgres:5432/stapel
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache/restore@v4

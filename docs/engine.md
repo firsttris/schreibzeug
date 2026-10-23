@@ -60,7 +60,9 @@ CryptPad does. x2t runs in a worker (`createConverter`), so its large heap stays
 ## How it saves
 
 `asc_nativeGetFile()` (`word/api.js`) returns the document in the binary format as
-`DOCY;v5;<size>;<base64>`; x2t converts it to .docx (`bin → docx`).
+`DOCY;v5;<size>;<base64>`; x2t converts it to .docx (`bin → docx`). The web app stores the result
+on the server as a new version (`PUT /api/files/:id/content`, see [files](files.md)) and then calls
+`markSaved()`, which is `SetUnchangedDocument()`: "modified" turns false until the next change.
 
 ## Commands and state
 
@@ -73,6 +75,12 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | font size | `put_TextPrFontSize(size)` | `asc_onFontSize` |
 | alignment | `put_PrAlign(AscCommon.align_*)` | `asc_onPrAlign` |
 | undo, redo | `Undo()`, `Redo()` | `asc_onCanUndo`, `asc_onCanRedo` |
-| – | – | `asc_onFontFamily`, `asc_onDocumentModifiedChanged`, `asc_onCountPages` |
+| select all | `asc_EditSelectAll()` | – |
+| mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
+| – | – | `asc_onFontFamily`, `asc_onCountPages` |
+
+`asc_onDocumentModifiedChanged` carries no value (`word/api.js` `SetDocumentModified` sends it
+bare); like web-apps (`documenteditor/mobile` `Main.jsx`), `editor-core` reads
+`isDocumentModified()` when it arrives.
 
 The engine takes target values, not toggles, so a toggle command reads the current state first.

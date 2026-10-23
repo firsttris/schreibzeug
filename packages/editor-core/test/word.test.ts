@@ -105,6 +105,17 @@ describe("openWordDocument", () => {
     expect(new TextDecoder().decode(conversion?.bytes)).toBe(engine.api().nativeFile);
   });
 
+  it("reads the modified flag from the engine, since the event carries none", async () => {
+    const { engine, editor } = await openReady();
+    engine.api().modified = true;
+    engine.api().emit("asc_onDocumentModifiedChanged");
+    expect(editor.store.get().document.modified).toBe(true);
+
+    editor.markSaved();
+    expect(engine.api().calls).toContainEqual(["SetUnchangedDocument"]);
+    expect(editor.store.get().document.modified).toBe(false);
+  });
+
   it("fails when the file cannot be converted", async () => {
     const engine = createFakeEngine();
     const convert: Convert = async () => {

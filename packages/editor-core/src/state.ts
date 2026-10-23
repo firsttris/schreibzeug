@@ -18,6 +18,8 @@ export type ParagraphState = {
   /** The engine's style name, e.g. "Normal" or "Heading 1". */
   style: string | null;
   list: ListKind | null;
+  /** The cursor is in a table, so the table commands apply. */
+  inTable: boolean;
 };
 
 /** What the engine offers to choose from. */
@@ -53,6 +55,7 @@ export type EditorEvent =
   | { type: "color"; value: string | null }
   | { type: "style"; value: string | null }
   | { type: "list"; value: ListKind | null }
+  | { type: "inTable"; value: boolean }
   | { type: "fonts"; value: string[] }
   | { type: "styles"; value: string[] }
   | { type: "fontSize"; value: number }
@@ -78,7 +81,7 @@ export const initialEditorState: EditorState = {
     fontName: null,
     align: null,
   },
-  paragraph: { style: null, list: null },
+  paragraph: { style: null, list: null, inTable: false },
   catalog: { fonts: [], styles: [] },
   document: { canUndo: false, canRedo: false, modified: false, pages: 0 },
 };
@@ -119,6 +122,8 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withParagraph(state, { style: event.value });
     case "list":
       return withParagraph(state, { list: event.value });
+    case "inTable":
+      return withParagraph(state, { inTable: event.value });
     case "fonts":
       return withCatalog(state, { fonts: event.value });
     case "styles":

@@ -1,7 +1,7 @@
 import type { TextColor } from "@stapel/editor-core";
 import { Baseline, Check } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
+import { popoverPanel, usePopover } from "../ui/use-popover";
 
 /** Word's ten standard colours, so a colour picked here is one Word users know. */
 const COLORS: Array<{ value: string; name: string }> = [
@@ -17,39 +17,11 @@ const COLORS: Array<{ value: string; name: string }> = [
   { value: "#7030a0", name: "Lila" },
 ];
 
-/**
- * Closes on a click elsewhere and on Escape, like a menu. A click into the document lands in the
- * engine's iframe and never reaches this document; the window losing focus stands for it.
- */
-const useDismiss = (open: boolean, close: () => void) => {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (event: PointerEvent) => {
-      if (!ref.current?.contains(event.target as Node)) close();
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    window.addEventListener("blur", close);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-      window.removeEventListener("blur", close);
-    };
-  }, [open, close]);
-  return ref;
-};
-
 export type ColorPickerProps = { color: TextColor; disabled: boolean; onPick: (color: TextColor) => void };
 
 /** Text colour: the letter with a bar in the current colour, opening a palette with "Automatisch". */
 export const ColorPicker = ({ color, disabled, onPick }: ColorPickerProps) => {
-  const [open, setOpen] = useState(false);
-  const close = useCallback(() => setOpen(false), []);
-  const ref = useDismiss(open, close);
+  const { open, toggle, close, ref } = usePopover();
   const pick = (value: TextColor) => {
     onPick(value);
     close();
@@ -63,7 +35,7 @@ export const ColorPicker = ({ color, disabled, onPick }: ColorPickerProps) => {
         aria-haspopup="true"
         aria-expanded={open}
         disabled={disabled}
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className="flex-col gap-0"
       >
         <Baseline size={16} />
@@ -74,7 +46,7 @@ export const ColorPicker = ({ color, disabled, onPick }: ColorPickerProps) => {
         />
       </Button>
       {open && (
-        <fieldset className="absolute top-9 left-0 z-10 m-0 flex w-max flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-2 shadow-lg">
+        <fieldset className={popoverPanel}>
           <legend className="sr-only">Schriftfarben</legend>
           <button
             type="button"

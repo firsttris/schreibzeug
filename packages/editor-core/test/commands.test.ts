@@ -115,4 +115,32 @@ describe("clampFontSize", () => {
     await inList.commands.toggleList("number");
     expect(lastCall(inList.calls)).toEqual(["put_ListTypeCustom", LIST_PRESETS.number]);
   });
+
+  it("inserts a table within Word's limits", () => {
+    const { commands, calls } = setup();
+    commands.insertTable(3, 2);
+    expect(lastCall(calls)).toEqual(["put_Table", 3, 2]);
+    commands.insertTable(100, 0);
+    expect(lastCall(calls)).toEqual(["put_Table", 63, 1]);
+  });
+
+  it("adds and removes rows and columns where asked", () => {
+    const { commands, calls } = setup();
+    commands.addRow("above");
+    commands.addRow("below");
+    commands.addColumn("left");
+    commands.addColumn("right");
+    commands.deleteRow();
+    commands.deleteColumn();
+    commands.deleteTable();
+    expect(calls.slice(-7).map(([name]) => name)).toEqual([
+      "addRowAbove",
+      "addRowBelow",
+      "addColumnLeft",
+      "addColumnRight",
+      "remRow",
+      "remColumn",
+      "remTable",
+    ]);
+  });
 });

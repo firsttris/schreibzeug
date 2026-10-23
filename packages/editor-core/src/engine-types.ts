@@ -32,8 +32,8 @@ export type EngineEventArgs = {
   asc_onInitEditorFonts: [fonts: Array<{ asc_getFontName(): string }>];
   /** word/api.js sync_InitEditorStyles: the paragraph styles of the document and the defaults */
   asc_onInitEditorStyles: [styles: { get_MergedStyles(): Array<{ get_Name(): string }> }];
-  /** The selection moved to other objects (paragraph, table, image …). */
-  asc_onFocusObject: [objects: unknown[]];
+  /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
+  asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number }>];
   asc_onFontSize: [size: number];
   asc_onFontFamily: [family: { asc_getName(): string | null }];
   asc_onPrAlign: [align: number];
@@ -98,6 +98,15 @@ export interface WordEngineApi {
    * it first loads the font of the bullet, then applies the list (returns undefined for a bad preset).
    */
   put_ListTypeCustom(value: string): Promise<unknown> | undefined;
+  /** word/api.js: a table of `columns` × `rows` at the cursor, in the default table style. */
+  put_Table(columns: number, rows: number): void;
+  addRowAbove(): void;
+  addRowBelow(): void;
+  addColumnLeft(): void;
+  addColumnRight(): void;
+  remRow(): void;
+  remColumn(): void;
+  remTable(): void;
   asc_GetCurrentNumberingId(): string | null;
   asc_GetCurrentNumberingLvl(): number;
   asc_GetNumberingPr(id: string): { get_Lvl(level: number): { get_Format(): number } | null } | null;
@@ -123,6 +132,8 @@ export interface EngineWindow extends Window {
     asc_CUserInfo: new () => EngineUserInfo;
     asc_CColor: EngineColorConstructor;
     c_oAscNumberingFormat: NumberingFormats;
+    /** common/commonDefines.js: what a selected object is. */
+    c_oAscTypeSelectElement: { Table: number };
     /** common/commonDefines.js */
     c_oAscFileType: { DOCX: number; XLSX: number; PPTX: number };
   };

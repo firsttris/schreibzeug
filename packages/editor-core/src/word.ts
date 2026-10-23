@@ -103,7 +103,11 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
   subscribe(api, stateEvents(win.AscCommon), dispatch);
   const refreshList = () =>
     dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) });
-  api.asc_registerCallback("asc_onFocusObject", refreshList);
+  api.asc_registerCallback("asc_onFocusObject", (objects) => {
+    refreshList();
+    const table = win.Asc.c_oAscTypeSelectElement.Table;
+    dispatch({ type: "inTable", value: objects.some((object) => object.asc_getObjectType() === table) });
+  });
   // The event carries no value; web-apps reads the flag on it (documenteditor/mobile Main.jsx).
   api.asc_registerCallback("asc_onDocumentModifiedChanged", () =>
     dispatch({ type: "modified", value: api.isDocumentModified() }),

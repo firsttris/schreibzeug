@@ -118,6 +118,14 @@ export const createFakeEngine = (): FakeEngine => {
                   : null;
           });
         },
+        put_Table: record(calls, "put_Table"),
+        addRowAbove: record(calls, "addRowAbove"),
+        addRowBelow: record(calls, "addRowBelow"),
+        addColumnLeft: record(calls, "addColumnLeft"),
+        addColumnRight: record(calls, "addColumnRight"),
+        remRow: record(calls, "remRow"),
+        remColumn: record(calls, "remColumn"),
+        remTable: record(calls, "remTable"),
         asc_GetCurrentNumberingId: () => (api.numbering === null ? null : "1"),
         asc_GetCurrentNumberingLvl: () => 0,
         asc_GetNumberingPr: () => ({
@@ -165,6 +173,7 @@ export const createFakeEngine = (): FakeEngine => {
       asc_CUserInfo: valueHolder(),
       asc_CColor: FakeColor,
       c_oAscNumberingFormat: NUMBERING_FORMATS,
+      c_oAscTypeSelectElement: { Paragraph: 0, Table: 1 },
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },
     },
     AscCommon: { offlineMode: "_offline_", align_Right: 0, align_Left: 1, align_Center: 2, align_Justify: 3 },

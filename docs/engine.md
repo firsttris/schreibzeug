@@ -85,6 +85,8 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | text colour | `put_TextColor(asc_CColor)`, automatic: `Auto = true` | `asc_onTextColor` |
 | paragraph style | `put_Style(name)` | `asc_onParaStyleName`; the list: `asc_onInitEditorStyles` |
 | bulleted, numbered list | `put_ListTypeCustom(preset)`, end: `{ Type: "remove" }` | `asc_onFocusObject`, then `asc_GetCurrentNumberingId` / `asc_GetNumberingPr` |
+| insert table | `put_Table(columns, rows)` | `asc_onFocusObject` with a `Table` object |
+| rows, columns | `addRowAbove/Below()`, `addColumnLeft/Right()`, `remRow()`, `remColumn()`, `remTable()` | – |
 | select all | `asc_EditSelectAll()` | – |
 | mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
 | – | – | `asc_onCountPages` |

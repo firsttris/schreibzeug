@@ -2,6 +2,8 @@ import { join } from "node:path";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import {
   collectErrors,
+  createDocument,
+  expectEditorReady,
   openDocument,
   openFileId,
   openOwnFolder,
@@ -94,4 +96,31 @@ test.describe("formatting a text document", () => {
     await save(page);
     expect(styleNameOf(await storedDocx(page, fileId), "Hallo Stapel")).toMatch(/^heading 1$/i);
   });
+
+  test("inserts a table from the grid and adds a row", async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
+    await openOwnFolder(page, testInfo);
+    await createDocument(page, "Tabelle");
+    await expectEditorReady(page, errors);
+    const fileId = openFileId(page);
+
+    const table = page.getByRole("button", { name: "Tabelle", exact: true });
+    await table.click();
+    await page.getByRole("button", { name: "Tabelle 3 × 2" }).click();
+    await expect(table).toHaveAttribute("aria-pressed", "true");
+
+    await save(page);
+    expect(tableShape(await storedXml(page, fileId))).toEqual([3, 3]);
+
+    await table.click();
+    await page.getByRole("menuitem", { name: "Zeile unterhalb einfügen" }).click();
+    await save(page);
+    expect(tableShape(await storedXml(page, fileId))).toEqual([3, 3, 3]);
+  });
 });
+
+/** The number of cells in each row of the first table. */
+const tableShape = (xml: string): number[] => {
+  const table = xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/)?.[0] ?? "";
+  return [...table.matchAll(/<w:tr[ >][\s\S]*?<\/w:tr>/g)].map(([row]) => row.match(/<w:tc>/g)?.length ?? 0);
+};

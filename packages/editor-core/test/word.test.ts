@@ -27,6 +27,9 @@ const optionsWith = (convert: Convert, extra: Partial<Parameters<typeof openWord
 });
 
 /** Lets the conversion promise settle, so the engine API exists. */
+/** An asc_CSelectedObject of the given c_oAscTypeSelectElement type. */
+const selected = (type: number) => ({ asc_getObjectType: () => type });
+
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const openReady = async () => {
@@ -124,15 +127,15 @@ describe("openWordDocument", () => {
   it("reads the list at the cursor when the selection moves", async () => {
     const { engine, editor } = await openReady();
     engine.api().numbering = 5;
-    engine.api().emit("asc_onFocusObject", []);
+    engine.api().emit("asc_onFocusObject", [selected(0)]);
     expect(editor.store.get().paragraph.list).toBe("bullet");
 
     engine.api().numbering = 13;
-    engine.api().emit("asc_onFocusObject", []);
+    engine.api().emit("asc_onFocusObject", [selected(0)]);
     expect(editor.store.get().paragraph.list).toBe("number");
 
     engine.api().numbering = null;
-    engine.api().emit("asc_onFocusObject", []);
+    engine.api().emit("asc_onFocusObject", [selected(0)]);
     expect(editor.store.get().paragraph.list).toBeNull();
   });
 
@@ -142,6 +145,14 @@ describe("openWordDocument", () => {
     expect(editor.store.get().paragraph.list).toBe("number");
     await editor.commands.toggleList("number");
     expect(editor.store.get().paragraph.list).toBeNull();
+  });
+
+  it("knows when the cursor is in a table", async () => {
+    const { engine, editor } = await openReady();
+    engine.api().emit("asc_onFocusObject", [selected(0), selected(1)]);
+    expect(editor.store.get().paragraph.inTable).toBe(true);
+    engine.api().emit("asc_onFocusObject", [selected(0)]);
+    expect(editor.store.get().paragraph.inTable).toBe(false);
   });
 
   it("fails when the file cannot be converted", async () => {

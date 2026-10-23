@@ -21,6 +21,7 @@ import { Button } from "../ui/button";
 import { Choice } from "./choice";
 import { ColorPicker } from "./color-picker";
 import { styleLabel } from "./style-labels";
+import { TableMenu } from "./table-menu";
 
 const aligns: Array<{ value: Align; label: string; icon: LucideIcon }> = [
   { value: "left", label: "Linksbündig", icon: AlignLeft },
@@ -148,6 +149,7 @@ export const Toolbar = ({ state, commands }: ToolbarProps) => {
       {lists.map((toggle) => (
         <ToggleButton key={toggle.label} {...toggle} disabled={disabled} />
       ))}
+      <TableMenu inTable={paragraph.inTable} disabled={disabled} commands={commands} />
       <Separator />
       {aligns.map(({ value, label, icon }) => (
         <ToggleButton

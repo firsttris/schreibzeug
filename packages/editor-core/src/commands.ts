@@ -15,6 +15,12 @@ export type TextCommands = {
   setStyle: (name: string) => void;
   /** Starts a list of this kind, or ends it when the paragraph is in one already; resolves once applied. */
   toggleList: (kind: ListKind) => Promise<void>;
+  insertTable: (columns: number, rows: number) => void;
+  addRow: (where: "above" | "below") => void;
+  addColumn: (where: "left" | "right") => void;
+  deleteRow: () => void;
+  deleteColumn: () => void;
+  deleteTable: () => void;
   setAlign: (align: Align) => void;
   selectAll: () => void;
   undo: () => void;
@@ -23,6 +29,12 @@ export type TextCommands = {
 
 export const MIN_FONT_SIZE = 1;
 export const MAX_FONT_SIZE = 300;
+
+/** Word allows up to 63 columns; more rows than this are added later, not in one go. */
+export const MAX_TABLE_SIZE = 63;
+
+export const clampTableSize = (size: number): number =>
+  Math.min(MAX_TABLE_SIZE, Math.max(1, Math.round(size)));
 
 export const clampFontSize = (size: number): number =>
   Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, Math.round(size * 2) / 2));
@@ -51,6 +63,12 @@ export const createTextCommands = (
     );
   },
   setAlign: (align) => api.put_PrAlign(fromAlign(align, aligns)),
+  insertTable: (columns, rows) => api.put_Table(clampTableSize(columns), clampTableSize(rows)),
+  addRow: (where) => (where === "above" ? api.addRowAbove() : api.addRowBelow()),
+  addColumn: (where) => (where === "left" ? api.addColumnLeft() : api.addColumnRight()),
+  deleteRow: () => api.remRow(),
+  deleteColumn: () => api.remColumn(),
+  deleteTable: () => api.remTable(),
   selectAll: () => api.asc_EditSelectAll(),
   undo: () => api.Undo(),
   redo: () => api.Redo(),

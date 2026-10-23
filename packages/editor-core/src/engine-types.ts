@@ -79,6 +79,11 @@ export interface EngineWindow extends Window {
     asc_CUserInfo: new () => EngineUserInfo;
     /** common/commonDefines.js */
     c_oAscFileType: { DOCX: number; XLSX: number; PPTX: number };
+    /**
+     * Optional engine features, read by `asc_isSupportFeature` (common/apiBase.js). `ooxml` makes the
+     * engine read and write .docx/.xlsx/.pptx itself instead of the converter's binary format.
+     */
+    Addons?: Record<string, boolean>;
   };
   AscCommon: {
     /** common/commonDefines.js `offlineMode`: a document URL that switches off the server connection. */

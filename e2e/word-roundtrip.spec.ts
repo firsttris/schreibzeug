@@ -6,11 +6,20 @@ import { documentXml, paragraphTexts, runPropertiesOf } from "./docx";
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
 const openHello = async (page: Page) => {
+  // The engine reports its errors only to the console; keep them for the failure message.
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.stack ?? error.message));
+
   await page.goto("/");
   await page.getByTestId("open-file").setInputFiles(helloDocx);
-  await expect(page.getByTestId("editor-status")).toHaveAttribute("data-status", "ready", {
-    timeout: 90_000,
-  });
+  const status = page.getByTestId("editor-status");
+  await expect(status).not.toHaveAttribute("data-status", "loading", { timeout: 90_000 });
+  if ((await status.getAttribute("data-status")) !== "ready") {
+    throw new Error(`The document did not open: ${await status.textContent()}\n${errors.join("\n")}`);
+  }
 };
 
 const saveAndRead = async (page: Page): Promise<string> => {

@@ -73,6 +73,10 @@ export const openWordDocument = (win: EngineWindow, options: OpenWordOptions): P
   const store = createStore<EditorState>(initialEditorState);
   const dispatch = (event: EditorEvent) => store.set((state) => reduceEditorState(state, event));
 
+  // The Euro-Office build carries the OOXML reader and writer (OpenDocumentFromZip, fromXml/toXml)
+  // but only registers the "forms" addon, so the feature flag is set here. Without it the engine
+  // expects the converter's binary format and fails to open a .docx (error -82).
+  win.Asc.Addons = { ...win.Asc.Addons, ooxml: true };
   const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: {} });
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
   api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(options.bytes);

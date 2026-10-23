@@ -29,6 +29,14 @@
     <script>
       // The flat look of the canvas controls (scroll bars, rulers); web-apps sets the same flag.
       window["flat_desine"] = true;
+      // sdkjs catches its own errors and reports them only to the Document Server; show them in
+      // the console so tests and developers can see why a document failed to open.
+      window.addEventListener("error", (event) => {
+        console.error("[engine]", event.message, event.filename + ":" + event.lineno, event.error?.stack ?? "");
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        console.error("[engine] unhandled rejection", event.reason?.stack ?? String(event.reason));
+      });
     </script>
     <script src="../../../../vendor/xregexp/xregexp-all-min.js"></script>
     <script src="../../../../sdkjs/common/AllFonts.js"></script>

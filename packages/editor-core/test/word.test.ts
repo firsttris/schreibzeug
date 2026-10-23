@@ -23,6 +23,15 @@ describe("openWordDocument", () => {
     });
   });
 
+  it("switches on the engine's own OOXML reader and keeps other addons", async () => {
+    const engine = createFakeEngine();
+    engine.window.Asc.Addons = { forms: true };
+    const opening = openWordDocument(engine.window, options);
+    engine.api().emit("asc_onDocumentContentReady");
+    await opening;
+    expect(engine.window.Asc.Addons).toEqual({ forms: true, ooxml: true });
+  });
+
   it("hands the bytes to the engine when it asks for the local document", async () => {
     const { engine } = await openReady();
     const call = engine.api().calls.find(([name]) => name === "asc_openDocumentFromBytes");

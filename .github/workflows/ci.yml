@@ -91,9 +91,9 @@ jobs:
           path: engine/dist
           key: ${{ needs.engine.outputs.key }}
           fail-on-cache-miss: true
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
+      # The Playwright image has Node but no unzip, which setup-bun needs; npm installs Bun instead
+      # (as firsttris/workflows screenshots.yml does).
+      - run: npm install --global "bun@$BUN_VERSION"
       - run: bun install --frozen-lockfile
       - run: bun run test:e2e
         env:

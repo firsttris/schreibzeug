@@ -13,20 +13,39 @@ let x2tReady = null;
 
 const x2tUrl = (file) => new URL(`../../x2t/${file}`, self.location.href).href;
 
+// The module is fetched here rather than by the emscripten glue, so a missing or wrong file fails
+// with its URL and status instead of a bare "expected magic word" from WebAssembly.
+const fetchWasm = async () => {
+  const url = x2tUrl("x2t.wasm");
+  const response = await fetch(url);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const isWasm = bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
+  if (!response.ok || !isWasm) {
+    throw new Error(
+      `x2t.wasm could not be loaded from ${url} (${response.status} ${response.headers.get("content-type")})`,
+    );
+  }
+  return bytes.buffer;
+};
+
 const loadX2t = () => {
-  x2tReady ??= new Promise((resolve, reject) => {
-    self.Module = {
-      locateFile: (file) => x2tUrl(file),
-      onRuntimeInitialized: () => resolve(self.Module),
-      onAbort: (reason) => reject(new Error(`x2t aborted: ${reason}`)),
-      print: () => {},
-      printErr: (text) => console.warn("[x2t]", text),
-    };
-    try {
-      importScripts(x2tUrl("x2t.js"));
-    } catch (error) {
-      reject(error);
-    }
+  x2tReady ??= fetchWasm().then(
+    (wasmBinary) =>
+      new Promise((resolve, reject) => {
+        self.Module = {
+          wasmBinary,
+          locateFile: (file) => x2tUrl(file),
+          onRuntimeInitialized: () => resolve(self.Module),
+          onAbort: (reason) => reject(new Error(`x2t aborted: ${reason}`)),
+          print: () => {},
+          printErr: (text) => console.warn("[x2t]", text),
+        };
+        importScripts(x2tUrl("x2t.js"));
+      }),
+  );
+  // A failed load is not cached, so the next conversion tries again.
+  x2tReady.catch(() => {
+    x2tReady = null;
   });
   return x2tReady;
 };

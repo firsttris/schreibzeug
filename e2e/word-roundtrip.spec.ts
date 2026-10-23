@@ -27,6 +27,18 @@ test.describe("text document round trip without a document server", () => {
     expect(runPropertiesOf(xml, "kursivem").join("")).toContain("<w:i");
   });
 
+  test("takes typing again after a toolbar button had the focus", async ({ page }, testInfo) => {
+    const fileId = await openHello(page, testInfo);
+    await save(page);
+
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.type("Neu: ");
+    await save(page);
+
+    expect(paragraphTexts(await storedXml(page, fileId))[0]).toBe("Neu: Hallo Stapel");
+  });
+
   test("makes the selection bold and writes it into the .docx", async ({ page }, testInfo) => {
     const fileId = await openHello(page, testInfo);
     await selectAllInDocument(page);

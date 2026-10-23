@@ -1,3 +1,4 @@
+export { type ChannelListener, type CollabChannel, type JoinOptions, joinSession } from "./collab";
 export type { TextColor } from "./colors";
 export { clampFontSize, MAX_FONT_SIZE, MIN_FONT_SIZE, type TextCommands } from "./commands";
 export type { CommentAuthor, CommentCommands } from "./comments";

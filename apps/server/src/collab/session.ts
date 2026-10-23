@@ -1,0 +1,377 @@
+/**
+ * One editing session per file: the participants, the change log on top of the version the
+ * session started from, and the locks. Pure functions take the session and a message from one
+ * connection and return the new session and the messages to send; hub.ts and routes.ts only
+ * deliver them.
+ *
+ * The messages are the ones sdkjs speaks with the Document Server (sdkjs common/docscoapi.js
+ * `_onServerMessage`, server DocService/sources/DocsCoServer.js); docs/collaboration.md lists them.
+ */
+
+export type Participant = {
+  /** Our connection id; sdkjs sees it as the session id. */
+  connectionId: string;
+  /** sdkjs user id: the original id plus the index of this join (DocsCoServer `curUserId`). */
+  id: string;
+  idOriginal: string;
+  username: string;
+  indexUser: number;
+  view: boolean;
+};
+
+/** One change as DocsCoServer stores and sends it. */
+export type StoredChange = {
+  docid: string;
+  change: string;
+  time: number;
+  user: string;
+  useridoriginal: string;
+};
+
+export type Lock = { time: number; user: string; block: unknown };
+
+export type Session = {
+  fileId: string;
+  /** The file version every participant opens; the changes apply on top of it. */
+  baseVersion: number;
+  changes: StoredChange[];
+  locks: Record<string, Lock>;
+  participants: Participant[];
+  nextIndexUser: number;
+};
+
+export type Recipient = { to: "self" } | { to: "others" } | { to: "all" };
+export type Outgoing = Recipient & { message: Record<string, unknown> };
+export type Step = { session: Session; out: Outgoing[] };
+
+/** What a connection sent: sdkjs messages are objects with a `type`. */
+export type Incoming = { type: string; [key: string]: unknown };
+
+export const createSession = (fileId: string, baseVersion: number): Session => ({
+  fileId,
+  baseVersion,
+  changes: [],
+  locks: {},
+  participants: [],
+  nextIndexUser: 1,
+});
+
+const self = (message: Record<string, unknown>): Outgoing => ({ to: "self", message });
+const others = (message: Record<string, unknown>): Outgoing => ({ to: "others", message });
+
+/** Version and license the client checks; values as CryptPad's mock server sends them. */
+const BUILD = { buildVersion: "9.3.4", buildNumber: 1 };
+
+/**
+ * The license sdkjs waits for after connecting (DocsCoServer sends it on connect). Type 3 is a
+ * valid license, rights 1 editing (common/commonDefines.js c_oLicenseResult, c_oRights).
+ */
+export const licenseMessage = (): Record<string, unknown> => ({
+  type: "license",
+  license: { type: 3, mode: 0, rights: 1, light: false, ...BUILD },
+});
+
+const participantOf = (session: Session, connectionId: string) =>
+  session.participants.find((participant) => participant.connectionId === connectionId);
+
+const connectState = (session: Session, now: number): Record<string, unknown> => ({
+  type: "connectState",
+  participantsTimestamp: now,
+  participants: session.participants,
+  waitAuth: false,
+});
+
+type AuthUser = { id?: unknown; username?: unknown; indexUser?: unknown };
+
+/** The user as sdkjs announces it in `auth` (docscoapi.js getAuthCommand: user.asc_getId(), …). */
+const readUser = (data: Incoming): { idOriginal: string; username: string } => {
+  const user = (data.user ?? {}) as AuthUser;
+  return {
+    idOriginal: typeof user.id === "string" && user.id ? user.id : "anonymous",
+    username: typeof user.username === "string" && user.username ? user.username : "Unbekannt",
+  };
+};
+
+const isViewer = (data: Incoming): boolean => data.mode === "view";
+
+/** DocsCoServer's code for a session that cannot be restored (Common/sources/constants.js RESTORE_CODE). */
+export const RESTORE_CODE = 4004;
+
+/**
+ * A client that lost its connection comes back with its old session id. That works only if
+ * nobody else changed the document meanwhile: the last change by someone else must be the one the
+ * client last saw (`lastOtherSaveTime`, compared in whole seconds like DocsCoServer). Then it keeps
+ * its user id and its locks; otherwise it gets an error and has to open the document again.
+ */
+const restore = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  const { idOriginal, username } = readUser(data);
+  const user = (data.user ?? {}) as AuthUser;
+  const indexUser = typeof user.indexUser === "number" ? user.indexUser : session.nextIndexUser;
+  const id = `${idOriginal}${indexUser}`;
+  const lastOther = [...session.changes].reverse().find((change) => change.user !== id);
+  const seen = typeof data.lastOtherSaveTime === "number" ? data.lastOtherSaveTime : 0;
+  if (lastOther && Math.trunc((seen - lastOther.time) / 1000) !== 0) {
+    return {
+      session,
+      out: [self({ type: "error", description: "Restore error. Document modified.", code: RESTORE_CODE })],
+    };
+  }
+  const participant: Participant = {
+    connectionId,
+    id,
+    idOriginal,
+    username,
+    indexUser,
+    view: isViewer(data),
+  };
+  const blocks = Array.isArray(data.block) ? data.block : [];
+  const restoredLocks = Object.fromEntries(
+    blocks.map((block) => [lockKey(block), { time: now, user: id, block }]),
+  );
+  const next: Session = {
+    ...session,
+    nextIndexUser: Math.max(session.nextIndexUser, indexUser + 1),
+    locks: { ...session.locks, ...restoredLocks },
+    participants: [...session.participants.filter((p) => p.id !== id), participant],
+  };
+  return {
+    session: next,
+    out: [
+      self({
+        type: "auth",
+        result: 1,
+        sessionId: connectionId,
+        participants: next.participants,
+        locks: next.locks,
+        indexUser,
+        licenseType: 3,
+        ...BUILD,
+      }),
+      others(connectState(next, now)),
+      ...(blocks.length ? [others({ type: "getLock", locks: next.locks })] : []),
+    ],
+  };
+};
+
+/** A lock's key: the block's guid, or the block itself for the editors that send plain ids. */
+const lockKey = (block: unknown): string =>
+  typeof block === "object" && block && "guid" in block
+    ? String((block as { guid: unknown }).guid)
+    : String(block);
+
+/**
+ * A connection authenticates: it becomes a participant and gets everything it needs to catch up,
+ * in DocsCoServer's order: the changes so far (`authChanges`), the session (`auth`), and the file
+ * to open (`documentOpen`), whose URL is the one the client put in its own open command, so each
+ * client opens the base version it converted itself.
+ */
+export const authenticate = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  if (typeof data.sessionId === "string" && data.sessionId) return restore(session, connectionId, data, now);
+  const { idOriginal, username } = readUser(data);
+  const indexUser = session.nextIndexUser;
+  const participant: Participant = {
+    connectionId,
+    id: `${idOriginal}${indexUser}`,
+    idOriginal,
+    username,
+    indexUser,
+    view: isViewer(data),
+  };
+  const next: Session = {
+    ...session,
+    nextIndexUser: indexUser + 1,
+    participants: [...session.participants.filter((p) => p.connectionId !== connectionId), participant],
+  };
+  const openCmd = data.openCmd as { url?: unknown } | undefined;
+  const out: Outgoing[] = [
+    self({ type: "authChanges", changes: session.changes }),
+    self({
+      type: "auth",
+      result: 1,
+      sessionId: connectionId,
+      sessionTimeConnect: now,
+      participants: next.participants,
+      locks: session.locks,
+      indexUser,
+      licenseType: 3,
+      ...BUILD,
+    }),
+    others(connectState(next, now)),
+  ];
+  if (openCmd && typeof openCmd.url === "string") {
+    out.splice(
+      2,
+      0,
+      self({
+        type: "documentOpen",
+        data: { type: "open", status: "ok", data: { "Editor.bin": openCmd.url } },
+      }),
+    );
+  }
+  return { session: next, out };
+};
+
+/** Blocks a client asks to edit. Word grants every lock (DocsCoServer `_checkLockWord` is true). */
+export const getLock = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  const participant = participantOf(session, connectionId);
+  if (!participant) return { session, out: [] };
+  const blocks = Array.isArray(data.block) ? data.block : [];
+  const added = Object.fromEntries(
+    blocks.map((block) => [lockKey(block), { time: now, user: participant.id, block }]),
+  );
+  const locks = { ...session.locks, ...added };
+  return { session: { ...session, locks }, out: [{ to: "all", message: { type: "getLock", locks } }] };
+};
+
+const releaseLocksOf = (session: Session, userId: string, now: number) => {
+  const released = Object.values(session.locks)
+    .filter((lock) => lock.user === userId)
+    .map((lock) => ({ block: lock.block, user: lock.user, time: now, changes: null }));
+  const locks = Object.fromEntries(Object.entries(session.locks).filter(([, lock]) => lock.user !== userId));
+  return { locks, released };
+};
+
+const parseChanges = (changes: unknown): unknown[] => {
+  if (Array.isArray(changes)) return changes;
+  if (typeof changes !== "string") return [];
+  try {
+    const parsed: unknown = JSON.parse(changes);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Changes from one client go to the end of the log and to everyone else (DocsCoServer
+ * `saveChanges`). A save may come in parts; only the last (`endSaveChanges`) releases locks and
+ * answers with `unSaveLock`, which tells the client its changes have their place in the log.
+ */
+export const saveChanges = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  const participant = participantOf(session, connectionId);
+  if (!participant) return { session, out: [] };
+
+  // A client resending after a reconnect drops what it sent before from `deleteIndex` on.
+  const deleteIndex = data.startSaveChanges && typeof data.deleteIndex === "number" ? data.deleteIndex : -1;
+  const kept =
+    deleteIndex >= 0 && deleteIndex < session.changes.length
+      ? session.changes.slice(0, deleteIndex)
+      : session.changes;
+  const startIndex = kept.length;
+  const added: StoredChange[] = parseChanges(data.changes).map((change) => ({
+    docid: session.fileId,
+    change: JSON.stringify(change),
+    time: now,
+    user: participant.id,
+    useridoriginal: participant.idOriginal,
+  }));
+  const changes = [...kept, ...added];
+  const changesIndex = deleteIndex === -1 && data.startSaveChanges ? startIndex : -1;
+
+  if (!data.endSaveChanges) {
+    return {
+      session: { ...session, changes },
+      out: [
+        others({
+          type: "saveChanges",
+          changes: added,
+          changesIndex: changes.length,
+          syncChangesIndex: changes.length,
+          endSaveChanges: false,
+          locks: [],
+        }),
+        self({ type: "savePartChanges", changesIndex, syncChangesIndex: changes.length }),
+      ],
+    };
+  }
+
+  const { locks, released } = data.releaseLocks
+    ? releaseLocksOf(session, participant.id, now)
+    : { locks: session.locks, released: [] };
+  return {
+    session: { ...session, changes, locks },
+    out: [
+      others({
+        type: "saveChanges",
+        changes: added,
+        changesIndex: changes.length,
+        syncChangesIndex: changes.length,
+        endSaveChanges: true,
+        locks: released,
+      }),
+      self({ type: "unSaveLock", index: changesIndex, time: now, syncChangesIndex: changes.length }),
+    ],
+  };
+};
+
+/** The client leaves the document's locks (DocsCoServer `unLockDocument`). */
+export const unlockDocument = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  const participant = participantOf(session, connectionId);
+  if (!participant || !data.releaseLocks) return { session, out: [] };
+  const { locks, released } = releaseLocksOf(session, participant.id, now);
+  return {
+    session: { ...session, locks },
+    out: released.length ? [others({ type: "releaseLock", locks: released })] : [],
+  };
+};
+
+/** Where someone's cursor is, for everyone else (DocsCoServer `sendDataCursor`). */
+export const cursor = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  const participant = participantOf(session, connectionId);
+  if (!participant) return { session, out: [] };
+  return {
+    session,
+    out: [
+      others({
+        type: "cursor",
+        messages: [
+          { cursor: data.cursor, time: now, user: participant.id, useridoriginal: participant.idOriginal },
+        ],
+      }),
+    ],
+  };
+};
+
+/** A connection is gone: its locks are freed and the others see it leave. */
+export const disconnect = (session: Session, connectionId: string, now: number): Step => {
+  const participant = participantOf(session, connectionId);
+  if (!participant) return { session, out: [] };
+  const { locks, released } = releaseLocksOf(session, participant.id, now);
+  const next = {
+    ...session,
+    locks,
+    participants: session.participants.filter((p) => p.connectionId !== connectionId),
+  };
+  const out: Outgoing[] = [others(connectState(next, now))];
+  if (released.length) out.unshift(others({ type: "releaseLock", locks: released }));
+  return { session: next, out };
+};
+
+/** Every message from a client, by type; types the relay does not need are ignored. */
+export const receive = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  switch (data.type) {
+    case "auth":
+      return authenticate(session, connectionId, data, now);
+    case "getLock":
+      return getLock(session, connectionId, data, now);
+    case "saveChanges":
+      return saveChanges(session, connectionId, data, now);
+    case "unLockDocument":
+      return unlockDocument(session, connectionId, data, now);
+    case "cursor":
+      return cursor(session, connectionId, data, now);
+    case "isSaveLock":
+      // One relay process orders all saves, so nobody has to wait for another's save.
+      return { session, out: [self({ type: "saveLock", saveLock: false })] };
+    case "unSaveLock":
+      return {
+        session,
+        out: [self({ type: "unSaveLock", index: -1, time: now, syncChangesIndex: session.changes.length })],
+      };
+    case "getMessages":
+      return { session, out: [self({ type: "message" })] };
+    default:
+      // authChangesAck, clientLog, extendSession, close …: nothing to answer.
+      return { session, out: [] };
+  }
+};

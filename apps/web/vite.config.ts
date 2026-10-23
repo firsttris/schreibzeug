@@ -10,8 +10,8 @@ const apiUrl = process.env.STAPEL_API_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), enginePlugin(resolve(import.meta.dirname, "../../engine/dist"))],
-  server: { port: 5173, strictPort: true, proxy: { "/api": apiUrl } },
-  preview: { port: 4173, strictPort: true, proxy: { "/api": apiUrl } },
+  server: { port: 5173, strictPort: true, proxy: { "/api": { target: apiUrl, ws: true } } },
+  preview: { port: 4173, strictPort: true, proxy: { "/api": { target: apiUrl, ws: true } } },
   test: {
     name: "web",
     environment: "happy-dom",

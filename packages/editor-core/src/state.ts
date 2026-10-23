@@ -51,6 +51,11 @@ export type DocumentState = {
   canRedo: boolean;
   modified: boolean;
   pages: number;
+  /**
+   * False while the connection to the other editors is lost; the engine takes no edits meanwhile
+   * and catches up once it is back.
+   */
+  connected: boolean;
 };
 
 export type EditorStatus = "loading" | "ready" | "error";
@@ -87,6 +92,7 @@ export type EditorEvent =
   | { type: "canRedo"; value: boolean }
   | { type: "modified"; value: boolean }
   | { type: "pages"; value: number }
+  | { type: "connected"; value: boolean }
   | { type: "commentSet"; comment: Comment }
   | { type: "commentRemoved"; id: string }
   | { type: "activeComments"; ids: string[] }
@@ -110,7 +116,7 @@ export const initialEditorState: EditorState = {
   catalog: { fonts: [], styles: [] },
   comments: [],
   activeComments: [],
-  document: { canUndo: false, canRedo: false, modified: false, pages: 0 },
+  document: { canUndo: false, canRedo: false, modified: false, pages: 0, connected: true },
 };
 
 const withText = (state: EditorState, text: Partial<TextState>): EditorState => ({
@@ -175,6 +181,8 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withDocument(state, { modified: event.value });
     case "pages":
       return withDocument(state, { pages: event.value });
+    case "connected":
+      return withDocument(state, { connected: event.value });
     case "commentSet":
       return { ...state, comments: setComment(state.comments, event.comment) };
     case "commentRemoved":

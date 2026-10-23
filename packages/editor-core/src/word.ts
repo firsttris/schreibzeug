@@ -1,9 +1,12 @@
+import type { CollabChannel } from "./collab";
 import { createEngineColor } from "./colors";
 import { createTextCommands, type TextCommands } from "./commands";
 import { type CommentCommands, createCommentCommands } from "./comments";
 import type { Convert } from "./converter";
 import type { EngineEventArgs, EngineEventName, EngineWindow, WordEngineApi } from "./engine-types";
 import { type EventTranslators, stateEvents } from "./events";
+import { keepFocusOnClick } from "./frame";
+import { createFrameSocketIO } from "./frame-socket";
 import { readListKind } from "./lists";
 import { type EditorEvent, type EditorState, initialEditorState, reduceEditorState } from "./state";
 import { createStore, type Store } from "./store";
@@ -20,6 +23,11 @@ export type OpenWordOptions = {
   lang?: string;
   /** How long to wait until the document is shown, in milliseconds. */
   timeoutMs?: number;
+  /**
+   * Edit together with others: the relay session (collab.ts joinSession) and the id every
+   * participant uses for this document. `bytes` must be the session's base version.
+   */
+  collaboration?: { channel: CollabChannel; documentId: string };
 };
 
 export type WordEditor = {
@@ -54,22 +62,22 @@ const subscribe = (
   }
 };
 
-const createDocInfo = (win: EngineWindow, options: OpenWordOptions) => {
+const createDocInfo = (win: EngineWindow, options: OpenWordOptions, url: string) => {
   const user = new win.Asc.asc_CUserInfo();
   user.put_Id(options.user.id);
   user.put_FullName(options.user.name);
 
   const info = new win.Asc.asc_CDocInfo();
-  info.put_Id(crypto.randomUUID());
-  // The offline URL makes sdkjs skip the Document Server: no socket, a local license answer, and
-  // the file comes from _openChartOrLocalDocument (common/apiBase.js asc_setDocInfo, _coAuthoringInit).
-  info.put_Url(win.AscCommon.offlineMode);
+  info.put_Id(options.collaboration?.documentId ?? crypto.randomUUID());
+  info.put_Url(url);
   info.put_Title(options.title);
   info.put_Format("docx");
   info.put_UserInfo(user);
   info.put_Permissions({ edit: true, download: true, print: true, comment: true, review: true });
   info.put_Mode("edit");
   info.put_Lang(options.lang ?? "de");
+  // Fast co-editing, as web-apps chooses by default (documenteditor/mobile Main.jsx coEditMode).
+  if (options.collaboration) info.put_CoEditingMode("fast");
   return info;
 };
 
@@ -81,6 +89,42 @@ const withListRefresh = (commands: TextCommands, refreshList: () => void): TextC
   ...commands,
   toggleList: (kind) => commands.toggleList(kind).then(refreshList),
 });
+
+/**
+ * Where the engine gets the document from, and whether it talks to anyone.
+ *
+ * Alone: the offline URL makes sdkjs skip the Document Server (no socket, a local license answer)
+ * and ask for the file through `_openChartOrLocalDocument`, which gets our bytes
+ * (common/apiBase.js asc_setDocInfo, _coAuthoringInit).
+ *
+ * Together: sdkjs connects with what it finds in `window.io` (frame-socket.ts) and, after `auth`,
+ * opens the "Editor.bin" URL the relay names in `documentOpen`, which is the URL it was given:
+ * our binary as a blob in the frame, the same bytes for every participant.
+ */
+const connectEngine = (
+  win: EngineWindow,
+  api: WordEngineApi,
+  binary: Uint8Array,
+  collaboration: OpenWordOptions["collaboration"],
+): string => {
+  if (!collaboration) {
+    api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
+    return win.AscCommon.offlineMode;
+  }
+  win.io = createFrameSocketIO(win, collaboration.channel);
+  return win.URL.createObjectURL(new win.Blob([binary as BlobPart]));
+};
+
+/**
+ * What web-apps switches on once a shared document is shown (common/mobile/lib/controller/
+ * collaboration/Collaboration.jsx onDocumentReady): changes go out as they happen, every second,
+ * and others' text is not highlighted. Without the autosave gap the engine sends nothing.
+ */
+const startCoEditing = (win: EngineWindow, api: WordEngineApi): void => {
+  api.asc_SetFastCollaborative(true);
+  api.SetCollaborativeMarksShowType(win.Asc.c_oAscCollaborativeMarksShowType.None);
+  api.asc_setAutoSaveGap(1);
+};
 
 type EngineStart = {
   win: EngineWindow;
@@ -101,8 +145,9 @@ type EngineStart = {
 const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure }: EngineStart): void => {
   const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: {} });
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
-  api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
-  subscribe(api, stateEvents(win.AscCommon), dispatch);
+  const url = connectEngine(win, api, binary, options.collaboration);
+  subscribe(api, stateEvents(win.AscCommon, win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
+  keepFocusOnClick(win, () => api.getFocusElement());
   const refreshList = () =>
     dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) });
   api.asc_registerCallback("asc_onFocusObject", (objects) => {
@@ -142,6 +187,7 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
     // Marks commented text and reports the comments at the cursor (asc_onShowComment), as web-apps
     // does with live commenting on; resolved comments stay unmarked.
     api.asc_showComments(false);
+    if (options.collaboration) startCoEditing(win, api);
     api.Resize();
     api.zoomFitToWidth();
     onReady(editor);
@@ -150,7 +196,7 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
     if (level === CRITICAL_ERROR_LEVEL) onFailure(`The engine reported error ${id}.`);
   });
 
-  api.asc_setDocInfo(createDocInfo(win, options));
+  api.asc_setDocInfo(createDocInfo(win, options, url));
   api.asc_getEditorPermissions();
 };
 

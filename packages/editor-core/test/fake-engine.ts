@@ -13,6 +13,8 @@ type Callbacks = { [N in EngineEventName]?: Array<(...args: EngineEventArgs[N]) 
 export type FakeEngine = {
   window: EngineWindow;
   api: () => FakeApi;
+  /** Presses the mouse in the frame; returns how often the engine's input was focused so far. */
+  press: () => number;
 };
 
 export type FakeApi = WordEngineApi & {
@@ -116,6 +118,9 @@ const record =
 /** A stand-in for the engine frame's window with the same surface as engine-types.ts. */
 export const createFakeEngine = (): FakeEngine => {
   let current: FakeApi | null = null;
+  const events = new EventTarget();
+  let focusCount = 0;
+  const input = { focus: () => (focusCount += 1) } as unknown as HTMLElement;
 
   // A plain function, called with `new` by the code under test: returning an object from it gives
   // that object to the caller, just like the engine constructor returns its API.
@@ -213,8 +218,12 @@ export const createFakeEngine = (): FakeEngine => {
           get_Lvl: () => ({ get_Format: () => api.numbering ?? NUMBERING_FORMATS.None }),
         }),
         asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
+        getFocusElement: () => input,
         isDocumentModified: () => api.modified,
         asc_setSpellCheck: record(calls, "asc_setSpellCheck"),
+        asc_SetFastCollaborative: record(calls, "asc_SetFastCollaborative"),
+        SetCollaborativeMarksShowType: record(calls, "SetCollaborativeMarksShowType"),
+        asc_setAutoSaveGap: record(calls, "asc_setAutoSaveGap"),
         SetUnchangedDocument: () => {
           calls.push(["SetUnchangedDocument"]);
           api.modified = false;
@@ -248,6 +257,8 @@ export const createFakeEngine = (): FakeEngine => {
 
   const window = {
     devicePixelRatio: 2,
+    addEventListener: events.addEventListener.bind(events),
+    document: { hasFocus: () => false, activeElement: null, body: null },
     Asc: {
       asc_docs_api: FakeDocsApi,
       asc_CDocInfo: valueHolder(),
@@ -256,6 +267,8 @@ export const createFakeEngine = (): FakeEngine => {
       asc_CCommentDataWord: FakeCommentData,
       c_oAscNumberingFormat: NUMBERING_FORMATS,
       c_oAscTypeSelectElement: { Paragraph: 0, Table: 1 },
+      c_oAscAsyncAction: { Disconnect: 20 },
+      c_oAscCollaborativeMarksShowType: { All: 0, LastChanges: 1, None: 2 },
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },
     },
     AscCommon: { offlineMode: "_offline_", align_Right: 0, align_Left: 1, align_Center: 2, align_Justify: 3 },
@@ -263,6 +276,10 @@ export const createFakeEngine = (): FakeEngine => {
 
   return {
     window,
+    press: () => {
+      events.dispatchEvent(new Event("pointerdown"));
+      return focusCount;
+    },
     api: () => {
       if (!current) throw new Error("The API was not created yet.");
       return current;

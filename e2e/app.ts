@@ -33,7 +33,8 @@ export const row = (page: Page, name: string) => page.locator(`tr[data-node="${n
 
 /** Creates a folder named after the test (and its retry) in "Meine Dateien" and opens it. */
 export const openOwnFolder = async (page: Page, testInfo: TestInfo): Promise<string> => {
-  const name = `${testInfo.title.slice(0, 40)} ${testInfo.testId.slice(0, 8)}-${testInfo.retry}`;
+  // Unique per run of a test, also with --repeat-each and on a retry.
+  const name = `${testInfo.title.slice(0, 40)} ${testInfo.testId.slice(0, 8)}-${testInfo.repeatEachIndex}-${testInfo.retry}`;
   await page.goto("/");
   await page.getByRole("button", { name: "Neuer Ordner" }).click();
   await fillNameDialog(page, "Name des Ordners", name, "Anlegen");

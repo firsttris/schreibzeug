@@ -14,7 +14,7 @@ if (!root) throw new Error("Missing #root element");
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 10_000 } } });
 // The web app talks to the server it was loaded from; the desktop app will pass a configured one.
-const files = createFiles(createApiClient(window.location.origin));
+const files = createFiles(createApiClient(window.location.origin), window.location.origin);
 const router = createAppRouter(queryClient);
 
 createRoot(root).render(

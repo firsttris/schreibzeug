@@ -41,6 +41,59 @@ const openReady = async () => {
   return { engine, converter, editor: await opening };
 };
 
+/** A channel that records what the engine sends; the relay never answers. */
+const idleChannel = () => {
+  const sent: string[] = [];
+  return {
+    sent,
+    channel: {
+      baseVersion: 1,
+      send: (json: string) => sent.push(json),
+      listen: () => () => {},
+      close: () => {},
+    },
+  };
+};
+
+const openShared = async () => {
+  const engine = createFakeEngine();
+  Object.assign(engine.window, { URL: { createObjectURL: () => "blob:document" }, Blob, JSON });
+  const converter = fakeConverter();
+  const opening = openWordDocument(
+    engine.window,
+    optionsWith(converter.convert, {
+      collaboration: { channel: idleChannel().channel, documentId: "file-1" },
+    }),
+  );
+  await flush();
+  engine.api().emit("asc_onDocumentContentReady");
+  return { engine, editor: await opening };
+};
+
+describe("openWordDocument in a shared session", () => {
+  it("leaves offline mode: the document has the file's id and a blob URL, and edits fast", async () => {
+    const { engine } = await openShared();
+    expect(engine.api().docInfo).toMatchObject({ Id: "file-1", Url: "blob:document", CoEditingMode: "fast" });
+    expect(engine.api().calls.some(([name]) => name === "asc_openDocumentFromBytes")).toBe(false);
+  });
+
+  it("gives the engine a socket.io stand-in", async () => {
+    const { engine } = await openShared();
+    expect(typeof engine.window.io).toBe("function");
+  });
+
+  it("turns on fast co-editing once the document is shown, as web-apps does", async () => {
+    const { engine } = await openShared();
+    expect(engine.api().calls).toEqual(
+      expect.arrayContaining([
+        ["asc_SetFastCollaborative", true],
+        ["SetCollaborativeMarksShowType", 2],
+        ["asc_setAutoSaveGap", 1],
+      ]),
+    );
+  });
+});
+
 describe("openWordDocument", () => {
   it("converts the .docx into the engine's binary format before opening", async () => {
     const { converter } = await openReady();
@@ -55,6 +108,7 @@ describe("openWordDocument", () => {
 
   it("opens in offline mode with the document info sdkjs needs", async () => {
     const { engine } = await openReady();
+    expect(engine.window.io).toBeUndefined();
     expect(engine.api().docInfo).toMatchObject({
       Url: "_offline_",
       Title: "Angebot.docx",
@@ -76,6 +130,11 @@ describe("openWordDocument", () => {
   it("switches the spell checker off, since no dictionaries are served", async () => {
     const { engine } = await openReady();
     expect(engine.api().calls).toContainEqual(["asc_setSpellCheck", false]);
+  });
+
+  it("gives the engine's input the keys when someone presses the mouse in the frame", async () => {
+    const { engine } = await openReady();
+    expect(engine.press()).toBe(1);
   });
 
   it("is ready once the content is shown", async () => {

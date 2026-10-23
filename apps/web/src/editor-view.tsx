@@ -7,6 +7,7 @@ import {
   LoaderCircle,
   MessageSquare,
   Save,
+  WifiOff,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CommentsPanel } from "./comments/comments-panel";
@@ -17,10 +18,19 @@ import { useWordEditor } from "./use-word-editor";
 
 type Status = "loading" | "ready" | "error";
 
-const statusText = (status: Status, modified: boolean, saving: boolean, failure: string | null): string => {
+type StatusFacts = {
+  status: Status;
+  modified: boolean;
+  saving: boolean;
+  connected: boolean;
+  failure: string | null;
+};
+
+const statusText = ({ status, modified, saving, connected, failure }: StatusFacts): string => {
   if (failure) return failure;
   if (status === "loading") return "Öffnet …";
   if (status === "error") return "Fehler beim Öffnen";
+  if (!connected) return "Verbindung unterbrochen, verbindet neu …";
   if (saving) return "Speichert …";
   return modified ? "Nicht gespeicherte Änderungen" : "Gespeichert";
 };
@@ -50,7 +60,7 @@ export const EditorView = ({ file, onClose, onSave, onShowVersions }: EditorView
   const [saving, setSaving] = useState(false);
   const [saveFailure, setSaveFailure] = useState<string | null>(null);
   const status: Status = failure ? "error" : state.status;
-  const modified = state.document.modified;
+  const { modified, connected } = state.document;
   useLeaveWarning(modified);
   const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
@@ -95,11 +105,15 @@ export const EditorView = ({ file, onClose, onSave, onShowVersions }: EditorView
               data-testid="editor-status"
               data-status={status}
               data-modified={modified}
-              className={`flex items-center gap-1.5 text-xs ${saveFailure ? "text-red-600 dark:text-red-400" : "text-[var(--muted-foreground)]"}`}
+              data-connected={connected}
+              className={`flex items-center gap-1.5 text-xs ${saveFailure || !connected ? "text-red-600 dark:text-red-400" : "text-[var(--muted-foreground)]"}`}
             >
-              {(status === "loading" || saving) && <LoaderCircle size={12} className="animate-spin" />}
-              {status === "ready" && !saving && !modified && !saveFailure && <Check size={12} />}
-              {statusText(status, modified, saving, failure ?? saveFailure)}
+              {!connected && <WifiOff size={12} />}
+              {connected && (status === "loading" || saving) && (
+                <LoaderCircle size={12} className="animate-spin" />
+              )}
+              {connected && status === "ready" && !saving && !modified && !saveFailure && <Check size={12} />}
+              {statusText({ status, modified, saving, connected, failure: failure ?? saveFailure })}
             </span>
           </div>
           <div className="ml-auto flex items-center gap-2">

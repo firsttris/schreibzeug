@@ -1,4 +1,11 @@
-export type OpenedFile = { name: string; bytes: Uint8Array };
+import type { CollabChannel } from "@stapel/editor-core";
+
+export type OpenedFile = {
+  name: string;
+  bytes: Uint8Array;
+  /** The editing session the file belongs to; absent for a file edited alone. */
+  collaboration?: { channel: CollabChannel; documentId: string };
+};
 
 export const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 

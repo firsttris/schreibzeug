@@ -23,8 +23,10 @@ describe("alignment", () => {
   });
 });
 
+const DISCONNECT = 20;
+
 describe("stateEvents", () => {
-  const events = stateEvents(aligns);
+  const events = stateEvents(aligns, DISCONNECT);
 
   it("translates text property events", () => {
     expect(events.asc_onBold?.(true)).toEqual({ type: "bold", value: true });
@@ -51,10 +53,16 @@ describe("stateEvents", () => {
     expect(events.asc_onCanRedo?.(true)).toEqual({ type: "canRedo", value: true });
     expect(events.asc_onCountPages?.(4)).toEqual({ type: "pages", value: 4 });
   });
+
+  it("follows the engine's Disconnect action and ignores other actions", () => {
+    expect(events.asc_onStartAction?.(0, DISCONNECT)).toEqual({ type: "connected", value: false });
+    expect(events.asc_onEndAction?.(0, DISCONNECT)).toEqual({ type: "connected", value: true });
+    expect(events.asc_onStartAction?.(1, 3)).toBeNull();
+  });
 });
 
 describe("stateEvents for formatting and catalogs", () => {
-  const events = stateEvents(aligns);
+  const events = stateEvents(aligns, DISCONNECT);
 
   it("translates strikethrough and the paragraph style", () => {
     expect(events.asc_onStrikeout?.(true)).toEqual({ type: "strikeout", value: true });

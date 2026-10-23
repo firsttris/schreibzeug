@@ -72,6 +72,9 @@ export type EngineEventArgs = {
   /** Sent without arguments (word/api.js SetDocumentModified); read `isDocumentModified()`. */
   asc_onDocumentModifiedChanged: [];
   asc_onCountPages: [pages: number];
+  /** common/apiBase.js sync_StartAction / sync_EndAction: c_oAscAsyncActionType, c_oAscAsyncAction. */
+  asc_onStartAction: [type: number, id: number];
+  asc_onEndAction: [type: number, id: number];
   asc_onGetEditorPermissions: [permissions: unknown];
   asc_onDocumentContentReady: [];
   asc_onError: [id: number, level: number, data?: unknown];
@@ -95,6 +98,8 @@ export interface EngineDocInfo {
   put_Permissions(permissions: Record<string, boolean>): void;
   put_Mode(mode: "edit" | "view"): void;
   put_Lang(lang: string): void;
+  /** "fast": changes go out as they happen; "strict": only when the user saves. */
+  put_CoEditingMode(mode: "fast" | "strict"): void;
 }
 
 /** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
@@ -150,8 +155,16 @@ export interface WordEngineApi {
   put_PrAlign(align: number): void;
   /** word/api.js */
   asc_EditSelectAll(): void;
+  /** common/apiBase.js: the hidden input that takes the keys (g_inputContext.HtmlArea). */
+  getFocusElement(): HTMLElement;
   /** word/api.js: whether there are changes since opening or since `SetUnchangedDocument`. */
   isDocumentModified(): boolean;
+  /** word/api.js: send changes as they happen, instead of when the user saves. */
+  asc_SetFastCollaborative(isOn: boolean): void;
+  /** word/api.js: how others' changes are marked (common/commonDefines.js c_oAscCollaborativeMarksShowType). */
+  SetCollaborativeMarksShowType(type: number): void;
+  /** common/apiBase.js: seconds between sends of the changes; 0 sends none. */
+  asc_setAutoSaveGap(seconds: number): void;
   /** word/api.js: turns the red underlines of the spell checker on or off. */
   asc_setSpellCheck(isOn: boolean): void;
   /** word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged. */
@@ -163,6 +176,12 @@ export interface WordEngineApi {
 
 /** The window of the engine frame after sdkjs has loaded (engine/frame/editor/word/main). */
 export interface EngineWindow extends Window {
+  /** The socket.io client sdkjs connects with, if set (common/editorscommon.js getSocketIO). */
+  io?: unknown;
+  /** The frame's own globals: objects made with them belong to the engine's realm. */
+  JSON: JSON;
+  URL: typeof URL;
+  Blob: typeof Blob;
   Asc: {
     asc_docs_api: new (config: Record<string, unknown>) => WordEngineApi;
     asc_CDocInfo: new () => EngineDocInfo;
@@ -170,6 +189,10 @@ export interface EngineWindow extends Window {
     asc_CColor: EngineColorConstructor;
     asc_CCommentDataWord: new (data: null) => EngineCommentData;
     c_oAscNumberingFormat: NumberingFormats;
+    /** common/commonDefines.js */
+    /** common/commonDefines.js */
+    c_oAscAsyncAction: { Disconnect: number };
+    c_oAscCollaborativeMarksShowType: { None: number };
     /** common/commonDefines.js: what a selected object is. */
     c_oAscTypeSelectElement: { Table: number };
     /** common/commonDefines.js */

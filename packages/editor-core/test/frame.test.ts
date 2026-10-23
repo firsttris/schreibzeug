@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { framePath, mountEngineFrame } from "../src/frame";
+import { framePath, keepFocusOnClick, mountEngineFrame } from "../src/frame";
 import { createStore } from "../src/store";
 
 describe("framePath", () => {
@@ -24,6 +24,43 @@ describe("mountEngineFrame", () => {
     const container = document.createElement("div");
     await expect(mountEngineFrame(container, { kind: "word", timeoutMs: 5 })).rejects.toThrow("did not load");
     expect(container.querySelector("iframe")).toBeNull();
+  });
+});
+
+describe("keepFocusOnClick", () => {
+  const fakeFrame = (focused: boolean, active: "body" | "input") => {
+    const target = new EventTarget();
+    const body = {};
+    let focusCalls = 0;
+    const input = {
+      focus: () => {
+        focusCalls += 1;
+      },
+    };
+    const win = {
+      addEventListener: target.addEventListener.bind(target),
+      document: { hasFocus: () => focused, body, activeElement: active === "body" ? body : input },
+    };
+    keepFocusOnClick(win as never, () => input as never);
+    return { press: () => target.dispatchEvent(new Event("pointerdown")), focusCalls: () => focusCalls };
+  };
+
+  it("focuses the engine's input when a press lands in the frame while focus is elsewhere", () => {
+    const frame = fakeFrame(false, "input");
+    frame.press();
+    expect(frame.focusCalls()).toBe(1);
+  });
+
+  it("focuses the input when the frame has focus but nothing in it holds the keys", () => {
+    const frame = fakeFrame(true, "body");
+    frame.press();
+    expect(frame.focusCalls()).toBe(1);
+  });
+
+  it("leaves focus alone when the engine already has it", () => {
+    const frame = fakeFrame(true, "input");
+    frame.press();
+    expect(frame.focusCalls()).toBe(0);
   });
 });
 

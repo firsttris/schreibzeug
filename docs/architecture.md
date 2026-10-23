@@ -1,13 +1,13 @@
 # Architecture
 
 Stapel is a single-page app that edits Office files in the browser with the Euro-Office engine, and
-one Bun server that stores the files and, later, relays collaboration. The same app runs in the
+one Bun server that stores the files and relays collaboration. The same app runs in the
 browser and in the Tauri desktop app.
 
 ```
 apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶ PostgreSQL (tree, versions)
    │                                         │                └─▶ data/blobs (file bytes)
-   └─ iframe: engine (sdkjs + x2t)           └─ WebSocket relay (collaboration, planned)
+   └─ iframe: engine (sdkjs + x2t)           └─ WebSocket relay (collaboration)
 ```
 
 ## Workspaces
@@ -17,7 +17,7 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 | `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store. Framework-free. See [the engine](engine.md). |
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
 | `packages/ooxml` | Builds minimal Office Open XML packages: blank documents for the server, test documents for the tests. |
-| `apps/server` | The files API on Bun with Hono, Drizzle and PostgreSQL. See [files](files.md). |
+| `apps/server` | The files API on Bun with Hono, Drizzle and PostgreSQL. See [files](files.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
 | `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`. |
 
 ## Why a SPA and a Hono API, not TanStack Start
@@ -30,19 +30,20 @@ that browser and desktop call the same way.
 
 Hono is a thin layer over `Bun.serve`: routing, middleware, Zod validation, and a typed client
 (`hc<AppType>`) that takes its types from the server's routes. That client gives the web app the
-same end-to-end types server functions would. The collaboration relay will run in the same process
-on Hono's WebSocket upgrade, so access checks for files and editing sessions live in one place.
+same end-to-end types server functions would. The collaboration relay runs in the same process on
+Hono's WebSocket upgrade, so access checks for files and editing sessions live in one place.
 
 ## The web app
 
 Routes are defined in code (`src/router.tsx`): `/` and `/folders/:id` list a folder, `/recent` and
 `/trash` the other views, `/edit/:id` opens a file in the editor with the whole window. Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under
-`files`. The editor keeps the bytes it opened under a key of its own, so refreshing the lists after
-a save does not reopen the document. Every reply is checked against the schemas in
+`files`. The editor page joins the file's editing session first (`src/use-session-file.ts`) and
+opens the version the session started from, so refreshing the lists after a save does not reopen
+the document. Every reply is checked against the schemas in
 `packages/files-api`.
 
-In development `bun run dev` serves the app on port 5173 and forwards `/api` to the server
+In development `bun run dev` serves the app on port 5173 and forwards `/api`, WebSockets included, to the server
 (`STAPEL_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
 database (`e2e/server.ts`, port 3100) and the app on port 5174. Without Playwright's own browser download, an installed
 Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.

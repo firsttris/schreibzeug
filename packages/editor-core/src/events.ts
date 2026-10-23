@@ -36,10 +36,18 @@ type Translator<N extends EngineEventName> = (...args: EngineEventArgs[N]) => Ed
 export type EventTranslators = { [N in EngineEventName]?: Translator<N> };
 
 /**
+ * The engine starts its "Disconnect" action when the connection to the other editors drops and
+ * ends it once the session is restored (common/apiBase.js CoAuthoringApi.onDisconnect and
+ * onConnectionStateChanged; the id is c_oAscAsyncAction.Disconnect in common/commonDefines.js).
+ */
+const connectionEvent = (disconnect: number, connected: boolean) => (_type: number, id: number) =>
+  id === disconnect ? ({ type: "connected", value: connected } as const) : null;
+
+/**
  * Engine events that become state. Each entry turns the arguments of one sdkjs event into an
  * EditorEvent; events not listed here are handled by the open/close flow in word.ts.
  */
-export const stateEvents = (aligns: AlignConstants): EventTranslators => ({
+export const stateEvents = (aligns: AlignConstants, disconnectAction: number): EventTranslators => ({
   asc_onBold: (value) => ({ type: "bold", value: Boolean(value) }),
   asc_onItalic: (value) => ({ type: "italic", value: Boolean(value) }),
   asc_onUnderline: (value) => ({ type: "underline", value: Boolean(value) }),
@@ -65,4 +73,6 @@ export const stateEvents = (aligns: AlignConstants): EventTranslators => ({
   asc_onCanUndo: (value) => ({ type: "canUndo", value: Boolean(value) }),
   asc_onCanRedo: (value) => ({ type: "canRedo", value: Boolean(value) }),
   asc_onCountPages: (value) => ({ type: "pages", value }),
+  asc_onStartAction: connectionEvent(disconnectAction, false),
+  asc_onEndAction: connectionEvent(disconnectAction, true),
 });

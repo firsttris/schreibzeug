@@ -57,7 +57,10 @@ export const fileCommands = (api: ApiClient) => ({
     expectJson(api.nodes[":id"].$patch({ param: { id }, json: update }), nodeSchema),
   trash: (id: string) => expectJson(api.nodes[":id"].trash.$post({ param: { id } }), nodeSchema),
   restore: (id: string) => expectJson(api.nodes[":id"].restore.$post({ param: { id } }), nodeSchema),
-  content: (id: string) => expectBytes(api.files[":id"].content.$get({ param: { id }, query: {} })),
+  content: (id: string, version?: number) =>
+    expectBytes(
+      api.files[":id"].content.$get({ param: { id }, query: version ? { version: String(version) } : {} }),
+    ),
   contentUrl: (id: string, version?: number) =>
     api.files[":id"].content
       .$url({ param: { id }, query: version ? { version: String(version) } : {} })

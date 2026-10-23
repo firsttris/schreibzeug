@@ -57,6 +57,9 @@ CryptPad does. x2t runs in a worker (`createConverter`), so its large heap stays
    connection: `_coAuthoringInit` keeps the co-authoring URL empty, `CDocsCoApi.init` then answers
    with a local "first connect" and an empty license instead of opening a socket
    (`common/apiBase.js`, `common/docscoapi.js`).
+   In a shared session the URL is a blob URL of the converted document instead, and `window.io`
+   in the frame is a socket.io stand-in that talks to the Stapel relay; see
+   [collaboration](collaboration.md).
 4. `asc_getEditorPermissions()`; the permissions callback calls `asc_LoadDocument()`.
 5. In offline mode sdkjs asks for the file through `_openChartOrLocalDocument`, which would open an
    empty document. Stapel replaces it on the API instance with `asc_openDocumentFromBytes(binary)`.
@@ -88,6 +91,9 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | insert table | `put_Table(columns, rows)` | `asc_onFocusObject` with a `Table` object |
 | rows, columns | `addRowAbove/Below()`, `addColumnLeft/Right()`, `remRow()`, `remColumn()`, `remTable()` | – |
 | select all | `asc_EditSelectAll()` | – |
+| mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
+| – | – | `asc_onCountPages` |
+| – | – | `asc_onStartAction` / `asc_onEndAction` with `c_oAscAsyncAction.Disconnect`: `document.connected` |
 
 ## Comments
 
@@ -106,8 +112,6 @@ in milliseconds and writes both.
 
 On open, the engine reports every comment of the file with `asc_onAddComment`. Until there are
 user accounts, comments are written as "Ich".
-| mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
-| – | – | `asc_onCountPages` |
 
 `asc_onDocumentModifiedChanged` carries no value (`word/api.js` `SetDocumentModified` sends it
 bare); like web-apps (`documenteditor/mobile` `Main.jsx`), `editor-core` reads
@@ -122,3 +126,12 @@ The spell checker is switched off (`asc_setSpellCheck(false)` on content ready):
 Document Server's dictionary service, and without it every word is underlined.
 
 The engine takes target values, not toggles, so a toggle command reads the current state first.
+
+## Keyboard focus
+
+The engine takes keys through a hidden text area in its frame (`common/text_input2.js`, id
+`area_id`) and cancels `mousedown` on its canvas. A click into the page therefore does not move
+focus out of the app: after a toolbar button had the focus, typing went nowhere. `editor-core`
+listens for `pointerdown` in the frame and, when nothing in the frame holds the keys, focuses the
+engine's input (`api.getFocusElement()`, `common/apiBase.js`); the engine's own `focus` handler
+then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`).

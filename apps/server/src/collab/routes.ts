@@ -1,0 +1,60 @@
+import { nodeIdSchema } from "@stapel/files-api";
+import { Hono } from "hono";
+import type { UpgradeWebSocket, WSContext } from "hono/ws";
+import type { Hub } from "./hub";
+import type { Incoming } from "./session";
+
+/** WebSocket close codes in the private range: what went wrong, for the client to show. */
+export const CLOSE = { notFound: 4404, badMessage: 4400 } as const;
+
+const parse = (data: unknown): Incoming | null => {
+  if (typeof data !== "string") return null;
+  try {
+    const value: unknown = JSON.parse(data);
+    return value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string"
+      ? (value as Incoming)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * `/api/collab/:fileId`: one WebSocket per open editor. JSON messages in both directions: sdkjs's
+ * own (see session.ts) and ours, prefixed `stapel:`.
+ */
+export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSocket: UpgradeWebSocket }) =>
+  new Hono().get(
+    "/collab/:fileId",
+    upgradeWebSocket((c) => {
+      const fileId = c.req.param("fileId") ?? "";
+      let connectionId: Promise<string | null> = Promise.resolve(null);
+      const send = (ws: WSContext) => (message: Record<string, unknown>) => ws.send(JSON.stringify(message));
+      return {
+        onOpen: (_event, ws) => {
+          if (!nodeIdSchema.safeParse(fileId).success) {
+            ws.close(CLOSE.notFound, "Unknown file");
+            return;
+          }
+          connectionId = hub.open(fileId, send(ws)).then((id) => {
+            if (id === null) ws.close(CLOSE.notFound, "Unknown file");
+            return id;
+          });
+        },
+        onMessage: async (event, ws) => {
+          const id = await connectionId;
+          if (id === null) return;
+          const data = parse(event.data);
+          if (!data) {
+            ws.close(CLOSE.badMessage, "Not a message");
+            return;
+          }
+          hub.message(id, data);
+        },
+        onClose: async () => {
+          const id = await connectionId;
+          if (id !== null) hub.close(id);
+        },
+      };
+    }),
+  );

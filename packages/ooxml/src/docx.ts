@@ -25,8 +25,12 @@ const escapeXml = (text: string): string =>
 const runXml = ({ text, properties }: Run): string =>
   `<w:r>${properties ? `<w:rPr>${properties}</w:rPr>` : ""}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>`;
 
-/** A paragraph from runs; a paragraph without runs is an empty line. */
-export const paragraphXml = (runs: Run[]): string => `<w:p>${runs.map(runXml).join("")}</w:p>`;
+/**
+ * A paragraph from runs, with optional paragraph properties, e.g. `<w:jc w:val="center"/>`
+ * (ECMA-376 Part 1, 17.3.1); a paragraph without runs is an empty line.
+ */
+export const paragraphXml = (runs: Run[], properties?: string): string =>
+  `<w:p>${properties ? `<w:pPr>${properties}</w:pPr>` : ""}${runs.map(runXml).join("")}</w:p>`;
 
 const documentXml = (paragraphs: string[]): string => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -36,13 +40,19 @@ const documentXml = (paragraphs: string[]): string => `<?xml version="1.0" encod
   </w:body>
 </w:document>`;
 
+/** A fixed date for the zip entries, so the same content always gives the same bytes. */
+const ZIP_DATE = new Date(1980, 0, 1);
+
 /** A .docx package with the given paragraphs (as built by `paragraphXml`). */
 export const docx = (paragraphs: string[]): Uint8Array =>
-  zipSync({
-    "[Content_Types].xml": strToU8(contentTypes),
-    "_rels/.rels": strToU8(rootRels),
-    "word/document.xml": strToU8(documentXml(paragraphs)),
-  });
+  zipSync(
+    {
+      "[Content_Types].xml": strToU8(contentTypes),
+      "_rels/.rels": strToU8(rootRels),
+      "word/document.xml": strToU8(documentXml(paragraphs)),
+    },
+    { mtime: ZIP_DATE },
+  );
 
 /** A new, empty Word document: one empty paragraph, so the cursor has somewhere to go. */
 export const blankDocx = (): Uint8Array => docx([paragraphXml([])]);

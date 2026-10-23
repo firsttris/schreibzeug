@@ -45,3 +45,12 @@ a save does not reopen the document. Every reply is checked against the schemas 
 In development `bun run dev` serves the app on port 5173 and forwards `/api` to the server
 (`STAPEL_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
 database (`e2e/server.ts`, port 3100) and the app on port 5174.
+
+## Screenshots
+
+`docs/screenshots` holds the pictures for the README and the docs, light and dark. They are taken
+by `e2e/screenshots.shot.ts` (`bun run screenshots`), in CI by hand with **Actions → Update
+screenshots**, which commits the pictures that changed. The run seeds the server with the same
+folders and the letter from `test-files/angebot.docx`, pins their dates in the database and the
+browser's clock, and ships Geist as the interface font, so an unchanged page gives an unchanged
+picture.

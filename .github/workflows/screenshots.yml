@@ -1,0 +1,81 @@
+name: Update screenshots
+
+# Started by hand after a change to the look: Actions → Update screenshots → Run workflow.
+# Takes the pictures in docs/screenshots with the real engine and a seeded server, in the official
+# Playwright image (same browser and fonts every run), and commits the ones that changed.
+# It follows firsttris/workflows screenshots.yml, plus the engine cache that one has no input for.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: 1.4.4
+
+jobs:
+  engine:
+    uses: ./.github/workflows/engine.yml
+
+  playwright-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: image
+        uses: firsttris/workflows/actions/playwright-image@v1
+        with:
+          lockfile: bun.lock
+
+  screenshots:
+    needs: [engine, playwright-image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}
+      options: --ipc=host
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stapel
+          POSTGRES_PASSWORD: stapel
+          POSTGRES_DB: stapel
+        options: >-
+          --health-cmd "pg_isready -U stapel"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    # Two runs at once would push on top of each other
+    concurrency:
+      group: screenshots-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      E2E_DATABASE_URL: postgres://stapel:stapel@postgres:5432/stapel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: engine/dist
+          key: ${{ needs.engine.outputs.key }}
+          fail-on-cache-miss: true
+      # The image has no unzip, which setup-bun needs; npm brings the binary
+      - run: npm install --global "bun@$BUN_VERSION"
+      - run: bun install --frozen-lockfile
+      - run: bun run screenshots
+        env:
+          HOME: /root
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-report
+          path: e2e/test-results
+          retention-days: 7
+      - uses: firsttris/workflows/actions/commit-changes@v1
+        with:
+          paths: docs/screenshots
+          message: Update screenshots

@@ -1,0 +1,38 @@
+name: Engine
+
+# Reusable: prepares engine/dist (sdkjs, fonts, x2t) from the pinned Euro-Office release and caches
+# it by the hash of its spec, so CI and the screenshots restore it instead of building it again.
+on:
+  workflow_call:
+    outputs:
+      key:
+        description: Cache key of engine/dist
+        value: ${{ jobs.engine.outputs.key }}
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: 1.4.4
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: key
+        run: echo "key=engine-${{ hashFiles('engine/engine.json', 'engine/scripts/prepare.ts', 'engine/frame/**') }}" >> "$GITHUB_OUTPUT"
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: engine/dist
+          key: ${{ steps.key.outputs.key }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: bun engine/scripts/prepare.ts

@@ -5,6 +5,8 @@ import { createRoot } from "react-dom/client";
 import { createApiClient } from "./api/client";
 import { createFiles, FilesProvider } from "./api/context";
 import { createAppRouter } from "./router";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 import "./styles.css";
 
 const root = document.getElementById("root");

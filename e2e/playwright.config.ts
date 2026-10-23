@@ -6,7 +6,6 @@ const serverPort = 3100;
 
 export default defineConfig({
   testDir: ".",
-  testMatch: "**/*.spec.ts",
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
@@ -19,7 +18,23 @@ export default defineConfig({
     acceptDownloads: true,
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } } },
+    {
+      name: "chromium",
+      testMatch: "**/*.spec.ts",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } },
+    },
+    {
+      // docs/screenshots, taken by hand (screenshots.shot.ts); one after the other, on one seed.
+      name: "screenshots",
+      testMatch: "**/*.shot.ts",
+      fullyParallel: false,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 800 },
+        locale: "de-DE",
+        timezoneId: "Europe/Berlin",
+      },
+    },
   ],
   webServer: [
     {

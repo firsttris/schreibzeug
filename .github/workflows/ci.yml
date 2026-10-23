@@ -60,25 +60,7 @@ jobs:
 
   # The engine (sdkjs, fonts) from the pinned Euro-Office release, cached by its spec
   engine:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      key: ${{ steps.key.outputs.key }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: key
-        run: echo "key=engine-${{ hashFiles('engine/engine.json', 'engine/scripts/prepare.ts', 'engine/frame/**') }}" >> "$GITHUB_OUTPUT"
-      - id: cache
-        uses: actions/cache@v4
-        with:
-          path: engine/dist
-          key: ${{ steps.key.outputs.key }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-      - if: steps.cache.outputs.cache-hit != 'true'
-        run: bun engine/scripts/prepare.ts
+    uses: ./.github/workflows/engine.yml
 
   playwright-image:
     runs-on: ubuntu-latest

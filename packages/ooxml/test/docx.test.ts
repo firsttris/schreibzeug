@@ -22,9 +22,18 @@ describe("docx", () => {
     expect(xml).toContain('<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">kursiv</w:t></w:r>');
   });
 
+  it("keeps paragraph properties", () => {
+    const xml = documentOf(docx([paragraphXml([{ text: "Mitte" }], '<w:jc w:val="center"/>')]));
+    expect(xml).toContain('<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>');
+  });
+
   it("escapes text so it cannot break the XML", () => {
     const xml = documentOf(docx([paragraphXml([{ text: 'a < b & "c"' }])]));
     expect(xml).toContain("a &lt; b &amp; &quot;c&quot;");
+  });
+
+  it("gives the same bytes for the same content", () => {
+    expect(blankDocx()).toEqual(blankDocx());
   });
 
   it("gives a blank document one empty paragraph on an A4 page", () => {

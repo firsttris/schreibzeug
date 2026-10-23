@@ -10,7 +10,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { collectErrors, expectEditorReady, openDocument, openOwnFolder, save, upload } from "./app";
 
 const folder = join(import.meta.dirname, "../test-files/fidelity");
-const documents = readdirSync(folder).filter((name) => /\.(docx|xlsx)$/.test(name));
+const documents = readdirSync(folder).filter((name) => /\.(docx|xlsx|pptx)$/.test(name));
 
 /** The first screen of the document, with the blinking cursor hidden (fidelity.css). */
 const expectPicture = (page: Page, name: string) =>

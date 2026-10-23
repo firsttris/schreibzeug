@@ -44,3 +44,17 @@ The spreadsheets in `fidelity/` come unchanged from the same LibreOffice commit
 | `databar.xlsx` | conditional formatting with data bars |
 | `autofilter.xlsx` | an autofilter |
 | `chart_hyperlink.xlsx` | charts |
+
+The presentations in `fidelity/` come unchanged from the same LibreOffice commit
+(`sd/qa/unit/data/pptx`, Mozilla Public License 2.0):
+
+| File | What it covers |
+|---|---|
+| `predefined-table-style.pptx` | a table with a built-in table style |
+| `bulletColor.pptx` | coloured bullets |
+| `group-rot.pptx` | rotated grouped shapes |
+| `chart_pt_color_bg1.pptx` | a chart with theme colours |
+| `smartart-org-chart.pptx` | a SmartArt organisation chart |
+| `ooxtheme.pptx` | a theme |
+| `ShapeLineProperties.pptx` | shape outlines |
+

@@ -13,8 +13,8 @@ export type TextCommands = {
   setFontName: (name: string) => void;
   setColor: (color: TextColor) => void;
   setStyle: (name: string) => void;
-  /** Starts a list of this kind, or ends it when the paragraph is in one already. */
-  toggleList: (kind: ListKind) => void;
+  /** Starts a list of this kind, or ends it when the paragraph is in one already; resolves once applied. */
+  toggleList: (kind: ListKind) => Promise<void>;
   setAlign: (align: Align) => void;
   selectAll: () => void;
   undo: () => void;
@@ -45,8 +45,11 @@ export const createTextCommands = (
   setFontName: (name) => api.put_TextPrFontName(name),
   setColor: (color) => api.put_TextColor(engineColor(color)),
   setStyle: (name) => api.put_Style(name),
-  toggleList: (kind) =>
-    api.put_ListTypeCustom(getState().paragraph.list === kind ? LIST_PRESETS.remove : LIST_PRESETS[kind]),
+  toggleList: async (kind) => {
+    await api.put_ListTypeCustom(
+      getState().paragraph.list === kind ? LIST_PRESETS.remove : LIST_PRESETS[kind],
+    );
+  },
   setAlign: (align) => api.put_PrAlign(fromAlign(align, aligns)),
   selectAll: () => api.asc_EditSelectAll(),
   undo: () => api.Undo(),

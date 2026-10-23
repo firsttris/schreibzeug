@@ -136,6 +136,14 @@ describe("openWordDocument", () => {
     expect(editor.store.get().paragraph.list).toBeNull();
   });
 
+  it("shows a list started from the toolbar once the engine has applied it", async () => {
+    const { editor } = await openReady();
+    await editor.commands.toggleList("number");
+    expect(editor.store.get().paragraph.list).toBe("number");
+    await editor.commands.toggleList("number");
+    expect(editor.store.get().paragraph.list).toBeNull();
+  });
+
   it("fails when the file cannot be converted", async () => {
     const engine = createFakeEngine();
     const convert: Convert = async () => {

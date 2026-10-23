@@ -105,7 +105,19 @@ export const createFakeEngine = (): FakeEngine => {
         put_TextPrFontName: record(calls, "put_TextPrFontName"),
         put_TextColor: record(calls, "put_TextColor"),
         put_Style: record(calls, "put_Style"),
-        put_ListTypeCustom: record(calls, "put_ListTypeCustom"),
+        put_ListTypeCustom: (preset) => {
+          calls.push(["put_ListTypeCustom", preset]);
+          const type = (preset as { Type: string }).Type;
+          // Like the engine: the list is set after a promise, without asc_onFocusObject.
+          return Promise.resolve().then(() => {
+            api.numbering =
+              type === "bullet"
+                ? NUMBERING_FORMATS.Bullet
+                : type === "number"
+                  ? NUMBERING_FORMATS.Decimal
+                  : null;
+          });
+        },
         asc_GetCurrentNumberingId: () => (api.numbering === null ? null : "1"),
         asc_GetCurrentNumberingLvl: () => 0,
         asc_GetNumberingPr: () => ({

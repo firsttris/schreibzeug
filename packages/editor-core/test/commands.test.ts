@@ -104,15 +104,15 @@ describe("clampFontSize", () => {
     expect(sentColor().asc_getAuto()).toBe(true);
   });
 
-  it("starts a list, and ends it when the paragraph is in one of that kind", () => {
+  it("starts a list, and ends it when the paragraph is in one of that kind", async () => {
     const { commands, calls } = setup();
-    commands.toggleList("bullet");
+    await commands.toggleList("bullet");
     expect(lastCall(calls)).toEqual(["put_ListTypeCustom", LIST_PRESETS.bullet]);
 
     const inList = setup(after({ type: "list", value: "bullet" }));
-    inList.commands.toggleList("bullet");
+    await inList.commands.toggleList("bullet");
     expect(lastCall(inList.calls)).toEqual(["put_ListTypeCustom", LIST_PRESETS.remove]);
-    inList.commands.toggleList("number");
+    await inList.commands.toggleList("number");
     expect(lastCall(inList.calls)).toEqual(["put_ListTypeCustom", LIST_PRESETS.number]);
   });
 });

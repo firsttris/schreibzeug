@@ -93,8 +93,11 @@ export interface WordEngineApi {
   put_TextColor(color: EngineColor): void;
   /** Applies a paragraph style by its name. */
   put_Style(name: string): void;
-  /** A list from a preset object (see lists.ts); `{ Type: "remove" }` ends the list. */
-  put_ListTypeCustom(value: object): void;
+  /**
+   * A list from a preset object (see lists.ts); `{ Type: "remove" }` ends the list. Asynchronous:
+   * it first loads the font of the bullet, then applies the list (returns undefined for a bad preset).
+   */
+  put_ListTypeCustom(value: object): Promise<unknown> | undefined;
   asc_GetCurrentNumberingId(): string | null;
   asc_GetCurrentNumberingLvl(): number;
   asc_GetNumberingPr(id: string): { get_Lvl(level: number): { get_Format(): number } | null } | null;

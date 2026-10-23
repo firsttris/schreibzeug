@@ -71,6 +71,15 @@ const createDocInfo = (win: EngineWindow, options: OpenWordOptions) => {
   return info;
 };
 
+/**
+ * put_ListTypeCustom applies the list in a promise and the selection does not move, so no
+ * asc_onFocusObject follows; the list at the cursor is read again once it is applied.
+ */
+const withListRefresh = (commands: TextCommands, refreshList: () => void): TextCommands => ({
+  ...commands,
+  toggleList: (kind) => commands.toggleList(kind).then(refreshList),
+});
+
 type EngineStart = {
   win: EngineWindow;
   binary: Uint8Array;
@@ -92,9 +101,9 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
   api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
   subscribe(api, stateEvents(win.AscCommon), dispatch);
-  api.asc_registerCallback("asc_onFocusObject", () =>
-    dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) }),
-  );
+  const refreshList = () =>
+    dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) });
+  api.asc_registerCallback("asc_onFocusObject", refreshList);
   // The event carries no value; web-apps reads the flag on it (documenteditor/mobile Main.jsx).
   api.asc_registerCallback("asc_onDocumentModifiedChanged", () =>
     dispatch({ type: "modified", value: api.isDocumentModified() }),
@@ -102,7 +111,10 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
 
   const editor: WordEditor = {
     store,
-    commands: createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),
+    commands: withListRefresh(
+      createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),
+      refreshList,
+    ),
     // word/api.js asc_nativeGetFile: the document as "DOCY;v5;<size>;<base64>", which x2t reads.
     save: () => options.convert(new TextEncoder().encode(api.asc_nativeGetFile()), "bin", "docx"),
     markSaved: () => api.SetUnchangedDocument(),

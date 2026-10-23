@@ -57,14 +57,27 @@ export type CommonEventArgs = {
   asc_onEndAction: [type: number, id: number];
 };
 
-/** Events of the text editor we subscribe to, with the arguments sdkjs passes (word/api.js `sendEvent`). */
-export type WordEventArgs = CommonEventArgs & {
+/**
+ * Character formatting events, the same in the text and the presentation editor (word/api.js,
+ * slide/api.js `sendEvent`).
+ */
+export type TextEventArgs = CommonEventArgs & {
   asc_onBold: [isBold: boolean];
   asc_onItalic: [isItalic: boolean];
   asc_onUnderline: [isUnderline: boolean];
   asc_onStrikeout: [isStrikeout: boolean];
-  /** word/api.js sync_TextColor */
+  /** sync_TextColor */
   asc_onTextColor: [color: EngineColor];
+  asc_onFontSize: [size: number];
+  asc_onFontFamily: [family: { asc_getName(): string | null }];
+  asc_onPrAlign: [align: number];
+  asc_onCanUndo: [canUndo: boolean];
+  asc_onCanRedo: [canRedo: boolean];
+  asc_onCountPages: [pages: number];
+};
+
+/** Events of the text editor we subscribe to, with the arguments sdkjs passes (word/api.js `sendEvent`). */
+export type WordEventArgs = TextEventArgs & {
   /** word/api.js sync_ParaStyleName */
   asc_onParaStyleName: [name: string];
   /** word/api.js sync_InitEditorStyles: the paragraph styles of the document and the defaults */
@@ -78,12 +91,6 @@ export type WordEventArgs = CommonEventArgs & {
   /** The cursor is on commented text (word/api.js sync_ShowComment). */
   asc_onShowComment: [ids: string[], x?: number, y?: number];
   asc_onHideComment: [];
-  asc_onFontSize: [size: number];
-  asc_onFontFamily: [family: { asc_getName(): string | null }];
-  asc_onPrAlign: [align: number];
-  asc_onCanUndo: [canUndo: boolean];
-  asc_onCanRedo: [canRedo: boolean];
-  asc_onCountPages: [pages: number];
 };
 
 export type WordEventName = keyof WordEventArgs;
@@ -136,18 +143,26 @@ export interface EngineApiBase<Events extends CommonEventArgs> {
   asc_CloseFile?(): void;
 }
 
-/** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
-export interface WordEngineApi extends EngineApiBase<WordEventArgs> {
-  SetFontRenderingMode(mode: number): void;
-  Resize(): void;
-  zoomFitToWidth(): void;
+/** Character formatting, named the same in the text and the presentation editor. */
+export interface CharacterApi {
   put_TextPrBold(value: boolean): void;
   put_TextPrItalic(value: boolean): void;
   put_TextPrUnderline(value: boolean): void;
-  put_TextPrFontSize(size: number): void;
   put_TextPrStrikeout(value: boolean): void;
+  put_TextPrFontSize(size: number): void;
   put_TextPrFontName(name: string): void;
   put_TextColor(color: EngineColor): void;
+  put_PrAlign(align: number): void;
+  asc_EditSelectAll(): void;
+  Undo(): void;
+  Redo(): void;
+}
+
+/** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
+export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterApi {
+  SetFontRenderingMode(mode: number): void;
+  Resize(): void;
+  zoomFitToWidth(): void;
   /** Applies a paragraph style by its name. */
   put_Style(name: string): void;
   /**
@@ -174,17 +189,12 @@ export interface WordEngineApi extends EngineApiBase<WordEventArgs> {
   asc_GetCurrentNumberingId(): string | null;
   asc_GetCurrentNumberingLvl(): number;
   asc_GetNumberingPr(id: string): { get_Lvl(level: number): { get_Format(): number } | null } | null;
-  put_PrAlign(align: number): void;
-  /** word/api.js */
-  asc_EditSelectAll(): void;
   /** word/api.js: how others' changes are marked (common/commonDefines.js c_oAscCollaborativeMarksShowType). */
   SetCollaborativeMarksShowType(type: number): void;
   /** word/api.js: turns the red underlines of the spell checker on or off. */
   asc_setSpellCheck(isOn: boolean): void;
   /** word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged. */
   SetUnchangedDocument(): void;
-  Undo(): void;
-  Redo(): void;
 }
 
 /** The window of an engine frame after sdkjs has loaded (engine/frame/editor/<kind>/main). */
@@ -309,5 +319,52 @@ export interface CellWindow extends EngineWindow {
     c_oAscMergeOptions: { Disabled: number; None: number; Merge: number; MergeCenter: number };
     c_oAscInsertOptions: { InsertColumns: number; InsertRows: number };
     c_oAscDeleteOptions: { DeleteColumns: number; DeleteRows: number };
+  };
+}
+
+/** slide/apiCommon.js `CLayoutThumbnail`: a layout of the master, as asc_onUpdateLayout lists it. */
+export interface EngineLayout {
+  getIndex(): number;
+  get_Name(): string;
+  /** A picture of the layout as a data URL. */
+  get_Image(): string;
+}
+
+/** Events of the presentation editor we subscribe to (slide/api.js `sendEvent`). */
+export type SlideEventArgs = TextEventArgs & {
+  /** The slide shown, from 0. */
+  asc_onCurrentPage: [index: number];
+  /** slide/Drawing/HtmlPage.js: the layouts of the current master. */
+  asc_onUpdateLayout: [layouts: EngineLayout[]];
+  /** The list at the cursor: type 0 bullets, 1 numbering, -1 none (slide/api.js sync_ListType). */
+  asc_onListType: [list: { get_ListType(): number; get_ListSubType(): number }];
+};
+
+/** slide/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`). */
+export interface SlideEngineApi extends EngineApiBase<SlideEventArgs>, CharacterApi {
+  SetFontRenderingMode(mode: number): void;
+  /** Holds back drawing while the document opens (web-apps presentationeditor/mobile Main.jsx). */
+  SetDrawingFreeze(freeze: boolean): void;
+  /** Where the engine finds its built-in themes. */
+  SetThemesPath(path: string): void;
+  Resize(): void;
+  zoomFitToPage(): void;
+  asc_setSpellCheck(isOn: boolean): void;
+  SetUnchangedDocument(): void;
+  /** A new slide after the current one, with the layout at that index of the master. */
+  AddSlide(layoutIndex?: number): void;
+  /** Deletes the selected slides. */
+  DeleteSlide(): void;
+  /** Copies the selected slides (the engine's spelling). */
+  DublicateSlide(): void;
+  ChangeLayout(layoutIndex: number): void;
+  /** Bullets (type 0) or numbering (1) with a subtype from 1; subtype -1 ends the list (CommonController.js fFillBullet). */
+  put_ListType(type: number, subtype: number): void;
+}
+
+/** The presentation editor's frame (engine/frame/editor/slide/main). */
+export interface SlideWindow extends EngineWindow {
+  Asc: EngineWindow["Asc"] & {
+    asc_docs_api: new (config: Record<string, unknown>) => SlideEngineApi;
   };
 }

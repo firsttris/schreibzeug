@@ -1,10 +1,11 @@
 import type { TextColor } from "./colors";
-import type { EngineColor, WordEngineApi } from "./engine-types";
+import type { CharacterApi, EngineColor, WordEngineApi } from "./engine-types";
 import { type AlignConstants, fromAlign } from "./events";
 import { LIST_PRESETS } from "./lists";
-import type { Align, EditorState, ListKind } from "./state";
+import type { Align, EditorState, ListKind, TextState } from "./state";
 
-export type TextCommands = {
+/** Character formatting and history, the same in the text and the presentation editor. */
+export type CharacterCommands = {
   toggleBold: () => void;
   toggleItalic: () => void;
   toggleUnderline: () => void;
@@ -12,6 +13,13 @@ export type TextCommands = {
   setFontSize: (size: number) => void;
   setFontName: (name: string) => void;
   setColor: (color: TextColor) => void;
+  setAlign: (align: Align) => void;
+  selectAll: () => void;
+  undo: () => void;
+  redo: () => void;
+};
+
+export type TextCommands = CharacterCommands & {
   setStyle: (name: string) => void;
   /** Starts a list of this kind, or ends it when the paragraph is in one already; resolves once applied. */
   toggleList: (kind: ListKind) => Promise<void>;
@@ -21,10 +29,6 @@ export type TextCommands = {
   deleteRow: () => void;
   deleteColumn: () => void;
   deleteTable: () => void;
-  setAlign: (align: Align) => void;
-  selectAll: () => void;
-  undo: () => void;
-  redo: () => void;
 };
 
 export const MIN_FONT_SIZE = 1;
@@ -41,35 +45,45 @@ export const clampFontSize = (size: number): number =>
 
 /**
  * Toolbar commands on the engine. Toggles read the current state, because sdkjs takes the target
- * value (word/api.js `put_TextPrBold(value)`), not a toggle.
+ * value (word/api.js and slide/api.js `put_TextPrBold(value)`), not a toggle.
  */
+export const createCharacterCommands = (
+  api: CharacterApi,
+  getText: () => TextState,
+  aligns: AlignConstants,
+  engineColor: (color: TextColor) => EngineColor,
+): CharacterCommands => ({
+  toggleBold: () => api.put_TextPrBold(!getText().bold),
+  toggleItalic: () => api.put_TextPrItalic(!getText().italic),
+  toggleUnderline: () => api.put_TextPrUnderline(!getText().underline),
+  toggleStrikeout: () => api.put_TextPrStrikeout(!getText().strikeout),
+  setFontSize: (size) => api.put_TextPrFontSize(clampFontSize(size)),
+  setFontName: (name) => api.put_TextPrFontName(name),
+  setColor: (color) => api.put_TextColor(engineColor(color)),
+  setAlign: (align) => api.put_PrAlign(fromAlign(align, aligns)),
+  selectAll: () => api.asc_EditSelectAll(),
+  undo: () => api.Undo(),
+  redo: () => api.Redo(),
+});
+
+/** The text editor's commands: character formatting, styles, lists and tables. */
 export const createTextCommands = (
   api: WordEngineApi,
   getState: () => EditorState,
   aligns: AlignConstants,
   engineColor: (color: TextColor) => EngineColor,
 ): TextCommands => ({
-  toggleBold: () => api.put_TextPrBold(!getState().text.bold),
-  toggleItalic: () => api.put_TextPrItalic(!getState().text.italic),
-  toggleUnderline: () => api.put_TextPrUnderline(!getState().text.underline),
-  toggleStrikeout: () => api.put_TextPrStrikeout(!getState().text.strikeout),
-  setFontSize: (size) => api.put_TextPrFontSize(clampFontSize(size)),
-  setFontName: (name) => api.put_TextPrFontName(name),
-  setColor: (color) => api.put_TextColor(engineColor(color)),
+  ...createCharacterCommands(api, () => getState().text, aligns, engineColor),
   setStyle: (name) => api.put_Style(name),
   toggleList: async (kind) => {
     await api.put_ListTypeCustom(
       getState().paragraph.list === kind ? LIST_PRESETS.remove : LIST_PRESETS[kind],
     );
   },
-  setAlign: (align) => api.put_PrAlign(fromAlign(align, aligns)),
   insertTable: (columns, rows) => api.put_Table(clampTableSize(columns), clampTableSize(rows)),
   addRow: (where) => (where === "above" ? api.addRowAbove() : api.addRowBelow()),
   addColumn: (where) => (where === "left" ? api.addColumnLeft() : api.addColumnRight()),
   deleteRow: () => api.remRow(),
   deleteColumn: () => api.remColumn(),
   deleteTable: () => api.remTable(),
-  selectAll: () => api.asc_EditSelectAll(),
-  undo: () => api.Undo(),
-  redo: () => api.Redo(),
 });

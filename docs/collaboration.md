@@ -110,5 +110,6 @@ for while one runs follows it. Each save is a version, so a session leaves sever
 `apps/server/test/collab.test.ts` covers the session functions and the hub,
 `packages/editor-core/test` the channel, the socket stand-in and the save counting.
 `e2e/collaboration.spec.ts` opens the same file in two browser contexts: both type and see each
-other's text; one loses its connection, waits for it to come back and edits on; and a change is
-stored without anyone pressing "Speichern".
+other's text; one loses its connection, waits for it to come back and edits on; a change is stored
+without anyone pressing "Speichern"; two people fill one spreadsheet; and two edit different text
+boxes of one slide.

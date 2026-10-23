@@ -223,6 +223,19 @@ describe("files", () => {
     expect(workbook && strFromU8(workbook)).toContain('name="Tabelle1"');
   });
 
+  it("creates a blank presentation with a title slide", async () => {
+    const created = await expectNode(
+      await api.files.blank.$post({ json: { name: "Vortrag", parentId: null, format: "pptx" } }),
+      201,
+    );
+    expect(created).toMatchObject({
+      name: "Vortrag.pptx",
+      mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
+    const zip = unzipSync(new Uint8Array(await (await content(created.id)).arrayBuffer()));
+    expect(Object.keys(zip)).toContain("ppt/slides/slide1.xml");
+  });
+
   it("does not read a folder as a file", async () => {
     const box = await folder("Kein Inhalt");
     await expectError(await content(box.id), 400, "invalid");

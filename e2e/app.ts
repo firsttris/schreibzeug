@@ -86,16 +86,17 @@ export const rename = async (page: Page, from: string, to: string) => {
   await fillNameDialog(page, "Neuer Name", to, "Umbenennen");
 };
 
-/** "Neu" → Dokument or Tabelle, named, created and opened. */
-export const createFile = async (page: Page, kind: "Dokument" | "Tabelle", name: string) => {
+const NAME_LABELS = {
+  Dokument: "Name des Dokuments",
+  Tabelle: "Name der Tabelle",
+  Präsentation: "Name der Präsentation",
+} as const;
+
+/** "Neu" → Dokument, Tabelle or Präsentation, named, created and opened. */
+export const createFile = async (page: Page, kind: keyof typeof NAME_LABELS, name: string) => {
   await page.getByRole("button", { name: "Neu", exact: true }).click();
   await page.getByRole("menuitem", { name: kind }).click();
-  await fillNameDialog(
-    page,
-    kind === "Dokument" ? "Name des Dokuments" : "Name der Tabelle",
-    name,
-    "Anlegen und öffnen",
-  );
+  await fillNameDialog(page, NAME_LABELS[kind], name, "Anlegen und öffnen");
 };
 
 export const createDocument = (page: Page, name: string) => createFile(page, "Dokument", name);

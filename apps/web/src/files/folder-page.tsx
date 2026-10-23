@@ -14,7 +14,7 @@ import { NodeTable } from "./node-table";
 import { PageHeader, PageMessage } from "./page";
 import { useUpload } from "./use-upload";
 
-type NewFile = "docx" | "xlsx";
+type NewFile = "docx" | "xlsx" | "pptx";
 
 /** What "Neu" offers, with the words the name dialog uses for each. */
 const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; name: string }> = {
@@ -25,6 +25,12 @@ const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; n
     name: "Unbenanntes Dokument",
   },
   xlsx: { item: "Tabelle", title: "Neue Tabelle", label: "Name der Tabelle", name: "Unbenannte Tabelle" },
+  pptx: {
+    item: "Präsentation",
+    title: "Neue Präsentation",
+    label: "Name der Präsentation",
+    name: "Unbenannte Präsentation",
+  },
 };
 
 type Creating = "folder" | NewFile | null;

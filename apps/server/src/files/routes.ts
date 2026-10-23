@@ -6,7 +6,7 @@ import {
   nodeNameSchema,
   updateNodeSchema,
 } from "@stapel/files-api";
-import { blankDocx, blankXlsx } from "@stapel/ooxml";
+import { blankDocx, blankPptx, blankXlsx } from "@stapel/ooxml";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
@@ -49,6 +49,7 @@ const uploadForm = z.object({
 const BLANK_FILES = {
   docx: { extension: ".docx", bytes: blankDocx },
   xlsx: { extension: ".xlsx", bytes: blankXlsx },
+  pptx: { extension: ".pptx", bytes: blankPptx },
 } as const;
 
 /** Adds the extension the format needs, unless the name already has it. */

@@ -14,8 +14,9 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
 > password, a file browser (folders,
 > upload, new document or spreadsheet, rename, move, versions, trash), a Word editor with styles, fonts, colours, lists, tables and
-> comments, and a spreadsheet editor with formulas, formatting, number formats and sheets. Both save on their own, every save a
-> new version, and several people can edit the same file at once. All without a document server.
+> comments, a spreadsheet editor with formulas, formatting, number formats and sheets, and a presentation editor with slides,
+> layouts, text formatting and lists. All three save on their own, every save a new version, and several people can edit the
+> same file at once. All without a document server.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
@@ -28,8 +29,13 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/presentation-dark.png">
+  <img src="docs/screenshots/presentation-light.png" alt="The Stapel presentation editor: toolbar with new slide, layout, duplicate and delete, font, size, marks, colour, lists and alignment, the slide list on the left and the title slide of a talk">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/files-dark.png">
-  <img src="docs/screenshots/files-light.png" alt="The Stapel file browser: folders, Word documents and a spreadsheet with their last change and size, and buttons for a new folder, a new file and upload">
+  <img src="docs/screenshots/files-light.png" alt="The Stapel file browser: folders, Word documents, a spreadsheet and a presentation with their last change and size, and buttons for a new folder, a new file and upload">
 </picture>
 
 ## 💡 Why Stapel?

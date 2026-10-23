@@ -202,3 +202,36 @@ test("two people fill the same spreadsheet", async ({ page, browser }, testInfo)
     .toMatch(/Anna[\s\S]*Ben|Ben[\s\S]*Anna/);
   expect([...errors, ...ben.errors].filter((line) => line.includes("[engine]"))).toEqual([]);
 });
+
+test("two people edit different parts of one slide", async ({ page, browser }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, join(import.meta.dirname, "../test-files/vortrag.pptx"), "vortrag.pptx");
+  await page.getByRole("link", { name: "vortrag.pptx", exact: true }).click();
+  await expectEditorReady(page, errors);
+  const url = page.url();
+  const fileId = url.split("/").at(-1) as string;
+  const ben = await openAs(browser, url, testInfo);
+
+  /** Clicks into a text box of the slide shown (at a share of its height) and replaces its text. */
+  const replaceText = async (who: Page, heightShare: number, text: string) => {
+    await who.bringToFront();
+    const frame = who.getByTestId("engine-frame");
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("The engine frame is not visible.");
+    await frame.click({ position: { x: 260 + (box.width - 260) / 2, y: box.height * heightShare } });
+    await who.keyboard.press("Control+A");
+    await who.keyboard.type(text);
+  };
+
+  await replaceText(page, 0.4, "Annas Titel");
+  await replaceText(ben.page, 0.51, "Bens Untertitel");
+
+  await expect
+    .poll(async () => partXml(await storedDocx(page, fileId), "ppt/slides/slide1.xml"), {
+      timeout: 45_000,
+      intervals: [1_000],
+    })
+    .toMatch(/Annas Titel[\s\S]*Bens Untertitel/);
+  expect([...errors, ...ben.errors].filter((line) => line.includes("[engine]"))).toEqual([]);
+});

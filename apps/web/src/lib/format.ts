@@ -44,5 +44,5 @@ export const kindOf = (node: { kind: "folder" | "file"; name: string }): FileKin
 /** The kinds Stapel can open in an editor today. */
 export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean => {
   const kind = kindOf(node);
-  return kind === "docx" || kind === "xlsx";
+  return kind === "docx" || kind === "xlsx" || kind === "pptx";
 };

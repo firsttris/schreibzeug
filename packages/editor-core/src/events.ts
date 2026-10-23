@@ -1,8 +1,8 @@
 import { toTextColor } from "./colors";
 import { readComment } from "./comments";
 import type { CoreEvent } from "./core-state";
-import type { CommonEventArgs, WordEventArgs } from "./engine-types";
-import type { Align, EditorEvent } from "./state";
+import type { CommonEventArgs, TextEventArgs, WordEventArgs } from "./engine-types";
+import type { Align, EditorEvent, TextEvent } from "./state";
 
 /** Paragraph alignment values from common/commonDefines.js (align_Right = 0 … align_Justify = 3). */
 export type AlignConstants = {
@@ -53,30 +53,16 @@ export const coreEvents = (disconnectAction: number): Translators<CommonEventArg
   asc_onEndAction: connectionEvent(disconnectAction, true),
 });
 
-/**
- * Engine events that become state. Each entry turns the arguments of one sdkjs event into an
- * EditorEvent; events not listed here are handled by the open/close flow in word.ts.
- */
-export const stateEvents = (aligns: AlignConstants, disconnectAction: number): EventTranslators => ({
-  ...coreEvents(disconnectAction),
+/** Character formatting, the fonts and the history, told the same by the text and the presentation engine. */
+export const textEvents = (aligns: AlignConstants): Translators<TextEventArgs, TextEvent | CoreEvent> => ({
   asc_onBold: (value) => ({ type: "bold", value: Boolean(value) }),
   asc_onItalic: (value) => ({ type: "italic", value: Boolean(value) }),
   asc_onUnderline: (value) => ({ type: "underline", value: Boolean(value) }),
-  asc_onAddComment: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
-  asc_onChangeCommentData: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
-  asc_onRemoveComment: (id) => ({ type: "commentRemoved", id }),
-  asc_onShowComment: (ids) => ({ type: "activeComments", ids: [...ids] }),
-  asc_onHideComment: () => ({ type: "activeComments", ids: [] }),
   asc_onStrikeout: (value) => ({ type: "strikeout", value: Boolean(value) }),
   asc_onTextColor: (color) => ({ type: "color", value: toTextColor(color) }),
-  asc_onParaStyleName: (name) => ({ type: "style", value: name || null }),
   asc_onInitEditorFonts: (fonts) => ({
     type: "fonts",
     value: uniqueSorted(fonts.map((font) => font.asc_getFontName())),
-  }),
-  asc_onInitEditorStyles: (styles) => ({
-    type: "styles",
-    value: [...new Set(styles.get_MergedStyles().map((style) => style.get_Name()))],
   }),
   asc_onFontSize: (value) => (Number.isFinite(value) ? { type: "fontSize", value } : null),
   asc_onFontFamily: (family) => ({ type: "fontName", value: family?.asc_getName() || null }),
@@ -84,4 +70,23 @@ export const stateEvents = (aligns: AlignConstants, disconnectAction: number): E
   asc_onCanUndo: (value) => ({ type: "canUndo", value: Boolean(value) }),
   asc_onCanRedo: (value) => ({ type: "canRedo", value: Boolean(value) }),
   asc_onCountPages: (value) => ({ type: "pages", value }),
+});
+
+/**
+ * Engine events that become state. Each entry turns the arguments of one sdkjs event into an
+ * EditorEvent; events not listed here are handled by the open/close flow in word.ts.
+ */
+export const stateEvents = (aligns: AlignConstants, disconnectAction: number): EventTranslators => ({
+  ...coreEvents(disconnectAction),
+  ...textEvents(aligns),
+  asc_onAddComment: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
+  asc_onChangeCommentData: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
+  asc_onRemoveComment: (id) => ({ type: "commentRemoved", id }),
+  asc_onShowComment: (ids) => ({ type: "activeComments", ids: [...ids] }),
+  asc_onHideComment: () => ({ type: "activeComments", ids: [] }),
+  asc_onParaStyleName: (name) => ({ type: "style", value: name || null }),
+  asc_onInitEditorStyles: (styles) => ({
+    type: "styles",
+    value: [...new Set(styles.get_MergedStyles().map((style) => style.get_Name()))],
+  }),
 });

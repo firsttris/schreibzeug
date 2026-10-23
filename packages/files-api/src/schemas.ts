@@ -54,7 +54,7 @@ export const createFolderSchema = z.object({
   name: nodeNameSchema,
 });
 
-export const blankFormatSchema = z.enum(["docx", "xlsx"]);
+export const blankFormatSchema = z.enum(["docx", "xlsx", "pptx"]);
 
 export const createBlankFileSchema = z.object({
   parentId: nodeIdSchema.nullable(),

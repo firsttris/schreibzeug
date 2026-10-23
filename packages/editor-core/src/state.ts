@@ -59,49 +59,73 @@ export type EditorState = CoreState & {
   activeComments: string[];
 };
 
-/** What the text engine told us, already translated from sdkjs arguments (see events.ts). */
-export type WordEvent =
+/** Character formatting at the cursor and the fonts, from the text or the presentation engine. */
+export type TextEvent =
   | { type: "bold"; value: boolean }
   | { type: "italic"; value: boolean }
   | { type: "underline"; value: boolean }
   | { type: "strikeout"; value: boolean }
   | { type: "color"; value: string | null }
-  | { type: "style"; value: string | null }
-  | { type: "list"; value: ListKind | null }
-  | { type: "inTable"; value: boolean }
-  | { type: "fonts"; value: string[] }
-  | { type: "styles"; value: string[] }
   | { type: "fontSize"; value: number }
   | { type: "fontName"; value: string | null }
   | { type: "align"; value: Align | null }
+  | { type: "fonts"; value: string[] };
+
+/** What the text engine told us, already translated from sdkjs arguments (see events.ts). */
+export type WordEvent =
+  | TextEvent
+  | { type: "style"; value: string | null }
+  | { type: "list"; value: ListKind | null }
+  | { type: "inTable"; value: boolean }
+  | { type: "styles"; value: string[] }
   | { type: "commentSet"; comment: Comment }
   | { type: "commentRemoved"; id: string }
   | { type: "activeComments"; ids: string[] };
 
 export type EditorEvent = WordEvent | CoreEvent;
 
+export const initialTextState: TextState = {
+  bold: false,
+  italic: false,
+  underline: false,
+  strikeout: false,
+  color: null,
+  fontSize: null,
+  fontName: null,
+  align: null,
+};
+
+const TEXT_FIELDS: Record<Exclude<TextEvent["type"], "fonts">, keyof TextState> = {
+  bold: "bold",
+  italic: "italic",
+  underline: "underline",
+  strikeout: "strikeout",
+  color: "color",
+  fontSize: "fontSize",
+  fontName: "fontName",
+  align: "align",
+};
+
+const isTextEvent = (event: { type: string }): event is TextEvent =>
+  event.type in TEXT_FIELDS || event.type === "fonts";
+
+/** The shared part of the text and the presentation editor's reducer. */
+export const reduceTextEvent = <S extends { text: TextState; catalog: CatalogState }>(
+  state: S,
+  event: TextEvent,
+): S =>
+  event.type === "fonts"
+    ? { ...state, catalog: { ...state.catalog, fonts: event.value } }
+    : { ...state, text: { ...state.text, [TEXT_FIELDS[event.type]]: event.value } };
+
 export const initialEditorState: EditorState = {
   ...initialCoreState,
-  text: {
-    bold: false,
-    italic: false,
-    underline: false,
-    strikeout: false,
-    color: null,
-    fontSize: null,
-    fontName: null,
-    align: null,
-  },
+  text: initialTextState,
   paragraph: { style: null, list: null, inTable: false },
   catalog: { fonts: [], styles: [] },
   comments: [],
   activeComments: [],
 };
-
-const withText = (state: EditorState, text: Partial<TextState>): EditorState => ({
-  ...state,
-  text: { ...state.text, ...text },
-});
 
 const withParagraph = (state: EditorState, paragraph: Partial<ParagraphState>): EditorState => ({
   ...state,
@@ -121,33 +145,16 @@ const setComment = (comments: Comment[], comment: Comment): Comment[] =>
 
 export const reduceEditorState = (state: EditorState, event: EditorEvent): EditorState => {
   if (isCoreEvent(event)) return reduceCore(state, event);
+  if (isTextEvent(event)) return reduceTextEvent(state, event);
   switch (event.type) {
-    case "bold":
-      return withText(state, { bold: event.value });
-    case "italic":
-      return withText(state, { italic: event.value });
-    case "underline":
-      return withText(state, { underline: event.value });
-    case "strikeout":
-      return withText(state, { strikeout: event.value });
-    case "color":
-      return withText(state, { color: event.value });
     case "style":
       return withParagraph(state, { style: event.value });
     case "list":
       return withParagraph(state, { list: event.value });
     case "inTable":
       return withParagraph(state, { inTable: event.value });
-    case "fonts":
-      return withCatalog(state, { fonts: event.value });
     case "styles":
       return withCatalog(state, { styles: event.value });
-    case "fontSize":
-      return withText(state, { fontSize: event.value });
-    case "fontName":
-      return withText(state, { fontName: event.value });
-    case "align":
-      return withText(state, { align: event.value });
     case "commentSet":
       return { ...state, comments: setComment(state.comments, event.comment) };
     case "commentRemoved":

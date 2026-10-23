@@ -16,6 +16,7 @@ const testFile = (name: string) => readFile(join(import.meta.dirname, "../test-f
 
 const LETTER = "Angebot Lagerverwaltung.docx";
 const PRICES = "Preisliste Hardware.xlsx";
+const TALK = "Projektstart Lagerverwaltung.pptx";
 
 /** What "Meine Dateien" holds, with how long before NOW each was last changed. */
 const FOLDERS = [
@@ -28,6 +29,7 @@ const DOCUMENTS = [
   { name: "Protokoll Kick-off.docx", file: "hello.docx", ago: { hours: 4, minutes: 40 } },
   { name: "Wartungsvertrag Entwurf.docx", file: "hello.docx", ago: { days: 3 } },
   { name: PRICES, file: "preise.xlsx", ago: { hours: 1, minutes: 5 } },
+  { name: TALK, file: "vortrag.pptx", ago: { days: 1, hours: 6 } },
 ];
 
 type Ago = { days?: number; hours?: number; minutes?: number };
@@ -40,9 +42,12 @@ const seed = async (api: APIRequestContext) => {
   }
   for (const { name, file } of DOCUMENTS) {
     const buffer = await testFile(file);
-    const mimeType = name.endsWith(".xlsx")
-      ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const mimeType =
+      {
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      }[name.slice(-4)] ?? "application/octet-stream";
     expect((await api.post("/api/files", { multipart: { file: { name, mimeType, buffer } } })).ok()).toBe(
       true,
     );
@@ -144,6 +149,15 @@ for (const scheme of schemes) {
       await nameBox.press("Enter");
       await page.waitForTimeout(2_000);
       await shoot(page, "spreadsheet", scheme);
+    });
+
+    test("presentation", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto("/");
+      await page.getByRole("link", { name: TALK, exact: true }).click();
+      await expectEditorReady(page, errors);
+      await page.waitForTimeout(2_000);
+      await shoot(page, "presentation", scheme);
     });
 
     test("comments", async ({ page }) => {

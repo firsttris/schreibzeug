@@ -41,6 +41,7 @@ describe("kinds", () => {
   it("opens only Word documents for now", () => {
     expect(isEditable({ kind: "file", name: "a.docx" })).toBe(true);
     expect(isEditable({ kind: "file", name: "a.xlsx" })).toBe(true);
+    expect(isEditable({ kind: "file", name: "a.pptx" })).toBe(true);
     expect(isEditable({ kind: "file", name: "a.pdf" })).toBe(false);
     expect(isEditable({ kind: "folder", name: "a.docx" })).toBe(false);
   });

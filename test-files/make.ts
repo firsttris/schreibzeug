@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { docx, paragraphXml, type Run, xlsx } from "@stapel/ooxml";
+import { docx, paragraphXml, pptx, type Run, xlsx } from "@stapel/ooxml";
 
 /** Run properties (ECMA-376 Part 1, 17.3.2); sizes are in half-points. */
 const bold = "<w:b/>";
@@ -75,6 +75,16 @@ const files: Record<string, Uint8Array> = {
       widths: [22, 10, 10, 12],
     },
     { name: "Notizen", rows: [["Angebot gültig bis 30.11.2026"]] },
+  ]),
+  // A short talk: a title slide and two content slides, for the presentation tests and screenshots.
+  "vortrag.pptx": pptx([
+    { layout: "title", title: "Lagerverwaltung", subtitle: "Projektstart · Oktober 2026" },
+    {
+      layout: "content",
+      title: "Ziele",
+      bullets: ["Bestände in Echtzeit", "Barcode am Regal", "Anbindung an die Warenwirtschaft"],
+    },
+    { layout: "content", title: "Zeitplan", bullets: ["Woche 1–4: erste Version", "Woche 5–10: Ausbau"] },
   ]),
 };
 

@@ -7,6 +7,7 @@ import { VersionsDialog } from "../files/versions-dialog";
 import { kindOf } from "../lib/format";
 import type { EditorViewProps } from "./props";
 import { SheetView } from "./sheet-view";
+import { SlideView } from "./slide-view";
 import { useSessionFile } from "./use-session-file";
 import { WordView } from "./word-view";
 
@@ -14,6 +15,7 @@ import { WordView } from "./word-view";
 const VIEWS: Partial<Record<ReturnType<typeof kindOf>, ComponentType<EditorViewProps>>> = {
   docx: WordView,
   xlsx: SheetView,
+  pptx: SlideView,
 };
 
 /** Opens a file from the server in its editing session and saves it back as a new version. */

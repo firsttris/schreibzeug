@@ -8,6 +8,7 @@ export type TextCommands = {
   toggleUnderline: () => void;
   setFontSize: (size: number) => void;
   setAlign: (align: Align) => void;
+  selectAll: () => void;
   undo: () => void;
   redo: () => void;
 };
@@ -32,6 +33,7 @@ export const createTextCommands = (
   toggleUnderline: () => api.put_TextPrUnderline(!getState().text.underline),
   setFontSize: (size) => api.put_TextPrFontSize(clampFontSize(size)),
   setAlign: (align) => api.put_PrAlign(fromAlign(align, aligns)),
+  selectAll: () => api.asc_EditSelectAll(),
   undo: () => api.Undo(),
   redo: () => api.Redo(),
 });

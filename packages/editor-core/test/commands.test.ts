@@ -39,6 +39,12 @@ describe("createTextCommands", () => {
     expect(lastCall(calls)).toEqual(["put_PrAlign", 2]);
   });
 
+  it("selects the whole document", () => {
+    const { commands, calls } = setup();
+    commands.selectAll();
+    expect(lastCall(calls)).toEqual(["asc_EditSelectAll"]);
+  });
+
   it("passes undo and redo through", () => {
     const { commands, calls } = setup();
     commands.undo();

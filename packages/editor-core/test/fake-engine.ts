@@ -68,6 +68,7 @@ export const createFakeEngine = (): FakeEngine => {
         put_TextPrUnderline: record(calls, "put_TextPrUnderline"),
         put_TextPrFontSize: record(calls, "put_TextPrFontSize"),
         put_PrAlign: record(calls, "put_PrAlign"),
+        asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
         Undo: record(calls, "Undo"),
         Redo: record(calls, "Redo"),
         asc_CloseFile: record(calls, "asc_CloseFile"),

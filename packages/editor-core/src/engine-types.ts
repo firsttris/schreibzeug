@@ -63,6 +63,8 @@ export interface WordEngineApi {
   put_TextPrUnderline(value: boolean): void;
   put_TextPrFontSize(size: number): void;
   put_PrAlign(align: number): void;
+  /** word/api.js */
+  asc_EditSelectAll(): void;
   Undo(): void;
   Redo(): void;
   asc_CloseFile?(): void;

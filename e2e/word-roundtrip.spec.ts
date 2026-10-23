@@ -30,9 +30,7 @@ const saveAndRead = async (page: Page): Promise<string> => {
 };
 
 const selectAllInDocument = async (page: Page) => {
-  const engine = page.frameLocator('[data-testid="engine-frame"]');
-  await engine.locator("#editor_sdk").click({ position: { x: 400, y: 200 } });
-  await page.keyboard.press("ControlOrMeta+A");
+  await page.getByRole("button", { name: "Alles auswählen" }).click();
 };
 
 test.describe("text document round trip without a document server", () => {

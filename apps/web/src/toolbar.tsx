@@ -10,6 +10,7 @@ import {
   Minus,
   Plus,
   Redo2,
+  TextSelect,
   Underline,
   Undo2,
 } from "lucide-react";
@@ -52,6 +53,9 @@ export const Toolbar = ({ state, commands }: ToolbarProps) => {
         onClick={commands?.redo}
       >
         <Redo2 size={16} />
+      </Button>
+      <Button variant="ghost" aria-label="Alles auswählen" disabled={disabled} onClick={commands?.selectAll}>
+        <TextSelect size={16} />
       </Button>
       <Separator />
       <div className="flex h-8 items-center rounded-md border border-[var(--border)] bg-[var(--background)]">

@@ -15,6 +15,16 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > upload, new document, rename, trash) and a Word editor that saves every change as a new version,
 > all without a document server.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
+  <img src="docs/screenshots/editor-light.png" alt="The Stapel editor with a Word document open: toolbar with undo, font size, bold, italic, underline and alignment above the page">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/files-dark.png">
+  <img src="docs/screenshots/files-light.png" alt="The Stapel file browser: folders and Word documents with their last change and size, and buttons for a new folder, a new document and upload">
+</picture>
+
 ## 💡 Why Stapel?
 
 Self-hosted office suites today come in two kinds: engines with excellent Microsoft Office

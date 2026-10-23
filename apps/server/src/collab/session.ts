@@ -38,6 +38,8 @@ export type Session = {
   locks: Record<string, Lock>;
   participants: Participant[];
   nextIndexUser: number;
+  /** How many changes of the log a stored version holds: the rest exists only in this session. */
+  savedIndex: number;
 };
 
 export type Recipient = { to: "self" } | { to: "others" } | { to: "all" };
@@ -54,7 +56,25 @@ export const createSession = (fileId: string, baseVersion: number): Session => (
   locks: {},
   participants: [],
   nextIndexUser: 1,
+  savedIndex: 0,
 });
+
+/** Our message telling everyone how much of the log is stored in a version. */
+const savedMessage = (session: Session) => ({ type: "stapel:saved", index: session.savedIndex });
+
+/**
+ * A client stored the document as a new version, holding the first `index` changes of the log
+ * (`stapel:saved`, sent after its upload). The newest save wins; nothing moves backwards.
+ */
+export const markSaved = (session: Session, data: Incoming): Step => {
+  const index = typeof data.index === "number" && Number.isInteger(data.index) ? data.index : -1;
+  if (index < 0) return { session, out: [] };
+  const next = {
+    ...session,
+    savedIndex: Math.max(session.savedIndex, Math.min(index, session.changes.length)),
+  };
+  return { session: next, out: [{ to: "all", message: savedMessage(next) }] };
+};
 
 const self = (message: Record<string, unknown>): Outgoing => ({ to: "self", message });
 const others = (message: Record<string, unknown>): Outgoing => ({ to: "others", message });
@@ -149,6 +169,7 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
       }),
       others(connectState(next, now)),
       ...(blocks.length ? [others({ type: "getLock", locks: next.locks })] : []),
+      self(savedMessage(next)),
     ],
   };
 };
@@ -197,6 +218,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
       ...BUILD,
     }),
     others(connectState(next, now)),
+    self(savedMessage(next)),
   ];
   if (openCmd && typeof openCmd.url === "string") {
     out.splice(
@@ -266,11 +288,13 @@ export const saveChanges = (session: Session, connectionId: string, data: Incomi
     useridoriginal: participant.idOriginal,
   }));
   const changes = [...kept, ...added];
+  // Changes sent again replace the old ones; a save holding the old ones no longer counts for them.
+  const savedIndex = Math.min(session.savedIndex, kept.length);
   const changesIndex = deleteIndex === -1 && data.startSaveChanges ? startIndex : -1;
 
   if (!data.endSaveChanges) {
     return {
-      session: { ...session, changes },
+      session: { ...session, changes, savedIndex },
       out: [
         others({
           type: "saveChanges",
@@ -289,7 +313,7 @@ export const saveChanges = (session: Session, connectionId: string, data: Incomi
     ? releaseLocksOf(session, participant.id, now)
     : { locks: session.locks, released: [] };
   return {
-    session: { ...session, changes, locks },
+    session: { ...session, changes, locks, savedIndex },
     out: [
       others({
         type: "saveChanges",
@@ -368,6 +392,8 @@ export const receive = (session: Session, connectionId: string, data: Incoming, 
         session,
         out: [self({ type: "unSaveLock", index: -1, time: now, syncChangesIndex: session.changes.length })],
       };
+    case "stapel:saved":
+      return markSaved(session, data);
     case "getMessages":
       return { session, out: [self({ type: "message" })] };
     default:

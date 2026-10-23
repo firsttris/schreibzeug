@@ -70,7 +70,9 @@ CryptPad does. x2t runs in a worker (`createConverter`), so its large heap stays
 `asc_nativeGetFile()` (`word/api.js`) returns the document in the binary format as
 `DOCY;v5;<size>;<base64>`; x2t converts it to .docx (`bin → docx`). The web app stores the result
 on the server as a new version (`PUT /api/files/:id/content`, see [files](files.md)) and then calls
-`markSaved()`, which is `SetUnchangedDocument()`: "modified" turns false until the next change.
+`markSaved(saved)`, which is `SetUnchangedDocument()`: "modified" turns false until the next change.
+In a shared session it also tells the relay how much of the change log the stored copy holds; see
+[collaboration](collaboration.md#saving).
 
 ## Commands and state
 

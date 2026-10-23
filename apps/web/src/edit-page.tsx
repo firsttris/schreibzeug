@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useFiles } from "./api/context";
 import { refreshFiles } from "./api/files";
 import { EditorView } from "./editor-view";
@@ -16,6 +16,13 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
   const [generation, setGeneration] = useState(0);
   const node = useQuery(queries.node(fileId));
   const opened = useSessionFile(fileId, generation);
+  const store = useCallback(
+    async (bytes: Uint8Array) => {
+      await commands.save(fileId, bytes);
+      await refreshFiles(queryClient);
+    },
+    [commands, fileId, queryClient],
+  );
 
   if (opened.status === "loading") {
     return (
@@ -43,10 +50,7 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
             ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
             : navigate({ to: "/" })
         }
-        onSave={async (bytes) => {
-          await commands.save(fileId, bytes);
-          await refreshFiles(queryClient);
-        }}
+        onSave={store}
         onShowVersions={() => setVersionsOpen(true)}
       />
       {node.data && (

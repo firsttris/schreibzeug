@@ -73,6 +73,22 @@ describe("joinSession", () => {
     expect(events).toEqual(["open", 'message {"type":"license"}']);
   });
 
+  it("shows observers every message but keeps our own from the engine", async () => {
+    const sockets = fakeSockets();
+    const joining = joinSession("ws://x", { createSocket: sockets.create });
+    sockets.receive(session(1));
+    const channel = await joining;
+    const observed: string[] = [];
+    channel.observe((json) => observed.push(json));
+    const { events, listener } = recorder();
+    channel.listen(listener);
+
+    sockets.receive({ type: "stapel:saved", index: 2 });
+    sockets.receive({ type: "cursor" });
+    expect(observed).toEqual(['{"type":"stapel:saved","index":2}', '{"type":"cursor"}']);
+    expect(events).toEqual(["open", 'message {"type":"cursor"}']);
+  });
+
   it("sends through the current socket and closes it for good", async () => {
     const sockets = fakeSockets();
     const timers = manualTimers();

@@ -106,3 +106,31 @@ test("someone who loses the connection waits, reconnects and edits on", async ({
     .toContain("Wieder da. Hallo Stapel");
   expect([...errors, ...benErrors].filter((line) => line.includes("[engine]"))).toEqual([]);
 });
+
+test("changes are stored on their own, and everyone sees when they are", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, helloDocx, "hello.docx");
+  await page.getByRole("link", { name: "hello.docx", exact: true }).click();
+  await expectEditorReady(page, errors);
+  const url = page.url();
+  const fileId = url.split("/").at(-1) as string;
+  const ben = await openAs(browser, url);
+
+  await typeAtStart(ben.page, "Von selbst. ");
+  // Nobody presses "Speichern": Ben's editor stores his change a few seconds after he stops.
+  await expect
+    .poll(async () => paragraphTexts(await storedXml(page, fileId)).join("|"), {
+      timeout: 30_000,
+      intervals: [1_000],
+    })
+    .toContain("Von selbst. Hallo Stapel");
+  for (const someone of [page, ben.page]) {
+    await expect(someone.getByTestId("editor-status")).toHaveAttribute("data-modified", "false");
+    await expect(someone.getByTestId("editor-status")).toHaveText("Gespeichert");
+  }
+  expect([...errors, ...ben.errors].filter((line) => line.includes("[engine]"))).toEqual([]);
+});

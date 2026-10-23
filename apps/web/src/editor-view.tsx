@@ -1,3 +1,4 @@
+import { hasUnsavedChanges } from "@stapel/editor-core";
 import {
   ArrowLeft,
   Check,
@@ -14,6 +15,7 @@ import { CommentsPanel } from "./comments/comments-panel";
 import { docxName, downloadBytes, type OpenedFile } from "./files";
 import { Toolbar } from "./toolbar/toolbar";
 import { Button } from "./ui/button";
+import { useDocumentSave } from "./use-document-save";
 import { useWordEditor } from "./use-word-editor";
 
 type Status = "loading" | "ready" | "error";
@@ -48,7 +50,10 @@ const useLeaveWarning = (active: boolean) => {
 export type EditorViewProps = {
   file: OpenedFile;
   onClose: () => void;
-  /** Stores the saved .docx; the view shows "Gespeichert" once it resolves. */
+  /**
+   * Stores the saved .docx; the view shows "Gespeichert" once it resolves. Called by the save
+   * button and on its own a few seconds after changes; keep it stable (useCallback).
+   */
   onSave: (bytes: Uint8Array) => Promise<unknown>;
   /** Opens the file's versions; absent where the file has none (not stored on a server). */
   onShowVersions?: () => void;
@@ -57,10 +62,10 @@ export type EditorViewProps = {
 export const EditorView = ({ file, onClose, onSave, onShowVersions }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useWordEditor(container, file);
-  const [saving, setSaving] = useState(false);
-  const [saveFailure, setSaveFailure] = useState<string | null>(null);
+  const { save, saving, failure: saveFailure } = useDocumentSave(editor, state, onSave);
   const status: Status = failure ? "error" : state.status;
-  const { modified, connected } = state.document;
+  const { connected } = state.document;
+  const modified = hasUnsavedChanges(state);
   useLeaveWarning(modified);
   const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
@@ -71,22 +76,8 @@ export const EditorView = ({ file, onClose, onSave, onShowVersions }: EditorView
     editor?.resize();
   }, [editor, comments === "closed"]);
 
-  const save = async () => {
-    if (!editor) return;
-    setSaving(true);
-    setSaveFailure(null);
-    try {
-      await onSave(await editor.save());
-      editor.markSaved();
-    } catch (error) {
-      setSaveFailure(`Nicht gespeichert: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const download = async () => {
-    if (editor) downloadBytes(await editor.save(), docxName(file.name));
+    if (editor) downloadBytes((await editor.save()).bytes, docxName(file.name));
   };
 
   return (

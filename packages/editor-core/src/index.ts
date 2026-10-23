@@ -13,6 +13,14 @@ export {
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
 export {
+  AUTOSAVE_DELAY,
+  autosaveDelay,
+  initialProgress,
+  isAhead,
+  readProgress,
+  type SessionProgress,
+} from "./session-progress";
+export {
   type Align,
   type CatalogState,
   type Comment,
@@ -21,6 +29,7 @@ export {
   type EditorEvent,
   type EditorState,
   type EditorStatus,
+  hasUnsavedChanges,
   initialEditorState,
   type ListKind,
   type ParagraphState,
@@ -28,4 +37,10 @@ export {
   type TextState,
 } from "./state";
 export { createStore, type Store } from "./store";
-export { type DocumentUser, type OpenWordOptions, openWordDocument, type WordEditor } from "./word";
+export {
+  type DocumentUser,
+  type OpenWordOptions,
+  openWordDocument,
+  type SavedDocument,
+  type WordEditor,
+} from "./word";

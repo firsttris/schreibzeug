@@ -25,6 +25,64 @@ const run = (steps: Array<[string, Record<string, unknown>]>, start: Session = c
 const types = (out: Outgoing[]) => out.map(({ to, message }) => `${to}:${String(message.type)}`);
 
 describe("collaboration session", () => {
+  const change = (connection: string, changes: string[]): [string, Record<string, unknown>] => [
+    connection,
+    { type: "saveChanges", changes: JSON.stringify(changes), startSaveChanges: true, endSaveChanges: true },
+  ];
+
+  it("tells everyone how much of the log a stored version holds, never less than before", () => {
+    const { session, log } = run([
+      ["a", auth("anna")],
+      ["b", auth("ben")],
+      change("a", ["c1", "c2", "c3"]),
+      ["b", { type: "stapel:saved", index: 2 }],
+      ["a", { type: "stapel:saved", index: 1 }],
+      ["a", { type: "stapel:saved", index: 99 }],
+    ]);
+    expect(log[3]?.out).toEqual([{ to: "all", message: { type: "stapel:saved", index: 2 } }]);
+    expect(log[4]?.out[0]?.message).toEqual({ type: "stapel:saved", index: 2 });
+    // An index past the log counts as the whole log.
+    expect(session.savedIndex).toBe(3);
+  });
+
+  it("ignores a saved message without an index", () => {
+    const { session, log } = run([
+      ["a", auth("anna")],
+      ["a", { type: "stapel:saved" }],
+    ]);
+    expect(log[1]?.out).toEqual([]);
+    expect(session.savedIndex).toBe(0);
+  });
+
+  it("tells someone joining later how much is stored", () => {
+    const { log } = run([
+      ["a", auth("anna")],
+      change("a", ["c1"]),
+      ["a", { type: "stapel:saved", index: 1 }],
+      ["b", auth("ben")],
+    ]);
+    expect(log[3]?.out.at(-1)?.message).toEqual({ type: "stapel:saved", index: 1 });
+  });
+
+  it("forgets a save for changes that are sent again", () => {
+    const { session } = run([
+      ["a", auth("anna")],
+      change("a", ["c1", "c2"]),
+      ["a", { type: "stapel:saved", index: 2 }],
+      [
+        "a",
+        {
+          type: "saveChanges",
+          changes: JSON.stringify(["c2"]),
+          startSaveChanges: true,
+          endSaveChanges: true,
+          deleteIndex: 1,
+        },
+      ],
+    ]);
+    expect(session.savedIndex).toBe(1);
+  });
+
   it("lets a client in with the changes so far, the session and the file to open", () => {
     const { session, log } = run([["a", auth("anna")]]);
     expect(types(log[0]?.out ?? [])).toEqual([
@@ -32,6 +90,7 @@ describe("collaboration session", () => {
       "self:auth",
       "self:documentOpen",
       "others:connectState",
+      "self:stapel:saved",
     ]);
     expect(log[0]?.out[2]?.message).toMatchObject({ data: { data: { "Editor.bin": "blob:anna" } } });
     expect(session.participants).toMatchObject([
@@ -129,7 +188,12 @@ describe("collaboration session", () => {
         }),
       ],
     ]);
-    expect(types(log[3]?.out ?? [])).toEqual(["self:auth", "others:connectState", "others:getLock"]);
+    expect(types(log[3]?.out ?? [])).toEqual([
+      "self:auth",
+      "others:connectState",
+      "others:getLock",
+      "self:stapel:saved",
+    ]);
     expect(session.participants.map((p) => [p.connectionId, p.id])).toEqual([
       ["a", "anna1"],
       ["b2", "ben2"],

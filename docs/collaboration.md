@@ -57,6 +57,7 @@ The relay (`apps/server/src/collab/session.ts`) answers the messages `sdkjs` sen
 | `getLock` | the lock to everyone. Text documents grant every lock (`_checkLockWord`). |
 | `unLockDocument` | `releaseLock` to the others. |
 | `cursor` | the cursor to the others. |
+| `stapel:saved` (ours) | `stapel:saved` with the highest stored index to everyone; see [saving](#saving). |
 | (disconnect) | `connectState` to the others; the person's locks are released. |
 
 The hub (`hub.ts`) keeps one session per file in memory and delivers the answers;
@@ -76,14 +77,30 @@ the reconnect failed.
 
 ## Saving
 
+The session lives only in the server's memory and ends with the last person leaving; what no
+stored version holds is gone then. So the editor saves on its own.
+
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
-new version. All copies hold the same content, so it does not matter who saves. The session itself
-lives only in the server's memory and ends with the last person leaving; changes nobody saved are
-gone then.
+new version. All copies hold the same content, so one person's save stores everyone's changes. The
+saving editor then sends `{"type":"stapel:saved","index":n}`: its copy holds the first `n` changes
+of the log. The relay keeps the highest index and sends it to everyone (and to everyone joining
+later), so every editor knows whether the session is ahead of the stored file.
+
+Each editor counts the log from the relay's messages (`packages/editor-core/src/session-progress.ts`):
+`authChanges` carries the whole log, `saveChanges` and `unSaveLock` the log's length after the
+newest change. The engine's own "modified" flag does not help here: in fast co-editing it drops as
+soon as the relay has a change. "Nicht gespeicherte Änderungen" and the warning before closing the
+tab therefore mean: the engine has changes it has not sent, or the log is ahead of the stored
+version.
+
+When the log is ahead, the author of the newest change saves three seconds after it, everyone else
+after fifteen, in case that person has left. Every new change starts the wait again. A save asked
+for while one runs follows it. Each save is a version, so a session leaves several versions behind.
 
 ## Tests
 
 `apps/server/test/collab.test.ts` covers the session functions and the hub,
-`packages/editor-core/test` the channel and the socket stand-in. `e2e/collaboration.spec.ts` opens
-the same file in two browser contexts: both type and see each other's text, and one loses its
-connection, waits for it to come back and edits on.
+`packages/editor-core/test` the channel, the socket stand-in and the save counting.
+`e2e/collaboration.spec.ts` opens the same file in two browser contexts: both type and see each
+other's text; one loses its connection, waits for it to come back and edits on; and a change is
+stored without anyone pressing "Speichern".

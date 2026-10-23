@@ -1,3 +1,4 @@
+import { initialProgress, isAhead, readProgress, type SessionProgress } from "./session-progress";
 export type Align = "left" | "center" | "right" | "justify";
 
 export type ListKind = "bullet" | "number";
@@ -71,6 +72,8 @@ export type EditorState = {
   /** The comments on the text at the cursor. */
   activeComments: string[];
   document: DocumentState;
+  /** A shared session's change log against the stored file; stays empty when editing alone. */
+  session: SessionProgress;
 };
 
 /** What the engine told us, already translated from sdkjs arguments (see events.ts). */
@@ -96,6 +99,8 @@ export type EditorEvent =
   | { type: "commentSet"; comment: Comment }
   | { type: "commentRemoved"; id: string }
   | { type: "activeComments"; ids: string[] }
+  /** A message from the collaboration relay, as JSON text. */
+  | { type: "message"; json: string }
   | { type: "ready" }
   | { type: "error"; message: string };
 
@@ -117,6 +122,7 @@ export const initialEditorState: EditorState = {
   comments: [],
   activeComments: [],
   document: { canUndo: false, canRedo: false, modified: false, pages: 0, connected: true },
+  session: initialProgress,
 };
 
 const withText = (state: EditorState, text: Partial<TextState>): EditorState => ({
@@ -193,9 +199,17 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       };
     case "activeComments":
       return { ...state, activeComments: event.ids };
+    case "message": {
+      const session = readProgress(state.session, event.json);
+      return session === state.session ? state : { ...state, session };
+    }
     case "ready":
       return { ...state, status: "ready", error: null };
     case "error":
       return { ...state, status: "error", error: event.message };
   }
 };
+
+/** Changes that are not in a stored version yet: the engine's own, or the session's. */
+export const hasUnsavedChanges = (state: EditorState): boolean =>
+  state.document.modified || isAhead(state.session);

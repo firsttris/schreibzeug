@@ -30,14 +30,20 @@ export type OpenWordOptions = {
   collaboration?: { channel: CollabChannel; documentId: string };
 };
 
+/** A .docx made from the document, and how many of the session's changes it holds. */
+export type SavedDocument = { bytes: Uint8Array; seen: number };
+
 export type WordEditor = {
   store: Store<EditorState>;
   commands: TextCommands;
   comments: CommentCommands;
   /** The document as .docx: the engine's binary, converted in the browser. */
-  save: () => Promise<Uint8Array>;
-  /** Tells the engine the current state is stored, so "modified" turns false until the next change. */
-  markSaved: () => void;
+  save: () => Promise<SavedDocument>;
+  /**
+   * The copy from `save` is stored: "modified" turns false until the next change, and in a shared
+   * session everyone learns how much of the change log the stored version holds.
+   */
+  markSaved: (saved: SavedDocument) => void;
   resize: () => void;
   close: () => void;
 };
@@ -101,6 +107,10 @@ const withListRefresh = (commands: TextCommands, refreshList: () => void): TextC
  * opens the "Editor.bin" URL the relay names in `documentOpen`, which is the URL it was given:
  * our binary as a blob in the frame, the same bytes for every participant.
  */
+/** Feeds the relay's messages into the session progress (session-progress.ts). */
+const followProgress = (channel: CollabChannel | undefined, dispatch: (event: EditorEvent) => void) =>
+  channel?.observe((json) => dispatch({ type: "message", json })) ?? (() => {});
+
 const connectEngine = (
   win: EngineWindow,
   api: WordEngineApi,
@@ -145,6 +155,7 @@ type EngineStart = {
 const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure }: EngineStart): void => {
   const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: {} });
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
+  const stopProgress = followProgress(options.collaboration?.channel, dispatch);
   const url = connectEngine(win, api, binary, options.collaboration);
   subscribe(api, stateEvents(win.AscCommon, win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
   keepFocusOnClick(win, () => api.getFocusElement());
@@ -167,16 +178,26 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
       refreshList,
     ),
     // word/api.js asc_nativeGetFile: the document as "DOCY;v5;<size>;<base64>", which x2t reads.
-    save: () => options.convert(new TextEncoder().encode(api.asc_nativeGetFile()), "bin", "docx"),
+    save: async () => {
+      const seen = store.get().session.seen;
+      const binary = new TextEncoder().encode(api.asc_nativeGetFile());
+      return { bytes: await options.convert(binary, "bin", "docx"), seen };
+    },
     comments: createCommentCommands(
       api,
       store.get,
       options.user,
       () => new win.Asc.asc_CCommentDataWord(null),
     ),
-    markSaved: () => api.SetUnchangedDocument(),
+    markSaved: ({ seen }) => {
+      api.SetUnchangedDocument();
+      options.collaboration?.channel.send(JSON.stringify({ type: "stapel:saved", index: seen }));
+    },
     resize: () => api.Resize(),
-    close: () => api.asc_CloseFile?.(),
+    close: () => {
+      stopProgress();
+      api.asc_CloseFile?.();
+    },
   };
 
   api.asc_registerCallback("asc_onGetEditorPermissions", () => api.asc_LoadDocument());

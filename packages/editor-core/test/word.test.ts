@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Convert } from "../src/converter";
+import { hasUnsavedChanges } from "../src/state";
 import { openWordDocument } from "../src/word";
 import { createFakeEngine } from "./fake-engine";
 
@@ -41,15 +42,25 @@ const openReady = async () => {
   return { engine, converter, editor: await opening };
 };
 
-/** A channel that records what the engine sends; the relay never answers. */
-const idleChannel = () => {
+/** A channel that records what is sent; the test plays the relay for observers, not the engine. */
+const testChannel = () => {
   const sent: string[] = [];
+  const observers = new Set<(json: string) => void>();
   return {
     sent,
+    relay: (message: object) => {
+      for (const observer of observers) observer(JSON.stringify(message));
+    },
     channel: {
       baseVersion: 1,
-      send: (json: string) => sent.push(json),
+      send: (json: string) => {
+        sent.push(json);
+      },
       listen: () => () => {},
+      observe: (observer: (json: string) => void) => {
+        observers.add(observer);
+        return () => observers.delete(observer);
+      },
       close: () => {},
     },
   };
@@ -59,15 +70,14 @@ const openShared = async () => {
   const engine = createFakeEngine();
   Object.assign(engine.window, { URL: { createObjectURL: () => "blob:document" }, Blob, JSON });
   const converter = fakeConverter();
+  const relay = testChannel();
   const opening = openWordDocument(
     engine.window,
-    optionsWith(converter.convert, {
-      collaboration: { channel: idleChannel().channel, documentId: "file-1" },
-    }),
+    optionsWith(converter.convert, { collaboration: { channel: relay.channel, documentId: "file-1" } }),
   );
   await flush();
   engine.api().emit("asc_onDocumentContentReady");
-  return { engine, editor: await opening };
+  return { engine, relay, editor: await opening };
 };
 
 describe("openWordDocument in a shared session", () => {
@@ -80,6 +90,24 @@ describe("openWordDocument in a shared session", () => {
   it("gives the engine a socket.io stand-in", async () => {
     const { engine } = await openShared();
     expect(typeof engine.window.io).toBe("function");
+  });
+
+  it("follows the change log and tells the relay how much a save holds", async () => {
+    const { relay, editor } = await openShared();
+    relay.relay({ type: "authChanges", changes: ["a", "b"] });
+    relay.relay({ type: "unSaveLock", index: 2, syncChangesIndex: 3 });
+    expect(editor.store.get().session).toEqual({ seen: 3, saved: 0, lastAuthor: "me" });
+    expect(hasUnsavedChanges(editor.store.get())).toBe(true);
+
+    const saved = await editor.save();
+    relay.relay({ type: "saveChanges", changes: [], syncChangesIndex: 4 });
+    editor.markSaved(saved);
+    expect(relay.sent.at(-1)).toBe('{"type":"stapel:saved","index":3}');
+
+    relay.relay({ type: "stapel:saved", index: 3 });
+    expect(hasUnsavedChanges(editor.store.get())).toBe(true);
+    relay.relay({ type: "stapel:saved", index: 4 });
+    expect(hasUnsavedChanges(editor.store.get())).toBe(false);
   });
 
   it("turns on fast co-editing once the document is shown, as web-apps does", async () => {
@@ -166,7 +194,7 @@ describe("openWordDocument", () => {
   it("saves by converting the engine's binary back to .docx", async () => {
     const { engine, converter, editor } = await openReady();
     const saved = await editor.save();
-    expect(saved).toBe(savedDocx);
+    expect(saved).toEqual({ bytes: savedDocx, seen: 0 });
     const conversion = converter.conversions.at(-1);
     expect(conversion).toMatchObject({ from: "bin", to: "docx" });
     expect(new TextDecoder().decode(conversion?.bytes)).toBe(engine.api().nativeFile);
@@ -178,7 +206,7 @@ describe("openWordDocument", () => {
     engine.api().emit("asc_onDocumentModifiedChanged");
     expect(editor.store.get().document.modified).toBe(true);
 
-    editor.markSaved();
+    editor.markSaved({ bytes: savedDocx, seen: 0 });
     expect(engine.api().calls).toContainEqual(["SetUnchangedDocument"]);
     expect(editor.store.get().document.modified).toBe(false);
   });

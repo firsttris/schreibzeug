@@ -27,12 +27,30 @@ export type CollabChannel = {
   /** The file version the session started from: open this one, then the changes follow. */
   baseVersion: number;
   send: (json: string) => void;
-  /** Listens; messages that came before a listener are replayed to the first one. */
+  /**
+   * The engine's listener: gets sdkjs's messages only, not ours (`stapel:…`). Messages that came
+   * before it are replayed to it.
+   */
   listen: (listener: ChannelListener) => () => void;
+  /** Watches every message from the relay, ours included, from the moment it is delivered. */
+  observe: (observer: (json: string) => void) => () => void;
   close: () => void;
 };
 
 const SESSION = "stapel:session";
+
+/** The `type` of a relay message, or null for anything else. */
+export const messageType = (json: string): string | null => {
+  try {
+    const value = JSON.parse(json) as { type?: unknown };
+    return typeof value?.type === "string" ? value.type : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Our own messages; sdkjs never sees them. */
+const isOwnMessage = (json: string): boolean => messageType(json)?.startsWith("stapel:") ?? false;
 
 /** Waits between reconnects, growing to a few seconds. */
 export const reconnectDelay = (attempt: number): number => Math.min(500 * 2 ** attempt, 5_000);
@@ -67,6 +85,7 @@ export const joinSession = (
 ): Promise<CollabChannel> =>
   new Promise((resolve, reject) => {
     let listener: ChannelListener | null = null;
+    const observers = new Set<(json: string) => void>();
     const pending: string[] = [];
     let socket: SocketLike;
     let baseVersion: number | null = null;
@@ -74,16 +93,25 @@ export const joinSession = (
     let attempt = 0;
     let open = false;
 
+    const deliver = (json: string) => {
+      for (const observer of observers) observer(json);
+      if (!isOwnMessage(json)) listener?.message(json);
+    };
+
     const channel = (version: number): CollabChannel => ({
       baseVersion: version,
       send: (json) => socket.send(json),
       listen: (next) => {
         listener = next;
         if (open) next.open();
-        for (const json of pending.splice(0)) next.message(json);
+        for (const json of pending.splice(0)) deliver(json);
         return () => {
           if (listener === next) listener = null;
         };
+      },
+      observe: (observer) => {
+        observers.add(observer);
+        return () => observers.delete(observer);
       },
       close: () => {
         closed = true;
@@ -109,7 +137,7 @@ export const joinSession = (
           }
           return;
         }
-        if (listener) listener.message(data);
+        if (listener) deliver(data);
         else pending.push(data);
       };
       socket.onclose = () => {

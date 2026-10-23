@@ -1,4 +1,13 @@
-import { ArrowLeft, Check, Download, FileText, LoaderCircle, MessageSquare, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  FileText,
+  History,
+  LoaderCircle,
+  MessageSquare,
+  Save,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CommentsPanel } from "./comments/comments-panel";
 import { docxName, downloadBytes, type OpenedFile } from "./files";
@@ -31,9 +40,11 @@ export type EditorViewProps = {
   onClose: () => void;
   /** Stores the saved .docx; the view shows "Gespeichert" once it resolves. */
   onSave: (bytes: Uint8Array) => Promise<unknown>;
+  /** Opens the file's versions; absent where the file has none (not stored on a server). */
+  onShowVersions?: () => void;
 };
 
-export const EditorView = ({ file, onClose, onSave }: EditorViewProps) => {
+export const EditorView = ({ file, onClose, onSave, onShowVersions }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useWordEditor(container, file);
   const [saving, setSaving] = useState(false);
@@ -102,6 +113,11 @@ export const EditorView = ({ file, onClose, onSave }: EditorViewProps) => {
               <MessageSquare size={16} />
               {openComments > 0 && <span className="text-xs tabular-nums">{openComments}</span>}
             </Button>
+            {onShowVersions && (
+              <Button variant="ghost" aria-label="Versionen" onClick={onShowVersions}>
+                <History size={16} />
+              </Button>
+            )}
             <Button variant="ghost" aria-label="Herunterladen" disabled={!editor} onClick={download}>
               <Download size={16} />
             </Button>

@@ -58,7 +58,15 @@ export const fileCommands = (api: ApiClient) => ({
   trash: (id: string) => expectJson(api.nodes[":id"].trash.$post({ param: { id } }), nodeSchema),
   restore: (id: string) => expectJson(api.nodes[":id"].restore.$post({ param: { id } }), nodeSchema),
   content: (id: string) => expectBytes(api.files[":id"].content.$get({ param: { id }, query: {} })),
-  contentUrl: (id: string) => api.files[":id"].content.$url({ param: { id }, query: {} }).toString(),
+  contentUrl: (id: string, version?: number) =>
+    api.files[":id"].content
+      .$url({ param: { id }, query: version ? { version: String(version) } : {} })
+      .toString(),
+  restoreVersion: (id: string, number: number) =>
+    expectJson(
+      api.files[":id"].versions[":number"].restore.$post({ param: { id, number: String(number) } }),
+      nodeSchema,
+    ),
   save: (id: string, bytes: Uint8Array) =>
     // hc types only form and JSON bodies; `init` is spread last into fetch (hono/dist/client/client.js).
     expectJson(

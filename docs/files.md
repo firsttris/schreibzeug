@@ -49,6 +49,7 @@ All under `/api`; bodies are JSON unless noted. Errors are
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
 | `PUT /files/:id/content` | Save: the body becomes a new version |
 | `GET /files/:id/versions` | All versions, newest first |
+| `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |
 
 ## Running it

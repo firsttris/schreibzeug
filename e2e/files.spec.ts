@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import {
@@ -83,5 +84,47 @@ test.describe("files", () => {
     await page.getByRole("link", { name: "Meine Dateien", exact: true }).click();
     await page.getByRole("link", { name: own, exact: true }).click();
     await expect(row(page, "Weg damit")).toBeVisible();
+  });
+
+  test("moves a folder into another one through the folder picker", async ({ page }, testInfo) => {
+    await openOwnFolder(page, testInfo);
+    await createFolder(page, "Ziel");
+    await createFolder(page, "Wandert");
+
+    await page.getByRole("button", { name: "Wandert verschieben" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("button", { name: "Ordner Wandert öffnen" })).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Ordner Ziel öffnen" }).click();
+    await expect(dialog.getByTestId("move-target")).toHaveText("Ziel");
+    await dialog.getByRole("button", { name: "Hierher verschieben" }).click();
+
+    await expect(row(page, "Wandert")).toHaveCount(0);
+    await page.getByRole("link", { name: "Ziel", exact: true }).click();
+    await expect(row(page, "Wandert")).toBeVisible();
+  });
+
+  test("lists the versions of a file and restores an older one", async ({ page }, testInfo) => {
+    await openOwnFolder(page, testInfo);
+    await upload(page, helloDocx, "hello.docx");
+    const fileId = (await row(page, "hello.docx").getByRole("link").getAttribute("href"))?.split("/").at(-1);
+    // A second version, as a save from the editor would store it.
+    const saved = await page.request.put(`/api/files/${fileId}/content`, {
+      data: Buffer.from("zweite Fassung"),
+    });
+    expect(saved.ok()).toBe(true);
+    await page.reload();
+
+    await page.getByRole("button", { name: "Versionen von hello.docx" }).click();
+    const versions = page.getByRole("list", { name: "Versionen" });
+    await expect(versions.getByRole("listitem")).toHaveCount(2);
+    await expect(versions.locator('[data-version="2"]')).toContainText("aktuell");
+    await page.getByRole("button", { name: "Version 1 wiederherstellen" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    const content = await page.request.get(`/api/files/${fileId}/content`);
+    expect(new Uint8Array(await content.body())).toEqual(new Uint8Array(await readFile(helloDocx)));
+    await page.getByRole("button", { name: "Versionen von hello.docx" }).click();
+    await expect(versions.getByRole("listitem")).toHaveCount(3);
+    await expect(versions.locator('[data-version="3"]')).toContainText("aktuell");
   });
 });

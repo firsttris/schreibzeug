@@ -135,6 +135,14 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       const saved = await repository.addVersion(db, c.req.valid("param").id, await store(bytes));
       return respond(c, saved, toFileNode);
     })
+    .post(
+      "/files/:id/versions/:number/restore",
+      validate("param", z.object({ id: nodeIdSchema, number: z.coerce.number().int().positive() })),
+      async (c) => {
+        const { id, number } = c.req.valid("param");
+        return respond(c, await repository.restoreVersion(db, id, number), toFileNode);
+      },
+    )
     .get("/files/:id/versions", validate("param", idParam), async (c) =>
       respond(c, await repository.listVersions(db, c.req.valid("param").id), (rows) =>
         rows.map(toFileVersion),

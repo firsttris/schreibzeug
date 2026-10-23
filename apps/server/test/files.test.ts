@@ -149,6 +149,24 @@ describe("files", () => {
     await expectError(await content(file.id, 9), 404, "not_found");
   });
 
+  it("restores an older version as a new one, keeping the ones in between", async () => {
+    const file = await uploaded("Vertrag.txt", "erste Fassung");
+    await expectNode(await save(file.id, "zweite Fassung"));
+
+    const restored = await expectNode(
+      await api.files[":id"].versions[":number"].restore.$post({ param: { id: file.id, number: "1" } }),
+    );
+    expect(restored.version).toBe(3);
+    expect(await (await content(file.id)).text()).toBe("erste Fassung");
+    expect(await (await content(file.id, 2)).text()).toBe("zweite Fassung");
+
+    await expectError(
+      await api.files[":id"].versions[":number"].restore.$post({ param: { id: file.id, number: "7" } }),
+      404,
+      "not_found",
+    );
+  });
+
   it("stores the same bytes once", async () => {
     const a = await uploaded("a.txt", "gleich");
     const b = await uploaded("b.txt", "gleich");

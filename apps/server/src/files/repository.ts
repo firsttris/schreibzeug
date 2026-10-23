@@ -161,6 +161,17 @@ export const findVersion = async (
   return version ? ok({ file: file.value, version }) : fail("not_found", "Diese Version gibt es nicht.");
 };
 
+/**
+ * Makes an older version the newest again, as a new version with the same bytes: the versions in
+ * between stay, so restoring can itself be undone.
+ */
+export const restoreVersion = async (db: Queryable, id: string, number: number): Promise<Result<NodeRow>> => {
+  const found = await findVersion(db, id, number);
+  if (!found.ok) return found;
+  const { size, sha256 } = found.value.version;
+  return addVersion(db, id, { size, sha256 });
+};
+
 /** True when `folderId` is `id` or lies below it: moving `id` there would make a loop. */
 const isInside = async (db: Queryable, folderId: string, id: string): Promise<boolean> =>
   (await pathTo(db, folderId)).some((node) => node.id === id);

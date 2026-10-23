@@ -50,7 +50,7 @@ export const NodeTable = ({ nodes, actions, openable = true, empty }: NodeTableP
           <th className="py-2 pl-2 font-medium">Name</th>
           <th className="hidden w-40 py-2 font-medium sm:table-cell">Geändert</th>
           <th className="hidden w-24 py-2 text-right font-medium sm:table-cell">Größe</th>
-          <th className="w-28 py-2">
+          <th className="w-40 py-2">
             <span className="sr-only">Aktionen</span>
           </th>
         </tr>

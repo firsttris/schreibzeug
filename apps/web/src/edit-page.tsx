@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { messageOf } from "./api/client";
 import { useFiles } from "./api/context";
 import { refreshFiles } from "./api/files";
 import { EditorView } from "./editor-view";
 import type { OpenedFile } from "./files";
+import { VersionsDialog } from "./files/versions-dialog";
 
 /**
  * The file as the editor opened it. Kept outside the "files" keys on purpose: refreshing the file
@@ -17,6 +19,8 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
   const { queries, commands } = useFiles();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const node = useQuery(queries.node(fileId));
   const opened = useQuery({
     queryKey: openedKey(fileId),
     queryFn: async (): Promise<OpenedFile & { parentId: string | null }> => {
@@ -50,17 +54,29 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
 
   const { parentId } = opened.data;
   return (
-    <EditorView
-      file={opened.data}
-      onClose={() =>
-        parentId
-          ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
-          : navigate({ to: "/" })
-      }
-      onSave={async (bytes) => {
-        await commands.save(fileId, bytes);
-        await refreshFiles(queryClient);
-      }}
-    />
+    <>
+      <EditorView
+        file={opened.data}
+        onClose={() =>
+          parentId
+            ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
+            : navigate({ to: "/" })
+        }
+        onSave={async (bytes) => {
+          await commands.save(fileId, bytes);
+          await refreshFiles(queryClient);
+        }}
+        onShowVersions={() => setVersionsOpen(true)}
+      />
+      {node.data && (
+        <VersionsDialog
+          file={node.data}
+          open={versionsOpen}
+          onClose={() => setVersionsOpen(false)}
+          // The restored version becomes the newest; open it in place of what the editor shows.
+          onRestored={() => queryClient.invalidateQueries({ queryKey: openedKey(fileId) })}
+        />
+      )}
+    </>
   );
 };

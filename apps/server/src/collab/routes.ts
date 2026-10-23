@@ -1,6 +1,7 @@
 import { nodeIdSchema } from "@stapel/files-api";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
+import type { AuthEnv } from "../auth/middleware";
 import type { Hub } from "./hub";
 import type { Incoming } from "./session";
 
@@ -24,10 +25,12 @@ const parse = (data: unknown): Incoming | null => {
  * own (see session.ts) and ours, prefixed `stapel:`.
  */
 export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSocket: UpgradeWebSocket }) =>
-  new Hono().get(
+  new Hono<AuthEnv>().get(
     "/collab/:fileId",
     upgradeWebSocket((c) => {
       const fileId = c.req.param("fileId") ?? "";
+      // Checked by requireUser before the upgrade: the WebSocket carries the session cookie.
+      const { id, name } = c.var.user;
       let connectionId: Promise<string | null> = Promise.resolve(null);
       const send = (ws: WSContext) => (message: Record<string, unknown>) => ws.send(JSON.stringify(message));
       return {
@@ -36,9 +39,9 @@ export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSo
             ws.close(CLOSE.notFound, "Unknown file");
             return;
           }
-          connectionId = hub.open(fileId, send(ws)).then((id) => {
-            if (id === null) ws.close(CLOSE.notFound, "Unknown file");
-            return id;
+          connectionId = hub.open(fileId, { id, name }, send(ws)).then((connection) => {
+            if (connection === null) ws.close(CLOSE.notFound, "Unknown file");
+            return connection;
           });
         },
         onMessage: async (event, ws) => {

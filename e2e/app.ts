@@ -31,10 +31,35 @@ const fillNameDialog = async (page: Page, label: string, name: string, confirm: 
 
 export const row = (page: Page, name: string) => page.locator(`tr[data-node="${name}"]`);
 
-/** Creates a folder named after the test (and its retry) in "Meine Dateien" and opens it. */
+export type Credentials = { name: string; email: string; password: string };
+
+/** An account of its own for every run of a test, also with --repeat-each and on a retry. */
+export const credentialsFor = (testInfo: TestInfo): Credentials => {
+  const key = `${testInfo.testId}-${testInfo.repeatEachIndex}-${testInfo.retry}`;
+  return { name: "Anna Berger", email: `${key}@example.org`, password: "geheim-genug" };
+};
+
+/**
+ * Creates the account through the API; `page.request` shares the browser's cookies, so the page
+ * is signed in afterwards. Signing up through the form is tested once, in accounts.spec.ts.
+ */
+export const signUp = async (page: Page, credentials: Credentials) => {
+  const response = await page.request.post("/api/auth/sign-up/email", { data: credentials });
+  expect(response.ok(), await response.text()).toBe(true);
+};
+
+export const signIn = async (page: Page, { email, password }: Credentials) => {
+  const response = await page.request.post("/api/auth/sign-in/email", { data: { email, password } });
+  expect(response.ok(), await response.text()).toBe(true);
+};
+
+/**
+ * Signs up the test's own account, creates a folder named after the test in "Meine Dateien" and
+ * opens it.
+ */
 export const openOwnFolder = async (page: Page, testInfo: TestInfo): Promise<string> => {
-  // Unique per run of a test, also with --repeat-each and on a retry.
-  const name = `${testInfo.title.slice(0, 40)} ${testInfo.testId.slice(0, 8)}-${testInfo.repeatEachIndex}-${testInfo.retry}`;
+  await signUp(page, credentialsFor(testInfo));
+  const name = `${testInfo.title.slice(0, 40)} ${testInfo.testId.slice(0, 8)}`;
   await page.goto("/");
   await page.getByRole("button", { name: "Neuer Ordner" }).click();
   await fillNameDialog(page, "Name des Ordners", name, "Anlegen");
@@ -46,6 +71,9 @@ export const openOwnFolder = async (page: Page, testInfo: TestInfo): Promise<str
 export const createFolder = async (page: Page, name: string) => {
   await page.getByRole("button", { name: "Neuer Ordner" }).click();
   await fillNameDialog(page, "Name des Ordners", name, "Anlegen");
+  // The dialog is closed and the list shows the folder before the next step clicks anything.
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(row(page, name)).toBeVisible();
 };
 
 export const upload = async (page: Page, path: string, name: string) => {

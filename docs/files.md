@@ -7,14 +7,14 @@
 
 | Table | What it holds |
 |---|---|
-| `nodes` | Folders and files in one tree (`parent_id`, `null` is the root). A file has `mime`, `size` and its newest `version`. |
+| `nodes` | Folders and files in one tree (`parent_id`, `null` is the root of the owner's files, `owner_id` whose they are; see [accounts](accounts.md)). A file has `mime`, `size` and its newest `version`. |
 | `versions` | Every saved state of a file: number, size and the SHA-256 of its bytes. |
 
 The bytes are in the blob store (`src/blobs.ts`), under `data/blobs/ab/abcdef…` by their SHA-256:
 the same bytes are stored once, and a blob is written to a temporary name and renamed, so a crash
 never leaves half a blob under a real key.
 
-Names are unique per folder, ignoring case, as on macOS and Windows (a partial unique index on
+Names are unique per folder (at the top level per owner), ignoring case, as on macOS and Windows (a partial unique index on
 `lower(name)` among nodes outside the trash). Names must not contain `/ \ : * ? " < > |` or control
 characters, so every file can be downloaded under its name on every system
 (`packages/files-api/src/schemas.ts`).
@@ -31,9 +31,11 @@ again.
 
 ## API
 
-All under `/api`; bodies are JSON unless noted. Errors are
+All under `/api`; bodies are JSON unless noted. Every route but `/health` and Better Auth's
+`/auth/*` needs a session and acts for its user ([accounts](accounts.md)). Errors are
 `{ "error": { "kind", "message" } }`, with `kind` one of `not_found` (404), `invalid` (400),
-`not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413), `internal` (500).
+`unauthorized` (401), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
+`internal` (500).
 
 | Route | What it does |
 |---|---|
@@ -60,6 +62,7 @@ All under `/api`; bodies are JSON unless noted. Errors are
 | `STAPEL_DATA_DIR` | `data` (blobs go to `data/blobs`) |
 | `PORT` | `3000` |
 | `STAPEL_MAX_UPLOAD_MB` | `512` |
+| `STAPEL_OPEN_SIGNUP`, `STAPEL_AUTH_SECRET`, `STAPEL_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on
 start. After a change to the schema, `bun run --filter @stapel/server db:generate` writes the next
@@ -67,7 +70,7 @@ migration.
 
 ## Tests
 
-`apps/server/test/files.test.ts` runs the app with `app.request()` and Hono's typed test client
+`apps/server/test/files.test.ts` signs up an account and runs the app with `app.request()` and Hono's typed test client
 against a real PostgreSQL: each test file creates a database of its own from `TEST_DATABASE_URL`
 (default as `DATABASE_URL`; the user needs `CREATEDB`) and drops it afterwards. CI runs them with a
 PostgreSQL service.

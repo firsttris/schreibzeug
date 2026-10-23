@@ -52,11 +52,22 @@ const seed = async (api: APIRequestContext) => {
   await sql.end();
 };
 
+/** The account the pictures show. */
+const ACCOUNT = { name: "Anna Berger", email: "anna.berger@example.org", password: "geheim-genug" };
+
 test.beforeAll(async ({ playwright }, testInfo) => {
   const { baseURL } = testInfo.project.use;
   const api = await playwright.request.newContext(baseURL ? { baseURL } : {});
+  expect((await api.post("/api/auth/sign-up/email", { data: ACCOUNT })).ok()).toBe(true);
   await seed(api);
   await api.dispose();
+});
+
+// Every picture but the sign-in page shows Anna's files.
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title === "login") return;
+  const { email, password } = ACCOUNT;
+  expect((await page.request.post("/api/auth/sign-in/email", { data: { email, password } })).ok()).toBe(true);
 });
 
 /**
@@ -81,6 +92,13 @@ const shoot = async (page: Page, name: string, scheme: (typeof schemes)[number])
 for (const scheme of schemes) {
   test.describe(`${scheme}`, () => {
     test.use({ colorScheme: scheme });
+
+    test("login", async ({ page }) => {
+      await page.goto("/");
+      await expect(page.getByRole("heading", { name: "Anmelden" })).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      await shoot(page, "login", scheme);
+    });
 
     test("files", async ({ page }) => {
       await page.clock.setFixedTime(NOW);

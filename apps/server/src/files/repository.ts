@@ -23,16 +23,24 @@ const nameTakenOnConflict = async <T>(write: () => Promise<Result<T>>): Promise<
 
 const active = isNull(nodes.trashedAt);
 
-export const findActive = async (db: Queryable, id: string): Promise<NodeRow | undefined> =>
+/**
+ * Whose files a call may see: the signed-in user's id. Every function takes it, and a node of
+ * someone else is "not found", the same as one that does not exist.
+ */
+export type Owner = string;
+
+const ownedBy = (owner: Owner) => eq(nodes.ownerId, owner);
+
+export const findActive = async (db: Queryable, owner: Owner, id: string): Promise<NodeRow | undefined> =>
   (
     await db
       .select()
       .from(nodes)
-      .where(and(eq(nodes.id, id), active))
+      .where(and(eq(nodes.id, id), ownedBy(owner), active))
   )[0];
 
-const findActiveFile = async (db: Queryable, id: string): Promise<Result<NodeRow>> => {
-  const node = await findActive(db, id);
+const findActiveFile = async (db: Queryable, owner: Owner, id: string): Promise<Result<NodeRow>> => {
+  const node = await findActive(db, owner, id);
   if (!node) return fail("not_found", NOT_FOUND);
   if (node.kind !== "file") return fail("invalid", "Das ist ein Ordner, keine Datei.");
   return ok(node);
@@ -41,24 +49,27 @@ const findActiveFile = async (db: Queryable, id: string): Promise<Result<NodeRow
 /** The folder something goes into: the root (null) or an existing folder outside the trash. */
 export const findTargetFolder = async (
   db: Queryable,
+  owner: Owner,
   parentId: string | null,
 ): Promise<Result<NodeRow | null>> => {
   if (parentId === null) return ok(null);
-  const parent = await findActive(db, parentId);
+  const parent = await findActive(db, owner, parentId);
   if (!parent) return fail("not_found", "Der Zielordner existiert nicht.");
   if (parent.kind !== "folder") return fail("not_a_folder", "Das Ziel ist kein Ordner.");
   return ok(parent);
 };
 
 /** Folders first, then by name as a person reads it ("Datei 2" before "Datei 10"). */
-export const listChildren = (db: Queryable, parentId: string | null): Promise<NodeRow[]> =>
+export const listChildren = (db: Queryable, owner: Owner, parentId: string | null): Promise<NodeRow[]> =>
   db
     .select()
     .from(nodes)
-    .where(and(parentId === null ? isNull(nodes.parentId) : eq(nodes.parentId, parentId), active))
+    .where(
+      and(parentId === null ? isNull(nodes.parentId) : eq(nodes.parentId, parentId), ownedBy(owner), active),
+    )
     .orderBy(desc(sql`${nodes.kind} = 'folder'`), asc(sql`lower(${nodes.name})`), asc(nodes.name));
 
-/** The folders from the root down to and including `id`. */
+/** The folders from the root down to and including `id`; the caller checked that `id` is the owner's. */
 export const pathTo = async (db: Queryable, id: string): Promise<NodeRow[]> => {
   const chain = await db.execute<{ id: string; depth: number }>(sql`
     with recursive chain as (
@@ -74,13 +85,13 @@ export const pathTo = async (db: Queryable, id: string): Promise<NodeRow[]> => {
   return rows.sort((a, b) => (depthOf.get(b.id) ?? 0) - (depthOf.get(a.id) ?? 0));
 };
 
-export const createFolder = (db: Queryable, input: { parentId: string | null; name: string }) =>
+export const createFolder = (db: Queryable, owner: Owner, input: { parentId: string | null; name: string }) =>
   nameTakenOnConflict(async () => {
-    const parent = await findTargetFolder(db, input.parentId);
+    const parent = await findTargetFolder(db, owner, input.parentId);
     if (!parent.ok) return parent;
     const [folder] = await db
       .insert(nodes)
-      .values({ kind: "folder", parentId: input.parentId, name: input.name })
+      .values({ kind: "folder", ownerId: owner, parentId: input.parentId, name: input.name })
       .returning();
     return folder ? ok(folder) : fail("conflict", "Der Ordner konnte nicht angelegt werden.");
   });
@@ -89,16 +100,18 @@ export type StoredContent = { size: number; sha256: string };
 
 export const createFile = (
   db: Queryable,
+  owner: Owner,
   input: { parentId: string | null; name: string; mime: string } & StoredContent,
 ) =>
   nameTakenOnConflict(() =>
     db.transaction(async (tx) => {
-      const parent = await findTargetFolder(tx, input.parentId);
+      const parent = await findTargetFolder(tx, owner, input.parentId);
       if (!parent.ok) return parent;
       const [file] = await tx
         .insert(nodes)
         .values({
           kind: "file",
+          ownerId: owner,
           parentId: input.parentId,
           name: input.name,
           mime: input.mime,
@@ -115,12 +128,17 @@ export const createFile = (
   );
 
 /** A new version on top of the newest; the row lock orders concurrent saves of one file. */
-export const addVersion = (db: Queryable, id: string, content: StoredContent): Promise<Result<NodeRow>> =>
+export const addVersion = (
+  db: Queryable,
+  owner: Owner,
+  id: string,
+  content: StoredContent,
+): Promise<Result<NodeRow>> =>
   db.transaction(async (tx) => {
     const locked = await tx
       .select()
       .from(nodes)
-      .where(and(eq(nodes.id, id), active))
+      .where(and(eq(nodes.id, id), ownedBy(owner), active))
       .for("update");
     const file = locked[0];
     if (!file) return fail("not_found", NOT_FOUND);
@@ -139,8 +157,12 @@ export const addVersion = (db: Queryable, id: string, content: StoredContent): P
     return updated ? ok(updated) : fail("not_found", NOT_FOUND);
   });
 
-export const listVersions = async (db: Queryable, id: string): Promise<Result<VersionRow[]>> => {
-  const file = await findActiveFile(db, id);
+export const listVersions = async (
+  db: Queryable,
+  owner: Owner,
+  id: string,
+): Promise<Result<VersionRow[]>> => {
+  const file = await findActiveFile(db, owner, id);
   if (!file.ok) return file;
   return ok(await db.select().from(versions).where(eq(versions.fileId, id)).orderBy(desc(versions.number)));
 };
@@ -148,10 +170,11 @@ export const listVersions = async (db: Queryable, id: string): Promise<Result<Ve
 /** The file and the version to read: the given number, or the newest. */
 export const findVersion = async (
   db: Queryable,
+  owner: Owner,
   id: string,
   number?: number,
 ): Promise<Result<{ file: NodeRow; version: VersionRow }>> => {
-  const file = await findActiveFile(db, id);
+  const file = await findActiveFile(db, owner, id);
   if (!file.ok) return file;
   const wanted = number ?? file.value.version ?? 0;
   const [version] = await db
@@ -165,24 +188,34 @@ export const findVersion = async (
  * Makes an older version the newest again, as a new version with the same bytes: the versions in
  * between stay, so restoring can itself be undone.
  */
-export const restoreVersion = async (db: Queryable, id: string, number: number): Promise<Result<NodeRow>> => {
-  const found = await findVersion(db, id, number);
+export const restoreVersion = async (
+  db: Queryable,
+  owner: Owner,
+  id: string,
+  number: number,
+): Promise<Result<NodeRow>> => {
+  const found = await findVersion(db, owner, id, number);
   if (!found.ok) return found;
   const { size, sha256 } = found.value.version;
-  return addVersion(db, id, { size, sha256 });
+  return addVersion(db, owner, id, { size, sha256 });
 };
 
 /** True when `folderId` is `id` or lies below it: moving `id` there would make a loop. */
 const isInside = async (db: Queryable, folderId: string, id: string): Promise<boolean> =>
   (await pathTo(db, folderId)).some((node) => node.id === id);
 
-export const updateNode = (db: Queryable, id: string, update: { name?: string; parentId?: string | null }) =>
+export const updateNode = (
+  db: Queryable,
+  owner: Owner,
+  id: string,
+  update: { name?: string; parentId?: string | null },
+) =>
   nameTakenOnConflict(async () => {
-    const node = await findActive(db, id);
+    const node = await findActive(db, owner, id);
     if (!node) return fail<NodeRow>("not_found", NOT_FOUND);
     const parentId = update.parentId === undefined ? node.parentId : update.parentId;
     if (parentId !== node.parentId) {
-      const target = await findTargetFolder(db, parentId);
+      const target = await findTargetFolder(db, owner, parentId);
       if (!target.ok) return target as Result<NodeRow>;
       if (parentId !== null && (await isInside(db, parentId, id))) {
         return fail<NodeRow>("conflict", "Ein Ordner kann nicht in sich selbst verschoben werden.");
@@ -200,8 +233,8 @@ export const updateNode = (db: Queryable, id: string, update: { name?: string; p
  * Moves a node and everything below it into the trash, with one timestamp. What was already in the
  * trash below it keeps its own timestamp, so it stays there when this node comes back.
  */
-export const trashNode = async (db: Queryable, id: string): Promise<Result<NodeRow>> => {
-  if (!(await findActive(db, id))) return fail("not_found", NOT_FOUND);
+export const trashNode = async (db: Queryable, owner: Owner, id: string): Promise<Result<NodeRow>> => {
+  if (!(await findActive(db, owner, id))) return fail("not_found", NOT_FOUND);
   await db.execute(sql`
     with recursive tree as (
       select id from ${nodes} where id = ${id}
@@ -213,15 +246,23 @@ export const trashNode = async (db: Queryable, id: string): Promise<Result<NodeR
   return trashed ? ok(trashed) : fail("not_found", NOT_FOUND);
 };
 
+/**
+ * Gives the files from before there were accounts to `owner`; the first account calls it
+ * (auth.ts), so an existing installation keeps its files.
+ */
+export const adoptOwnerless = async (db: Queryable, owner: Owner): Promise<void> => {
+  await db.update(nodes).set({ ownerId: owner }).where(isNull(nodes.ownerId));
+};
+
 /** Brings back what `trashNode` moved, into its old folder, which must not be in the trash itself. */
-export const restoreNode = (db: Queryable, id: string) =>
+export const restoreNode = (db: Queryable, owner: Owner, id: string) =>
   nameTakenOnConflict(async () => {
     const [node] = await db
       .select()
       .from(nodes)
-      .where(and(eq(nodes.id, id), eq(nodes.trashRoot, true)));
+      .where(and(eq(nodes.id, id), ownedBy(owner), eq(nodes.trashRoot, true)));
     if (!node) return fail<NodeRow>("not_found", "Das liegt nicht im Papierkorb.");
-    if (node.parentId !== null && !(await findActive(db, node.parentId))) {
+    if (node.parentId !== null && !(await findActive(db, owner, node.parentId))) {
       return fail<NodeRow>("conflict", "Der Ordner, in dem es lag, ist selbst im Papierkorb.");
     }
     await db.execute(sql`
@@ -236,13 +277,17 @@ export const restoreNode = (db: Queryable, id: string) =>
     return restored ? ok(restored) : fail<NodeRow>("not_found", NOT_FOUND);
   });
 
-export const listTrash = (db: Queryable): Promise<NodeRow[]> =>
-  db.select().from(nodes).where(eq(nodes.trashRoot, true)).orderBy(desc(nodes.trashedAt));
-
-export const listRecent = (db: Queryable, limit = 50): Promise<NodeRow[]> =>
+export const listTrash = (db: Queryable, owner: Owner): Promise<NodeRow[]> =>
   db
     .select()
     .from(nodes)
-    .where(and(eq(nodes.kind, "file"), active))
+    .where(and(eq(nodes.trashRoot, true), ownedBy(owner)))
+    .orderBy(desc(nodes.trashedAt));
+
+export const listRecent = (db: Queryable, owner: Owner, limit = 50): Promise<NodeRow[]> =>
+  db
+    .select()
+    .from(nodes)
+    .where(and(eq(nodes.kind, "file"), ownedBy(owner), active))
     .orderBy(desc(nodes.updatedAt))
     .limit(limit);

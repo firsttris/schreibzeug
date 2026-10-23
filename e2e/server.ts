@@ -23,6 +23,8 @@ const server = Bun.spawn(["bun", join(import.meta.dir, "../apps/server/src/main.
     DATABASE_URL: e2eDatabaseUrl(),
     STAPEL_DATA_DIR: dataDir,
     PORT: process.env.E2E_SERVER_PORT ?? "3100",
+    // Every test signs up an account of its own.
+    STAPEL_OPEN_SIGNUP: "true",
   },
   stdio: ["inherit", "inherit", "inherit"],
 });

@@ -17,7 +17,7 @@ test("comments on a selection, answers, resolves and deletes it", async ({ page 
   await page.getByRole("textbox", { name: "Kommentar zur Auswahl" }).fill("Bitte prüfen");
   await page.getByRole("button", { name: "Kommentieren", exact: true }).click();
 
-  const card = page.getByRole("article", { name: "Kommentar von Ich" });
+  const card = page.getByRole("article", { name: "Kommentar von Anna Berger" });
   await expect(card).toContainText("Bitte prüfen");
   await expect(card).toContainText("Hallo Stapel");
   await expect(page.getByRole("button", { name: "Kommentare", exact: true })).toContainText("1");

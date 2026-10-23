@@ -11,7 +11,8 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 
 </div>
 
-> **Status:** early development. Nothing to install yet. Working so far: a file browser (folders,
+> **Status:** early development. Nothing to install yet. Working so far: accounts with email and
+> password, a file browser (folders,
 > upload, new document, rename, move, versions, trash) and a Word editor with styles, fonts, colours, lists, tables and comments that
 > saves on its own, every save a new version. Several people can edit the same document at once. All without a document server.
 

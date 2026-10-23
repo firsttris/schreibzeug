@@ -74,8 +74,28 @@ describe("readConfig", () => {
         dataDir: "data",
         port: 3000,
         maxUploadBytes: 512 * 1024 * 1024,
+        authSecret: undefined,
+        openSignup: false,
+        trustedOrigins: [],
       },
     });
+  });
+
+  it("reads the account settings", () => {
+    const config = readConfig({
+      STAPEL_AUTH_SECRET: "x".repeat(32),
+      STAPEL_OPEN_SIGNUP: "true",
+      STAPEL_TRUSTED_ORIGINS: "tauri://localhost, https://office.example.org",
+    });
+    expect(config).toMatchObject({
+      ok: true,
+      value: {
+        authSecret: "x".repeat(32),
+        openSignup: true,
+        trustedOrigins: ["tauri://localhost", "https://office.example.org"],
+      },
+    });
+    expect(readConfig({ STAPEL_AUTH_SECRET: "short" }).ok).toBe(false);
   });
 
   it("reports what is wrong", () => {

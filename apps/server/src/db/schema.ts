@@ -13,6 +13,9 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { user } from "./auth-schema";
+
+export { account, session, user, verification } from "./auth-schema";
 
 export const nodeKind = pgEnum("node_kind", ["folder", "file"]);
 
@@ -29,6 +32,11 @@ export const nodes = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     parentId: uuid("parent_id").references((): AnyPgColumn => nodes.id, { onDelete: "cascade" }),
+    /**
+     * Whose files these are; everything below a folder belongs to its owner. Empty only for files
+     * from before there were accounts, which the first account takes over (auth.ts).
+     */
+    ownerId: text("owner_id").references(() => user.id, { onDelete: "cascade" }),
     kind: nodeKind("kind").notNull(),
     name: text("name").notNull(),
     mime: text("mime"),
@@ -40,14 +48,17 @@ export const nodes = pgTable(
     trashRoot: boolean("trash_root").notNull().default(false),
   },
   (table) => [
-    // Names are unique per folder, ignoring case (as on macOS and Windows), among nodes outside the trash.
+    // Names are unique per folder, ignoring case (as on macOS and Windows), among nodes outside the
+    // trash; at the top level per owner.
     uniqueIndex("nodes_name_per_parent")
       .on(
+        sql`coalesce(${table.ownerId}, '')`,
         sql`coalesce(${table.parentId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
         sql`lower(${table.name})`,
       )
       .where(sql`${table.trashedAt} is null`),
     index("nodes_parent").on(table.parentId),
+    index("nodes_owner").on(table.ownerId),
     index("nodes_recent")
       .on(table.updatedAt)
       .where(sql`${table.kind} = 'file' and ${table.trashedAt} is null`),

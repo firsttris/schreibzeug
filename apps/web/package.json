@@ -16,6 +16,7 @@
     "@stapel/files-api": "workspace:*",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.46",
+    "better-auth": "1.7.12",
     "hono": "4.13.13",
     "lucide-react": "1.61.0",
     "react": "19.3.1",

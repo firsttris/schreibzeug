@@ -1,6 +1,8 @@
 import { join, resolve } from "node:path";
 import { createBunWebSocket } from "hono/bun";
 import { createApp } from "./app";
+import { createAuth } from "./auth/auth";
+import { loadSecret } from "./auth/secret";
 import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
 import { readConfig } from "./config";
@@ -13,18 +15,25 @@ if (!config.ok) {
   process.exit(1);
 }
 
-const { databaseUrl, dataDir, port, maxUploadBytes } = config.value;
+const { databaseUrl, dataDir, port, maxUploadBytes, authSecret, openSignup, trustedOrigins } = config.value;
 const { db, close } = connect(databaseUrl);
 await migrateDatabase(db);
 
+const auth = createAuth({
+  db,
+  secret: await loadSecret(authSecret, join(resolve(dataDir), "auth-secret")),
+  openSignup,
+  trustedOrigins,
+});
 const hub = createHub({
-  currentVersion: async (fileId) => {
-    const node = await findActive(db, fileId);
+  currentVersion: async (fileId, userId) => {
+    const node = await findActive(db, userId, fileId);
     return node?.kind === "file" ? (node.version ?? null) : null;
   },
 });
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 const app = createApp({
+  auth,
   db,
   blobs: createBlobStore(join(resolve(dataDir), "blobs")),
   maxUploadBytes,

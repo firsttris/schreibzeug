@@ -1,14 +1,31 @@
 import { join } from "node:path";
-import { type Browser, expect, type Page, test, type WebSocketRoute } from "@playwright/test";
-import { collectErrors, expectEditorReady, openOwnFolder, save, storedXml, upload } from "./app";
+import { type Browser, expect, type Page, type TestInfo, test, type WebSocketRoute } from "@playwright/test";
+import {
+  collectErrors,
+  credentialsFor,
+  expectEditorReady,
+  openOwnFolder,
+  save,
+  signIn,
+  storedXml,
+  upload,
+} from "./app";
 import { paragraphTexts } from "./docx";
 
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
-/** A second person: a browser context of their own, opening the same file by its address. */
-const openAs = async (browser: Browser, url: string): Promise<{ page: Page; errors: string[] }> => {
+/**
+ * A second editor: a browser context of its own, signed in and opening the same file by its
+ * address. Until files can be shared it is the same account on another device.
+ */
+const openAs = async (
+  browser: Browser,
+  url: string,
+  testInfo: TestInfo,
+): Promise<{ page: Page; errors: string[] }> => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
+  await signIn(page, credentialsFor(testInfo));
   const errors = collectErrors(page);
   await page.goto(url);
   await expectEditorReady(page, errors);
@@ -35,7 +52,7 @@ test("two people edit the same document and see each other's text", async ({ pag
   const url = page.url();
   const fileId = url.split("/").at(-1) as string;
 
-  const ben = await openAs(browser, url);
+  const ben = await openAs(browser, url, testInfo);
 
   await typeAtStart(page, "Anna schreibt. ");
   // Changes travel on their own in fast co-editing; Ben's copy has them once his save stores them.
@@ -82,6 +99,7 @@ test("someone who loses the connection waits, reconnects and edits on", async ({
     links.push(socket);
   });
   const ben = await context.newPage();
+  await signIn(ben, credentialsFor(testInfo));
   const benErrors = collectErrors(ben);
   await ben.goto(url);
   await expectEditorReady(ben, benErrors);
@@ -118,7 +136,7 @@ test("changes are stored on their own, and everyone sees when they are", async (
   await expectEditorReady(page, errors);
   const url = page.url();
   const fileId = url.split("/").at(-1) as string;
-  const ben = await openAs(browser, url);
+  const ben = await openAs(browser, url, testInfo);
 
   await typeAtStart(ben.page, "Von selbst. ");
   // Nobody presses "Speichern": Ben's editor stores his change a few seconds after he stops.

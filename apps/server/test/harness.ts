@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import postgres from "postgres";
 import { createApp } from "../src/app";
+import { createAuth } from "../src/auth/auth";
 import { createBlobStore } from "../src/blobs";
 import { connect, migrateDatabase } from "../src/db/database";
 
@@ -15,6 +16,8 @@ const adminUrl = process.env.TEST_DATABASE_URL ?? "postgres://stapel:stapel@loca
 
 export const MAX_UPLOAD_BYTES = 64 * 1024;
 
+const TEST_SECRET = "a-test-secret-that-is-long-enough-for-better-auth";
+
 export const startServer = async () => {
   const name = `stapel_test_${randomUUID().replaceAll("-", "")}`;
   const admin = postgres(adminUrl, { max: 1, onnotice: () => {} });
@@ -24,7 +27,9 @@ export const startServer = async () => {
   const connection = connect(url.toString());
   await migrateDatabase(connection.db);
   const dataDir = await mkdtemp(join(tmpdir(), "stapel-blobs-"));
+  const auth = createAuth({ db: connection.db, secret: TEST_SECRET, openSignup: true });
   const app = createApp({
+    auth,
     db: connection.db,
     blobs: createBlobStore(dataDir),
     maxUploadBytes: MAX_UPLOAD_BYTES,
@@ -38,7 +43,21 @@ export const startServer = async () => {
     await rm(dataDir, { recursive: true, force: true });
   };
 
-  return { app, db: connection.db, dataDir, stop };
+  /** Creates an account and returns the cookie of its session, for the `cookie` header. */
+  const signUp = async (person: string, email = `${person.toLowerCase()}@example.org`): Promise<string> => {
+    const response = await app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: person, email, password: "geheim-genug" }),
+    });
+    if (!response.ok) throw new Error(`Sign-up failed: ${response.status} ${await response.text()}`);
+    return response.headers
+      .getSetCookie()
+      .map((cookie) => cookie.split(";")[0])
+      .join("; ");
+  };
+
+  return { app, auth, db: connection.db, dataDir, signUp, stop };
 };
 
 export type TestServer = Awaited<ReturnType<typeof startServer>>;

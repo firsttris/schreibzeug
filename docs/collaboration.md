@@ -13,6 +13,9 @@ browser B: engine ◀─fake socket.io─── CollabChannel ◀─────
 
 ## Joining a session
 
+The relay needs a session, like the rest of the API, and checks every connection against the file;
+the name others see is the signed-in user's ([accounts](accounts.md)).
+
 1. The editor page opens a WebSocket to `/api/collab/:fileId` (`joinSession` in
    `packages/editor-core/src/collab.ts`).
 2. The server answers with its own first message, `{"type":"stapel:session","baseVersion":n}`: the

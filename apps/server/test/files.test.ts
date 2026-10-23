@@ -6,9 +6,11 @@ import { MAX_UPLOAD_BYTES, startServer, type TestServer } from "./harness";
 
 let server: TestServer;
 let api: ReturnType<typeof testClient<TestServer["app"]>>["api"];
+let cookie: string;
 beforeAll(async () => {
   server = await startServer();
-  api = testClient(server.app).api;
+  cookie = await server.signUp("Anna");
+  api = testClient(server.app, {}, undefined, { headers: { cookie } }).api;
 });
 afterAll(() => server?.stop());
 
@@ -55,7 +57,7 @@ const content = (id: string, version?: number) =>
   });
 
 const save = (id: string, text: string) =>
-  server.app.request(`/api/files/${id}/content`, { method: "PUT", body: bytesOf(text) });
+  server.app.request(`/api/files/${id}/content`, { method: "PUT", body: bytesOf(text), headers: { cookie } });
 
 const trash = (id: string) => api.nodes[":id"].trash.$post({ param: { id } });
 const restore = (id: string) => api.nodes[":id"].restore.$post({ param: { id } });

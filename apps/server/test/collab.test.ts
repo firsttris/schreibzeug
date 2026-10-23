@@ -218,11 +218,18 @@ describe("collaboration session", () => {
 });
 
 describe("collaboration hub", () => {
-  const setup = (versions: Record<string, number> = { [FILE]: 3 }) => {
-    const hub = createHub({ currentVersion: async (id) => versions[id] ?? null, now: () => NOW });
-    const join = async () => {
+  const ANNA = { id: "anna", name: "Anna" };
+  const BEN = { id: "ben", name: "Ben" };
+
+  /** `access`: who may edit FILE, at version 3. */
+  const setup = (access: string[] = ["anna", "ben"]) => {
+    const hub = createHub({
+      currentVersion: async (id, userId) => (id === FILE && access.includes(userId) ? 3 : null),
+      now: () => NOW,
+    });
+    const join = async (user = ANNA) => {
       const messages: Array<Record<string, unknown>> = [];
-      const id = await hub.open(FILE, (message) => messages.push(message));
+      const id = await hub.open(FILE, user, (message) => messages.push(message));
       return { id: id as string, messages };
     };
     return { hub, join };
@@ -237,15 +244,23 @@ describe("collaboration hub", () => {
     ]);
   });
 
-  it("refuses a file that does not exist", async () => {
-    const { hub } = setup({});
-    expect(await hub.open(FILE, () => {})).toBeNull();
+  it("refuses someone without access, also to a session that is already open", async () => {
+    const { hub, join } = setup(["anna"]);
+    await join(ANNA);
+    expect(await hub.open(FILE, BEN, () => {})).toBeNull();
+  });
+
+  it("takes the user from the server's session, not from what the engine announces", async () => {
+    const { hub, join } = setup();
+    const anna = await join(ANNA);
+    hub.message(anna.id, auth("mallory"));
+    expect(hub.session(FILE)?.participants).toMatchObject([{ idOriginal: "anna", username: "Anna" }]);
   });
 
   it("delivers to the right connections and ends the session with the last one", async () => {
     const { hub, join } = setup();
-    const a = await join();
-    const b = await join();
+    const a = await join(ANNA);
+    const b = await join(BEN);
     hub.message(a.id, auth("anna"));
     hub.message(b.id, auth("ben"));
     hub.message(a.id, {

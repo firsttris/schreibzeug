@@ -12,13 +12,28 @@ import {
 /** Sends one message to one connection. */
 export type Send = (message: Record<string, unknown>) => void;
 
+/** Who is connected, as the server knows them from the session. */
+export type HubUser = { id: string; name: string };
+
 export type HubDeps = {
-  /** The newest version of a file outside the trash, or null when there is none. */
-  currentVersion: (fileId: string) => Promise<number | null>;
+  /**
+   * The newest version of a file outside the trash that the user may edit, or null when there is
+   * none: every connection is checked, also to a session that is already open.
+   */
+  currentVersion: (fileId: string, userId: string) => Promise<number | null>;
   now?: () => number;
 };
 
-type Connection = { fileId: string; send: Send };
+type Connection = { fileId: string; user: HubUser; send: Send };
+
+/**
+ * sdkjs announces its user in `auth` (docscoapi.js getAuthCommand). The relay replaces id and name
+ * with the signed-in user's, so nobody can edit under someone else's name.
+ */
+const withUser = (data: Incoming, user: HubUser): Incoming =>
+  data.type === "auth"
+    ? { ...data, user: { ...(data.user as object | undefined), id: user.id, username: user.name } }
+    : data;
 
 /**
  * Holds the sessions of all open files and delivers what session.ts decides. A session starts
@@ -59,17 +74,14 @@ export const createHub = ({ currentVersion, now = Date.now }: HubDeps) => {
      * message, before anything sdkjs sees), then gets the license sdkjs waits for after connecting.
      * Returns its id, or null when the file does not exist.
      */
-    open: async (fileId: string, send: Send): Promise<string | null> => {
-      let session = sessions.get(fileId);
-      if (!session) {
-        const version = await currentVersion(fileId);
-        if (version === null) return null;
-        // Another connection may have started the session while we looked the version up.
-        session = sessions.get(fileId) ?? createSession(fileId, version);
-        sessions.set(fileId, session);
-      }
+    open: async (fileId: string, user: HubUser, send: Send): Promise<string | null> => {
+      const version = await currentVersion(fileId, user.id);
+      if (version === null) return null;
+      // Another connection may have started the session while we looked the version up.
+      const session = sessions.get(fileId) ?? createSession(fileId, version);
+      sessions.set(fileId, session);
       const connectionId = randomUUID();
-      connections.set(connectionId, { fileId, send });
+      connections.set(connectionId, { fileId, user, send });
       send({ type: "stapel:session", baseVersion: session.baseVersion });
       send(licenseMessage());
       return connectionId;
@@ -78,7 +90,9 @@ export const createHub = ({ currentVersion, now = Date.now }: HubDeps) => {
     message: (connectionId: string, data: Incoming) => {
       const connection = connections.get(connectionId);
       if (!connection) return;
-      apply(connection.fileId, connectionId, (session) => receive(session, connectionId, data, now()));
+      apply(connection.fileId, connectionId, (session) =>
+        receive(session, connectionId, withUser(data, connection.user), now()),
+      );
     },
 
     close: (connectionId: string) => {

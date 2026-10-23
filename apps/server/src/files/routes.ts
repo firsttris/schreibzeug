@@ -10,6 +10,7 @@ import { blankDocx } from "@stapel/ooxml";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
+import type { AuthEnv } from "../auth/middleware";
 import type { BlobStore } from "../blobs";
 import type { Database } from "../db/database";
 import type { NodeRow } from "../db/schema";
@@ -19,6 +20,9 @@ import * as repository from "./repository";
 import { contentDisposition, toFileNode, toFileVersion } from "./serialize";
 
 export type FilesDeps = { db: Database; blobs: BlobStore; maxUploadBytes: number };
+
+/** Every route acts for the signed-in user (`requireUser` in app.ts). */
+const ownerOf = (c: Context<AuthEnv>) => c.var.user.id;
 
 /** Validation failures in the same shape as every other API error. */
 const validate = <T extends "json" | "query" | "param" | "form", S extends z.ZodType>(target: T, schema: S) =>
@@ -56,20 +60,25 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
 
   const store = async (bytes: Uint8Array) => ({ size: bytes.byteLength, sha256: await blobs.put(bytes) });
 
-  const createStoredFile = async (parentId: string | null, name: string, bytes: Uint8Array) => {
-    const parent = await repository.findTargetFolder(db, parentId);
+  const createStoredFile = async (
+    owner: string,
+    parentId: string | null,
+    name: string,
+    bytes: Uint8Array,
+  ) => {
+    const parent = await repository.findTargetFolder(db, owner, parentId);
     if (!parent.ok) return parent as Result<NodeRow>;
-    return repository.createFile(db, { parentId, name, mime: mimeOf(name), ...(await store(bytes)) });
+    return repository.createFile(db, owner, { parentId, name, mime: mimeOf(name), ...(await store(bytes)) });
   };
 
-  return new Hono()
+  return new Hono<AuthEnv>()
     .get("/nodes", validate("query", parentQuery), async (c) => {
       const { parent } = c.req.valid("query");
       const folderId = parent === "root" ? null : parent;
-      const folder = await repository.findTargetFolder(db, folderId);
+      const folder = await repository.findTargetFolder(db, ownerOf(c), folderId);
       if (!folder.ok) return c.json({ error: folder.error }, statusOf(folder.error.kind));
       const [children, path] = await Promise.all([
-        repository.listChildren(db, folderId),
+        repository.listChildren(db, ownerOf(c), folderId),
         folderId ? repository.pathTo(db, folderId) : Promise.resolve([]),
       ]);
       return c.json({
@@ -79,7 +88,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       });
     })
     .get("/nodes/:id", validate("param", idParam), async (c) => {
-      const node = await repository.findActive(db, c.req.valid("param").id);
+      const node = await repository.findActive(db, ownerOf(c), c.req.valid("param").id);
       return node
         ? c.json(toFileNode(node))
         : c.json({ error: { kind: "not_found" as const, message: "Nicht gefunden." } }, 404);
@@ -90,18 +99,22 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
         ...(name === undefined ? {} : { name }),
         ...(parentId === undefined ? {} : { parentId }),
       };
-      return respond(c, await repository.updateNode(db, c.req.valid("param").id, update), toFileNode);
+      return respond(
+        c,
+        await repository.updateNode(db, ownerOf(c), c.req.valid("param").id, update),
+        toFileNode,
+      );
     })
     .post("/nodes/:id/trash", validate("param", idParam), async (c) =>
-      respond(c, await repository.trashNode(db, c.req.valid("param").id), toFileNode),
+      respond(c, await repository.trashNode(db, ownerOf(c), c.req.valid("param").id), toFileNode),
     )
     .post("/nodes/:id/restore", validate("param", idParam), async (c) =>
-      respond(c, await repository.restoreNode(db, c.req.valid("param").id), toFileNode),
+      respond(c, await repository.restoreNode(db, ownerOf(c), c.req.valid("param").id), toFileNode),
     )
-    .get("/trash", async (c) => c.json((await repository.listTrash(db)).map(toFileNode)))
-    .get("/recent", async (c) => c.json((await repository.listRecent(db)).map(toFileNode)))
+    .get("/trash", async (c) => c.json((await repository.listTrash(db, ownerOf(c))).map(toFileNode)))
+    .get("/recent", async (c) => c.json((await repository.listRecent(db, ownerOf(c))).map(toFileNode)))
     .post("/folders", validate("json", createFolderSchema), async (c) =>
-      respond(c, await repository.createFolder(db, c.req.valid("json")), toFileNode, 201),
+      respond(c, await repository.createFolder(db, ownerOf(c), c.req.valid("json")), toFileNode, 201),
     )
     .post("/files", limit, validate("form", uploadForm), async (c) => {
       const { parentId, file } = c.req.valid("form");
@@ -109,16 +122,31 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       if (!name.success)
         return respond(c, fail("invalid", name.error.issues[0]?.message ?? "Ungültiger Name."), toFileNode);
       const bytes = new Uint8Array(await file.arrayBuffer());
-      return respond(c, await createStoredFile(parentId ?? null, name.data, bytes), toFileNode, 201);
+      return respond(
+        c,
+        await createStoredFile(ownerOf(c), parentId ?? null, name.data, bytes),
+        toFileNode,
+        201,
+      );
     })
     .post("/files/blank", validate("json", createBlankFileSchema), async (c) => {
       const { parentId, name, format } = c.req.valid("json");
       const blank = BLANK_FILES[format];
-      const created = await createStoredFile(parentId, withExtension(name, blank.extension), blank.bytes());
+      const created = await createStoredFile(
+        ownerOf(c),
+        parentId,
+        withExtension(name, blank.extension),
+        blank.bytes(),
+      );
       return respond(c, created, toFileNode, 201);
     })
     .get("/files/:id/content", validate("param", idParam), validate("query", versionQuery), async (c) => {
-      const found = await repository.findVersion(db, c.req.valid("param").id, c.req.valid("query").version);
+      const found = await repository.findVersion(
+        db,
+        ownerOf(c),
+        c.req.valid("param").id,
+        c.req.valid("query").version,
+      );
       if (!found.ok) return c.json({ error: found.error }, statusOf(found.error.kind));
       const { file, version } = found.value;
       const bytes = await blobs.get(version.sha256);
@@ -132,7 +160,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
     })
     .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
       const bytes = new Uint8Array(await c.req.arrayBuffer());
-      const saved = await repository.addVersion(db, c.req.valid("param").id, await store(bytes));
+      const saved = await repository.addVersion(db, ownerOf(c), c.req.valid("param").id, await store(bytes));
       return respond(c, saved, toFileNode);
     })
     .post(
@@ -140,11 +168,11 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       validate("param", z.object({ id: nodeIdSchema, number: z.coerce.number().int().positive() })),
       async (c) => {
         const { id, number } = c.req.valid("param");
-        return respond(c, await repository.restoreVersion(db, id, number), toFileNode);
+        return respond(c, await repository.restoreVersion(db, ownerOf(c), id, number), toFileNode);
       },
     )
     .get("/files/:id/versions", validate("param", idParam), async (c) =>
-      respond(c, await repository.listVersions(db, c.req.valid("param").id), (rows) =>
+      respond(c, await repository.listVersions(db, ownerOf(c), c.req.valid("param").id), (rows) =>
         rows.map(toFileVersion),
       ),
     );

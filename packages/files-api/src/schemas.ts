@@ -76,6 +76,7 @@ export const apiErrorKindSchema = z.enum([
   "not_a_folder",
   "conflict",
   "too_large",
+  "unauthorized",
   "internal",
 ]);
 

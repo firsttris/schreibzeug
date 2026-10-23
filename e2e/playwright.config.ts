@@ -16,6 +16,11 @@ export default defineConfig({
     baseURL: `http://localhost:${webPort}`,
     trace: "retain-on-failure",
     acceptDownloads: true,
+    // A Chromium already on the machine instead of Playwright's own download, e.g. in a sandbox
+    // without access to the browser CDN: PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e
+    ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
+      : {}),
   },
   projects: [
     {

@@ -44,7 +44,8 @@ a save does not reopen the document. Every reply is checked against the schemas 
 
 In development `bun run dev` serves the app on port 5173 and forwards `/api` to the server
 (`STAPEL_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
-database (`e2e/server.ts`, port 3100) and the app on port 5174.
+database (`e2e/server.ts`, port 3100) and the app on port 5174. Without Playwright's own browser download, an installed
+Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.
 
 ## Screenshots
 

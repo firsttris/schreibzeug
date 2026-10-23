@@ -137,6 +137,11 @@ const generateFonts = (pkg: string): void => {
     cacheDir,
     { LD_LIBRARY_PATH: join(pkg, "server/FileConverter/bin") },
   );
+  // allfontsgen has been seen to exit with 0 without writing anything; an engine without its font
+  // index fails much later, in the browser, so check here.
+  if (!existsSync(join(distDir, "sdkjs/common/AllFonts.js"))) {
+    throw new Error("allfontsgen wrote no AllFonts.js");
+  }
 };
 
 const copyFontLicenses = (pkg: string): void => {

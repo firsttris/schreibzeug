@@ -1,5 +1,6 @@
-import { ArrowLeft, Check, Download, FileText, LoaderCircle, Save } from "lucide-react";
+import { ArrowLeft, Check, Download, FileText, LoaderCircle, MessageSquare, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { CommentsPanel } from "./comments/comments-panel";
 import { docxName, downloadBytes, type OpenedFile } from "./files";
 import { Toolbar } from "./toolbar/toolbar";
 import { Button } from "./ui/button";
@@ -40,6 +41,14 @@ export const EditorView = ({ file, onClose, onSave }: EditorViewProps) => {
   const status: Status = failure ? "error" : state.status;
   const modified = state.document.modified;
   useLeaveWarning(modified);
+  const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
+  const openComments = state.comments.filter((comment) => !comment.resolved).length;
+
+  // The engine measures its frame only on resize; the panel takes width from it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the panel opens or closes
+  useEffect(() => {
+    editor?.resize();
+  }, [editor, comments === "closed"]);
 
   const save = async () => {
     if (!editor) return;
@@ -83,6 +92,16 @@ export const EditorView = ({ file, onClose, onSave }: EditorViewProps) => {
             </span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="toggle"
+              aria-label="Kommentare"
+              aria-pressed={comments !== "closed"}
+              disabled={!editor}
+              onClick={() => setComments(comments === "closed" ? "open" : "closed")}
+            >
+              <MessageSquare size={16} />
+              {openComments > 0 && <span className="text-xs tabular-nums">{openComments}</span>}
+            </Button>
             <Button variant="ghost" aria-label="Herunterladen" disabled={!editor} onClick={download}>
               <Download size={16} />
             </Button>
@@ -92,9 +111,25 @@ export const EditorView = ({ file, onClose, onSave }: EditorViewProps) => {
             </Button>
           </div>
         </div>
-        <Toolbar state={state} commands={editor?.commands ?? null} />
+        <Toolbar
+          state={state}
+          commands={editor?.commands ?? null}
+          onAddComment={() => setComments("composing")}
+        />
       </header>
-      <div ref={container} className="min-h-0 flex-1 bg-[var(--muted)]" />
+      <div className="flex min-h-0 flex-1">
+        <div ref={container} className="min-w-0 flex-1 bg-[var(--muted)]" />
+        {comments !== "closed" && (
+          <CommentsPanel
+            comments={state.comments}
+            active={state.activeComments}
+            commands={editor?.comments ?? null}
+            composing={comments === "composing"}
+            onComposed={() => setComments("open")}
+            onClose={() => setComments("closed")}
+          />
+        )}
+      </div>
     </div>
   );
 };

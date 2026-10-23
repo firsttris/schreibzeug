@@ -28,6 +28,24 @@ export type CatalogState = {
   styles: string[];
 };
 
+export type CommentEntry = {
+  authorId: string;
+  author: string;
+  text: string;
+  /** Milliseconds since 1970. */
+  time: number;
+};
+
+export type Comment = CommentEntry & {
+  id: string;
+  /** The commented text, or null for a comment at the cursor. */
+  quote: string | null;
+  resolved: boolean;
+  /** Kept as the file has it (w15:commentEx paraId), so a resolved state survives saving. */
+  guid: string;
+  replies: CommentEntry[];
+};
+
 export type DocumentState = {
   canUndo: boolean;
   canRedo: boolean;
@@ -43,6 +61,10 @@ export type EditorState = {
   text: TextState;
   paragraph: ParagraphState;
   catalog: CatalogState;
+  /** In the order the engine reported them, which is their order in the file. */
+  comments: Comment[];
+  /** The comments on the text at the cursor. */
+  activeComments: string[];
   document: DocumentState;
 };
 
@@ -65,6 +87,9 @@ export type EditorEvent =
   | { type: "canRedo"; value: boolean }
   | { type: "modified"; value: boolean }
   | { type: "pages"; value: number }
+  | { type: "commentSet"; comment: Comment }
+  | { type: "commentRemoved"; id: string }
+  | { type: "activeComments"; ids: string[] }
   | { type: "ready" }
   | { type: "error"; message: string };
 
@@ -83,6 +108,8 @@ export const initialEditorState: EditorState = {
   },
   paragraph: { style: null, list: null, inTable: false },
   catalog: { fonts: [], styles: [] },
+  comments: [],
+  activeComments: [],
   document: { canUndo: false, canRedo: false, modified: false, pages: 0 },
 };
 
@@ -105,6 +132,12 @@ const withDocument = (state: EditorState, document: Partial<DocumentState>): Edi
   ...state,
   document: { ...state.document, ...document },
 });
+
+/** Replaces the comment with the same id in place, or adds it at the end. */
+const setComment = (comments: Comment[], comment: Comment): Comment[] =>
+  comments.some((existing) => existing.id === comment.id)
+    ? comments.map((existing) => (existing.id === comment.id ? comment : existing))
+    : [...comments, comment];
 
 export const reduceEditorState = (state: EditorState, event: EditorEvent): EditorState => {
   switch (event.type) {
@@ -142,6 +175,16 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withDocument(state, { modified: event.value });
     case "pages":
       return withDocument(state, { pages: event.value });
+    case "commentSet":
+      return { ...state, comments: setComment(state.comments, event.comment) };
+    case "commentRemoved":
+      return {
+        ...state,
+        comments: state.comments.filter((comment) => comment.id !== event.id),
+        activeComments: state.activeComments.filter((id) => id !== event.id),
+      };
+    case "activeComments":
+      return { ...state, activeComments: event.ids };
     case "ready":
       return { ...state, status: "ready", error: null };
     case "error":

@@ -1,4 +1,5 @@
 import { toTextColor } from "./colors";
+import { readComment } from "./comments";
 import type { EngineEventArgs, EngineEventName } from "./engine-types";
 import type { Align, EditorEvent } from "./state";
 
@@ -42,6 +43,11 @@ export const stateEvents = (aligns: AlignConstants): EventTranslators => ({
   asc_onBold: (value) => ({ type: "bold", value: Boolean(value) }),
   asc_onItalic: (value) => ({ type: "italic", value: Boolean(value) }),
   asc_onUnderline: (value) => ({ type: "underline", value: Boolean(value) }),
+  asc_onAddComment: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
+  asc_onChangeCommentData: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
+  asc_onRemoveComment: (id) => ({ type: "commentRemoved", id }),
+  asc_onShowComment: (ids) => ({ type: "activeComments", ids: [...ids] }),
+  asc_onHideComment: () => ({ type: "activeComments", ids: [] }),
   asc_onStrikeout: (value) => ({ type: "strikeout", value: Boolean(value) }),
   asc_onTextColor: (color) => ({ type: "color", value: toTextColor(color) }),
   asc_onParaStyleName: (name) => ({ type: "style", value: name || null }),

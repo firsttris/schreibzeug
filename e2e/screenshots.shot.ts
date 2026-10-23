@@ -95,5 +95,24 @@ for (const scheme of schemes) {
       await page.waitForTimeout(2_000);
       await shoot(page, "editor", scheme);
     });
+
+    test("comments", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto("/");
+      await page.getByRole("link", { name: LETTER, exact: true }).click();
+      await expectEditorReady(page, errors);
+      await page.waitForTimeout(2_000);
+      // Selects the word "Lagerverwaltung" in the title, where the editor picture shows it.
+      await page.getByTestId("engine-frame").dblclick({ position: { x: 440, y: 212 } });
+      await page.clock.setFixedTime(NOW);
+      await page.getByRole("button", { name: "Kommentar hinzufügen" }).click();
+      await page
+        .getByRole("textbox", { name: "Kommentar zur Auswahl" })
+        .fill("Können wir hier den Namen des Kunden ergänzen?");
+      await page.getByRole("button", { name: "Kommentieren", exact: true }).click();
+      await expect(page.getByRole("article")).toHaveCount(1);
+      await page.waitForTimeout(1_000);
+      await shoot(page, "comments", scheme);
+    });
   });
 }

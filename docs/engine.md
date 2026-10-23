@@ -88,6 +88,24 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | insert table | `put_Table(columns, rows)` | `asc_onFocusObject` with a `Table` object |
 | rows, columns | `addRowAbove/Below()`, `addColumnLeft/Right()`, `remRow()`, `remColumn()`, `remTable()` | – |
 | select all | `asc_EditSelectAll()` | – |
+
+## Comments
+
+`src/comments.ts` reads and writes `asc_CCommentDataWord` (`word/api.js`) the way web-apps does
+(`common/mobile/lib/controller/collaboration/Comments.jsx`). A comment carries two times: `Time`,
+the local time written as if it were UTC, and `OOTime`, real milliseconds; Stapel keeps one time
+in milliseconds and writes both.
+
+| Command | Engine call | Event back |
+|---|---|---|
+| add (on the selection) | `asc_addComment(data)` | `asc_onAddComment(id, data)` |
+| reply, resolve | `asc_changeComment(id, data)` with the whole comment and all replies | `asc_onChangeCommentData` |
+| delete | `asc_removeComment(id)` | `asc_onRemoveComment` |
+| go to | `asc_selectComment(id)` | – |
+| – | `asc_showComments(false)` on content ready marks commented text | `asc_onShowComment(ids)`, `asc_onHideComment` |
+
+On open, the engine reports every comment of the file with `asc_onAddComment`. Until there are
+user accounts, comments are written as "Ich".
 | mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
 | – | – | `asc_onCountPages` |
 

@@ -9,6 +9,7 @@ import {
   List,
   ListOrdered,
   type LucideIcon,
+  MessageSquarePlus,
   Minus,
   Plus,
   Redo2,
@@ -40,10 +41,15 @@ const ToggleButton = ({ label, icon: Icon, pressed, run, disabled }: Toggle & { 
   </Button>
 );
 
-export type ToolbarProps = { state: EditorState; commands: TextCommands | null };
+export type ToolbarProps = {
+  state: EditorState;
+  commands: TextCommands | null;
+  /** Opens the comment field for the selection; comments live beside the document. */
+  onAddComment: () => void;
+};
 
 /** The formatting row above the document: every control reads EditorState and calls a command. */
-export const Toolbar = ({ state, commands }: ToolbarProps) => {
+export const Toolbar = ({ state, commands, onAddComment }: ToolbarProps) => {
   const disabled = !commands || state.status !== "ready";
   const { text, paragraph, catalog, document } = state;
   const fontSize = text.fontSize ?? 11;
@@ -150,6 +156,9 @@ export const Toolbar = ({ state, commands }: ToolbarProps) => {
         <ToggleButton key={toggle.label} {...toggle} disabled={disabled} />
       ))}
       <TableMenu inTable={paragraph.inTable} disabled={disabled} commands={commands} />
+      <Button variant="ghost" aria-label="Kommentar hinzufügen" disabled={disabled} onClick={onAddComment}>
+        <MessageSquarePlus size={16} />
+      </Button>
       <Separator />
       {aligns.map(({ value, label, icon }) => (
         <ToggleButton

@@ -1,6 +1,7 @@
 import type {
   EngineColor,
   EngineColorConstructor,
+  EngineCommentData,
   EngineEventArgs,
   EngineEventName,
   EngineWindow,
@@ -43,6 +44,67 @@ export const FakeColor = function FakeColor(r?: number, g?: number, b?: number) 
   return fakeColor(r, g, b);
 } as unknown as EngineColorConstructor;
 
+/** Stands in for asc_CCommentDataWord: plain fields behind the getters and setters it has. */
+export const fakeCommentData = (): EngineCommentData & { replies: EngineCommentData[] } => {
+  const fields = {
+    text: "",
+    quote: null as string | null,
+    time: "",
+    ooTime: "",
+    userId: "",
+    userName: "",
+    solved: false,
+    guid: "",
+  };
+  const replies: EngineCommentData[] = [];
+  return {
+    replies,
+    asc_getText: () => fields.text,
+    asc_getQuoteText: () => fields.quote,
+    asc_getTime: () => fields.time,
+    asc_getOnlyOfficeTime: () => fields.ooTime,
+    asc_getUserId: () => fields.userId,
+    asc_getUserName: () => fields.userName,
+    asc_getSolved: () => fields.solved,
+    asc_getGuid: () => fields.guid,
+    asc_getRepliesCount: () => replies.length,
+    asc_getReply: (index) => replies[index] as EngineCommentData,
+    asc_putText: (value) => {
+      fields.text = value;
+    },
+    asc_putQuoteText: (value) => {
+      fields.quote = value;
+    },
+    asc_putTime: (value) => {
+      fields.time = value;
+    },
+    asc_putOnlyOfficeTime: (value) => {
+      fields.ooTime = value;
+    },
+    asc_putUserId: (value) => {
+      fields.userId = value;
+    },
+    asc_putUserName: (value) => {
+      fields.userName = value;
+    },
+    asc_putSolved: (value) => {
+      fields.solved = value;
+    },
+    asc_putGuid: (value) => {
+      fields.guid = value;
+    },
+    asc_addReply: (reply) => {
+      replies.push(reply);
+    },
+  };
+};
+
+const FakeCommentData = function FakeCommentData() {
+  return fakeCommentData();
+} as unknown as new (
+  data: null,
+) => EngineCommentData;
+
 export const NUMBERING_FORMATS = { Bullet: 5, None: 48, Decimal: 13 };
 
 const record =
@@ -62,6 +124,7 @@ export const createFakeEngine = (): FakeEngine => {
       const calls: FakeApi["calls"] = [["constructor", config]];
       const callbacks: Callbacks = {};
       const docInfo: Record<string, unknown> = {};
+      let commentCount = 0;
       const api: FakeApi = {
         calls,
         docInfo,
@@ -118,6 +181,24 @@ export const createFakeEngine = (): FakeEngine => {
                   : null;
           });
         },
+        // Like word/api.js: the engine reports added, changed and removed comments as events.
+        asc_addComment: (data) => {
+          calls.push(["asc_addComment", data]);
+          commentCount += 1;
+          const id = `comment-${commentCount}`;
+          api.emit("asc_onAddComment", id, data);
+          return id;
+        },
+        asc_changeComment: (id, data) => {
+          calls.push(["asc_changeComment", id, data]);
+          api.emit("asc_onChangeCommentData", id, data);
+        },
+        asc_removeComment: (id) => {
+          calls.push(["asc_removeComment", id]);
+          api.emit("asc_onRemoveComment", id);
+        },
+        asc_selectComment: record(calls, "asc_selectComment"),
+        asc_showComments: record(calls, "asc_showComments"),
         put_Table: record(calls, "put_Table"),
         addRowAbove: record(calls, "addRowAbove"),
         addRowBelow: record(calls, "addRowBelow"),
@@ -172,6 +253,7 @@ export const createFakeEngine = (): FakeEngine => {
       asc_CDocInfo: valueHolder(),
       asc_CUserInfo: valueHolder(),
       asc_CColor: FakeColor,
+      asc_CCommentDataWord: FakeCommentData,
       c_oAscNumberingFormat: NUMBERING_FORMATS,
       c_oAscTypeSelectElement: { Paragraph: 0, Table: 1 },
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },

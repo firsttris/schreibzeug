@@ -1,5 +1,6 @@
 import { createEngineColor } from "./colors";
 import { createTextCommands, type TextCommands } from "./commands";
+import { type CommentCommands, createCommentCommands } from "./comments";
 import type { Convert } from "./converter";
 import type { EngineEventArgs, EngineEventName, EngineWindow, WordEngineApi } from "./engine-types";
 import { type EventTranslators, stateEvents } from "./events";
@@ -24,6 +25,7 @@ export type OpenWordOptions = {
 export type WordEditor = {
   store: Store<EditorState>;
   commands: TextCommands;
+  comments: CommentCommands;
   /** The document as .docx: the engine's binary, converted in the browser. */
   save: () => Promise<Uint8Array>;
   /** Tells the engine the current state is stored, so "modified" turns false until the next change. */
@@ -121,6 +123,12 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
     ),
     // word/api.js asc_nativeGetFile: the document as "DOCY;v5;<size>;<base64>", which x2t reads.
     save: () => options.convert(new TextEncoder().encode(api.asc_nativeGetFile()), "bin", "docx"),
+    comments: createCommentCommands(
+      api,
+      store.get,
+      options.user,
+      () => new win.Asc.asc_CCommentDataWord(null),
+    ),
     markSaved: () => api.SetUnchangedDocument(),
     resize: () => api.Resize(),
     close: () => api.asc_CloseFile?.(),
@@ -131,6 +139,9 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
     // Spell checking needs the Document Server's dictionary service, which Stapel does not run:
     // without it every word is marked. web-apps switches it here too (documenteditor/mobile Main.jsx).
     api.asc_setSpellCheck(false);
+    // Marks commented text and reports the comments at the cursor (asc_onShowComment), as web-apps
+    // does with live commenting on; resolved comments stay unmarked.
+    api.asc_showComments(false);
     api.Resize();
     api.zoomFitToWidth();
     onReady(editor);

@@ -1,5 +1,6 @@
 export type { TextColor } from "./colors";
 export { clampFontSize, MAX_FONT_SIZE, MIN_FONT_SIZE, type TextCommands } from "./commands";
+export type { CommentAuthor, CommentCommands } from "./comments";
 export {
   type Convert,
   type Converter,
@@ -13,6 +14,8 @@ export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountE
 export {
   type Align,
   type CatalogState,
+  type Comment,
+  type CommentEntry,
   type DocumentState,
   type EditorEvent,
   type EditorState,

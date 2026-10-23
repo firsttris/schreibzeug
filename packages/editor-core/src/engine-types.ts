@@ -18,6 +18,29 @@ export type EngineColorConstructor = new (r?: number, g?: number, b?: number) =>
 /** common/commonDefines.js `c_oAscNumberingFormat`, the two values a list check needs. */
 export type NumberingFormats = { Bullet: number; None: number };
 
+/** word/api.js `asc_CCommentDataWord`: a comment or a reply. */
+export interface EngineCommentData {
+  asc_getText(): string;
+  asc_getQuoteText(): string | null;
+  asc_getTime(): string;
+  asc_getOnlyOfficeTime(): string;
+  asc_getUserId(): string;
+  asc_getUserName(): string;
+  asc_getSolved(): boolean;
+  asc_getGuid(): string;
+  asc_getRepliesCount(): number;
+  asc_getReply(index: number): EngineCommentData;
+  asc_putText(text: string): void;
+  asc_putQuoteText(text: string): void;
+  asc_putTime(time: string): void;
+  asc_putOnlyOfficeTime(time: string): void;
+  asc_putUserId(id: string): void;
+  asc_putUserName(name: string): void;
+  asc_putSolved(solved: boolean): void;
+  asc_putGuid(guid: string): void;
+  asc_addReply(reply: EngineCommentData): void;
+}
+
 /** Engine event names we subscribe to, with the arguments sdkjs passes (word/api.js `sendEvent`). */
 export type EngineEventArgs = {
   asc_onBold: [isBold: boolean];
@@ -34,6 +57,13 @@ export type EngineEventArgs = {
   asc_onInitEditorStyles: [styles: { get_MergedStyles(): Array<{ get_Name(): string }> }];
   /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
   asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number }>];
+  /** word/api.js sync_AddComment: on open for each comment in the file, and for each new one. */
+  asc_onAddComment: [id: string, data: EngineCommentData];
+  asc_onChangeCommentData: [id: string, data: EngineCommentData];
+  asc_onRemoveComment: [id: string];
+  /** The cursor is on commented text (word/api.js sync_ShowComment). */
+  asc_onShowComment: [ids: string[], x?: number, y?: number];
+  asc_onHideComment: [];
   asc_onFontSize: [size: number];
   asc_onFontFamily: [family: { asc_getName(): string | null }];
   asc_onPrAlign: [align: number];
@@ -107,6 +137,13 @@ export interface WordEngineApi {
   remRow(): void;
   remColumn(): void;
   remTable(): void;
+  /** word/api.js: returns the new comment's id, or null when it could not be added. */
+  asc_addComment(data: EngineCommentData): string | null;
+  asc_changeComment(id: string, data: EngineCommentData): void;
+  asc_removeComment(id: string): void;
+  asc_selectComment(id: string): void;
+  /** Marks commented text in the document; `showResolved` includes resolved comments. */
+  asc_showComments(showResolved: boolean): void;
   asc_GetCurrentNumberingId(): string | null;
   asc_GetCurrentNumberingLvl(): number;
   asc_GetNumberingPr(id: string): { get_Lvl(level: number): { get_Format(): number } | null } | null;
@@ -131,6 +168,7 @@ export interface EngineWindow extends Window {
     asc_CDocInfo: new () => EngineDocInfo;
     asc_CUserInfo: new () => EngineUserInfo;
     asc_CColor: EngineColorConstructor;
+    asc_CCommentDataWord: new (data: null) => EngineCommentData;
     c_oAscNumberingFormat: NumberingFormats;
     /** common/commonDefines.js: what a selected object is. */
     c_oAscTypeSelectElement: { Table: number };

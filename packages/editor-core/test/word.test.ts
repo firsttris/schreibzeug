@@ -155,6 +155,34 @@ describe("openWordDocument", () => {
     expect(editor.store.get().paragraph.inTable).toBe(false);
   });
 
+  it("adds, answers, resolves and removes comments through the engine", async () => {
+    const { engine, editor } = await openReady();
+    const id = editor.comments.add("  Bitte prüfen ");
+    expect(id).toBe("comment-1");
+    expect(editor.store.get().comments).toMatchObject([
+      { id, text: "Bitte prüfen", author: "Tristan", replies: [] },
+    ]);
+
+    editor.comments.reply("comment-1", "Mache ich");
+    editor.comments.setResolved("comment-1", true);
+    expect(editor.store.get().comments[0]).toMatchObject({
+      resolved: true,
+      replies: [{ text: "Mache ich", author: "Tristan" }],
+    });
+
+    engine.api().emit("asc_onShowComment", ["comment-1"]);
+    expect(editor.store.get().activeComments).toEqual(["comment-1"]);
+
+    editor.comments.remove("comment-1");
+    expect(editor.store.get().comments).toEqual([]);
+    expect(editor.store.get().activeComments).toEqual([]);
+  });
+
+  it("marks commented text once the document is shown", async () => {
+    const { engine } = await openReady();
+    expect(engine.api().calls).toContainEqual(["asc_showComments", false]);
+  });
+
   it("fails when the file cannot be converted", async () => {
     const engine = createFakeEngine();
     const convert: Convert = async () => {

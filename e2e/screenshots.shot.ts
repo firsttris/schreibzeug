@@ -98,13 +98,14 @@ for (const scheme of schemes) {
 
     test("comments", async ({ page }) => {
       const errors = collectErrors(page);
+      // Fixed before loading: the comment's time comes from Date.now in the app.
+      await page.clock.setFixedTime(NOW);
       await page.goto("/");
       await page.getByRole("link", { name: LETTER, exact: true }).click();
       await expectEditorReady(page, errors);
       await page.waitForTimeout(2_000);
       // Selects the word "Lagerverwaltung" in the title, where the editor picture shows it.
       await page.getByTestId("engine-frame").dblclick({ position: { x: 440, y: 212 } });
-      await page.clock.setFixedTime(NOW);
       await page.getByRole("button", { name: "Kommentar hinzufügen" }).click();
       await page
         .getByRole("textbox", { name: "Kommentar zur Auswahl" })

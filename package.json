@@ -19,7 +19,7 @@
     "format": "biome check --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test -c e2e/playwright.config.ts --project chromium",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts --project chromium --project fidelity",
     "server": "bun run --filter @stapel/server dev",
     "screenshots": "playwright test -c e2e/playwright.config.ts --project screenshots --workers 1",
     "test:fidelity": "playwright test -c e2e/playwright.config.ts --project fidelity",

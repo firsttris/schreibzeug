@@ -63,5 +63,5 @@ charts and shapes. `e2e/formats.fidelity.ts` opens each one and compares the fir
 reference picture in `test-files/fidelity/screenshots`; then it saves the file unchanged, opens the
 saved version and compares again, so a round trip through the engine and x2t must not change how
 a document looks. The references are taken in CI with **Actions → Update screenshots**
-(`bun run fidelity:update`); CI checks them on every push (`bun run test:fidelity`). An engine
+(`bun run fidelity:update`); CI checks them on every push as part of `bun run test:e2e`. An engine
 update passes only when they stay the same.

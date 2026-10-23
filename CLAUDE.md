@@ -53,18 +53,19 @@ cargo fmt --check && cargo clippy -- -D warnings && cargo test   # in apps/deskt
 mkdocs build --strict    # when docs/ or mkdocs.yml changed
 ```
 
-## Pull requests
+## Commits
 
-- One feature per pull request; it carries only its own commits.
-- Before every push check whether the branch's pull request is still open. If it is merged, start
-  again from the current `origin/main` and open a **new** pull request.
-- Merge method: squash. Force-push: allowed with `--force-with-lease` on the own branch.
+- Work happens directly on `main`; no pull requests. One commit per self-contained change.
+- `bun run engine:prepare` once before the first dev server or E2E run (Linux x86_64: it runs the
+  engine's font generator). Before every push the checks above are green, and after it the CI run
+  on `main` is watched until it is green; a red run is fixed in the next commit right away.
+- Never force-push `main`.
 
 ## Working rules
 
 - Commands as root (`sudo`, `pkexec`) are run by the user; don't work around that.
 - The user's running processes are not stopped; use other ports for tests.
-- Language: code, comments, docs, commits and pull requests in English; the app's interface in
+- Language: code, comments, docs and commits in English; the app's interface in
   German first (Paraglide), English later.
 
 ## Code style

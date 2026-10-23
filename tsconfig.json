@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/editor-core" },
+    { "path": "apps/web" },
+    { "path": "tsconfig.tools.json" }
+  ]
+}

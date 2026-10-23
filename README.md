@@ -66,7 +66,12 @@ Requires [Bun](https://bun.sh) 1.4 or newer.
 ```bash
 git clone https://github.com/firsttris/stapel && cd stapel
 bun install
+bun run engine:prepare   # downloads the pinned Euro-Office engine and generates its fonts (Linux x86_64)
+bun run dev              # http://localhost:5173
 ```
+
+Checks: `bun run lint`, `bun run typecheck`, `bun run test` (unit), `bun run test:e2e` (Playwright
+with the real engine).
 
 Stack: React, TanStack Start, Tailwind and shadcn-style components for the interface; Euro-Office
 `sdkjs` as the editing engine; Bun for the file backend and the collaboration relay; Tauri 2 for the

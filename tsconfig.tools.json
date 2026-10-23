@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "outDir": "node_modules/.tsc/tools",
+    "tsBuildInfoFile": "node_modules/.tsc/tools.tsbuildinfo"
+  },
+  "include": ["engine/scripts", "test-files", "e2e", "vitest.config.ts"]
+}

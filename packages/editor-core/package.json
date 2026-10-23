@@ -1,0 +1,14 @@
+{
+  "name": "@stapel/editor-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Framework-free binding to the Euro-Office sdkjs engine: loads it, opens and saves files, turns engine events into state.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "happy-dom": "21.0.4"
+  }
+}

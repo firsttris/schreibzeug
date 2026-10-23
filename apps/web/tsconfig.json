@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "../../node_modules/.tsc/web",
+    "tsBuildInfoFile": "../../node_modules/.tsc/web.tsbuildinfo",
+    "types": ["vite/client", "bun"]
+  },
+  "include": ["src", "vite.config.ts", "engine-plugin.ts"],
+  "references": [{ "path": "../../packages/editor-core" }]
+}

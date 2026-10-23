@@ -1,0 +1,37 @@
+<!doctype html>
+<!--
+  Hosts the text-document engine. The page sits four folders below the engine root on purpose:
+  sdkjs resolves its own files as "../../../../sdkjs/…" and "../../../../fonts/" relative to the
+  page (see sdkjs common/libfont/loader.js, common/GlobalLoaders.js), so this depth makes those
+  paths land in engine/dist. packages/editor-core loads this page in a same-origin iframe and drives
+  the engine through its window; nothing here runs on its own.
+-->
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>Stapel engine</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #f4f4f5;
+      }
+      #editor_sdk {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="editor_sdk"></div>
+    <script>
+      // The flat look of the canvas controls (scroll bars, rulers); web-apps sets the same flag.
+      window["flat_desine"] = true;
+    </script>
+    <script src="../../../../vendor/xregexp/xregexp-all-min.js"></script>
+    <script src="../../../../sdkjs/common/AllFonts.js"></script>
+    <script src="../../../../sdkjs/word/sdk-all-min.js"></script>
+  </body>
+</html>

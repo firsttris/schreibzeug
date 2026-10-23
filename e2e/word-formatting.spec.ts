@@ -75,9 +75,31 @@ test.describe("formatting a text document", () => {
   });
 
   test("numbers paragraphs", async ({ page }, testInfo) => {
+    const errors = collectErrors(page);
     const fileId = await openSelected(page, testInfo);
     await page.getByRole("button", { name: "Nummerierung" }).click();
-    await expect(page.getByRole("button", { name: "Nummerierung" })).toHaveAttribute("aria-pressed", "true");
+    // TEMPORARY diagnosis: what the engine says about the list at the cursor.
+    await page.waitForTimeout(3_000);
+    const frame = page.frames().find((candidate) => candidate.url().includes("/frame/editor/"));
+    const diag = await frame?.evaluate(() => {
+      const w = window as unknown as Record<string, any>;
+      const api = w.editor;
+      const id = api?.asc_GetCurrentNumberingId?.();
+      const pr = id == null ? null : api.asc_GetNumberingPr(id);
+      return {
+        formats: typeof w.Asc?.c_oAscNumberingFormat,
+        bullet: w.Asc?.c_oAscNumberingFormat?.Bullet,
+        id,
+        lvl: api?.asc_GetCurrentNumberingLvl?.(),
+        format: pr?.get_Lvl?.(api.asc_GetCurrentNumberingLvl())?.get_Format?.(),
+      };
+    });
+    await save(page);
+    const numbered = paragraphWith(await storedXml(page, fileId), "Zweiter Absatz").includes("<w:numPr>");
+    expect(
+      await page.getByRole("button", { name: "Nummerierung" }).getAttribute("aria-pressed"),
+      JSON.stringify({ diag, numbered, errors }),
+    ).toBe("true");
     await expect(page.getByRole("button", { name: "Aufzählung" })).toHaveAttribute("aria-pressed", "false");
 
     await save(page);

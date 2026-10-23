@@ -59,6 +59,20 @@ test.beforeAll(async ({ playwright }, testInfo) => {
   await api.dispose();
 });
 
+/**
+ * Fixes the time in the app's window only. The comment's time comes from Date.now there, but the
+ * engine in its frame stops drawing under a frozen clock (page.clock applies to every frame).
+ */
+const fixAppTime = (page: Page, now: Date) =>
+  page.addInitScript((fixed) => {
+    if (window !== window.top) return;
+    Date.now = () => fixed;
+    window.Date = new Proxy(Date, {
+      construct: (RealDate, args: [] | [number]) =>
+        args.length === 0 ? new RealDate(fixed) : new RealDate(...args),
+    });
+  }, now.getTime());
+
 const schemes = ["light", "dark"] as const;
 
 const shoot = async (page: Page, name: string, scheme: (typeof schemes)[number]) =>
@@ -98,8 +112,7 @@ for (const scheme of schemes) {
 
     test("comments", async ({ page }) => {
       const errors = collectErrors(page);
-      // Fixed before loading: the comment's time comes from Date.now in the app.
-      await page.clock.setFixedTime(NOW);
+      await fixAppTime(page, NOW);
       await page.goto("/");
       await page.getByRole("link", { name: LETTER, exact: true }).click();
       await expectEditorReady(page, errors);

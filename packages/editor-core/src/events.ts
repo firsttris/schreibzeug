@@ -1,3 +1,4 @@
+import { toTextColor } from "./colors";
 import type { EngineEventArgs, EngineEventName } from "./engine-types";
 import type { Align, EditorEvent } from "./state";
 
@@ -25,6 +26,10 @@ export const fromAlign = (align: Align, constants: AlignConstants): number =>
     justify: constants.align_Justify,
   })[align];
 
+/** Font names without duplicates, in the order a person looks for them. */
+const uniqueSorted = (names: string[]): string[] =>
+  [...new Set(names.filter((name) => name.length > 0))].sort((a, b) => a.localeCompare(b, "de"));
+
 type Translator<N extends EngineEventName> = (...args: EngineEventArgs[N]) => EditorEvent | null;
 
 export type EventTranslators = { [N in EngineEventName]?: Translator<N> };
@@ -37,6 +42,17 @@ export const stateEvents = (aligns: AlignConstants): EventTranslators => ({
   asc_onBold: (value) => ({ type: "bold", value: Boolean(value) }),
   asc_onItalic: (value) => ({ type: "italic", value: Boolean(value) }),
   asc_onUnderline: (value) => ({ type: "underline", value: Boolean(value) }),
+  asc_onStrikeout: (value) => ({ type: "strikeout", value: Boolean(value) }),
+  asc_onTextColor: (color) => ({ type: "color", value: toTextColor(color) }),
+  asc_onParaStyleName: (name) => ({ type: "style", value: name || null }),
+  asc_onInitEditorFonts: (fonts) => ({
+    type: "fonts",
+    value: uniqueSorted(fonts.map((font) => font.asc_getFontName())),
+  }),
+  asc_onInitEditorStyles: (styles) => ({
+    type: "styles",
+    value: [...new Set(styles.get_MergedStyles().map((style) => style.get_Name()))],
+  }),
   asc_onFontSize: (value) => (Number.isFinite(value) ? { type: "fontSize", value } : null),
   asc_onFontFamily: (family) => ({ type: "fontName", value: family?.asc_getName() || null }),
   asc_onPrAlign: (value) => ({ type: "align", value: toAlign(value, aligns) }),

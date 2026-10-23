@@ -1,4 +1,11 @@
-import type { EngineEventArgs, EngineEventName, EngineWindow, WordEngineApi } from "../src/engine-types";
+import type {
+  EngineColor,
+  EngineColorConstructor,
+  EngineEventArgs,
+  EngineEventName,
+  EngineWindow,
+  WordEngineApi,
+} from "../src/engine-types";
 
 type Callbacks = { [N in EngineEventName]?: Array<(...args: EngineEventArgs[N]) => void> };
 
@@ -13,7 +20,30 @@ export type FakeApi = WordEngineApi & {
   emit: <N extends EngineEventName>(name: N, ...args: EngineEventArgs[N]) => void;
   nativeFile: string;
   modified: boolean;
+  /** The numbering format at the cursor (c_oAscNumberingFormat), or null outside a list. */
+  numbering: number | null;
 };
+
+/** Stands in for an asc_CColor: keeps r, g, b and Auto like common/apiCommon.js. */
+export const fakeColor = (r = 0, g = 0, b = 0): EngineColor => {
+  let auto = false;
+  return {
+    asc_getR: () => r,
+    asc_getG: () => g,
+    asc_getB: () => b,
+    asc_getAuto: () => auto,
+    asc_putAuto: (value: boolean) => {
+      auto = value;
+    },
+  };
+};
+
+/** The asc_CColor constructor: called with `new`, it hands back the object fakeColor builds. */
+export const FakeColor = function FakeColor(r?: number, g?: number, b?: number) {
+  return fakeColor(r, g, b);
+} as unknown as EngineColorConstructor;
+
+export const NUMBERING_FORMATS = { Bullet: 5, None: 48, Decimal: 13 };
 
 const record =
   (calls: FakeApi["calls"], name: string) =>
@@ -37,6 +67,7 @@ export const createFakeEngine = (): FakeEngine => {
         docInfo,
         nativeFile: "DOCY;v5;4;AAAA",
         modified: false,
+        numbering: null,
         emit: (name, ...args) => {
           for (const callback of callbacks[name] ?? []) (callback as (...a: unknown[]) => void)(...args);
         },
@@ -70,6 +101,16 @@ export const createFakeEngine = (): FakeEngine => {
         put_TextPrUnderline: record(calls, "put_TextPrUnderline"),
         put_TextPrFontSize: record(calls, "put_TextPrFontSize"),
         put_PrAlign: record(calls, "put_PrAlign"),
+        put_TextPrStrikeout: record(calls, "put_TextPrStrikeout"),
+        put_TextPrFontName: record(calls, "put_TextPrFontName"),
+        put_TextColor: record(calls, "put_TextColor"),
+        put_Style: record(calls, "put_Style"),
+        put_ListTypeCustom: record(calls, "put_ListTypeCustom"),
+        asc_GetCurrentNumberingId: () => (api.numbering === null ? null : "1"),
+        asc_GetCurrentNumberingLvl: () => 0,
+        asc_GetNumberingPr: () => ({
+          get_Lvl: () => ({ get_Format: () => api.numbering ?? NUMBERING_FORMATS.None }),
+        }),
         asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
         isDocumentModified: () => api.modified,
         asc_setSpellCheck: record(calls, "asc_setSpellCheck"),
@@ -110,6 +151,8 @@ export const createFakeEngine = (): FakeEngine => {
       asc_docs_api: FakeDocsApi,
       asc_CDocInfo: valueHolder(),
       asc_CUserInfo: valueHolder(),
+      asc_CColor: FakeColor,
+      c_oAscNumberingFormat: NUMBERING_FORMATS,
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },
     },
     AscCommon: { offlineMode: "_offline_", align_Right: 0, align_Left: 1, align_Center: 2, align_Justify: 3 },

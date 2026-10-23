@@ -1,6 +1,13 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { documentXml } from "./docx";
 
+/** The newest version on the server, as bytes. */
+export const storedDocx = async (page: Page, fileId: string): Promise<Uint8Array> => {
+  const response = await page.request.get(`/api/files/${fileId}/content`);
+  expect(response.ok()).toBe(true);
+  return new Uint8Array(await response.body());
+};
+
 /**
  * Steps through the app as a person would. Every test works in a folder of its own, so tests run
  * in parallel against one server without seeing each other's files.
@@ -89,8 +96,5 @@ export const save = async (page: Page) => {
 };
 
 /** The main document part of the newest version on the server. */
-export const storedXml = async (page: Page, fileId: string): Promise<string> => {
-  const response = await page.request.get(`/api/files/${fileId}/content`);
-  expect(response.ok()).toBe(true);
-  return documentXml(new Uint8Array(await response.body()));
-};
+export const storedXml = async (page: Page, fileId: string): Promise<string> =>
+  documentXml(await storedDocx(page, fileId));

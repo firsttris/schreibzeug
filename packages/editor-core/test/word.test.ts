@@ -121,6 +121,21 @@ describe("openWordDocument", () => {
     expect(editor.store.get().document.modified).toBe(false);
   });
 
+  it("reads the list at the cursor when the selection moves", async () => {
+    const { engine, editor } = await openReady();
+    engine.api().numbering = 5;
+    engine.api().emit("asc_onFocusObject", []);
+    expect(editor.store.get().paragraph.list).toBe("bullet");
+
+    engine.api().numbering = 13;
+    engine.api().emit("asc_onFocusObject", []);
+    expect(editor.store.get().paragraph.list).toBe("number");
+
+    engine.api().numbering = null;
+    engine.api().emit("asc_onFocusObject", []);
+    expect(editor.store.get().paragraph.list).toBeNull();
+  });
+
   it("fails when the file cannot be converted", async () => {
     const engine = createFakeEngine();
     const convert: Convert = async () => {

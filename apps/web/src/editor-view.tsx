@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, Download, FileText, LoaderCircle, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { docxName, downloadBytes, type OpenedFile } from "./files";
-import { Toolbar } from "./toolbar";
+import { Toolbar } from "./toolbar/toolbar";
 import { Button } from "./ui/button";
 import { useWordEditor } from "./use-word-editor";
 

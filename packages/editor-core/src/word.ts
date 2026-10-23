@@ -1,7 +1,9 @@
+import { createEngineColor } from "./colors";
 import { createTextCommands, type TextCommands } from "./commands";
 import type { Convert } from "./converter";
 import type { EngineEventArgs, EngineEventName, EngineWindow, WordEngineApi } from "./engine-types";
 import { type EventTranslators, stateEvents } from "./events";
+import { readListKind } from "./lists";
 import { type EditorEvent, type EditorState, initialEditorState, reduceEditorState } from "./state";
 import { createStore, type Store } from "./store";
 
@@ -90,6 +92,9 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
   api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
   api._openChartOrLocalDocument = () => api.asc_openDocumentFromBytes(binary);
   subscribe(api, stateEvents(win.AscCommon), dispatch);
+  api.asc_registerCallback("asc_onFocusObject", () =>
+    dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) }),
+  );
   // The event carries no value; web-apps reads the flag on it (documenteditor/mobile Main.jsx).
   api.asc_registerCallback("asc_onDocumentModifiedChanged", () =>
     dispatch({ type: "modified", value: api.isDocumentModified() }),
@@ -97,7 +102,7 @@ const startEngine = ({ win, binary, options, store, dispatch, onReady, onFailure
 
   const editor: WordEditor = {
     store,
-    commands: createTextCommands(api, store.get, win.AscCommon),
+    commands: createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),
     // word/api.js asc_nativeGetFile: the document as "DOCY;v5;<size>;<base64>", which x2t reads.
     save: () => options.convert(new TextEncoder().encode(api.asc_nativeGetFile()), "bin", "docx"),
     markSaved: () => api.SetUnchangedDocument(),

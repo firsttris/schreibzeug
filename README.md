@@ -12,7 +12,8 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 </div>
 
 > **Status:** early development. Nothing to install yet. Working so far: a file browser (folders,
-> upload, new document, rename, trash) and a Word editor that saves every change as a new version,
+> upload, new document, rename, trash) and a Word editor with styles, fonts, colours and lists that
+> saves every change as a new version,
 > all without a document server.
 
 <picture>

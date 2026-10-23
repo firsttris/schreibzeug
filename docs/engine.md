@@ -75,12 +75,25 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | font size | `put_TextPrFontSize(size)` | `asc_onFontSize` |
 | alignment | `put_PrAlign(AscCommon.align_*)` | `asc_onPrAlign` |
 | undo, redo | `Undo()`, `Redo()` | `asc_onCanUndo`, `asc_onCanRedo` |
+| strikethrough | `put_TextPrStrikeout(value)` | `asc_onStrikeout` |
+| font | `put_TextPrFontName(name)` | `asc_onFontFamily`; the list: `asc_onInitEditorFonts` |
+| text colour | `put_TextColor(asc_CColor)`, automatic: `Auto = true` | `asc_onTextColor` |
+| paragraph style | `put_Style(name)` | `asc_onParaStyleName`; the list: `asc_onInitEditorStyles` |
+| bulleted, numbered list | `put_ListTypeCustom(preset)`, end: `{ Type: "remove" }` | `asc_onFocusObject`, then `asc_GetCurrentNumberingId` / `asc_GetNumberingPr` |
 | select all | `asc_EditSelectAll()` | – |
 | mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
-| – | – | `asc_onFontFamily`, `asc_onCountPages` |
+| – | – | `asc_onCountPages` |
 
 `asc_onDocumentModifiedChanged` carries no value (`word/api.js` `SetDocumentModified` sends it
 bare); like web-apps (`documenteditor/mobile` `Main.jsx`), `editor-core` reads
 `isDocumentModified()` when it arrives.
+
+Style names are the engine's English ones (`Normal`, `Heading 1`), as stored in the .docx; the
+toolbar shows the built-in ones in German (`apps/web/src/toolbar/style-labels.ts`). The list
+presets are the first bullet and number presets of web-apps (`documenteditor/mobile`
+`store/textSettings.js`), in `src/lists.ts`; the colour palette is Word's ten standard colours.
+
+The spell checker is switched off (`asc_setSpellCheck(false)` on content ready): it needs the
+Document Server's dictionary service, and without it every word is underlined.
 
 The engine takes target values, not toggles, so a toggle command reads the current state first.

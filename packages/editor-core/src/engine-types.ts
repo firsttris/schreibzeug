@@ -258,6 +258,12 @@ export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterAp
   SetUnchangedDocument(): void;
 }
 
+/** common/editorscommon.js `DocumentUrls` */
+export interface DocumentUrls {
+  getUrls(): Record<string, string>;
+  addUrls(urls: Record<string, string>): void;
+}
+
 /** common/GlobalLoaders.js `g_font_loader`: where the web fonts are and which are loaded. */
 export interface FontLoader {
   /** Relative to the frame's page, ending in "/". */
@@ -293,6 +299,8 @@ export interface EngineWindow extends Window {
     vertalign_SubScript: number;
     CSearchSettings: new () => SearchSettings;
     g_font_loader: FontLoader;
+    /** common/editorscommon.js: the URLs of the document's images by their path ("media/…"). */
+    g_oDocumentUrls: DocumentUrls;
   };
 }
 

@@ -196,8 +196,18 @@ the converter three things, the way CryptPad does (`www/common/outer/x2t.js`
 
 "Drucken" prints that PDF through the browser's dialog from a hidden frame (`apps/web/src/editor/pdf.ts`).
 Strg+P is another key the engine leaves to its UI; it goes to the same place as Strg+F
-(`onShortcut`). Images in the document are not in the PDF yet: the converter does not get the
-document's media.
+(`onShortcut`). The document's images go along as `media/`, as below.
+
+## Images
+
+The converter keeps a document's images apart from its binary form: opening a .docx, x2t writes
+them into `media/` next to the output, and saving or printing it reads them from there
+(`engine/frame/x2t/worker.js`; CryptPad does the same in `www/common/outer/x2t.js`). The engine
+itself never sees files; it looks every image up by its name in `AscCommon.g_oDocumentUrls`
+(`common/editorscommon.js` `DocumentUrls`), which the Document Server fills with download links.
+`src/media.ts` fills it with blob URLs made in the frame (`provideMedia`) after the converter
+answers, and on saving or printing fetches every `media/` entry back into bytes (`collectMedia`),
+including images added while editing.
 
 ## Keyboard focus
 

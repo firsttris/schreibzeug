@@ -4,9 +4,13 @@
  * .docx into that format and back. It runs in a worker so its large heap stays out of the page and
  * can be released by terminating the worker.
  *
- * Message in:  { id, bytes: Uint8Array, from: "docx" | "bin", to: "bin" | "docx" }
- *              or, for a PDF, { id, bytes, from: "bin", to: "pdf", commands: Uint8Array, fonts: [{ name, bytes }] }
- * Message out: { id, bytes: Uint8Array } or { id, error: string }
+ * Message in:  { id, bytes: Uint8Array, from: "docx" | "bin", to: "bin" | "docx", media: { name: bytes } }
+ *              or, for a PDF, { id, bytes, from: "bin", to: "pdf", media, commands: Uint8Array, fonts: [{ name, bytes }] }
+ * Message out: { id, bytes: Uint8Array, media: { name: bytes } } or { id, error: string }
+ *
+ * The images of a document travel beside it: x2t writes them to "media/" next to the binary it
+ * makes, and reads them from there when it writes an Office file or a PDF (as CryptPad does,
+ * www/common/outer/x2t.js).
  */
 "use strict";
 
@@ -80,7 +84,16 @@ const removeTree = (fs, path) => {
   fs.rmdir(path);
 };
 
-const convert = (x2t, id, bytes, from, to, commands, fonts) => {
+const readMedia = (fs, dir) => {
+  const media = {};
+  if (!fs.analyzePath(dir).exists) return media;
+  for (const name of fs.readdir(dir)) {
+    if (name !== "." && name !== "..") media[name] = fs.readFile(`${dir}/${name}`);
+  }
+  return media;
+};
+
+const convert = (x2t, id, bytes, from, to, media, commands, fonts) => {
   const dir = `/job-${id}`;
   const input = `${dir}/input.${from}`;
   const output = `${dir}/output.${to}`;
@@ -93,6 +106,8 @@ const convert = (x2t, id, bytes, from, to, commands, fonts) => {
       for (const font of fonts) x2t.FS.writeFile(`${fontDir}/${font.name}.ttf`, font.bytes);
     }
     if (commands) x2t.FS.writeFile(`${dir}/pdf.bin`, commands);
+    x2t.FS.mkdir(`${dir}/media`);
+    for (const [name, image] of Object.entries(media ?? {})) x2t.FS.writeFile(`${dir}/media/${name}`, image);
     x2t.FS.writeFile(input, bytes);
     x2t.FS.writeFile(task, taskXml(input, output, fontDir));
     stderr = [];
@@ -101,18 +116,19 @@ const convert = (x2t, id, bytes, from, to, commands, fonts) => {
       const details = stderr.length > 0 ? `: ${stderr.join(" ").slice(0, 500)}` : "";
       throw new Error(`x2t could not convert ${from} to ${to} (code ${code})${details}`);
     }
-    return x2t.FS.readFile(output);
+    return { bytes: x2t.FS.readFile(output), media: to === "bin" ? readMedia(x2t.FS, `${dir}/media`) : {} };
   } finally {
     removeTree(x2t.FS, dir);
   }
 };
 
 self.onmessage = async (event) => {
-  const { id, bytes, from, to, commands, fonts } = event.data;
+  const { id, bytes, from, to, media, commands, fonts } = event.data;
   try {
     const x2t = await loadX2t();
-    const result = convert(x2t, id, bytes, from, to, commands, fonts);
-    self.postMessage({ id, bytes: result }, [result.buffer]);
+    const result = convert(x2t, id, bytes, from, to, media, commands, fonts);
+    const transfer = [result.bytes.buffer, ...Object.values(result.media).map((image) => image.buffer)];
+    self.postMessage({ id, ...result }, transfer);
   } catch (error) {
     self.postMessage({ id, error: error instanceof Error ? error.message : String(error) });
   }

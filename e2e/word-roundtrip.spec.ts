@@ -1,6 +1,16 @@
 import { join } from "node:path";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
-import { collectErrors, openDocument, openFileId, openOwnFolder, save, storedXml, upload } from "./app";
+import { unzipSync } from "fflate";
+import {
+  collectErrors,
+  openDocument,
+  openFileId,
+  openOwnFolder,
+  save,
+  storedDocx,
+  storedXml,
+  upload,
+} from "./app";
 import { paragraphTexts, runPropertiesOf } from "./docx";
 
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
@@ -86,4 +96,27 @@ test.describe("text document round trip without a document server", () => {
     const versions = await (await page.request.get(`/api/files/${fileId}/versions`)).json();
     expect(versions.map((version: { number: number }) => version.number)).toEqual([2, 1]);
   });
+});
+
+test("shows the images of a document and keeps them when saving", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(
+    page,
+    join(import.meta.dirname, "../test-files/fidelity/image-noborder.docx"),
+    "image-noborder.docx",
+  );
+  await openDocument(page, "image-noborder.docx", errors);
+  const fileId = openFileId(page);
+  const before = await storedDocx(page, fileId);
+  const images = (bytes: Uint8Array) =>
+    Object.keys(unzipSync(bytes)).filter((name) => name.startsWith("word/media/"));
+  expect(images(before).length).toBeGreaterThan(0);
+
+  // An edit, so the save writes the document anew from the engine.
+  await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" Text");
+  await save(page);
+  expect(images(await storedDocx(page, fileId))).toEqual(images(before));
 });

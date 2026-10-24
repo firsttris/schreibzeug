@@ -14,8 +14,12 @@ const fakeWorker = () => {
       terminated += 1;
     },
   };
-  const reply = (data: { id: number; bytes?: Uint8Array; error?: string }) =>
-    worker.onmessage?.({ data } as MessageEvent);
+  const reply = (data: {
+    id: number;
+    bytes?: Uint8Array;
+    media?: Record<string, Uint8Array>;
+    error?: string;
+  }) => worker.onmessage?.({ data } as MessageEvent);
   return { worker, sent, reply, terminated: () => terminated };
 };
 
@@ -47,8 +51,15 @@ describe("createConverter", () => {
     expect(message?.bytes).toEqual(input);
     expect(message?.bytes).not.toBe(input);
 
-    fake.reply({ id: message?.id ?? 0, bytes: new Uint8Array([9]) });
-    await expect(result).resolves.toEqual(new Uint8Array([9]));
+    fake.reply({
+      id: message?.id ?? 0,
+      bytes: new Uint8Array([9]),
+      media: { "image1.png": new Uint8Array([7]) },
+    });
+    await expect(result).resolves.toEqual({
+      bytes: new Uint8Array([9]),
+      media: { "image1.png": new Uint8Array([7]) },
+    });
   });
 
   it("matches replies to their requests", async () => {
@@ -60,8 +71,8 @@ describe("createConverter", () => {
     fake.reply({ id: fake.sent[1]?.id ?? 0, bytes: new Uint8Array([22]) });
     fake.reply({ id: fake.sent[0]?.id ?? 0, bytes: new Uint8Array([11]) });
 
-    await expect(first).resolves.toEqual(new Uint8Array([11]));
-    await expect(second).resolves.toEqual(new Uint8Array([22]));
+    await expect(first).resolves.toEqual({ bytes: new Uint8Array([11]), media: {} });
+    await expect(second).resolves.toEqual({ bytes: new Uint8Array([22]), media: {} });
   });
 
   it("rejects with the worker's error", async () => {

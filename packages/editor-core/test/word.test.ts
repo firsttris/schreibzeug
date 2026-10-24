@@ -7,14 +7,23 @@ import { createFakeEngine } from "./fake-engine";
 const docx = new Uint8Array([80, 75, 3, 4, 1, 2, 3]);
 const binary = new Uint8Array([68, 79, 67, 89]);
 const savedDocx = new Uint8Array([80, 75, 9, 9]);
+const logo = new Uint8Array([137, 80, 78, 71]);
 
-type Conversion = { bytes: Uint8Array; from: string; to: string };
+type Conversion = {
+  bytes: Uint8Array;
+  from: string;
+  to: string;
+  media?: Record<string, Uint8Array> | undefined;
+};
 
 const fakeConverter = () => {
   const conversions: Conversion[] = [];
-  const convert: Convert = async (bytes, from, to) => {
-    conversions.push({ bytes, from, to });
-    return from === "docx" ? binary : savedDocx;
+  const convert: Convert = async (bytes, from, to, media) => {
+    conversions.push({ bytes, from, to, media });
+    return {
+      bytes: from === "docx" ? binary : savedDocx,
+      media: from === "docx" ? { "image1.png": logo } : {},
+    };
   };
   return { convert, conversions };
 };
@@ -224,6 +233,18 @@ describe("openWordDocument", () => {
   it("has no PDF without a converter for it", async () => {
     const { editor } = await openReady();
     expect(editor.exportPdf).toBeNull();
+  });
+
+  it("hands the document's images to the engine and gives them back on save", async () => {
+    const { engine, editor, converter } = await openReady();
+    const urls = engine.window.AscCommon.g_oDocumentUrls.getUrls();
+    expect(Object.keys(urls)).toEqual(["media/image1.png"]);
+    await editor.save();
+    expect(converter.conversions.at(-1)).toMatchObject({
+      from: "bin",
+      to: "docx",
+      media: { "image1.png": logo },
+    });
   });
 
   it("is ready once the content is shown", async () => {

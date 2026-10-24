@@ -318,8 +318,24 @@ export const createFakeEngine = (): FakeEngine => {
       );
     };
 
+  // The frame's blob URLs and the engine's map of image paths to URLs (common/editorscommon.js).
+  const blobs = new Map<string, Uint8Array>();
+  const documentUrls: Record<string, string> = {};
   const window = {
     devicePixelRatio: 2,
+    URL: {
+      createObjectURL: (blob: { bytes: Uint8Array }) => {
+        const url = `blob:frame/${blobs.size}`;
+        blobs.set(url, blob.bytes);
+        return url;
+      },
+    },
+    Blob: function FakeBlob(parts: Uint8Array[]) {
+      return { bytes: parts[0] };
+    },
+    fetch: async (url: string) => ({
+      arrayBuffer: async () => (blobs.get(url) ?? new Uint8Array(40)).slice().buffer,
+    }),
     addEventListener: events.addEventListener.bind(events),
     removeEventListener: events.removeEventListener.bind(events),
     dispatchEvent: events.dispatchEvent.bind(events),
@@ -347,6 +363,10 @@ export const createFakeEngine = (): FakeEngine => {
       vertalign_SubScript: 1,
       vertalign_SuperScript: 2,
       CSearchSettings: FakeSearchSettings,
+      g_oDocumentUrls: {
+        getUrls: () => documentUrls,
+        addUrls: (urls: Record<string, string>) => Object.assign(documentUrls, urls),
+      },
       // Two fonts the document drew with, one it did not.
       g_font_loader: {
         fontFilesPath: "../../../../fonts/",

@@ -1,10 +1,11 @@
 import type { CollabChannel } from "./collab";
-import type { Convert, OfficeFormat, RenderPdf } from "./converter";
+import type { Convert, Converted, OfficeFormat, RenderPdf } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
 import type { CommonEventArgs, EngineApiBase, EngineWindow } from "./engine-types";
 import { coreEvents, type Translators } from "./events";
 import { keepFocusOnClick } from "./frame";
 import { createFrameSocketIO } from "./frame-socket";
+import { collectMedia, provideMedia } from "./media";
 import { fontsForPdf } from "./print";
 import { createStore, type Store } from "./store";
 import { type AppShortcut, createListeners, shortcutOf } from "./view";
@@ -130,6 +131,9 @@ const createDocInfo = (win: EngineWindow, options: OpenOptions, format: OfficeFo
   return info;
 };
 
+/** Reads a URL of the frame (a blob of an image, a font file) with the frame's own fetch. */
+const fetchBytes = (win: EngineWindow) => async (url: string) => (await win.fetch(url)).arrayBuffer();
+
 /**
  * The document as a PDF: the editor's print commands with the fonts it drew with, turned into a
  * PDF by x2t. The fonts come from the frame's own font folder, which the browser has cached.
@@ -144,9 +148,9 @@ const pdfExport = <Api extends { asc_nativeGetFile(): string }>(
   return async () => {
     const document = new TextEncoder().encode(api.asc_nativeGetFile());
     const commands = printCommands(api);
-    const fetchFont = async (url: string) => (await win.fetch(url)).arrayBuffer();
-    const fonts = await fontsForPdf(win.AscCommon.g_font_loader, win.location.href, fetchFont);
-    return renderPdf(document, commands, fonts);
+    const fonts = await fontsForPdf(win.AscCommon.g_font_loader, win.location.href, fetchBytes(win));
+    const media = await collectMedia(win.AscCommon.g_oDocumentUrls, fetchBytes(win));
+    return renderPdf(document, commands, fonts, media);
   };
 };
 
@@ -230,8 +234,11 @@ export const openDocument = <
       options.timeoutMs ?? 60_000,
     );
 
-    const start = (binary: Uint8Array) => {
+    const start = ({ bytes: binary, media }: Converted) => {
       const api = binding.createApi(win);
+      provideMedia(win.AscCommon.g_oDocumentUrls, media, (image) =>
+        win.URL.createObjectURL(new win.Blob([image as BlobPart])),
+      );
       const base = api as unknown as EngineApiBase<CommonEventArgs>;
       const stopProgress = followProgress(options.collaboration?.channel, dispatch);
       const url = connectEngine(win, base, binary, options.collaboration);
@@ -259,7 +266,9 @@ export const openDocument = <
         save: async () => {
           const seen = store.get().session.seen;
           const binaryNow = new TextEncoder().encode(api.asc_nativeGetFile());
-          return { bytes: await options.convert(binaryNow, "bin", binding.format), seen };
+          const media = await collectMedia(win.AscCommon.g_oDocumentUrls, fetchBytes(win));
+          const saved = await options.convert(binaryNow, "bin", binding.format, media);
+          return { bytes: saved.bytes, seen };
         },
         markSaved: ({ seen }) => {
           binding.markUnchanged(api);

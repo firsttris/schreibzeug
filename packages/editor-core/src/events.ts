@@ -2,7 +2,7 @@ import { toTextColor } from "./colors";
 import { readComment } from "./comments";
 import type { CoreEvent } from "./core-state";
 import type { CommonEventArgs, TextEventArgs, WordEventArgs } from "./engine-types";
-import type { Align, EditorEvent, TextEvent } from "./state";
+import type { Align, Baseline, EditorEvent, TextEvent } from "./state";
 
 /** Paragraph alignment values from common/commonDefines.js (align_Right = 0 … align_Justify = 3). */
 export type AlignConstants = {
@@ -27,6 +27,26 @@ export const fromAlign = (align: Align, constants: AlignConstants): number =>
     right: constants.align_Right,
     justify: constants.align_Justify,
   })[align];
+
+/** common/commonDefines.js vertalign_* */
+export type BaselineConstants = {
+  vertalign_Baseline: number;
+  vertalign_SuperScript: number;
+  vertalign_SubScript: number;
+};
+
+export const toBaseline = (value: number, constants: BaselineConstants): Baseline => {
+  if (value === constants.vertalign_SuperScript) return "superscript";
+  if (value === constants.vertalign_SubScript) return "subscript";
+  return "normal";
+};
+
+export const fromBaseline = (baseline: Baseline, constants: BaselineConstants): number =>
+  ({
+    normal: constants.vertalign_Baseline,
+    superscript: constants.vertalign_SuperScript,
+    subscript: constants.vertalign_SubScript,
+  })[baseline];
 
 /** Font names without duplicates, in the order a person looks for them. */
 export const uniqueSorted = (names: string[]): string[] =>
@@ -54,7 +74,9 @@ export const coreEvents = (disconnectAction: number): Translators<CommonEventArg
 });
 
 /** Character formatting, the fonts and the history, told the same by the text and the presentation engine. */
-export const textEvents = (aligns: AlignConstants): Translators<TextEventArgs, TextEvent | CoreEvent> => ({
+export const textEvents = (
+  constants: AlignConstants & BaselineConstants,
+): Translators<TextEventArgs, TextEvent | CoreEvent> => ({
   asc_onBold: (value) => ({ type: "bold", value: Boolean(value) }),
   asc_onItalic: (value) => ({ type: "italic", value: Boolean(value) }),
   asc_onUnderline: (value) => ({ type: "underline", value: Boolean(value) }),
@@ -66,7 +88,10 @@ export const textEvents = (aligns: AlignConstants): Translators<TextEventArgs, T
   }),
   asc_onFontSize: (value) => (Number.isFinite(value) ? { type: "fontSize", value } : null),
   asc_onFontFamily: (family) => ({ type: "fontName", value: family?.asc_getName() || null }),
-  asc_onPrAlign: (value) => ({ type: "align", value: toAlign(value, aligns) }),
+  asc_onPrAlign: (value) => ({ type: "align", value: toAlign(value, constants) }),
+  asc_onVerticalAlign: (value) => ({ type: "baseline", value: toBaseline(value, constants) }),
+  asc_onZoomChange: (percent) =>
+    Number.isFinite(percent) ? { type: "zoom", value: Math.round(percent) } : null,
   asc_onCanUndo: (value) => ({ type: "canUndo", value: Boolean(value) }),
   asc_onCanRedo: (value) => ({ type: "canRedo", value: Boolean(value) }),
   asc_onCountPages: (value) => ({ type: "pages", value }),
@@ -76,9 +101,12 @@ export const textEvents = (aligns: AlignConstants): Translators<TextEventArgs, T
  * Engine events that become state. Each entry turns the arguments of one sdkjs event into an
  * EditorEvent; events not listed here are handled by the open/close flow in word.ts.
  */
-export const stateEvents = (aligns: AlignConstants, disconnectAction: number): EventTranslators => ({
+export const stateEvents = (
+  constants: AlignConstants & BaselineConstants,
+  disconnectAction: number,
+): EventTranslators => ({
   ...coreEvents(disconnectAction),
-  ...textEvents(aligns),
+  ...textEvents(constants),
   asc_onAddComment: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
   asc_onChangeCommentData: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
   asc_onRemoveComment: (id) => ({ type: "commentRemoved", id }),

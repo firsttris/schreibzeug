@@ -178,6 +178,23 @@ describe("files", () => {
     );
   });
 
+  it("copies the newest version next to the original, with a name that is free", async () => {
+    const parent = await folder("Kopien");
+    const file = await uploaded("Angebot.docx", "erste", parent.id);
+    await expectNode(await save(file.id, "neueste"));
+    const copy = () => api.files[":id"].copy.$post({ param: { id: file.id } });
+
+    const first = await expectNode(await copy(), 201);
+    expect(first).toMatchObject({ name: "Angebot (Kopie).docx", parentId: parent.id, version: 1 });
+    expect(await (await content(first.id)).text()).toBe("neueste");
+    expect((await expectNode(await copy(), 201)).name).toBe("Angebot (Kopie 2).docx");
+  });
+
+  it("does not copy a folder", async () => {
+    const parent = await folder("Nicht kopierbar");
+    await expectError(await api.files[":id"].copy.$post({ param: { id: parent.id } }), 400, "invalid");
+  });
+
   it("stores the same bytes once", async () => {
     const a = await uploaded("a.txt", "gleich");
     const b = await uploaded("b.txt", "gleich");

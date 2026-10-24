@@ -57,6 +57,7 @@ export { openPresentation, type PresentationEditor, type SlideCommands } from ".
 export { initialSlideState, type LayoutInfo, type SlideEvent, type SlideState } from "./slide-state";
 export {
   type Align,
+  type Baseline,
   type CatalogState,
   type Comment,
   type CommentEntry,
@@ -69,4 +70,13 @@ export {
   type TextState,
 } from "./state";
 export { createStore, type Store } from "./store";
+export {
+  type ClipboardAction,
+  type ContextMenuListener,
+  type ContextMenuRequest,
+  clampZoom,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  type ViewCommands,
+} from "./view";
 export { type OpenWordOptions, openWordDocument, type WordEditor } from "./word";

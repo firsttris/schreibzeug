@@ -74,7 +74,37 @@ export type TextEventArgs = CommonEventArgs & {
   asc_onCanUndo: [canUndo: boolean];
   asc_onCanRedo: [canRedo: boolean];
   asc_onCountPages: [pages: number];
+  /** sync_VerticalAlign: AscCommon.vertalign_Baseline, _SuperScript or _SubScript. */
+  asc_onVerticalAlign: [baseline: number];
+  /** sync_zoomChangeCallback: the zoom in percent and how it was set (c_oAscZoomType). */
+  asc_onZoomChange: [percent: number, type: number];
+  /** sync_ContextMenuCallback: a right click in the document. */
+  asc_onContextMenu: [data: ContextMenuArgs];
 };
+
+/** word/api.js `CContextMenuData` (slide/api.js has the same getters). */
+export interface ContextMenuArgs {
+  /** c_oAscContextMenuTypes: Common, or ChangeHdrFtr in a header or footer. */
+  get_Type(): number;
+  /** Relative to the engine's view element (`id-view`). */
+  get_X(): number;
+  get_Y(): number;
+}
+
+/**
+ * Clipboard and zoom, named the same in the text and the presentation editor (word/api.js,
+ * slide/api.js; common/clipboard_base.js Button_Copy, Button_Cut, Button_Paste).
+ */
+export interface ViewApi {
+  Copy(): boolean | undefined;
+  Cut(): boolean | undefined;
+  Paste(): boolean | undefined;
+  zoomIn(): void;
+  zoomOut(): void;
+  zoom(percent: number): void;
+  zoomFitToWidth(): void;
+  zoomFitToPage(): void;
+}
 
 /** Events of the text editor we subscribe to, with the arguments sdkjs passes (word/api.js `sendEvent`). */
 export type WordEventArgs = TextEventArgs & {
@@ -155,16 +185,20 @@ export interface CharacterApi {
   put_TextPrFontName(name: string): void;
   put_TextColor(color: EngineColor): void;
   put_PrAlign(align: number): void;
+  /** AscCommon.vertalign_Baseline, _SuperScript or _SubScript for the selection. */
+  put_TextPrBaseline(value: number): void;
+  /** Removes direct formatting from the selection, keeping the paragraph style. */
+  ClearFormating(): void;
   asc_EditSelectAll(): void;
   Undo(): void;
   Redo(): void;
 }
 
 /** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
-export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterApi {
+export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterApi, ViewApi {
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
-  zoomFitToWidth(): void;
+  put_AddPageBreak(): void;
   /** Applies a paragraph style by its name. */
   put_Style(name: string): void;
   /**
@@ -221,6 +255,9 @@ export interface EngineWindow extends Window {
     align_Left: number;
     align_Center: number;
     align_Justify: number;
+    vertalign_Baseline: number;
+    vertalign_SuperScript: number;
+    vertalign_SubScript: number;
   };
 }
 
@@ -234,6 +271,8 @@ export interface WordWindow extends EngineWindow {
     c_oAscCollaborativeMarksShowType: { None: number };
     /** common/commonDefines.js: what a selected object is. */
     c_oAscTypeSelectElement: { Table: number };
+    /** word/apiDefines.js */
+    c_oAscContextMenuTypes: { Common: number; ChangeHdrFtr: number };
   };
 }
 

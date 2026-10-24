@@ -100,6 +100,20 @@ describe("sharing", () => {
     expect((await call(`/api/nodes/${created.id}/trash`, owner, { method: "POST" })).status).toBe(200);
   });
 
+  it("puts a viewer's copy into their own files", async () => {
+    const { owner, guest, guestEmail } = await people("G");
+    const folder = await createFolder(owner, "Nur lesen");
+    const file = await createDocument(owner, "Vorlage", folder.id);
+    await share(owner, folder.id, guestEmail, "view");
+    const reply = await call(`/api/files/${file.id}/copy`, guest, { method: "POST" });
+    expect(reply.status).toBe(201);
+    expect(nodeSchema.parse(await reply.json())).toMatchObject({
+      name: "Vorlage (Kopie).docx",
+      parentId: null,
+      role: "owner",
+    });
+  });
+
   it("takes a share back", async () => {
     const { owner, guest, guestEmail } = await people("D");
     const file = await createDocument(owner, "Geheim", null);

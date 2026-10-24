@@ -74,6 +74,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
 | `PUT /files/:id/content` | Save: the body becomes a new version |
 | `GET /files/:id/versions` | All versions, newest first |
+| `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |
 

@@ -21,6 +21,29 @@ const setup = (state = initialEditorState) => {
 const lastCall = (calls: Array<[string, ...unknown[]]>) => calls.at(-1);
 
 describe("createTextCommands", () => {
+  it("raises the selection, and puts raised text back on the line", () => {
+    const raised = {
+      ...initialEditorState,
+      text: { ...initialEditorState.text, baseline: "superscript" as const },
+    };
+    const first = setup();
+    first.commands.toggleBaseline("superscript");
+    expect(lastCall(first.calls)).toEqual(["put_TextPrBaseline", 2]);
+    const second = setup(raised);
+    second.commands.toggleBaseline("superscript");
+    expect(lastCall(second.calls)).toEqual(["put_TextPrBaseline", 0]);
+    second.commands.toggleBaseline("subscript");
+    expect(lastCall(second.calls)).toEqual(["put_TextPrBaseline", 1]);
+  });
+
+  it("clears formatting and breaks the page", () => {
+    const { commands, calls } = setup();
+    commands.clearFormatting();
+    expect(lastCall(calls)).toEqual(["ClearFormating"]);
+    commands.insertPageBreak();
+    expect(lastCall(calls)).toEqual(["put_AddPageBreak"]);
+  });
+
   it("turns bold on when the selection is not bold", () => {
     const { commands, calls } = setup();
     commands.toggleBold();

@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { fromAlign, stateEvents, toAlign } from "../src/events";
 import { fakeColor } from "./fake-engine";
 
-const aligns = { align_Right: 0, align_Left: 1, align_Center: 2, align_Justify: 3 };
+const aligns = {
+  align_Right: 0,
+  align_Left: 1,
+  align_Center: 2,
+  align_Justify: 3,
+  vertalign_Baseline: 0,
+  vertalign_SubScript: 1,
+  vertalign_SuperScript: 2,
+};
 
 describe("alignment", () => {
   it.each([
@@ -34,6 +42,13 @@ describe("stateEvents", () => {
     expect(events.asc_onUnderline?.(true)).toEqual({ type: "underline", value: true });
     expect(events.asc_onFontSize?.(11)).toEqual({ type: "fontSize", value: 11 });
     expect(events.asc_onPrAlign?.(2)).toEqual({ type: "align", value: "center" });
+  });
+
+  it("tells where the characters sit and how far the page is zoomed", () => {
+    expect(events.asc_onVerticalAlign?.(2)).toEqual({ type: "baseline", value: "superscript" });
+    expect(events.asc_onVerticalAlign?.(1)).toEqual({ type: "baseline", value: "subscript" });
+    expect(events.asc_onVerticalAlign?.(0)).toEqual({ type: "baseline", value: "normal" });
+    expect(events.asc_onZoomChange?.(87.4, 1)).toEqual({ type: "zoom", value: 87 });
   });
 
   it("ignores a font size that is not a number (mixed selection)", () => {

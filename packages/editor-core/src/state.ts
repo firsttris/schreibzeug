@@ -4,6 +4,9 @@ export type Align = "left" | "center" | "right" | "justify";
 
 export type ListKind = "bullet" | "number";
 
+/** Where the characters sit: on the line, raised or lowered. */
+export type Baseline = "normal" | "superscript" | "subscript";
+
 export type TextState = {
   bold: boolean;
   italic: boolean;
@@ -14,6 +17,7 @@ export type TextState = {
   fontSize: number | null;
   fontName: string | null;
   align: Align | null;
+  baseline: Baseline;
 };
 
 export type ParagraphState = {
@@ -69,6 +73,7 @@ export type TextEvent =
   | { type: "fontSize"; value: number }
   | { type: "fontName"; value: string | null }
   | { type: "align"; value: Align | null }
+  | { type: "baseline"; value: Baseline }
   | { type: "fonts"; value: string[] };
 
 /** What the text engine told us, already translated from sdkjs arguments (see events.ts). */
@@ -93,6 +98,7 @@ export const initialTextState: TextState = {
   fontSize: null,
   fontName: null,
   align: null,
+  baseline: "normal",
 };
 
 const TEXT_FIELDS: Record<Exclude<TextEvent["type"], "fonts">, keyof TextState> = {
@@ -104,6 +110,7 @@ const TEXT_FIELDS: Record<Exclude<TextEvent["type"], "fonts">, keyof TextState> 
   fontSize: "fontSize",
   fontName: "fontName",
   align: "align",
+  baseline: "baseline",
 };
 
 const isTextEvent = (event: { type: string }): event is TextEvent =>

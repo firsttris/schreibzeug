@@ -67,6 +67,8 @@ export const mountEngineFrame = (container: HTMLElement, options: FrameOptions):
   element.src = framePath(options.kind, options.enginePath);
   element.title = "Editor";
   element.setAttribute("data-testid", "engine-frame");
+  // The engine's copy, cut and paste menu entries use the async clipboard (common/clipboard_base.js).
+  element.allow = "clipboard-read; clipboard-write";
   element.style.cssText = "border:0;width:100%;height:100%;display:block";
 
   const remove = () => element.remove();

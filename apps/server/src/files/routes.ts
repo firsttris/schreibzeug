@@ -182,6 +182,9 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       const saved = repository.addVersion(db, userOf(c), c.req.valid("param").id, await store(bytes));
       return respond(c, saved, toFileNode);
     })
+    .post("/files/:id/copy", validate("param", idParam), (c) =>
+      respond(c, repository.copyFile(db, userOf(c), c.req.valid("param").id), toFileNode, 201),
+    )
     .post(
       "/files/:id/versions/:number/restore",
       validate("param", z.object({ id: nodeIdSchema, number: z.coerce.number().int().positive() })),

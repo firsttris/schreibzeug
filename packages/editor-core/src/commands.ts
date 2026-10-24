@@ -1,8 +1,8 @@
 import type { TextColor } from "./colors";
 import type { CharacterApi, EngineColor, WordEngineApi } from "./engine-types";
-import { type AlignConstants, fromAlign } from "./events";
+import { type AlignConstants, type BaselineConstants, fromAlign, fromBaseline } from "./events";
 import { LIST_PRESETS } from "./lists";
-import type { Align, EditorState, ListKind, TextState } from "./state";
+import type { Align, Baseline, EditorState, ListKind, TextState } from "./state";
 
 /** Character formatting and history, the same in the text and the presentation editor. */
 export type CharacterCommands = {
@@ -14,6 +14,9 @@ export type CharacterCommands = {
   setFontName: (name: string) => void;
   setColor: (color: TextColor) => void;
   setAlign: (align: Align) => void;
+  /** Raises or lowers the selection; the same baseline again puts it back on the line. */
+  toggleBaseline: (baseline: Exclude<Baseline, "normal">) => void;
+  clearFormatting: () => void;
   selectAll: () => void;
   undo: () => void;
   redo: () => void;
@@ -29,6 +32,7 @@ export type TextCommands = CharacterCommands & {
   deleteRow: () => void;
   deleteColumn: () => void;
   deleteTable: () => void;
+  insertPageBreak: () => void;
 };
 
 export const MIN_FONT_SIZE = 1;
@@ -50,7 +54,7 @@ export const clampFontSize = (size: number): number =>
 export const createCharacterCommands = (
   api: CharacterApi,
   getText: () => TextState,
-  aligns: AlignConstants,
+  constants: AlignConstants & BaselineConstants,
   engineColor: (color: TextColor) => EngineColor,
 ): CharacterCommands => ({
   toggleBold: () => api.put_TextPrBold(!getText().bold),
@@ -60,7 +64,10 @@ export const createCharacterCommands = (
   setFontSize: (size) => api.put_TextPrFontSize(clampFontSize(size)),
   setFontName: (name) => api.put_TextPrFontName(name),
   setColor: (color) => api.put_TextColor(engineColor(color)),
-  setAlign: (align) => api.put_PrAlign(fromAlign(align, aligns)),
+  setAlign: (align) => api.put_PrAlign(fromAlign(align, constants)),
+  toggleBaseline: (baseline) =>
+    api.put_TextPrBaseline(fromBaseline(getText().baseline === baseline ? "normal" : baseline, constants)),
+  clearFormatting: () => api.ClearFormating(),
   selectAll: () => api.asc_EditSelectAll(),
   undo: () => api.Undo(),
   redo: () => api.Redo(),
@@ -70,10 +77,10 @@ export const createCharacterCommands = (
 export const createTextCommands = (
   api: WordEngineApi,
   getState: () => EditorState,
-  aligns: AlignConstants,
+  constants: AlignConstants & BaselineConstants,
   engineColor: (color: TextColor) => EngineColor,
 ): TextCommands => ({
-  ...createCharacterCommands(api, () => getState().text, aligns, engineColor),
+  ...createCharacterCommands(api, () => getState().text, constants, engineColor),
   setStyle: (name) => api.put_Style(name),
   toggleList: async (kind) => {
     await api.put_ListTypeCustom(
@@ -86,4 +93,5 @@ export const createTextCommands = (
   deleteRow: () => api.remRow(),
   deleteColumn: () => api.remColumn(),
   deleteTable: () => api.remTable(),
+  insertPageBreak: () => api.put_AddPageBreak(),
 });

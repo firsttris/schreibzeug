@@ -12,12 +12,23 @@ import {
   reduceEditorState,
   type WordEvent,
 } from "./state";
+import {
+  type ContextMenuListener,
+  type ContextMenuRequest,
+  createListeners,
+  createViewCommands,
+  toContextMenuRequest,
+  type ViewCommands,
+} from "./view";
 
 export type OpenWordOptions = OpenOptions;
 
 export type WordEditor = OpenedDocument<EditorState> & {
   commands: TextCommands;
   comments: CommentCommands;
+  view: ViewCommands;
+  /** Someone right-clicked in the document; the listener shows the menu. Returns the unsubscribe. */
+  onContextMenu: (listener: ContextMenuListener) => () => void;
 };
 
 /** sdkjs `SetFontRenderingMode`: 3 = hinting for normal screens, 1 = none for high-DPI (web-apps uses the same). */
@@ -39,7 +50,7 @@ const wordBinding: EditorBinding<
   WordEngineApi,
   EditorState,
   WordEvent,
-  Pick<WordEditor, "commands" | "comments">
+  Pick<WordEditor, "commands" | "comments" | "view" | "onContextMenu">
 > = {
   format: "docx",
   createApi: (win) => {
@@ -58,7 +69,19 @@ const wordBinding: EditorBinding<
       const table = win.Asc.c_oAscTypeSelectElement.Table;
       dispatch({ type: "inTable", value: objects.some((object) => object.asc_getObjectType() === table) });
     });
+    const contextMenu = createListeners<ContextMenuRequest>();
+    api.asc_registerCallback("asc_onContextMenu", (data) =>
+      contextMenu.emit(
+        toContextMenuRequest(
+          data,
+          win.document.getElementById("editor_sdk"),
+          win.Asc.c_oAscContextMenuTypes.ChangeHdrFtr,
+        ),
+      ),
+    );
     return {
+      view: createViewCommands(api),
+      onContextMenu: contextMenu.add,
       commands: withListRefresh(
         createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),
         refreshList,

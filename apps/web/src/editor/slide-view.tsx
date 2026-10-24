@@ -8,7 +8,7 @@ import { useDocumentSave } from "./use-document-save";
 import { useEngineEditor } from "./use-engine-editor";
 
 /** A presentation: the toolbar above, the engine's slide list and the slide below. */
-export const SlideView = ({ file, onClose, onSave, onShowVersions }: EditorViewProps) => {
+export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
     container,
@@ -20,22 +20,24 @@ export const SlideView = ({ file, onClose, onSave, onShowVersions }: EditorViewP
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
 
   const download = async () => {
-    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(file.name, "pptx"), MIME.pptx);
+    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "pptx"), MIME.pptx);
   };
 
   return (
     <div className="flex h-full flex-col">
       <EditorHeader
-        name={file.name}
+        name={name}
         format="pptx"
         state={state}
         failure={failure}
         saving={saving}
         ready={editor !== null}
         readOnly={file.readOnly}
-        onClose={onClose}
+        file={fileActions}
+        onRename={onRename}
         onDownload={download}
-        onShowVersions={onShowVersions}
+        menus={[]}
+        shortcuts={[]}
         toolbar={<SlideToolbar state={state} commands={editor?.commands ?? null} />}
       />
       <div ref={container} className="min-h-0 flex-1 bg-[var(--muted)]" />

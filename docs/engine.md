@@ -102,6 +102,11 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | insert table | `put_Table(columns, rows)` | `asc_onFocusObject` with a `Table` object |
 | rows, columns | `addRowAbove/Below()`, `addColumnLeft/Right()`, `remRow()`, `remColumn()`, `remTable()` | – |
 | select all | `asc_EditSelectAll()` | – |
+| superscript, subscript | `put_TextPrBaseline(AscCommon.vertalign_*)` | `asc_onVerticalAlign` |
+| clear formatting | `ClearFormating()` | – |
+| page break | `put_AddPageBreak()` | – |
+| cut, copy, paste | `Cut()`, `Copy()`, `Paste()`; `false`: the browser refused | – |
+| zoom | `zoomIn()`, `zoomOut()`, `zoom(percent)`, `zoomFitToWidth()`, `zoomFitToPage()` | `asc_onZoomChange(percent)`: `document.zoom` |
 | mark saved | `SetUnchangedDocument()` | `asc_onDocumentModifiedChanged` |
 | – | – | `asc_onCountPages` |
 | – | – | `asc_onStartAction` / `asc_onEndAction` with `c_oAscAsyncAction.Disconnect`: `document.connected` |
@@ -137,6 +142,26 @@ The spell checker is switched off (`asc_setSpellCheck(false)` on content ready):
 Document Server's dictionary service, and without it every word is underlined.
 
 The engine takes target values, not toggles, so a toggle command reads the current state first.
+
+## Menus and the context menu
+
+The editor's title row carries a menu bar as in a desktop office suite (`apps/web/src/ui/menu-bar.tsx`).
+"Datei" and "Hilfe" are the same in every editor (`src/editor/file-menu.ts`); the editor adds its
+own menus between them (`src/editor/word-menus.ts`), built from the state and the commands above.
+The entries follow the desktop editors of web-apps (`documenteditor/main` `Toolbar.js`,
+`DocumentHolder.js`); the shortcuts shown are the engine's own (`word/Editor/Shortcuts.js`).
+
+A right click in the document makes the engine send `asc_onContextMenu` with a `CContextMenuData`
+(`word/api.js` `sync_ContextMenuCallback`): the point relative to its view element and whether it
+was in a header or footer. `editor-core` adds the view element's place in the frame
+(`src/view.ts` `toContextMenuRequest`) and hands the request to `onContextMenu` listeners; the web
+app adds the frame's place in the window and shows its own menu there, as web-apps does
+(`DocumentHolder.js` `showPopupMenu`). Someone who may only look gets no context menu.
+
+Cut, copy and paste from a menu go through the engine (`common/clipboard_base.js` `Button_Copy`,
+`Button_Cut`, `Button_Paste`), which uses the async clipboard API; the frame allows it
+(`allow="clipboard-read; clipboard-write"`). When the browser refuses, the entry answers `false`
+and the app says which keys to use, like web-apps.
 
 ## Keyboard focus
 

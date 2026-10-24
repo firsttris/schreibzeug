@@ -1,40 +1,15 @@
-import { type CoreState, hasUnsavedChanges, type OfficeFormat } from "@stapel/editor-core";
-import { ArrowLeft, Check, Download, Eye, History, LoaderCircle, Save, WifiOff } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
+import type { CoreState, OfficeFormat } from "@stapel/editor-core";
+import { ArrowLeft, Download, History, Save, Share2 } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { FileBadge } from "../files/file-badge";
 import { Button } from "../ui/button";
+import { type Menu, MenuBar } from "../ui/menu-bar";
+import { useNotice } from "../ui/use-notice";
+import { type FileActions, fileMenu, helpMenu } from "./file-menu";
+import { FileTitle } from "./file-title";
+import { AboutDialog, type Shortcut, ShortcutsDialog } from "./help-dialogs";
+import { SaveStatus } from "./save-status";
 import type { DocumentSave } from "./use-document-save";
-
-type Status = "loading" | "ready" | "error";
-
-type StatusFacts = {
-  status: Status;
-  readOnly: boolean;
-  modified: boolean;
-  saving: boolean;
-  connected: boolean;
-  failure: string | null;
-};
-
-const statusText = ({ status, readOnly, modified, saving, connected, failure }: StatusFacts): string => {
-  if (failure) return failure;
-  if (status === "loading") return "Öffnet …";
-  if (status === "error") return "Fehler beim Öffnen";
-  if (!connected) return "Verbindung unterbrochen, verbindet neu …";
-  if (readOnly) return "Nur ansehen";
-  if (saving) return "Speichert …";
-  return modified ? "Nicht gespeicherte Änderungen" : "Gespeichert";
-};
-
-/** Asks before the tab closes while there are changes the server does not have yet. */
-const useLeaveWarning = (active: boolean) => {
-  useEffect(() => {
-    if (!active) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [active]);
-};
 
 export type EditorHeaderProps = {
   name: string;
@@ -46,10 +21,15 @@ export type EditorHeaderProps = {
   ready: boolean;
   /** Opened to look at only: no saving and no toolbar. */
   readOnly?: boolean;
-  onClose: () => void;
+  /** What the "Datei" menu does with the file on the server. */
+  file: FileActions;
+  onRename?: ((name: string) => Promise<unknown>) | undefined;
   onDownload: () => void;
-  /** Opens the file's versions; absent where the file has none (not stored on a server). */
-  onShowVersions?: (() => void) | undefined;
+  /** The editor's own menus between "Datei" and "Hilfe": Bearbeiten, Ansicht, Einfügen, Format. */
+  menus: Menu[];
+  shortcuts: Shortcut[];
+  /** A short message for the person, e.g. when the browser refused the clipboard. */
+  notice?: string | null;
   /** Buttons of this editor before the shared ones (e.g. the comments toggle). */
   actions?: ReactNode;
   /** The editor's toolbar, under the title row. */
@@ -57,8 +37,8 @@ export type EditorHeaderProps = {
 };
 
 /**
- * The top of every editor: back, the file's name and what happens to it (opening, saving, saved,
- * connection lost), versions, download and save, then the editor's toolbar.
+ * The top of every editor, as in an office suite: back, the file's name (editable in place) with
+ * what happens to it, the menus under it, the buttons on the right, then the editor's toolbar.
  */
 export const EditorHeader = ({
   name,
@@ -68,55 +48,55 @@ export const EditorHeader = ({
   saving: { save, saving, failure: saveFailure },
   ready,
   readOnly = false,
-  onClose,
+  file,
+  onRename,
   onDownload,
-  onShowVersions,
+  menus,
+  shortcuts,
+  notice,
   actions,
   toolbar,
 }: EditorHeaderProps) => {
-  const status: Status = failure ? "error" : state.status;
-  const { connected } = state.document;
-  // What a viewer sees may not be stored yet, but that is for the editors to save.
-  const modified = !readOnly && hasUnsavedChanges(state);
-  useLeaveWarning(modified);
+  const [dialog, setDialog] = useState<"shortcuts" | "about" | null>(null);
+  const [renameError, setRenameError] = useNotice();
+  const message = notice ?? renameError;
 
   return (
-    <header className="flex flex-col gap-2 border-b border-[var(--border)] px-4 pt-3 pb-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" aria-label="Zurück" onClick={onClose}>
+    <header className="flex flex-col gap-2 border-b border-[var(--border)] px-4 pt-2 pb-2">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" aria-label="Zurück" onClick={file.onClose}>
           <ArrowLeft size={18} />
         </Button>
-        <FileBadge kind={format} />
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate text-[15px] font-semibold">{name}</span>
-          <span
-            data-testid="editor-status"
-            data-status={status}
-            data-modified={modified}
-            data-connected={connected}
-            className={`flex items-center gap-1.5 text-xs ${saveFailure || !connected ? "text-red-600 dark:text-red-400" : "text-[var(--muted-foreground)]"}`}
-          >
-            {!connected && <WifiOff size={12} />}
-            {connected && (status === "loading" || saving) && (
-              <LoaderCircle size={12} className="animate-spin" />
-            )}
-            {connected && status === "ready" && readOnly && <Eye size={12} />}
-            {connected && status === "ready" && !readOnly && !saving && !modified && !saveFailure && (
-              <Check size={12} />
-            )}
-            {statusText({ status, readOnly, modified, saving, connected, failure: failure ?? saveFailure })}
-          </span>
+        <FileBadge kind={format} size={32} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 items-center gap-3">
+            <FileTitle name={name} onRename={readOnly ? undefined : onRename} onError={setRenameError} />
+            <SaveStatus
+              state={state}
+              failure={failure}
+              saving={saving}
+              saveFailure={saveFailure}
+              readOnly={readOnly}
+            />
+          </div>
+          <MenuBar label="Menü" menus={[fileMenu(file, onDownload, ready), ...menus, helpMenu(setDialog)]} />
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {actions}
-          {onShowVersions && (
-            <Button variant="ghost" aria-label="Versionen" onClick={onShowVersions}>
+          {file.onShowVersions && (
+            <Button variant="ghost" aria-label="Versionen" onClick={file.onShowVersions}>
               <History size={16} />
             </Button>
           )}
           <Button variant="ghost" aria-label="Herunterladen" disabled={!ready} onClick={onDownload}>
             <Download size={16} />
           </Button>
+          {file.onShare && (
+            <Button variant="outline" onClick={file.onShare}>
+              <Share2 size={15} />
+              Teilen
+            </Button>
+          )}
           {!readOnly && (
             <Button variant="primary" disabled={!ready || saving} onClick={save}>
               <Save size={15} />
@@ -125,7 +105,14 @@ export const EditorHeader = ({
           )}
         </div>
       </div>
+      {message && (
+        <p role="status" data-testid="editor-notice" className="m-0 text-xs text-[var(--muted-foreground)]">
+          {message}
+        </p>
+      )}
       {!readOnly && toolbar}
+      <ShortcutsDialog open={dialog === "shortcuts"} shortcuts={shortcuts} onClose={() => setDialog(null)} />
+      <AboutDialog open={dialog === "about"} onClose={() => setDialog(null)} />
     </header>
   );
 };

@@ -47,7 +47,7 @@ test.describe("files", () => {
     await createDocument(page, "Brief");
 
     await expectEditorReady(page, errors);
-    await expect(page.getByText("Brief.docx")).toBeVisible();
+    await expect(page.getByLabel("Dateiname")).toHaveValue("Brief");
 
     await page.getByRole("button", { name: "Zurück" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(own);

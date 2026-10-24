@@ -164,6 +164,26 @@ export const createFakeEngine = (): FakeEngine => {
         SetFontRenderingMode: record(calls, "SetFontRenderingMode"),
         Resize: record(calls, "Resize"),
         zoomFitToWidth: record(calls, "zoomFitToWidth"),
+        zoomFitToPage: record(calls, "zoomFitToPage"),
+        zoomIn: record(calls, "zoomIn"),
+        zoomOut: record(calls, "zoomOut"),
+        zoom: record(calls, "zoom"),
+        Copy: () => {
+          calls.push(["Copy"]);
+          return true;
+        },
+        Cut: () => {
+          calls.push(["Cut"]);
+          return true;
+        },
+        // Like a browser that refuses to read the clipboard without a key press.
+        Paste: () => {
+          calls.push(["Paste"]);
+          return false;
+        },
+        put_TextPrBaseline: record(calls, "put_TextPrBaseline"),
+        ClearFormating: record(calls, "ClearFormating"),
+        put_AddPageBreak: record(calls, "put_AddPageBreak"),
         put_TextPrBold: record(calls, "put_TextPrBold"),
         put_TextPrItalic: record(calls, "put_TextPrItalic"),
         put_TextPrUnderline: record(calls, "put_TextPrUnderline"),
@@ -259,7 +279,7 @@ export const createFakeEngine = (): FakeEngine => {
   const window = {
     devicePixelRatio: 2,
     addEventListener: events.addEventListener.bind(events),
-    document: { hasFocus: () => false, activeElement: null, body: null },
+    document: { hasFocus: () => false, activeElement: null, body: null, getElementById: () => null },
     Asc: {
       asc_docs_api: FakeDocsApi,
       asc_CDocInfo: valueHolder(),
@@ -268,11 +288,21 @@ export const createFakeEngine = (): FakeEngine => {
       asc_CCommentDataWord: FakeCommentData,
       c_oAscNumberingFormat: NUMBERING_FORMATS,
       c_oAscTypeSelectElement: { Paragraph: 0, Table: 1 },
+      c_oAscContextMenuTypes: { Common: 0, ChangeHdrFtr: 1 },
       c_oAscAsyncAction: { Disconnect: 20 },
       c_oAscCollaborativeMarksShowType: { All: 0, LastChanges: 1, None: 2 },
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },
     },
-    AscCommon: { offlineMode: "_offline_", align_Right: 0, align_Left: 1, align_Center: 2, align_Justify: 3 },
+    AscCommon: {
+      offlineMode: "_offline_",
+      align_Right: 0,
+      align_Left: 1,
+      align_Center: 2,
+      align_Justify: 3,
+      vertalign_Baseline: 0,
+      vertalign_SubScript: 1,
+      vertalign_SuperScript: 2,
+    },
   } as unknown as WordWindow;
 
   return {

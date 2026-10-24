@@ -6,6 +6,8 @@ export type DocumentState = {
   canRedo: boolean;
   modified: boolean;
   pages: number;
+  /** The zoom in percent, once the engine has told it. */
+  zoom: number | null;
   /**
    * False while the connection to the other editors is lost; the engine takes no edits meanwhile
    * and catches up once it is back.
@@ -29,6 +31,7 @@ export type CoreEvent =
   | { type: "canRedo"; value: boolean }
   | { type: "modified"; value: boolean }
   | { type: "pages"; value: number }
+  | { type: "zoom"; value: number }
   | { type: "connected"; value: boolean }
   /** A message from the collaboration relay, as JSON text. */
   | { type: "message"; json: string }
@@ -38,7 +41,7 @@ export type CoreEvent =
 export const initialCoreState: CoreState = {
   status: "loading",
   error: null,
-  document: { canUndo: false, canRedo: false, modified: false, pages: 0, connected: true },
+  document: { canUndo: false, canRedo: false, modified: false, pages: 0, zoom: null, connected: true },
   session: initialProgress,
 };
 
@@ -47,6 +50,7 @@ const CORE_TYPES: ReadonlySet<string> = new Set([
   "canRedo",
   "modified",
   "pages",
+  "zoom",
   "connected",
   "message",
   "ready",
@@ -71,6 +75,8 @@ export const reduceCore = <S extends CoreState>(state: S, event: CoreEvent): S =
       return withDocument(state, { modified: event.value });
     case "pages":
       return withDocument(state, { pages: event.value });
+    case "zoom":
+      return withDocument(state, { zoom: event.value });
     case "connected":
       return withDocument(state, { connected: event.value });
     case "message": {

@@ -1,17 +1,29 @@
-import { initialEditorState, openWordDocument } from "@stapel/editor-core";
+import { type ContextMenuRequest, initialEditorState, openWordDocument } from "@stapel/editor-core";
 import { MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CommentsPanel } from "../comments/comments-panel";
+import { SizeGrid } from "../toolbar/table-menu";
 import { Toolbar } from "../toolbar/toolbar";
 import { Button } from "../ui/button";
+import { ContextMenu } from "../ui/context-menu";
+import { Dialog } from "../ui/dialog";
+import { useNotice } from "../ui/use-notice";
 import { EditorHeader } from "./editor-header";
+import { WORD_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { useDocumentSave } from "./use-document-save";
 import { useEngineEditor } from "./use-engine-editor";
+import { clipboardHint, type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 
-/** A text document: the toolbar above the page, comments beside it. */
-export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewProps) => {
+/** Where the engine's frame sits in the window: context menu points come in frame coordinates. */
+const toWindow = (container: HTMLElement | null, request: ContextMenuRequest) => {
+  const frame = container?.querySelector("iframe")?.getBoundingClientRect();
+  return { x: (frame?.left ?? 0) + request.x, y: (frame?.top ?? 0) + request.y };
+};
+
+/** A text document: title and menus, the toolbar above the page, comments beside it. */
+export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
     container,
@@ -22,6 +34,9 @@ export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewPr
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
   const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
+  const [tableDialog, setTableDialog] = useState(false);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [notice, notify] = useNotice();
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
 
   // The engine measures its frame only on resize; the panel takes width from it.
@@ -30,30 +45,50 @@ export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewPr
     editor?.resize();
   }, [editor, comments === "closed"]);
 
+  // Someone who may only look gets no menu of changes.
+  useEffect(() => {
+    if (!editor || file.readOnly) return;
+    return editor.onContextMenu((request) => setMenuAt(toWindow(container.current, request)));
+  }, [editor, file.readOnly]);
+
   const download = async () => {
-    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(file.name, "docx"), MIME.docx);
+    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "docx"), MIME.docx);
+  };
+
+  const context: WordMenuContext = {
+    state,
+    commands: editor?.commands ?? null,
+    view: editor?.view ?? null,
+    onClipboardRefused: (action) => notify(clipboardHint(action)),
+    onAddComment: () => setComments("composing"),
+    onInsertTable: () => setTableDialog(true),
+    commentsOpen: comments !== "closed",
+    onToggleComments: () => setComments(comments === "closed" ? "open" : "closed"),
   };
 
   return (
     <div className="flex h-full flex-col">
       <EditorHeader
-        name={file.name}
+        name={name}
         format="docx"
         state={state}
         failure={failure}
         saving={saving}
         ready={editor !== null}
         readOnly={file.readOnly}
-        onClose={onClose}
+        file={fileActions}
+        onRename={onRename}
         onDownload={download}
-        onShowVersions={onShowVersions}
+        menus={file.readOnly ? [] : wordMenus(context)}
+        shortcuts={WORD_SHORTCUTS}
+        notice={notice}
         actions={
           <Button
             variant="toggle"
             aria-label="Kommentare"
             aria-pressed={comments !== "closed"}
             disabled={!editor}
-            onClick={() => setComments(comments === "closed" ? "open" : "closed")}
+            onClick={context.onToggleComments}
           >
             <MessageSquare size={16} />
             {openComments > 0 && <span className="text-xs tabular-nums">{openComments}</span>}
@@ -80,6 +115,23 @@ export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewPr
           />
         )}
       </div>
+      {menuAt && (
+        <ContextMenu
+          x={menuAt.x}
+          y={menuAt.y}
+          label="Kontextmenü"
+          groups={wordContextMenu(context)}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
+      <Dialog open={tableDialog} title="Tabelle einfügen" onClose={() => setTableDialog(false)}>
+        <SizeGrid
+          onPick={({ columns, rows }) => {
+            editor?.commands.insertTable(columns, rows);
+            setTableDialog(false);
+          }}
+        />
+      </Dialog>
     </div>
   );
 };

@@ -1,14 +1,17 @@
+import type { FileActions } from "./file-menu";
 import type { OpenedFile } from "./opened-file";
 
 /** What the edit page hands every editor view. */
 export type EditorViewProps = {
   file: OpenedFile;
-  onClose: () => void;
+  /** The file's name now; it changes when someone renames it while it is open. */
+  name: string;
   /**
    * Stores the saved file; the view shows "Gespeichert" once it resolves. Called by the save button
    * and on its own a few seconds after changes; keep it stable (useCallback).
    */
   onSave: (bytes: Uint8Array) => Promise<unknown>;
-  /** Opens the file's versions; absent where the file has none (not stored on a server). */
-  onShowVersions?: () => void;
+  /** What the "Datei" menu does with the file on the server (use-file-actions.tsx). */
+  fileActions: FileActions;
+  onRename?: ((name: string) => Promise<unknown>) | undefined;
 };

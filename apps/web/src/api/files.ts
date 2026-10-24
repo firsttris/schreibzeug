@@ -98,6 +98,7 @@ export const fileCommands = (api: ApiClient) => ({
     api.files[":id"].content
       .$url({ param: { id }, query: version ? { version: String(version) } : {} })
       .toString(),
+  copy: (id: string) => expectJson(api.files[":id"].copy.$post({ param: { id } }), nodeSchema),
   restoreVersion: (id: string, number: number) =>
     expectJson(
       api.files[":id"].versions[":number"].restore.$post({ param: { id, number: String(number) } }),

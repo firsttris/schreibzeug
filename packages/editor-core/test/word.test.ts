@@ -177,6 +177,16 @@ describe("openWordDocument", () => {
     expect(engine.press()).toBe(1);
   });
 
+  it("hands a right click on to whoever shows the menu", async () => {
+    const { engine, editor } = await openReady();
+    const requests: unknown[] = [];
+    const stop = editor.onContextMenu((request) => requests.push(request));
+    engine.api().emit("asc_onContextMenu", { get_Type: () => 0, get_X: () => 12, get_Y: () => 34 });
+    stop();
+    engine.api().emit("asc_onContextMenu", { get_Type: () => 0, get_X: () => 1, get_Y: () => 1 });
+    expect(requests).toEqual([{ x: 12, y: 34, area: "body" }]);
+  });
+
   it("is ready once the content is shown", async () => {
     const { editor } = await openReady();
     expect(editor.store.get().status).toBe("ready");

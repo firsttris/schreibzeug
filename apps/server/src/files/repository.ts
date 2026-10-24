@@ -261,6 +261,40 @@ export const restoreVersion = (
   return addVersion(db, user, id, { size, sha256 });
 };
 
+/** "Angebot.docx" → "Angebot (Kopie).docx", then "Angebot (Kopie 2).docx" and so on. */
+export const copyName = (name: string, attempt: number): string => {
+  const dot = name.lastIndexOf(".");
+  const [base, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  return `${base} (Kopie${attempt > 1 ? ` ${attempt}` : ""})${extension}`;
+};
+
+const MAX_COPY_ATTEMPTS = 50;
+
+/**
+ * A new file with the newest version's bytes (the blob is shared, not stored again). It goes next to
+ * the original when the user may add there, otherwise into their own files; the copy is theirs
+ * or, in a shared folder, the folder owner's like everything created there.
+ */
+export const copyFile = (db: Queryable, user: UserId, id: string): Result<Accessible> => {
+  const found = findVersion(db, user, id);
+  if (!found.ok) return found;
+  const { file, version } = found.value;
+  const nextToOriginal =
+    file.parentId === null ? file.ownerId === user : findTargetFolder(db, user, file.parentId).ok;
+  const parentId = nextToOriginal ? file.parentId : null;
+  for (let attempt = 1; attempt <= MAX_COPY_ATTEMPTS; attempt += 1) {
+    const copy = createFile(db, user, {
+      parentId,
+      name: copyName(file.name, attempt),
+      mime: file.mime ?? "application/octet-stream",
+      size: version.size,
+      sha256: version.sha256,
+    });
+    if (copy.ok || copy.error.kind !== "name_taken") return copy;
+  }
+  return fail("name_taken", NAME_TAKEN);
+};
+
 /** True when `folderId` is `id` or lies below it: moving `id` there would make a loop. */
 const isInside = (db: Queryable, folderId: string, id: string): boolean =>
   chainTo(db, folderId).some((node) => node.id === id);

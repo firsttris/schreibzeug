@@ -10,7 +10,7 @@ const GRID = { columns: 8, rows: 6 };
 type Size = { columns: number; rows: number };
 
 /** Word's way to insert a table: point at the size in a grid, click. */
-const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
+export const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
   const [hover, setHover] = useState<Size>({ columns: 1, rows: 1 });
   return (
     <div className="flex flex-col gap-2">
@@ -44,7 +44,8 @@ const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
   );
 };
 
-const actions = (run: (action: (commands: TextCommands) => void) => void): MenuItem[][] => [
+/** Rows, columns and the table itself: for the toolbar button, the menus and the context menu. */
+export const tableActions = (run: (action: (commands: TextCommands) => void) => void): MenuItem[][] => [
   [
     { label: "Zeile oberhalb einfügen", onSelect: () => run((c) => c.addRow("above")) },
     { label: "Zeile unterhalb einfügen", onSelect: () => run((c) => c.addRow("below")) },
@@ -89,7 +90,7 @@ export const TableMenu = ({ inTable, disabled, commands }: TableMenuProps) => {
           {inTable ? (
             <MenuList
               label="Tabelle bearbeiten"
-              groups={actions((action) => commands && action(commands))}
+              groups={tableActions((action) => commands && action(commands))}
               onDone={close}
             />
           ) : (

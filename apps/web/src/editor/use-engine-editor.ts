@@ -7,7 +7,7 @@ import {
   type OpenedDocument,
   type OpenOptions,
   type Store,
-} from "@stapel/editor-core";
+} from "@schreibzeug/editor-core";
 import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useUser } from "../account/context";
 import type { OpenedFile } from "./opened-file";

@@ -36,7 +36,7 @@ test.describe("text document round trip without a document server", () => {
     await save(page);
 
     const xml = await storedXml(page, fileId);
-    expect(paragraphTexts(xml)).toEqual(["Hallo Stapel", "Zweiter Absatz mit kursivem Text."]);
+    expect(paragraphTexts(xml)).toEqual(["Hallo Schreibzeug", "Zweiter Absatz mit kursivem Text."]);
     expect(runPropertiesOf(xml, "kursivem").join("")).toContain("<w:i");
   });
 
@@ -49,7 +49,7 @@ test.describe("text document round trip without a document server", () => {
     await page.keyboard.type("Neu: ");
     await save(page);
 
-    expect(paragraphTexts(await storedXml(page, fileId))[0]).toBe("Neu: Hallo Stapel");
+    expect(paragraphTexts(await storedXml(page, fileId))[0]).toBe("Neu: Hallo Schreibzeug");
   });
 
   test("makes the selection bold and writes it into the .docx", async ({ page }, testInfo) => {
@@ -64,7 +64,7 @@ test.describe("text document round trip without a document server", () => {
 
     await save(page);
 
-    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toContain("<w:b");
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("")).toContain("<w:b");
   });
 
   test("undoes a change", async ({ page }, testInfo) => {
@@ -76,7 +76,9 @@ test.describe("text document round trip without a document server", () => {
 
     await expect(page.getByRole("button", { name: "Fett" })).toHaveAttribute("aria-pressed", "false");
     await save(page);
-    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).not.toContain("<w:b");
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("")).not.toContain(
+      "<w:b",
+    );
   });
 
   test("shows the font size of the selection", async ({ page }, testInfo) => {

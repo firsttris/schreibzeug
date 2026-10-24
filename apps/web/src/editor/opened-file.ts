@@ -1,4 +1,4 @@
-import type { CollabChannel, ImageStore, OfficeFormat } from "@stapel/editor-core";
+import type { CollabChannel, ImageStore, OfficeFormat } from "@schreibzeug/editor-core";
 
 export type OpenedFile = {
   name: string;

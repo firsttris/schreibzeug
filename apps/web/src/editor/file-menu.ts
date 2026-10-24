@@ -1,4 +1,4 @@
-import type { OfficeFormat } from "@stapel/editor-core";
+import type { OfficeFormat } from "@schreibzeug/editor-core";
 import type { Menu } from "../ui/menu-bar";
 
 /**
@@ -61,7 +61,7 @@ export const helpMenu = (open: (dialog: "shortcuts" | "about") => void): Menu =>
   groups: [
     [
       { label: "Tastenkürzel", onSelect: () => open("shortcuts") },
-      { label: "Über Stapel", onSelect: () => open("about") },
+      { label: "Über Schreibzeug", onSelect: () => open("about") },
     ],
   ],
 });

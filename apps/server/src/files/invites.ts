@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { CreateInvite } from "@stapel/files-api";
+import type { CreateInvite } from "@schreibzeug/files-api";
 import { and, asc, eq, gt, isNull } from "drizzle-orm";
 import type { Queryable } from "../db/database";
 import { type InviteRow, invites, type NodeRow, nodes, shares, user } from "../db/schema";

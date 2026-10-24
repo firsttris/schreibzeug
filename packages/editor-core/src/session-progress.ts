@@ -2,7 +2,7 @@
  * How far a shared session is ahead of the stored file. In fast co-editing the engine counts a
  * change as saved once the relay has it (its "modified" flag drops), but the relay keeps changes
  * only in memory. What is safe is what a stored version holds, so the editor follows the change
- * log's length and the relay's `stapel:saved` index (apps/server src/collab/session.ts).
+ * log's length and the relay's `schreibzeug:saved` index (apps/server src/collab/session.ts).
  */
 
 export type SessionProgress = {
@@ -56,7 +56,7 @@ export const readProgress = (progress: SessionProgress, json: string): SessionPr
         ? progress
         : { ...progress, seen: Math.max(progress.seen, seen), lastAuthor: "me" };
     }
-    case "stapel:saved": {
+    case "schreibzeug:saved": {
       const saved = count(message.index);
       return saved === null ? progress : { ...progress, saved: Math.max(progress.saved, saved) };
     }

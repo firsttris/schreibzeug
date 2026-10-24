@@ -139,7 +139,7 @@ test("someone who loses the connection waits, reconnects and edits on", async ({
       },
       { timeout: 30_000, intervals: [1_000] },
     )
-    .toContain("Wieder da. Hallo Stapel");
+    .toContain("Wieder da. Hallo Schreibzeug");
   expect([...errors, ...benErrors].filter((line) => line.includes("[engine]"))).toEqual([]);
 });
 
@@ -163,7 +163,7 @@ test("changes are stored on their own, and everyone sees when they are", async (
       timeout: 30_000,
       intervals: [1_000],
     })
-    .toContain("Von selbst. Hallo Stapel");
+    .toContain("Von selbst. Hallo Schreibzeug");
   for (const someone of [page, ben.page]) {
     await expect(someone.getByTestId("editor-status")).toHaveAttribute("data-modified", "false");
     await expect(someone.getByTestId("editor-status")).toHaveText("Gespeichert");

@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    stapel_desktop_lib::run()
+    schreibzeug_desktop_lib::run()
 }

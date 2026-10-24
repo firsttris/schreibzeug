@@ -1,6 +1,6 @@
 /**
  * The servers the desktop app connects to. Pure functions over the stored list; the page in main.ts
- * reads and writes it. The window then shows the server's own web app (apps/server STAPEL_WEB_DIR).
+ * reads and writes it. The window then shows the server's own web app (apps/server SCHREIBZEUG_WEB_DIR).
  */
 
 export const MAX_RECENT = 5;

@@ -2,7 +2,7 @@
 
 ## Documentation
 
-The documentation is in `docs/` (<https://firsttris.github.io/stapel/>). Read the pages that touch the
+The documentation is in `docs/` (<https://firsttris.github.io/schreibzeug/>). Read the pages that touch the
 change before starting: `architecture.md` for how the pieces fit, `engine.md` for how the UI talks to
 `sdkjs`, `collaboration.md` for the relay protocol. Links in the README and the docs point to the
 GitHub Pages site, not to `docs/*.md`.

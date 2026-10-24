@@ -1,4 +1,4 @@
-import type { FileNode } from "@stapel/files-api";
+import type { FileNode } from "@schreibzeug/files-api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type ComponentType, useCallback, useState } from "react";
@@ -13,7 +13,7 @@ import { useFileActions } from "./use-file-actions";
 import { useSessionFile } from "./use-session-file";
 import { WordView } from "./word-view";
 
-/** The editor view for each kind of file Stapel opens (lib/format.ts isEditable). */
+/** The editor view for each kind of file Schreibzeug opens (lib/format.ts isEditable). */
 const VIEWS: Partial<Record<ReturnType<typeof kindOf>, ComponentType<EditorViewProps>>> = {
   docx: WordView,
   xlsx: SheetView,
@@ -85,7 +85,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
   const { actions, onRename, dialogs } = useFileActions({ node, onClose: () => void close(), onRestored });
 
   const View = VIEWS[kindOf({ kind: "file", name: file.name })];
-  if (!View) return <Failure message="Diese Datei kann Stapel noch nicht bearbeiten." />;
+  if (!View) return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
   return (
     <>
       <View

@@ -85,19 +85,19 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STAPEL_SIDECAR_TARGET: ${{ matrix.name == 'macos' && 'universal-apple-darwin' || '' }}
+          SCHREIBZEUG_SIDECAR_TARGET: ${{ matrix.name == 'macos' && 'universal-apple-darwin' || '' }}
         with:
           projectPath: apps/desktop
           tauriScript: bunx tauri
           args: ${{ matrix.args }}
           # Only for a tag: a draft release to look at before publishing it.
           tagName: ${{ startsWith(github.ref, 'refs/tags/desktop-v') && github.ref_name || '' }}
-          releaseName: "Stapel Desktop __VERSION__"
+          releaseName: "Schreibzeug Desktop __VERSION__"
           releaseBody: "Unsigned builds: Windows and macOS warn on the first start (see docs/desktop.md)."
           releaseDraft: true
       - uses: actions/upload-artifact@v4
         with:
-          name: stapel-desktop-${{ matrix.name }}
+          name: schreibzeug-desktop-${{ matrix.name }}
           path: |
             apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
             apps/desktop/src-tauri/target/release/bundle/deb/*.deb

@@ -9,9 +9,9 @@ let folder: string;
 let site: Hono;
 
 beforeAll(async () => {
-  folder = await mkdtemp(join(tmpdir(), "stapel-web-"));
+  folder = await mkdtemp(join(tmpdir(), "schreibzeug-web-"));
   await mkdir(join(folder, "engine", "frame"), { recursive: true });
-  await writeFile(join(folder, "index.html"), "<!doctype html><title>Stapel</title>");
+  await writeFile(join(folder, "index.html"), "<!doctype html><title>Schreibzeug</title>");
   await writeFile(join(folder, "engine", "frame", "word.js"), "window.engine = true;");
   const api = new Hono().basePath("/api").get("/health", (c) => c.json({ ok: true }));
   site = new Hono().route("/", api).route("/", webRoutes(folder));
@@ -25,13 +25,13 @@ describe("the web app beside the API", () => {
     expect(await script.text()).toBe("window.engine = true;");
     expect(script.headers.get("content-type")).toContain("javascript");
     const page = await site.request("/edit/8c2a5f8e-6a43-4f0b-9a55-0d6f0a3b1e11");
-    expect(await page.text()).toContain("<title>Stapel</title>");
+    expect(await page.text()).toContain("<title>Schreibzeug</title>");
   });
 
   it("leaves the API alone and does not leave its folder", async () => {
     expect(await (await site.request("/api/health")).json()).toEqual({ ok: true });
     expect((await site.request("/api/missing")).status).toBe(404);
     const outside = await site.request("/..%2f..%2fetc%2fpasswd");
-    expect(await outside.text()).toContain("<title>Stapel</title>");
+    expect(await outside.text()).toContain("<title>Schreibzeug</title>");
   });
 });

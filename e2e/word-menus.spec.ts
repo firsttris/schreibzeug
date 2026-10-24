@@ -57,7 +57,7 @@ test.describe("menus of the text editor", () => {
     await page.keyboard.press("Escape");
 
     await save(page);
-    const properties = runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("");
+    const properties = runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("");
     expect(properties).toContain("<w:b");
     expect(properties).toContain('w:vertAlign w:val="superscript"');
   });
@@ -108,7 +108,7 @@ test.describe("menus of the text editor", () => {
       .map(([, bytes]) => strFromU8(bytes));
     expect(parts.some((xml) => xml.includes("Muster GmbH"))).toBe(true);
     expect(parts.some((xml) => /<w:ftr[\s\S]*PAGE/.test(xml))).toBe(true);
-    expect(await storedXml(page, fileId)).toContain("Hallo Stapel");
+    expect(await storedXml(page, fileId)).toContain("Hallo Schreibzeug");
   });
 
   test("links text with Strg+K, edits the link from the context menu and keeps it", async ({
@@ -120,8 +120,8 @@ test.describe("menus of the text editor", () => {
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("Control+k");
     const dialog = page.getByRole("dialog", { name: "Link einfügen" });
-    await expect(dialog.getByLabel("Angezeigter Text")).toHaveValue("Hallo Stapel");
-    await dialog.getByLabel("Adresse").fill("stapel.dev");
+    await expect(dialog.getByLabel("Angezeigter Text")).toHaveValue("Hallo Schreibzeug");
+    await dialog.getByLabel("Adresse").fill("schreibzeug.dev");
     await dialog.getByRole("button", { name: "Einfügen" }).click();
 
     // A right click on the linked text offers to edit it.
@@ -131,17 +131,17 @@ test.describe("menus of the text editor", () => {
       .getByRole("menuitem", { name: "Link bearbeiten …" })
       .click();
     const edit = page.getByRole("dialog", { name: "Link bearbeiten" });
-    await expect(edit.getByLabel("Adresse")).toHaveValue("http://stapel.dev");
-    await edit.getByLabel("Adresse").fill("https://stapel.dev/hilfe");
+    await expect(edit.getByLabel("Adresse")).toHaveValue("http://schreibzeug.dev");
+    await edit.getByLabel("Adresse").fill("https://schreibzeug.dev/hilfe");
     await edit.getByRole("button", { name: "Ändern" }).click();
     await save(page);
 
     const files = unzipSync(await storedDocx(page, fileId));
     expect(strFromU8(files["word/_rels/document.xml.rels"] as Uint8Array)).toContain(
-      'Target="https://stapel.dev/hilfe"',
+      'Target="https://schreibzeug.dev/hilfe"',
     );
     expect(await storedXml(page, fileId)).toMatch(
-      /<w:hyperlink [^>]*>[\s\S]*Hallo Stapel[\s\S]*<\/w:hyperlink>/,
+      /<w:hyperlink [^>]*>[\s\S]*Hallo Schreibzeug[\s\S]*<\/w:hyperlink>/,
     );
   });
 
@@ -215,10 +215,10 @@ test.describe("menus of the text editor", () => {
 
   test("tells where the source code is", async ({ page }, testInfo) => {
     await openHello(page, testInfo);
-    await pick(page, "Hilfe", "Über Stapel");
+    await pick(page, "Hilfe", "Über Schreibzeug");
     await expect(page.getByRole("dialog").getByRole("link")).toHaveAttribute(
       "href",
-      "https://github.com/firsttris/stapel",
+      "https://github.com/firsttris/schreibzeug",
     );
   });
 
@@ -233,7 +233,7 @@ test.describe("menus of the text editor", () => {
     await expect(menu).toHaveCount(0);
     await pick(page, "Format", "Kursiv");
     await save(page);
-    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toContain("<w:i");
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("")).toContain("<w:i");
   });
 });
 
@@ -243,12 +243,12 @@ test.describe("find and replace", () => {
     await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
     await page.keyboard.press("Control+h");
     const bar = page.getByRole("search", { name: "Suchen und ersetzen" });
-    await bar.getByLabel("Suchen", { exact: true }).fill("Stapel");
+    await bar.getByLabel("Suchen", { exact: true }).fill("Schreibzeug");
     await expect(bar.getByTestId("search-result")).toHaveText("1 von 1");
     await bar.getByLabel("Suchen", { exact: true }).fill("gibt es nicht");
     await expect(bar.getByTestId("search-result")).toHaveText("Keine Treffer");
 
-    await bar.getByLabel("Suchen", { exact: true }).fill("Stapel");
+    await bar.getByLabel("Suchen", { exact: true }).fill("Schreibzeug");
     await bar.getByLabel("Ersetzen durch").fill("Ordner");
     await bar.getByRole("button", { name: "Alle ersetzen" }).click();
     await expect(bar.getByTestId("search-result")).toHaveText("1 ersetzt");

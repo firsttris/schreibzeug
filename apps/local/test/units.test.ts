@@ -48,12 +48,12 @@ describe("the trash", () => {
     expect(trashCommand("linux", "/a b").cmd).toEqual(["gio", "trash", "--", "/a b"]);
     expect(trashCommand("darwin", "/a b").cmd.at(-1)).toBe("/a b");
     const windows = trashCommand("win32", "C:\\a b");
-    expect(windows.env).toEqual({ STAPEL_TRASH_PATH: "C:\\a b" });
+    expect(windows.env).toEqual({ SCHREIBZEUG_TRASH_PATH: "C:\\a b" });
     expect(windows.cmd.join(" ")).not.toContain("C:\\a b");
   });
 
   it("fails when the file is still there afterwards", async () => {
-    const folder = await mkdtemp(join(tmpdir(), "stapel-trash-"));
+    const folder = await mkdtemp(join(tmpdir(), "schreibzeug-trash-"));
     try {
       const result = await createTrash("linux", async () => 0)(folder);
       expect(result.ok).toBe(false);
@@ -66,8 +66,8 @@ describe("the trash", () => {
 describe("the configuration", () => {
   it("takes the folder, its name and the token from the environment", () => {
     const config = readConfig({
-      STAPEL_LOCAL_ROOT: "/home/t/Dokumente",
-      STAPEL_LOCAL_TOKEN: "sixteen-characters",
+      SCHREIBZEUG_LOCAL_ROOT: "/home/t/Dokumente",
+      SCHREIBZEUG_LOCAL_TOKEN: "sixteen-characters",
     });
     expect(config.ok && config.value).toMatchObject({
       root: "/home/t/Dokumente",
@@ -78,7 +78,7 @@ describe("the configuration", () => {
   });
 
   it("makes up a token when none is given", () => {
-    const config = readConfig({ STAPEL_LOCAL_ROOT: "/tmp" });
+    const config = readConfig({ SCHREIBZEUG_LOCAL_ROOT: "/tmp" });
     expect(config.ok && config.value.token.length).toBeGreaterThanOrEqual(32);
   });
 });

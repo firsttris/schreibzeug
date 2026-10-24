@@ -1,4 +1,4 @@
-import type { FileNode } from "@stapel/files-api";
+import type { FileNode } from "@schreibzeug/files-api";
 import { FolderInput, History, Pencil, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFiles } from "../api/context";

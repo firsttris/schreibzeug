@@ -1,4 +1,4 @@
-import type { Align, SlideCommands, SlideState } from "@stapel/editor-core";
+import type { Align, SlideCommands, SlideState } from "@schreibzeug/editor-core";
 import {
   AlignCenter,
   AlignJustify,

@@ -3,11 +3,11 @@ import { MAX_RECENT, readRecent, remember, serverUrl } from "./servers";
 
 describe("server addresses", () => {
   it("completes what is typed", () => {
-    expect(serverUrl("stapel.example.org")).toBe("https://stapel.example.org");
-    expect(serverUrl(" https://stapel.example.org/ ")).toBe("https://stapel.example.org");
+    expect(serverUrl("schreibzeug.example.org")).toBe("https://schreibzeug.example.org");
+    expect(serverUrl(" https://schreibzeug.example.org/ ")).toBe("https://schreibzeug.example.org");
     expect(serverUrl("localhost:3000")).toBe("http://localhost:3000");
     expect(serverUrl("192.168.1.20:3000")).toBe("http://192.168.1.20:3000");
-    expect(serverUrl("http://nas.local:3000/stapel")).toBe("http://nas.local:3000/stapel");
+    expect(serverUrl("http://nas.local:3000/schreibzeug")).toBe("http://nas.local:3000/schreibzeug");
   });
 
   it("opens only web addresses", () => {

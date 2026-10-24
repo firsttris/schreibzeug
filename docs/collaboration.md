@@ -1,7 +1,7 @@
 # Collaboration
 
 Several people edit the same file at once. Each editor keeps its own engine; what one person types
-reaches the others as engine changes, through a relay in the Stapel server. There is no Document
+reaches the others as engine changes, through a relay in the Schreibzeug server. There is no Document
 Server: the relay speaks the part of its protocol that `sdkjs` needs, the way CryptPad runs the
 same engine without one.
 
@@ -18,7 +18,7 @@ the name others see is the signed-in user's ([accounts](accounts.md)).
 
 1. The editor page opens a WebSocket to `/api/collab/:fileId` (`joinSession` in
    `packages/editor-core/src/collab.ts`).
-2. The server answers with its own first message, `{"type":"stapel:session","baseVersion":n}`: the
+2. The server answers with its own first message, `{"type":"schreibzeug:session","baseVersion":n}`: the
    file version the session started from. The first person to open a file starts the session at
    the file's newest version; everyone after them gets the same version.
 3. The page loads that version's bytes (`GET /api/files/:id/content?version=n`), converts them and
@@ -31,7 +31,7 @@ Everyone opens the same bytes and applies the same changes in the same order, so
 
 `sdkjs` talks to the Document Server through socket.io (`common/docscoapi.js`). It takes the
 socket.io client from `window.io` when that is a function (`common/editorscommon.js`
-`getSocketIO`), so Stapel puts a stand-in there before the engine starts
+`getSocketIO`), so Schreibzeug puts a stand-in there before the engine starts
 (`packages/editor-core/src/frame-socket.ts`). The stand-in passes messages as JSON text through the
 channel and fires `connect`, `disconnect` and `message` like socket.io would. Messages from the
 relay are parsed with the frame's own `JSON`, because the engine checks values with `instanceof`.
@@ -60,7 +60,7 @@ The relay (`apps/server/src/collab/session.ts`) answers the messages `sdkjs` sen
 | `getLock` | all locks to everyone. Blocks nobody holds are taken; if one asked for is held already, the editor's rule decides (`src/collab/locks.ts`, ported from `_checkLockWord`, `_checkLockExcel`, `_checkLockPresentation`): text grants everything, spreadsheets refuse overlapping ranges on the same sheet, presentations the same slide or object. |
 | `unLockDocument` | drops changes from `deleteIndex` on; with `releaseLocks` `releaseLock` to the sender and the others; with `isSave` `unSaveLock` (-1) to the sender, which waits for it before it sends again. |
 | `cursor` | the cursor to the others. |
-| `stapel:saved` (ours) | `stapel:saved` with the highest stored index to everyone; see [saving](#saving). |
+| `schreibzeug:saved` (ours) | `schreibzeug:saved` with the highest stored index to everyone; see [saving](#saving). |
 | (disconnect) | `connectState` to the others; the person's locks are released. |
 
 `auth` hands the locks over as a map for text documents and as a list for the other editors, and
@@ -93,7 +93,7 @@ stored version holds is gone then. So the editor saves on its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The
-saving editor then sends `{"type":"stapel:saved","index":n}`: its copy holds the first `n` changes
+saving editor then sends `{"type":"schreibzeug:saved","index":n}`: its copy holds the first `n` changes
 of the log. The relay keeps the highest index and sends it to everyone (and to everyone joining
 later), so every editor knows whether the session is ahead of the stored file.
 

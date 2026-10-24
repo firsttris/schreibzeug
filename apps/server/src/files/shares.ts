@@ -1,4 +1,4 @@
-import type { Share, ShareRole } from "@stapel/files-api";
+import type { Share, ShareRole } from "@schreibzeug/files-api";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
 import { type NodeRow, nodes, shares, user } from "../db/schema";

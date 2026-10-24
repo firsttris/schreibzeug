@@ -1,4 +1,4 @@
-import { initialSlideState, openPresentation } from "@stapel/editor-core";
+import { initialSlideState, openPresentation } from "@schreibzeug/editor-core";
 import { Presentation } from "lucide-react";
 import { useRef } from "react";
 import { SlideToolbar } from "../toolbar/slide-toolbar";

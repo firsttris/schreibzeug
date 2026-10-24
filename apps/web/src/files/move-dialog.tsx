@@ -1,4 +1,4 @@
-import type { FileNode } from "@stapel/files-api";
+import type { FileNode } from "@schreibzeug/files-api";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Folder } from "lucide-react";
 import { useState } from "react";

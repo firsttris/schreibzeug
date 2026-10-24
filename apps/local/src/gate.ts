@@ -13,7 +13,7 @@ import { createMiddleware } from "hono/factory";
  *   turned away even before the cookie is looked at.
  * - A request that changes something must come from a loopback page (Origin), as must a WebSocket.
  */
-export const COOKIE = "stapel_local";
+export const COOKIE = "schreibzeug_local";
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
@@ -64,7 +64,8 @@ export const requireToken = (token: string) =>
     if (changes && !originIsLoopback(c.req.header("origin")))
       return refuse(c, 403, "Nur von diesem Computer aus.");
     const cookie = getCookie(c, COOKIE);
-    if (!cookie || !same(cookie, token)) return refuse(c, 401, "Bitte öffne Stapel über die Desktop-App.");
+    if (!cookie || !same(cookie, token))
+      return refuse(c, 401, "Bitte öffne Schreibzeug über die Desktop-App.");
     await next();
   });
 

@@ -38,7 +38,7 @@ const manualTimers = () => {
   };
 };
 
-const session = (baseVersion: number) => ({ type: "stapel:session", baseVersion });
+const session = (baseVersion: number) => ({ type: "schreibzeug:session", baseVersion });
 
 const recorder = () => {
   const events: string[] = [];
@@ -83,9 +83,9 @@ describe("joinSession", () => {
     const { events, listener } = recorder();
     channel.listen(listener);
 
-    sockets.receive({ type: "stapel:saved", index: 2 });
+    sockets.receive({ type: "schreibzeug:saved", index: 2 });
     sockets.receive({ type: "cursor" });
-    expect(observed).toEqual(['{"type":"stapel:saved","index":2}', '{"type":"cursor"}']);
+    expect(observed).toEqual(['{"type":"schreibzeug:saved","index":2}', '{"type":"cursor"}']);
     expect(events).toEqual(["open", 'message {"type":"cursor"}']);
   });
 

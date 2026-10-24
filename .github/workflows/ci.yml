@@ -64,7 +64,7 @@ jobs:
       # the local server (externalBin) and the web app (resources). Stand-ins do for these checks.
       - run: |
           mkdir -p ../dist binaries ../../web/dist
-          touch ../dist/index.html ../../web/dist/index.html binaries/stapel-local-x86_64-unknown-linux-gnu
+          touch ../dist/index.html ../../web/dist/index.html binaries/schreibzeug-local-x86_64-unknown-linux-gnu
       - run: cargo fmt --check
       - run: cargo clippy -- -D warnings
       - run: cargo test

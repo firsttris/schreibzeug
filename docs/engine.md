@@ -1,6 +1,6 @@
 # The editing engine
 
-Stapel edits documents with **sdkjs**, the JavaScript engine of Euro-Office (a fork of ONLYOFFICE).
+Schreibzeug edits documents with **sdkjs**, the JavaScript engine of Euro-Office (a fork of ONLYOFFICE).
 It runs entirely in the browser; there is no Document Server. Only `packages/editor-core` talks to
 it.
 
@@ -67,11 +67,11 @@ then follows the mobile editors of web-apps (`apps/*editor/mobile/src/controller
    with a local "first connect" and an empty license instead of opening a socket
    (`common/apiBase.js`, `common/docscoapi.js`).
    In a shared session the URL is a blob URL of the converted document instead, and `window.io`
-   in the frame is a socket.io stand-in that talks to the Stapel relay; see
+   in the frame is a socket.io stand-in that talks to the Schreibzeug relay; see
    [collaboration](collaboration.md).
 4. `asc_getEditorPermissions()`; the permissions callback calls `asc_LoadDocument()`.
 5. In offline mode sdkjs asks for the file through `_openChartOrLocalDocument`, which would open an
-   empty document. Stapel replaces it on the API instance with `asc_openDocumentFromBytes(binary)`.
+   empty document. Schreibzeug replaces it on the API instance with `asc_openDocumentFromBytes(binary)`.
 6. `asc_onDocumentContentReady` → the editor is ready.
 
 ## How it saves
@@ -115,7 +115,7 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 
 `src/comments.ts` reads and writes `asc_CCommentDataWord` (`word/api.js`) the way web-apps does
 (`common/mobile/lib/controller/collaboration/Comments.jsx`). A comment carries two times: `Time`,
-the local time written as if it were UTC, and `OOTime`, real milliseconds; Stapel keeps one time
+the local time written as if it were UTC, and `OOTime`, real milliseconds; Schreibzeug keeps one time
 in milliseconds and writes both.
 
 | Command | Engine call | Event back |

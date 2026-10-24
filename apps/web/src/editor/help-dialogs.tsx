@@ -81,13 +81,13 @@ export const ShortcutsDialog = ({
 );
 
 /** The running source, as the AGPL asks of a program used over a network. */
-export const SOURCE_URL = "https://github.com/firsttris/stapel";
+export const SOURCE_URL = "https://github.com/firsttris/schreibzeug";
 
 export const AboutDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
-  <Dialog open={open} title="Über Stapel" onClose={onClose}>
+  <Dialog open={open} title="Über Schreibzeug" onClose={onClose}>
     <p className="m-0 text-sm">
-      Stapel ist freie Software unter der GNU Affero General Public License 3.0, einschließlich der Engine,
-      die die Dokumente bearbeitet. Du kannst den Quellcode der laufenden Version einsehen, ändern und
+      Schreibzeug ist freie Software unter der GNU Affero General Public License 3.0, einschließlich der
+      Engine, die die Dokumente bearbeitet. Du kannst den Quellcode der laufenden Version einsehen, ändern und
       weitergeben.
     </p>
     <p className="m-0 text-sm">

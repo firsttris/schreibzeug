@@ -20,7 +20,7 @@ const setup = () => {
   };
 };
 
-const query = { text: "Stapel", matchCase: true, wholeWords: false };
+const query = { text: "Schreibzeug", matchCase: true, wholeWords: false };
 
 describe("search commands", () => {
   it("finds forward and back with the settings web-apps fills", () => {
@@ -28,7 +28,7 @@ describe("search commands", () => {
     expect(search.find(query, true)).toBe(3);
     expect(calls.at(-1)).toEqual([
       "asc_findText",
-      { text: "Stapel", matchCase: true, wholeWords: false },
+      { text: "Schreibzeug", matchCase: true, wholeWords: false },
       true,
     ]);
     search.find(query, false);

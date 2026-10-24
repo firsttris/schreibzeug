@@ -90,7 +90,7 @@ export const mediaSchema = z.object({ name: z.string().regex(/^[0-9a-f]{64}\.[a-
 export type Media = z.infer<typeof mediaSchema>;
 
 /**
- * Which kind of server the app talks to: a Stapel server with accounts, or the desktop app's local
+ * Which kind of server the app talks to: a Schreibzeug server with accounts, or the desktop app's local
  * one over a folder on the computer (apps/local), where sharing, versions and the trash are absent.
  */
 export const serverInfoSchema = z.discriminatedUnion("mode", [

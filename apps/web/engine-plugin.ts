@@ -44,7 +44,7 @@ export const enginePlugin = (engineDist: string, base = "/engine"): Plugin => {
   const root = resolve(engineDist);
   let outDir = "dist";
   return {
-    name: "stapel-engine",
+    name: "schreibzeug-engine",
     configResolved: (config) => {
       outDir = resolve(config.root, config.build.outDir);
     },

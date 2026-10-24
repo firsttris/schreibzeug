@@ -1,4 +1,4 @@
-import { folderListingSchema, nodeSchema, sharedNodeSchema, shareSchema } from "@stapel/files-api";
+import { folderListingSchema, nodeSchema, sharedNodeSchema, shareSchema } from "@schreibzeug/files-api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { startServer, type TestServer } from "./harness";

@@ -4,13 +4,13 @@ import type {
   Invitation as InvitationDto,
   Invite,
   SharedNode,
-} from "@stapel/files-api";
+} from "@schreibzeug/files-api";
 import type { InviteRow, VersionRow } from "../db/schema";
 import type { Accessible } from "./access";
 import type { Invitation } from "./invites";
 import type { SharedWithMe } from "./shares";
 
-/** Rows as the API sends them: the shapes in @stapel/files-api, dates as ISO strings. */
+/** Rows as the API sends them: the shapes in @schreibzeug/files-api, dates as ISO strings. */
 export const toFileNode = ({ node: row, role }: Accessible): FileNode => ({
   id: row.id,
   parentId: row.parentId,

@@ -3,11 +3,11 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "stapel",
+      "name": "schreibzeug",
       "devDependencies": {
         "@biomejs/biome": "2.6.2",
         "@playwright/test": "1.64.1",
-        "@stapel/ooxml": "workspace:*",
+        "@schreibzeug/ooxml": "workspace:*",
         "@types/bun": "1.4.4",
         "fflate": "0.8.3",
         "typescript": "7.0.2",
@@ -15,7 +15,7 @@
       },
     },
     "apps/desktop": {
-      "name": "@stapel/desktop",
+      "name": "@schreibzeug/desktop",
       "version": "0.1.0",
       "devDependencies": {
         "@tauri-apps/api": "2.12.4",
@@ -24,24 +24,24 @@
       },
     },
     "apps/local": {
-      "name": "@stapel/local",
+      "name": "@schreibzeug/local",
       "version": "0.0.0",
       "dependencies": {
         "@hono/zod-validator": "0.9.1",
-        "@stapel/files-api": "workspace:*",
-        "@stapel/ooxml": "workspace:*",
-        "@stapel/server": "workspace:*",
+        "@schreibzeug/files-api": "workspace:*",
+        "@schreibzeug/ooxml": "workspace:*",
+        "@schreibzeug/server": "workspace:*",
         "hono": "4.13.13",
         "zod": "4.6.7",
       },
     },
     "apps/server": {
-      "name": "@stapel/server",
+      "name": "@schreibzeug/server",
       "version": "0.0.0",
       "dependencies": {
         "@hono/zod-validator": "0.9.1",
-        "@stapel/files-api": "workspace:*",
-        "@stapel/ooxml": "workspace:*",
+        "@schreibzeug/files-api": "workspace:*",
+        "@schreibzeug/ooxml": "workspace:*",
         "better-auth": "1.7.12",
         "drizzle-orm": "0.45.4",
         "hono": "4.13.13",
@@ -53,13 +53,13 @@
       },
     },
     "apps/web": {
-      "name": "@stapel/web",
+      "name": "@schreibzeug/web",
       "version": "0.0.0",
       "dependencies": {
         "@fontsource-variable/geist": "5.3.0",
         "@fontsource-variable/geist-mono": "5.3.0",
-        "@stapel/editor-core": "workspace:*",
-        "@stapel/files-api": "workspace:*",
+        "@schreibzeug/editor-core": "workspace:*",
+        "@schreibzeug/files-api": "workspace:*",
         "@tanstack/react-query": "5.104.5",
         "@tanstack/react-router": "1.170.46",
         "better-auth": "1.7.12",
@@ -70,7 +70,7 @@
         "zod": "4.6.7",
       },
       "devDependencies": {
-        "@stapel/server": "workspace:*",
+        "@schreibzeug/server": "workspace:*",
         "@tailwindcss/vite": "4.3.3",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
@@ -80,21 +80,21 @@
       },
     },
     "packages/editor-core": {
-      "name": "@stapel/editor-core",
+      "name": "@schreibzeug/editor-core",
       "version": "0.0.0",
       "devDependencies": {
         "happy-dom": "21.0.4",
       },
     },
     "packages/files-api": {
-      "name": "@stapel/files-api",
+      "name": "@schreibzeug/files-api",
       "version": "0.0.0",
       "dependencies": {
         "zod": "4.6.7",
       },
     },
     "packages/ooxml": {
-      "name": "@stapel/ooxml",
+      "name": "@schreibzeug/ooxml",
       "version": "0.0.0",
       "dependencies": {
         "fflate": "0.8.3",
@@ -256,21 +256,21 @@
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
 
+    "@schreibzeug/desktop": ["@schreibzeug/desktop@workspace:apps/desktop"],
+
+    "@schreibzeug/editor-core": ["@schreibzeug/editor-core@workspace:packages/editor-core"],
+
+    "@schreibzeug/files-api": ["@schreibzeug/files-api@workspace:packages/files-api"],
+
+    "@schreibzeug/local": ["@schreibzeug/local@workspace:apps/local"],
+
+    "@schreibzeug/ooxml": ["@schreibzeug/ooxml@workspace:packages/ooxml"],
+
+    "@schreibzeug/server": ["@schreibzeug/server@workspace:apps/server"],
+
+    "@schreibzeug/web": ["@schreibzeug/web@workspace:apps/web"],
+
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
-
-    "@stapel/desktop": ["@stapel/desktop@workspace:apps/desktop"],
-
-    "@stapel/editor-core": ["@stapel/editor-core@workspace:packages/editor-core"],
-
-    "@stapel/files-api": ["@stapel/files-api@workspace:packages/files-api"],
-
-    "@stapel/local": ["@stapel/local@workspace:apps/local"],
-
-    "@stapel/ooxml": ["@stapel/ooxml@workspace:packages/ooxml"],
-
-    "@stapel/server": ["@stapel/server@workspace:apps/server"],
-
-    "@stapel/web": ["@stapel/web@workspace:apps/web"],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.3.3", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.24.1", "jiti": "^2.7.0", "lightningcss": "1.32.0", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.3.3" } }, "sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg=="],
 

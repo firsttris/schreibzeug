@@ -1,4 +1,4 @@
-import { mediaSchema, nodeSchema } from "@stapel/files-api";
+import { mediaSchema, nodeSchema } from "@schreibzeug/files-api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { imageTypeOf, parseMediaName } from "../src/files/media";
 import { startServer, type TestServer } from "./harness";

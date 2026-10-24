@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type FileNode, folderListingSchema, nodeSchema, serverInfoSchema } from "@stapel/files-api";
+import { type FileNode, folderListingSchema, nodeSchema, serverInfoSchema } from "@schreibzeug/files-api";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Local, startLocal } from "./harness";
 

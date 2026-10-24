@@ -28,7 +28,7 @@ export type CollabChannel = {
   baseVersion: number;
   send: (json: string) => void;
   /**
-   * The engine's listener: gets sdkjs's messages only, not ours (`stapel:…`). Messages that came
+   * The engine's listener: gets sdkjs's messages only, not ours (`schreibzeug:…`). Messages that came
    * before it are replayed to it.
    */
   listen: (listener: ChannelListener) => () => void;
@@ -37,7 +37,7 @@ export type CollabChannel = {
   close: () => void;
 };
 
-const SESSION = "stapel:session";
+const SESSION = "schreibzeug:session";
 
 /** The `type` of a relay message, or null for anything else. */
 export const messageType = (json: string): string | null => {
@@ -50,7 +50,7 @@ export const messageType = (json: string): string | null => {
 };
 
 /** Our own messages; sdkjs never sees them. */
-const isOwnMessage = (json: string): boolean => messageType(json)?.startsWith("stapel:") ?? false;
+const isOwnMessage = (json: string): boolean => messageType(json)?.startsWith("schreibzeug:") ?? false;
 
 /** Waits between reconnects, growing to a few seconds. */
 export const reconnectDelay = (attempt: number): number => Math.min(500 * 2 ** attempt, 5_000);

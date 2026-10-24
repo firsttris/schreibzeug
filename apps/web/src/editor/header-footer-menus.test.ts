@@ -1,4 +1,4 @@
-import type { HeaderFooterCommands } from "@stapel/editor-core";
+import type { HeaderFooterCommands } from "@schreibzeug/editor-core";
 import { describe, expect, it } from "vitest";
 import { headerFooterGroups } from "./header-footer-menus";
 

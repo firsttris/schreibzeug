@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import { createBlobStore } from "@stapel/server/blobs";
-import { ok } from "@stapel/server/result";
+import { createBlobStore } from "@schreibzeug/server/blobs";
+import { ok } from "@schreibzeug/server/result";
 import { createLocalApp } from "../src/app";
 import { createFolder } from "../src/folder";
 import { COOKIE } from "../src/gate";
@@ -15,7 +15,7 @@ export const TOKEN = "a-token-for-the-tests-only";
  * the system's trash, so the tests can see them there.
  */
 export const startLocal = async () => {
-  const base = await mkdtemp(join(tmpdir(), "stapel-local-test-"));
+  const base = await mkdtemp(join(tmpdir(), "schreibzeug-local-test-"));
   const root = join(base, "Dokumente");
   const trashed = join(base, "trash");
   await Promise.all([mkdir(root), mkdir(trashed), mkdir(join(base, "media"))]);

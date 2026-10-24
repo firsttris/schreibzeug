@@ -1,4 +1,4 @@
-import type { SlideShow } from "@stapel/editor-core";
+import type { SlideShow } from "@schreibzeug/editor-core";
 import { type RefObject, useEffect } from "react";
 
 type ShowSource = { slideShow: SlideShow; resize: () => void };

@@ -1,4 +1,4 @@
-import { type AppShortcut, shortcutOf } from "@stapel/editor-core";
+import { type AppShortcut, shortcutOf } from "@schreibzeug/editor-core";
 import { useEffect, useRef } from "react";
 
 export type ShortcutSource = { onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void };

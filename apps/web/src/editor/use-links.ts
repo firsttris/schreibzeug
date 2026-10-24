@@ -1,4 +1,4 @@
-import type { LinkCommands, LinkDraft } from "@stapel/editor-core";
+import type { LinkCommands, LinkDraft } from "@schreibzeug/editor-core";
 import { useEffect, useState } from "react";
 
 type LinkSource = {
@@ -10,7 +10,7 @@ type LinkSource = {
 /** Only addresses a browser opens as pages or mail; a document may carry anything else. */
 const isOpenable = (url: string): boolean => /^(https?:\/\/|mailto:)/i.test(url);
 
-/** Opens an address of a link in a new tab, without giving the page a handle on Stapel. */
+/** Opens an address of a link in a new tab, without giving the page a handle on Schreibzeug. */
 export const openLink = (url: string): void => {
   if (isOpenable(url)) window.open(url, "_blank", "noopener,noreferrer");
 };

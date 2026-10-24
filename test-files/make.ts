@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { docx, paragraphXml, pptx, type Run, xlsx } from "@stapel/ooxml";
+import { docx, paragraphXml, pptx, type Run, xlsx } from "@schreibzeug/ooxml";
 
 /** Run properties (ECMA-376 Part 1, 17.3.2); sizes are in half-points. */
 const bold = "<w:b/>";
@@ -16,7 +16,7 @@ const paragraph = (text: string, properties = spaced(8), run?: string) =>
 
 const files: Record<string, Uint8Array> = {
   "hello.docx": docx([
-    paragraphXml([{ text: "Hallo Stapel" }]),
+    paragraphXml([{ text: "Hallo Schreibzeug" }]),
     paragraphXml([{ text: "Zweiter Absatz mit kursivem Text.", properties: "<w:i/>" }]),
   ]),
   // A short business letter with a title, headings, emphasis and justified text: the document the

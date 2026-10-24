@@ -1,4 +1,4 @@
-import type { FileNode, Invitation } from "@stapel/files-api";
+import type { FileNode, Invitation } from "@schreibzeug/files-api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { messageOf } from "../api/client";
@@ -102,7 +102,7 @@ export const InvitePage = ({ token }: { token: string }) => {
             </Link>
           </div>
         )}
-        {invitation.isError && <Link to="/">Zu Stapel</Link>}
+        {invitation.isError && <Link to="/">Zu Schreibzeug</Link>}
       </div>
     </main>
   );

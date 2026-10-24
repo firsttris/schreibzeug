@@ -5,7 +5,7 @@ import type {
   SheetCommands,
   SheetState,
   ViewCommands,
-} from "@stapel/editor-core";
+} from "@schreibzeug/editor-core";
 import { NUMBER_FORMAT_LABELS } from "../toolbar/sheet-toolbar";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
@@ -42,7 +42,7 @@ const rowsAndColumns = (
 
 /**
  * Bearbeiten, Ansicht, Einfügen and Format of the spreadsheet, after the desktop spreadsheet editor
- * of web-apps (spreadsheeteditor main Toolbar.js) as far as Stapel has the commands.
+ * of web-apps (spreadsheeteditor main Toolbar.js) as far as Schreibzeug has the commands.
  */
 export const sheetMenus = (context: SheetMenuContext): Menu[] => {
   const { state, commands, view } = context;

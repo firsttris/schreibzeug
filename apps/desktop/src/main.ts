@@ -3,9 +3,9 @@ import { readRecent, remember, serverUrl } from "./servers";
 import { LOCAL, placeToOpen } from "./start";
 
 /** Where the page keeps the servers; the app's own origin, so it survives the window going elsewhere. */
-const STORAGE_KEY = "stapel.servers";
+const STORAGE_KEY = "schreibzeug.servers";
 /** Where it went last: "local" for files on this computer, else a server. */
-const LAST_KEY = "stapel.last";
+const LAST_KEY = "schreibzeug.last";
 
 const read = (key: string): string | null => {
   try {

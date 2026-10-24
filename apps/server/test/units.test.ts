@@ -13,14 +13,14 @@ describe("blob store", () => {
     await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
   const store = async () => {
-    const dir = await mkdtemp(join(tmpdir(), "stapel-blob-test-"));
+    const dir = await mkdtemp(join(tmpdir(), "schreibzeug-blob-test-"));
     dirs.push(dir);
     return { dir, blobs: createBlobStore(dir) };
   };
 
   it("keys bytes by their SHA-256 and reads them back", async () => {
     const { blobs } = await store();
-    const bytes = new TextEncoder().encode("Stapel");
+    const bytes = new TextEncoder().encode("Schreibzeug");
     const key = await blobs.put(bytes);
     expect(key).toBe(sha256Of(bytes));
     expect(await blobs.get(key)).toEqual(bytes);
@@ -82,9 +82,9 @@ describe("readConfig", () => {
 
   it("reads the account settings", () => {
     const config = readConfig({
-      STAPEL_AUTH_SECRET: "x".repeat(32),
-      STAPEL_OPEN_SIGNUP: "true",
-      STAPEL_TRUSTED_ORIGINS: "tauri://localhost, https://office.example.org",
+      SCHREIBZEUG_AUTH_SECRET: "x".repeat(32),
+      SCHREIBZEUG_OPEN_SIGNUP: "true",
+      SCHREIBZEUG_TRUSTED_ORIGINS: "tauri://localhost, https://office.example.org",
     });
     expect(config).toMatchObject({
       ok: true,
@@ -94,7 +94,7 @@ describe("readConfig", () => {
         trustedOrigins: ["tauri://localhost", "https://office.example.org"],
       },
     });
-    expect(readConfig({ STAPEL_AUTH_SECRET: "short" }).ok).toBe(false);
+    expect(readConfig({ SCHREIBZEUG_AUTH_SECRET: "short" }).ok).toBe(false);
   });
 
   it("reports what is wrong", () => {

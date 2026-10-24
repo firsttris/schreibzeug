@@ -1,5 +1,5 @@
 {
-  "name": "@stapel/ooxml",
+  "name": "@schreibzeug/ooxml",
   "version": "0.0.0",
   "private": true,
   "type": "module",

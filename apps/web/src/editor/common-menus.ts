@@ -1,4 +1,4 @@
-import type { ClipboardAction, ViewCommands } from "@stapel/editor-core";
+import type { ClipboardAction, ViewCommands } from "@schreibzeug/editor-core";
 import type { MenuItem } from "../ui/menu";
 
 /** The entries every editor's menus share: the clipboard, search and zoom. */

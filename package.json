@@ -1,5 +1,5 @@
 {
-  "name": "stapel",
+  "name": "schreibzeug",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,16 +11,16 @@
   "scripts": {
     "engine:prepare": "bun engine/scripts/prepare.ts",
     "test-files": "bun test-files/make.ts",
-    "dev": "bun run engine:prepare && bun run --filter '@stapel/{web,server}' dev",
-    "build": "bun run --filter @stapel/web build",
-    "preview": "bun run --filter @stapel/web preview",
+    "dev": "bun run engine:prepare && bun run --filter '@schreibzeug/{web,server}' dev",
+    "build": "bun run --filter @schreibzeug/web build",
+    "preview": "bun run --filter @schreibzeug/web preview",
     "typecheck": "tsc -b",
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "bun --bun vitest run",
     "test:watch": "bun --bun vitest",
     "test:e2e": "playwright test -c e2e/playwright.config.ts --project chromium --project fidelity",
-    "server": "bun run --filter @stapel/server dev",
+    "server": "bun run --filter @schreibzeug/server dev",
     "screenshots": "playwright test -c e2e/playwright.config.ts --project screenshots --workers 1",
     "test:fidelity": "playwright test -c e2e/playwright.config.ts --project fidelity",
     "fidelity:update": "playwright test -c e2e/playwright.config.ts --project fidelity --update-snapshots"
@@ -28,7 +28,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.6.2",
     "@playwright/test": "1.64.1",
-    "@stapel/ooxml": "workspace:*",
+    "@schreibzeug/ooxml": "workspace:*",
     "@types/bun": "1.4.4",
     "fflate": "0.8.3",
     "typescript": "7.0.2",

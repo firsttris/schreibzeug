@@ -1,4 +1,4 @@
-import type { ServerInfo } from "@stapel/files-api";
+import type { ServerInfo } from "@schreibzeug/files-api";
 import { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
 import type { Auth } from "./auth/auth";

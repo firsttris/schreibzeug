@@ -1,4 +1,4 @@
-import { copyName } from "@stapel/files-api";
+import { copyName } from "@schreibzeug/files-api";
 import { and, asc, desc, eq, inArray, isNull, max, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
 import { type NodeRow, nameKey, nodes, type VersionRow, versions } from "../db/schema";

@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { fail, ok, type Result } from "@stapel/server/result";
+import { fail, ok, type Result } from "@schreibzeug/server/result";
 
 /**
  * Deleting moves into the system's own trash, where it can be restored as from the file manager:
@@ -10,7 +10,7 @@ export type Command = { cmd: string[]; env?: Record<string, string> };
 
 const WINDOWS_SCRIPT = [
   "Add-Type -AssemblyName Microsoft.VisualBasic",
-  "$p = $env:STAPEL_TRASH_PATH",
+  "$p = $env:SCHREIBZEUG_TRASH_PATH",
   "if (Test-Path -LiteralPath $p -PathType Container) {",
   "  [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($p, 'OnlyErrorDialogs', 'SendToRecycleBin')",
   "} else {",
@@ -22,7 +22,7 @@ export const trashCommand = (platform: NodeJS.Platform, path: string): Command =
   if (platform === "win32")
     return {
       cmd: ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", WINDOWS_SCRIPT],
-      env: { STAPEL_TRASH_PATH: path },
+      env: { SCHREIBZEUG_TRASH_PATH: path },
     };
   if (platform === "darwin")
     return {

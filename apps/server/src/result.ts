@@ -1,4 +1,4 @@
-import type { ApiError, ApiErrorKind } from "@stapel/files-api";
+import type { ApiError, ApiErrorKind } from "@schreibzeug/files-api";
 
 /** Expected failures are values; only bugs and outages throw. */
 export type Result<T> = { ok: true; value: T } | { ok: false; error: ApiError };

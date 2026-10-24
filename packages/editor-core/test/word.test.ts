@@ -111,11 +111,11 @@ describe("openWordDocument in a shared session", () => {
     const saved = await editor.save();
     relay.relay({ type: "saveChanges", changes: [], syncChangesIndex: 4 });
     editor.markSaved(saved);
-    expect(relay.sent.at(-1)).toBe('{"type":"stapel:saved","index":3}');
+    expect(relay.sent.at(-1)).toBe('{"type":"schreibzeug:saved","index":3}');
 
-    relay.relay({ type: "stapel:saved", index: 3 });
+    relay.relay({ type: "schreibzeug:saved", index: 3 });
     expect(hasUnsavedChanges(editor.store.get())).toBe(true);
-    relay.relay({ type: "stapel:saved", index: 4 });
+    relay.relay({ type: "schreibzeug:saved", index: 4 });
     expect(hasUnsavedChanges(editor.store.get())).toBe(false);
   });
 
@@ -256,7 +256,7 @@ describe("openWordDocument", () => {
     const engine = createFakeEngine();
     const converter = fakeConverter();
     const uploads: Uint8Array[] = [];
-    const store = (name: string) => `https://stapel.example/api/files/f1/media/${name}`;
+    const store = (name: string) => `https://schreibzeug.example/api/files/f1/media/${name}`;
     const images = {
       upload: async (bytes: Uint8Array) => {
         uploads.push(bytes);
@@ -405,10 +405,13 @@ describe("openWordDocument", () => {
     const link = {
       asc_getObjectType: () => 4,
       get_ObjectType: () => 4,
-      get_ObjectValue: () => ({ get_Value: () => "https://stapel.dev", get_Text: () => "Stapel" }),
+      get_ObjectValue: () => ({ get_Value: () => "https://schreibzeug.dev", get_Text: () => "Schreibzeug" }),
     };
     engine.api().emit("asc_onFocusObject", [selected(0), link]);
-    expect(editor.store.get().paragraph.link).toEqual({ url: "https://stapel.dev", text: "Stapel" });
+    expect(editor.store.get().paragraph.link).toEqual({
+      url: "https://schreibzeug.dev",
+      text: "Schreibzeug",
+    });
     engine.api().emit("asc_onFocusObject", [selected(0)]);
     expect(editor.store.get().paragraph.link).toBeNull();
 
@@ -416,8 +419,8 @@ describe("openWordDocument", () => {
     editor.onLinkRequest(() => requests.push("dialog"));
     editor.onLinkOpen((url) => requests.push(url));
     engine.api().emit("asc_onDialogAddHyperlink");
-    engine.api().emit("asc_onHyperlinkClick", "https://stapel.dev");
-    expect(requests).toEqual(["dialog", "https://stapel.dev"]);
+    engine.api().emit("asc_onHyperlinkClick", "https://schreibzeug.dev");
+    expect(requests).toEqual(["dialog", "https://schreibzeug.dev"]);
   });
 
   it("knows the highlight at the cursor and whether formatting is being copied", async () => {

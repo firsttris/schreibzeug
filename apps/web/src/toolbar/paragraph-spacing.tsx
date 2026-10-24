@@ -1,4 +1,4 @@
-import type { LayoutCommands } from "@stapel/editor-core";
+import type { LayoutCommands } from "@schreibzeug/editor-core";
 import { LineHeight } from "lucide-react";
 import { formatSpacing, lineSpacingItems } from "../editor/layout-menus";
 import { MenuButton } from "../ui/menu";

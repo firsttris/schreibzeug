@@ -6,15 +6,15 @@ import {
   nodeNameSchema,
   type ServerInfo,
   updateNodeSchema,
-} from "@stapel/files-api";
-import { blankDocx, blankPptx, blankXlsx } from "@stapel/ooxml";
-import type { AuthEnv } from "@stapel/server/auth/middleware";
-import type { BlobStore } from "@stapel/server/blobs";
-import type { Hub } from "@stapel/server/collab/hub";
-import { collabRoutes } from "@stapel/server/collab/routes";
-import { imageTypeOf, mediaNameOf, parseMediaName } from "@stapel/server/files/media";
-import { contentDisposition } from "@stapel/server/files/serialize";
-import { fail, type Result, statusOf } from "@stapel/server/result";
+} from "@schreibzeug/files-api";
+import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
+import type { AuthEnv } from "@schreibzeug/server/auth/middleware";
+import type { BlobStore } from "@schreibzeug/server/blobs";
+import type { Hub } from "@schreibzeug/server/collab/hub";
+import { collabRoutes } from "@schreibzeug/server/collab/routes";
+import { imageTypeOf, mediaNameOf, parseMediaName } from "@schreibzeug/server/files/media";
+import { contentDisposition } from "@schreibzeug/server/files/serialize";
+import { fail, type Result, statusOf } from "@schreibzeug/server/result";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
@@ -69,7 +69,7 @@ const BLANK_FILES = {
 const withExtension = (name: string, extension: string) =>
   name.toLowerCase().endsWith(extension) ? name : `${name}${extension}`;
 
-const UNAVAILABLE = "Das gibt es nur auf einem Stapel-Server, nicht für Dateien auf diesem Computer.";
+const UNAVAILABLE = "Das gibt es nur auf einem Schreibzeug-Server, nicht für Dateien auf diesem Computer.";
 
 /**
  * The part of the server's API (apps/server src/files/routes.ts) the app needs for files on this
@@ -162,7 +162,7 @@ export const createLocalApp = ({
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": node.mime ?? "application/octet-stream",
           "content-disposition": contentDisposition(node.name),
-          "x-stapel-version": String(node.version),
+          "x-schreibzeug-version": String(node.version),
           "cache-control": "no-store",
         });
       })

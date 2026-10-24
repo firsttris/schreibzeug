@@ -1,4 +1,4 @@
-import type { SheetCommands, SheetTab } from "@stapel/editor-core";
+import type { SheetCommands, SheetTab } from "@schreibzeug/editor-core";
 import { EllipsisVertical, Plus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";

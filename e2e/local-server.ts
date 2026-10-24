@@ -14,9 +14,9 @@ await mkdir(E2E_LOCAL_ROOT, { recursive: true });
 const server = Bun.spawn(["bun", join(import.meta.dir, "../apps/local/src/main.ts")], {
   env: {
     ...process.env,
-    STAPEL_LOCAL_ROOT: E2E_LOCAL_ROOT,
-    STAPEL_LOCAL_TOKEN: E2E_LOCAL_TOKEN,
-    STAPEL_LOCAL_CACHE: join(E2E_LOCAL_ROOT, "..", "media"),
+    SCHREIBZEUG_LOCAL_ROOT: E2E_LOCAL_ROOT,
+    SCHREIBZEUG_LOCAL_TOKEN: E2E_LOCAL_TOKEN,
+    SCHREIBZEUG_LOCAL_CACHE: join(E2E_LOCAL_ROOT, "..", "media"),
     PORT: process.env.E2E_LOCAL_PORT ?? "3200",
   },
   stdio: ["inherit", "inherit", "inherit"],

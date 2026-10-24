@@ -30,8 +30,8 @@ describe("readProgress", () => {
   it("follows the relay's saved index without going back", () => {
     expect(
       read([
-        { type: "stapel:saved", index: 4 },
-        { type: "stapel:saved", index: 2 },
+        { type: "schreibzeug:saved", index: 4 },
+        { type: "schreibzeug:saved", index: 2 },
       ]).saved,
     ).toBe(4);
   });

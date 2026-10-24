@@ -1,4 +1,4 @@
-import type { Comment, CommentCommands } from "@stapel/editor-core";
+import type { Comment, CommentCommands } from "@schreibzeug/editor-core";
 import { MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommentsPanel } from "../comments/comments-panel";

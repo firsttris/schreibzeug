@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Stapel",
+  "productName": "Schreibzeug",
   "version": "../package.json",
-  "identifier": "io.github.firsttris.stapel",
+  "identifier": "io.github.firsttris.schreibzeug",
   "build": {
     "beforeDevCommand": "bun run sidecar && bun run start:dev",
     "devUrl": "http://localhost:1420",
@@ -20,7 +20,7 @@
     "targets": "all",
     "category": "Productivity",
     "shortDescription": "Office files, edited together",
-    "longDescription": "Documents, spreadsheets and presentations: the files on this computer, or on a Stapel server, edited together in real time.",
+    "longDescription": "Documents, spreadsheets and presentations: the files on this computer, or on a Schreibzeug server, edited together in real time.",
     "copyright": "AGPL-3.0-only",
     "license": "AGPL-3.0-only",
     "icon": [
@@ -30,7 +30,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": ["binaries/stapel-local"],
+    "externalBin": ["binaries/schreibzeug-local"],
     "resources": {
       "../../web/dist/": "web/"
     }

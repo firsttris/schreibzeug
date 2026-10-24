@@ -1,6 +1,6 @@
 # Architecture
 
-Stapel is a single-page app that edits Office files in the browser with the Euro-Office engine, and
+Schreibzeug is a single-page app that edits Office files in the browser with the Euro-Office engine, and
 one Bun server that stores the files and relays collaboration. The same app runs in the
 browser and in the Tauri desktop app.
 
@@ -19,14 +19,14 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 | `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests. |
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
 | `apps/local` | The desktop app's local server: the same files API over a folder on the computer, for one person, without accounts. See [the desktop app](desktop.md#files-on-this-computer). |
-| `apps/desktop` | The desktop app (Tauri 2) for Windows, macOS and Linux: the files on this computer through `apps/local`, or a window onto a Stapel server. See [the desktop app](desktop.md). |
+| `apps/desktop` | The desktop app (Tauri 2) for Windows, macOS and Linux: the files on this computer through `apps/local`, or a window onto a Schreibzeug server. See [the desktop app](desktop.md). |
 | `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`. |
 
 ## Why a SPA and a Hono API, not TanStack Start
 
 The plan started with TanStack Start, whose server functions call server code like local
 functions. They only exist while the Start server runs. The desktop app ships the interface as
-static files, without that server, and would still need a plain HTTP API to reach a Stapel server.
+static files, without that server, and would still need a plain HTTP API to reach a Schreibzeug server.
 So the interface is a plain SPA (Vite, TanStack Router and Query), and the server is a small API
 that browser and desktop call the same way.
 
@@ -49,7 +49,7 @@ the document. Every reply is checked against the schemas in
 `packages/files-api`.
 
 In development `bun run dev` prepares the engine if needed, starts the server and serves the app on port 5173, which forwards `/api`, WebSockets included, to the server
-(`STAPEL_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
+(`SCHREIBZEUG_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
 database (`e2e/server.ts`, port 3100) and the app on port 5174. Without Playwright's own browser download, an installed
 Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.
 

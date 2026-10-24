@@ -12,7 +12,7 @@ const comment: Omit<Comment, "id"> = {
   author: "Tristan",
   text: "Bitte prüfen",
   time: NOON_UTC,
-  quote: "Hallo Stapel",
+  quote: "Hallo Schreibzeug",
   resolved: false,
   guid: "6A1B2C3D",
   replies: [{ authorId: "u2", author: "Anna", text: "Erledigt", time: NOON_UTC + 60_000 }],

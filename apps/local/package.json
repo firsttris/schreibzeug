@@ -1,5 +1,5 @@
 {
-  "name": "@stapel/local",
+  "name": "@schreibzeug/local",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@hono/zod-validator": "0.9.1",
-    "@stapel/files-api": "workspace:*",
-    "@stapel/ooxml": "workspace:*",
-    "@stapel/server": "workspace:*",
+    "@schreibzeug/files-api": "workspace:*",
+    "@schreibzeug/ooxml": "workspace:*",
+    "@schreibzeug/server": "workspace:*",
     "hono": "4.13.13",
     "zod": "4.6.7"
   }

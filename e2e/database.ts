@@ -8,7 +8,7 @@ import { join } from "node:path";
 export const E2E_DATA_DIR = join(import.meta.dirname, ".data");
 
 /** The server's SQLite file in that folder (apps/server/src/main.ts). */
-export const E2E_DATABASE = join(E2E_DATA_DIR, "stapel.db");
+export const E2E_DATABASE = join(E2E_DATA_DIR, "schreibzeug.db");
 
 export type Statement = { sql: string; params: Array<string | number | null> };
 

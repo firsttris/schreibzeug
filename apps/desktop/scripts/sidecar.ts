@@ -1,7 +1,7 @@
 /**
  * Compiles the local server (apps/local) into one executable for the platform the app is built
  * for, where Tauri expects it (externalBin in tauri.conf.json): src-tauri/binaries/
- * stapel-local-<target triple>[.exe]. The triple: STAPEL_SIDECAR_TARGET if set (the workflow sets
+ * schreibzeug-local-<target triple>[.exe]. The triple: SCHREIBZEUG_SIDECAR_TARGET if set (the workflow sets
  * it for the universal macOS app), else what Tauri passes in TAURI_ENV_TARGET_TRIPLE, else the
  * machine's own (rustc -vV). A universal macOS app gets both architectures in one file.
  *
@@ -41,13 +41,13 @@ const compile = (triple: string, outfile: string) => {
   run(["bun", "build", "--compile", "--minify", `--target=${target}`, entry, "--outfile", outfile]);
 };
 
-const triple = process.env.STAPEL_SIDECAR_TARGET || process.env.TAURI_ENV_TARGET_TRIPLE || hostTriple();
+const triple = process.env.SCHREIBZEUG_SIDECAR_TARGET || process.env.TAURI_ENV_TARGET_TRIPLE || hostTriple();
 const suffix = triple.includes("windows") ? ".exe" : "";
-const outfile = join(binaries, `stapel-local-${triple}${suffix}`);
+const outfile = join(binaries, `schreibzeug-local-${triple}${suffix}`);
 
 if (triple === "universal-apple-darwin") {
   const parts = ["aarch64-apple-darwin", "x86_64-apple-darwin"].map((part) => {
-    const file = join(binaries, `stapel-local-${part}`);
+    const file = join(binaries, `schreibzeug-local-${part}`);
     compile(part, file);
     return file;
   });

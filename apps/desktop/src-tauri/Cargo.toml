@@ -1,14 +1,14 @@
 [package]
-name = "stapel-desktop"
+name = "schreibzeug-desktop"
 version = "0.1.0"
-description = "The Stapel desktop app"
+description = "The Schreibzeug desktop app"
 license = "AGPL-3.0-only"
-repository = "https://github.com/firsttris/stapel"
+repository = "https://github.com/firsttris/schreibzeug"
 edition = "2021"
 rust-version = "1.80"
 
 [lib]
-name = "stapel_desktop_lib"
+name = "schreibzeug_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

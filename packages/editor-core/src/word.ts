@@ -174,7 +174,7 @@ const wordBinding: EditorBinding<
     };
   },
   contentReady: (api, win, shared) => {
-    // Spell checking needs the Document Server's dictionary service, which Stapel does not run:
+    // Spell checking needs the Document Server's dictionary service, which Schreibzeug does not run:
     // without it every word is marked. web-apps switches it here too (documenteditor/mobile Main.jsx).
     api.asc_setSpellCheck(false);
     // The engine's shortcut table stays empty unless the UI fills it, so Strg+K did nothing; web-apps

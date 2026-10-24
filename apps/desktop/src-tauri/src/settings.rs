@@ -53,8 +53,10 @@ mod tests {
     use super::*;
 
     fn temporary(name: &str) -> PathBuf {
-        let folder =
-            std::env::temp_dir().join(format!("stapel-settings-{name}-{}", std::process::id()));
+        let folder = std::env::temp_dir().join(format!(
+            "schreibzeug-settings-{name}-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&folder);
         std::fs::create_dir_all(&folder).unwrap();
         folder

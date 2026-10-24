@@ -1,4 +1,4 @@
-import type { LayoutCommands, PageLayout } from "@stapel/editor-core";
+import type { LayoutCommands, PageLayout } from "@schreibzeug/editor-core";
 import { describe, expect, it } from "vitest";
 import { formatSpacing, layoutMenu, lineSpacingItems } from "./layout-menus";
 

@@ -1,4 +1,4 @@
-import { folderListingSchema, invitationSchema, inviteSchema, nodeSchema } from "@stapel/files-api";
+import { folderListingSchema, invitationSchema, inviteSchema, nodeSchema } from "@schreibzeug/files-api";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";

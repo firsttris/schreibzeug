@@ -1,4 +1,4 @@
-import type { ShareRole } from "@stapel/files-api";
+import type { ShareRole } from "@schreibzeug/files-api";
 
 const ROLES: Record<ShareRole, string> = { edit: "Darf bearbeiten", view: "Darf ansehen" };
 

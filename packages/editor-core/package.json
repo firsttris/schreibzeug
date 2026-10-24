@@ -1,5 +1,5 @@
 {
-  "name": "@stapel/editor-core",
+  "name": "@schreibzeug/editor-core",
   "version": "0.0.0",
   "private": true,
   "type": "module",

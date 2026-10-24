@@ -1,4 +1,4 @@
-import type { FileNode } from "@stapel/files-api";
+import type { FileNode } from "@schreibzeug/files-api";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useFiles } from "../api/context";

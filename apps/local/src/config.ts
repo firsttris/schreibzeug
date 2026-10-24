@@ -8,17 +8,20 @@ const MEGABYTE = 1024 * 1024;
 
 const configSchema = z.object({
   /** The folder shown as "Meine Dateien"; the desktop app passes the system's documents folder. */
-  STAPEL_LOCAL_ROOT: z.string().min(1).optional(),
+  SCHREIBZEUG_LOCAL_ROOT: z.string().min(1).optional(),
   /** How the app calls it; the folder's own name by default ("Dokumente"). */
-  STAPEL_LOCAL_ROOT_NAME: z.string().min(1).optional(),
+  SCHREIBZEUG_LOCAL_ROOT_NAME: z.string().min(1).optional(),
   /** The key the desktop app opens the window with (gate.ts); a random one when absent. */
-  STAPEL_LOCAL_TOKEN: z.string().min(16, "STAPEL_LOCAL_TOKEN needs at least 16 characters.").optional(),
+  SCHREIBZEUG_LOCAL_TOKEN: z
+    .string()
+    .min(16, "SCHREIBZEUG_LOCAL_TOKEN needs at least 16 characters.")
+    .optional(),
   /** 0: any free port, which main.ts prints. */
   PORT: z.coerce.number().int().min(0).max(65535).default(0),
-  STAPEL_WEB_DIR: z.string().min(1).optional(),
+  SCHREIBZEUG_WEB_DIR: z.string().min(1).optional(),
   /** Where images added while editing wait until the file is saved. */
-  STAPEL_LOCAL_CACHE: z.string().min(1).optional(),
-  STAPEL_MAX_UPLOAD_MB: z.coerce.number().positive().default(512),
+  SCHREIBZEUG_LOCAL_CACHE: z.string().min(1).optional(),
+  SCHREIBZEUG_MAX_UPLOAD_MB: z.coerce.number().positive().default(512),
 });
 
 export type LocalConfig = {
@@ -56,15 +59,15 @@ export const readConfig = (env: Record<string, string | undefined>, home = homed
   const parsed = configSchema.safeParse(env);
   if (!parsed.success) return { ok: false as const, error: z.prettifyError(parsed.error) };
   const value = parsed.data;
-  const root = resolve(value.STAPEL_LOCAL_ROOT ?? defaultRoot(home));
+  const root = resolve(value.SCHREIBZEUG_LOCAL_ROOT ?? defaultRoot(home));
   const config: LocalConfig = {
     root,
-    rootName: value.STAPEL_LOCAL_ROOT_NAME ?? (basename(root) || root),
-    token: value.STAPEL_LOCAL_TOKEN ?? randomBytes(24).toString("base64url"),
+    rootName: value.SCHREIBZEUG_LOCAL_ROOT_NAME ?? (basename(root) || root),
+    token: value.SCHREIBZEUG_LOCAL_TOKEN ?? randomBytes(24).toString("base64url"),
     port: value.PORT,
-    webDir: value.STAPEL_WEB_DIR,
-    cacheDir: value.STAPEL_LOCAL_CACHE ?? join(tmpdir(), "stapel-local-media"),
-    maxUploadBytes: value.STAPEL_MAX_UPLOAD_MB * MEGABYTE,
+    webDir: value.SCHREIBZEUG_WEB_DIR,
+    cacheDir: value.SCHREIBZEUG_LOCAL_CACHE ?? join(tmpdir(), "schreibzeug-local-media"),
+    maxUploadBytes: value.SCHREIBZEUG_MAX_UPLOAD_MB * MEGABYTE,
     userName: nameOfUser(env),
   };
   return { ok: true as const, value: config };

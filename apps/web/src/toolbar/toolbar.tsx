@@ -1,4 +1,10 @@
-import type { Align, EditorState, LayoutCommands, MarkingCommands, TextCommands } from "@stapel/editor-core";
+import type {
+  Align,
+  EditorState,
+  LayoutCommands,
+  MarkingCommands,
+  TextCommands,
+} from "@schreibzeug/editor-core";
 import {
   AlignCenter,
   AlignJustify,

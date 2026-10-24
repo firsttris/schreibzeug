@@ -1,4 +1,4 @@
-import type { Role } from "@stapel/files-api";
+import type { Role } from "@schreibzeug/files-api";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
 import { type NodeRow, nodes, shares } from "../db/schema";

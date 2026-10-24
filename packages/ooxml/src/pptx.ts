@@ -177,7 +177,7 @@ const solid = (color: string) => `<a:solidFill><a:schemeClr val="${color}"/></a:
 
 /** Office's default colours and Calibri (Light) for headings and text. */
 const theme = () =>
-  `${XML_HEADER}<a:theme xmlns:a="${A}" name="Stapel"><a:themeElements>` +
+  `${XML_HEADER}<a:theme xmlns:a="${A}" name="Schreibzeug"><a:themeElements>` +
   '<a:clrScheme name="Office">' +
   '<a:dk1><a:srgbClr val="000000"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1>' +
   '<a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2>' +

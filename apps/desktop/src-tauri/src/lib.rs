@@ -1,5 +1,5 @@
-//! The Stapel desktop app: a window that works on files on this computer (through the local server,
-//! local.rs) or shows a Stapel server's own web app. Downloads go to the download folder, a page of
+//! The Schreibzeug desktop app: a window that works on files on this computer (through the local server,
+//! local.rs) or shows a Schreibzeug server's own web app. Downloads go to the download folder, a page of
 //! the same app that opens a new window gets one of the app's own, other links go to the system's
 //! browser, and the menu switches between this computer and a server.
 
@@ -79,7 +79,7 @@ fn open_window(app: &AppHandle, label: &str, url: WebviewUrl) -> tauri::Result<W
     let downloads = app.clone();
     let opener = label.to_owned();
     WebviewWindowBuilder::new(app, label, url)
-        .title("Stapel")
+        .title("Schreibzeug")
         .inner_size(1280.0, 860.0)
         .min_inner_size(800.0, 560.0)
         .on_new_window(move |url, _features| {
@@ -136,7 +136,7 @@ fn local_config(app: &AppHandle, token: &str) -> Result<local::Config, String> {
     let paths = app.path();
     let binary = std::env::current_exe()
         .map_err(|error| error.to_string())?
-        .with_file_name(format!("stapel-local{}", std::env::consts::EXE_SUFFIX));
+        .with_file_name(format!("schreibzeug-local{}", std::env::consts::EXE_SUFFIX));
     Ok(local::Config {
         binary,
         root_name: settings::folder_name(&root, &documents),
@@ -248,7 +248,7 @@ fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     )?;
     let file = Submenu::with_items(
         app,
-        "Stapel",
+        "Schreibzeug",
         true,
         &[
             &locally,
@@ -338,7 +338,7 @@ pub fn run() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("the Stapel desktop app could not start");
+        .expect("the Schreibzeug desktop app could not start");
     app.run(|app, event| {
         if let RunEvent::Exit = event {
             let state = app.state::<LocalState>();

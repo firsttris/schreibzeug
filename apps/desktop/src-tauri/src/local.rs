@@ -11,7 +11,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 /// What the server prints once it listens (apps/local/src/main.ts).
-const READY: &str = "STAPEL_LOCAL_READY ";
+const READY: &str = "SCHREIBZEUG_LOCAL_READY ";
 const START_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub struct Config {
@@ -64,12 +64,12 @@ pub fn new_token() -> Result<String, String> {
 fn command(config: &Config) -> Command {
     let mut command = Command::new(&config.binary);
     command
-        .env("STAPEL_LOCAL_ROOT", &config.root)
-        .env("STAPEL_LOCAL_ROOT_NAME", &config.root_name)
-        .env("STAPEL_LOCAL_TOKEN", &config.token)
-        .env("STAPEL_WEB_DIR", &config.web_dir)
-        .env("STAPEL_LOCAL_CACHE", &config.cache_dir)
-        .env("STAPEL_LOCAL_EXIT_WITH_STDIN", "1")
+        .env("SCHREIBZEUG_LOCAL_ROOT", &config.root)
+        .env("SCHREIBZEUG_LOCAL_ROOT_NAME", &config.root_name)
+        .env("SCHREIBZEUG_LOCAL_TOKEN", &config.token)
+        .env("SCHREIBZEUG_WEB_DIR", &config.web_dir)
+        .env("SCHREIBZEUG_LOCAL_CACHE", &config.cache_dir)
+        .env("SCHREIBZEUG_LOCAL_EXIT_WITH_STDIN", "1")
         .env("PORT", "0")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -128,11 +128,14 @@ mod tests {
     #[test]
     fn reads_the_address_from_the_ready_line() {
         assert_eq!(
-            ready_url("STAPEL_LOCAL_READY http://127.0.0.1:41234\n"),
+            ready_url("SCHREIBZEUG_LOCAL_READY http://127.0.0.1:41234\n"),
             Some("http://127.0.0.1:41234")
         );
         assert_eq!(ready_url("Open http://127.0.0.1:1/api/local/unlock"), None);
-        assert_eq!(ready_url("STAPEL_LOCAL_READY https://example.org"), None);
+        assert_eq!(
+            ready_url("SCHREIBZEUG_LOCAL_READY https://example.org"),
+            None
+        );
     }
 
     #[test]

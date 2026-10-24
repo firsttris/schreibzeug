@@ -301,7 +301,7 @@ export const openDocument = <
         },
         markSaved: ({ seen }) => {
           binding.markUnchanged(api);
-          options.collaboration?.channel.send(JSON.stringify({ type: "stapel:saved", index: seen }));
+          options.collaboration?.channel.send(JSON.stringify({ type: "schreibzeug:saved", index: seen }));
         },
         resize: () => binding.resize(api),
         onShortcut: shortcuts.add,

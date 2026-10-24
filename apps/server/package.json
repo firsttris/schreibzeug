@@ -1,10 +1,10 @@
 {
-  "name": "@stapel/server",
+  "name": "@schreibzeug/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "The Stapel server: the files API (folders, uploads, versions, trash) on Bun with Hono and SQLite.",
+  "description": "The Schreibzeug server: the files API (folders, uploads, versions, trash) on Bun with Hono and SQLite.",
   "exports": {
     ".": "./src/app.ts",
     "./blobs": "./src/blobs.ts",
@@ -24,8 +24,8 @@
   },
   "dependencies": {
     "@hono/zod-validator": "0.9.1",
-    "@stapel/files-api": "workspace:*",
-    "@stapel/ooxml": "workspace:*",
+    "@schreibzeug/files-api": "workspace:*",
+    "@schreibzeug/ooxml": "workspace:*",
     "better-auth": "1.7.12",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.13",

@@ -4,7 +4,7 @@ import type {
   SlideCommands,
   SlideState,
   ViewCommands,
-} from "@stapel/editor-core";
+} from "@schreibzeug/editor-core";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
@@ -42,7 +42,7 @@ const slideItems = (
 
 /**
  * Bearbeiten, Ansicht, Einfügen, Folie, Bildschirmpräsentation and Format of the presentation, after the desktop presentation editor
- * of web-apps (presentationeditor main Toolbar.js) as far as Stapel has the commands.
+ * of web-apps (presentationeditor main Toolbar.js) as far as Schreibzeug has the commands.
  */
 export const slideMenus = (context: SlideMenuContext): Menu[] => {
   const { state, commands, view } = context;

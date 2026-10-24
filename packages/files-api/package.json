@@ -1,10 +1,10 @@
 {
-  "name": "@stapel/files-api",
+  "name": "@schreibzeug/files-api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "The files API between the Stapel server and its clients: Zod schemas, types and a fetch client.",
+  "description": "The files API between the Schreibzeug server and its clients: Zod schemas, types and a fetch client.",
   "exports": {
     ".": "./src/index.ts"
   },

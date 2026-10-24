@@ -1,10 +1,10 @@
 {
-  "name": "@stapel/desktop",
+  "name": "@schreibzeug/desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "The Stapel desktop app: files on this computer or on a Stapel server, built with Tauri for Windows, macOS and Linux.",
+  "description": "The Schreibzeug desktop app: files on this computer or on a Schreibzeug server, built with Tauri for Windows, macOS and Linux.",
   "scripts": {
     "start:dev": "vite",
     "start:build": "vite build",

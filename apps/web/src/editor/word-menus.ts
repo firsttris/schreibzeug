@@ -6,7 +6,7 @@ import type {
   LinkCommands,
   TextCommands,
   ViewCommands,
-} from "@stapel/editor-core";
+} from "@schreibzeug/editor-core";
 import { tableActions } from "../toolbar/table-menu";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
@@ -39,7 +39,7 @@ export type WordMenuContext = {
 
 /**
  * Bearbeiten, Ansicht, Einfügen, Layout and Format of the text editor, following the menus of the desktop
- * editors in web-apps (documenteditor main: Toolbar.js, ViewTab.js) as far as Stapel has the
+ * editors in web-apps (documenteditor main: Toolbar.js, ViewTab.js) as far as Schreibzeug has the
  * commands.
  */
 export const wordMenus = (context: WordMenuContext): Menu[] => {

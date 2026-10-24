@@ -28,7 +28,7 @@ const fail = (error: AuthError): never => {
 };
 
 /**
- * Accounts on the Stapel server: Better Auth's client against its routes under /api/auth
+ * Accounts on the Schreibzeug server: Better Auth's client against its routes under /api/auth
  * (apps/server src/auth). The session lives in a cookie; TanStack Query keeps who is signed in.
  */
 export const createAccount = (baseUrl: string) => {
@@ -55,7 +55,7 @@ export const createAccount = (baseUrl: string) => {
     /** `invite`: the token of a link, which lets someone in when sign-up is otherwise closed. */
     signUp: async (input: { name: string; email: string; password: string }, invite?: string) => {
       // apps/server src/auth/auth.ts INVITE_HEADER
-      const headers = invite ? { "x-stapel-invite": invite } : undefined;
+      const headers = invite ? { "x-schreibzeug-invite": invite } : undefined;
       const { error } = await client.signUp.email(input, headers ? { headers } : {});
       if (error) fail(error);
     },

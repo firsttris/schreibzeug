@@ -89,12 +89,12 @@ describe("collaboration session", () => {
       ["a", auth("anna")],
       ["b", auth("ben")],
       change("a", ["c1", "c2", "c3"]),
-      ["b", { type: "stapel:saved", index: 2 }],
-      ["a", { type: "stapel:saved", index: 1 }],
-      ["a", { type: "stapel:saved", index: 99 }],
+      ["b", { type: "schreibzeug:saved", index: 2 }],
+      ["a", { type: "schreibzeug:saved", index: 1 }],
+      ["a", { type: "schreibzeug:saved", index: 99 }],
     ]);
-    expect(log[3]?.out).toEqual([{ to: "all", message: { type: "stapel:saved", index: 2 } }]);
-    expect(log[4]?.out[0]?.message).toEqual({ type: "stapel:saved", index: 2 });
+    expect(log[3]?.out).toEqual([{ to: "all", message: { type: "schreibzeug:saved", index: 2 } }]);
+    expect(log[4]?.out[0]?.message).toEqual({ type: "schreibzeug:saved", index: 2 });
     // An index past the log counts as the whole log.
     expect(session.savedIndex).toBe(3);
   });
@@ -102,7 +102,7 @@ describe("collaboration session", () => {
   it("ignores a saved message without an index", () => {
     const { session, log } = run([
       ["a", auth("anna")],
-      ["a", { type: "stapel:saved" }],
+      ["a", { type: "schreibzeug:saved" }],
     ]);
     expect(log[1]?.out).toEqual([]);
     expect(session.savedIndex).toBe(0);
@@ -112,17 +112,17 @@ describe("collaboration session", () => {
     const { log } = run([
       ["a", auth("anna")],
       change("a", ["c1"]),
-      ["a", { type: "stapel:saved", index: 1 }],
+      ["a", { type: "schreibzeug:saved", index: 1 }],
       ["b", auth("ben")],
     ]);
-    expect(log[3]?.out.at(-1)?.message).toEqual({ type: "stapel:saved", index: 1 });
+    expect(log[3]?.out.at(-1)?.message).toEqual({ type: "schreibzeug:saved", index: 1 });
   });
 
   it("forgets a save for changes that are sent again", () => {
     const { session } = run([
       ["a", auth("anna")],
       change("a", ["c1", "c2"]),
-      ["a", { type: "stapel:saved", index: 2 }],
+      ["a", { type: "schreibzeug:saved", index: 2 }],
       [
         "a",
         {
@@ -144,7 +144,7 @@ describe("collaboration session", () => {
       "self:auth",
       "self:documentOpen",
       "others:connectState",
-      "self:stapel:saved",
+      "self:schreibzeug:saved",
     ]);
     expect(log[0]?.out[2]?.message).toMatchObject({ data: { data: { "Editor.bin": "blob:anna" } } });
     expect(session.participants).toMatchObject([
@@ -246,7 +246,7 @@ describe("collaboration session", () => {
       "self:auth",
       "others:connectState",
       "others:getLock",
-      "self:stapel:saved",
+      "self:schreibzeug:saved",
     ]);
     expect(session.participants.map((p) => [p.connectionId, p.id])).toEqual([
       ["a", "anna1"],
@@ -297,7 +297,7 @@ describe("collaboration hub", () => {
     const { join } = setup();
     const { messages } = await join();
     expect(messages).toEqual([
-      { type: "stapel:session", baseVersion: 3 },
+      { type: "schreibzeug:session", baseVersion: 3 },
       expect.objectContaining({ type: "license" }),
     ]);
   });

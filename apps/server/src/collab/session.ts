@@ -62,11 +62,11 @@ export const createSession = (fileId: string, baseVersion: number): Session => (
 });
 
 /** Our message telling everyone how much of the log is stored in a version. */
-const savedMessage = (session: Session) => ({ type: "stapel:saved", index: session.savedIndex });
+const savedMessage = (session: Session) => ({ type: "schreibzeug:saved", index: session.savedIndex });
 
 /**
  * A client stored the document as a new version, holding the first `index` changes of the log
- * (`stapel:saved`, sent after its upload). The newest save wins; nothing moves backwards.
+ * (`schreibzeug:saved`, sent after its upload). The newest save wins; nothing moves backwards.
  */
 export const markSaved = (session: Session, data: Incoming): Step => {
   const index = typeof data.index === "number" && Number.isInteger(data.index) ? data.index : -1;
@@ -431,7 +431,7 @@ export const receive = (session: Session, connectionId: string, data: Incoming, 
     case "unSaveLock":
       // A client giving up a save without changes; -1 everywhere, as DocsCoServer answers.
       return { session, out: [self(SAVE_UNLOCKED)] };
-    case "stapel:saved":
+    case "schreibzeug:saved":
       return markSaved(session, data);
     case "rpc":
       return answerRpc(session, data);

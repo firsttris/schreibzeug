@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { folderListingSchema, nodeSchema } from "@stapel/files-api";
+import { folderListingSchema, nodeSchema } from "@schreibzeug/files-api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import { createAuth } from "../src/auth/auth";
@@ -108,7 +108,7 @@ describe("sign-up", () => {
 
 describe("loadSecret", () => {
   it("prefers the configured secret, else makes one and keeps it", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "stapel-secret-"));
+    const dir = await mkdtemp(join(tmpdir(), "schreibzeug-secret-"));
     try {
       expect(await loadSecret("configured", join(dir, "auth-secret"))).toBe("configured");
       const made = await loadSecret(undefined, join(dir, "auth-secret"));

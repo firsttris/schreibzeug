@@ -1,4 +1,4 @@
-import type { FileNode } from "@stapel/files-api";
+import type { FileNode } from "@schreibzeug/files-api";
 import { useQuery } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 import { messageOf } from "../api/client";

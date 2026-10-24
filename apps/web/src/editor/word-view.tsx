@@ -1,4 +1,4 @@
-import { initialEditorState, openWordDocument } from "@stapel/editor-core";
+import { initialEditorState, openWordDocument } from "@schreibzeug/editor-core";
 import { useRef, useState } from "react";
 import { SizeGrid } from "../toolbar/table-menu";
 import { Toolbar } from "../toolbar/toolbar";

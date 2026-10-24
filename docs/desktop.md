@@ -1,18 +1,18 @@
 # The desktop app
 
-`apps/desktop` is Stapel as a desktop app for Windows, macOS and Linux, built with Tauri 2. It works
+`apps/desktop` is Schreibzeug as a desktop app for Windows, macOS and Linux, built with Tauri 2. It works
 in one of two places, chosen on its start page and remembered for the next start:
 
 - **On this computer**: the files in the documents folder (or another folder), through a small
   server the app starts beside its window ([below](#files-on-this-computer)). No account, no
   network.
-- **On a Stapel server**: the app asks for the server's address once, remembers the last ones, and
+- **On a Schreibzeug server**: the app asks for the server's address once, remembers the last ones, and
   then shows the server's own web app. Everything the browser can do works the same, and an update
   of the server updates the app's pages too.
 
 ```
                       ┌─▶ http://127.0.0.1:<port> (apps/local + the web app inside the app) ─▶ ~/Documents
-Stapel window (Tauri) ┤
+Schreibzeug window (Tauri) ┤
   start page          └─▶ https://your-server (apps/server + apps/web/dist)
 ```
 
@@ -20,11 +20,11 @@ Stapel window (Tauri) ┤
 
 - **The start page** (`apps/desktop/index.html`, `src/main.ts`, `src/servers.ts`, `src/start.ts`)
   is the app's own page. "Öffnen" starts the local server and opens the folder; "Ordner ändern …"
-  picks another one. For a server it completes what is typed (`stapel.example.org` gets `https://`, `localhost:3000` or an
+  picks another one. For a server it completes what is typed (`schreibzeug.example.org` gets `https://`, `localhost:3000` or an
   address in the local network `http://`), checks that something answers at `/api/health`, keeps
   the last five servers in its own storage. The next start goes back to where the app was last: the
   folder or the newest server.
-- **The server serves the web app**: with `STAPEL_WEB_DIR` pointing at `apps/web/dist`, the API
+- **The server serves the web app**: with `SCHREIBZEUG_WEB_DIR` pointing at `apps/web/dist`, the API
   server answers every path that is not `/api` with the built app, and unknown paths with
   `index.html` (`apps/server/src/web.ts`). The window loads the server's address directly, so
   sessions, the collaboration socket and the engine work exactly as in a browser on that server; no
@@ -33,7 +33,7 @@ Stapel window (Tauri) ┤
   home where Linux has none configured) without overwriting a file (`downloads.rs`). A page of the
   same server that opens a new window (a new or copied document) gets a window of the app, where
   the session holds; any other link (Strg+click on a link in a document) opens in the system's
-  browser, for http, https and mailto only. The menu "Stapel" has "Auf diesem Computer", "Ordner
+  browser, for http, https and mailto only. The menu "Schreibzeug" has "Auf diesem Computer", "Ordner
   wählen …" and "Mit Server verbinden …" (back to the start page).
 - **The local server** (`local.rs`): started on first use with a random key, stopped with the app;
   it also ends when its stdin closes, so a crashed app leaves nothing running. A new folder
@@ -49,8 +49,8 @@ Linux. The editors, the converter (WebAssembly) and saving were tried in WebKitG
 
 ## Files on this computer
 
-`apps/local` is a small server for working without a Stapel server: it speaks the same files API
-as `apps/server` (the same routes and shapes from `@stapel/files-api`) over a folder on the
+`apps/local` is a small server for working without a Schreibzeug server: it speaks the same files API
+as `apps/server` (the same routes and shapes from `@schreibzeug/files-api`) over a folder on the
 computer, the system's documents folder by default. The web app is the same; it asks `/api/info`
 which kind of server it talks to and, for `local`, names the root after the folder ("Dokumente")
 and leaves out what only makes sense with accounts.
@@ -76,19 +76,19 @@ and leaves out what only makes sense with accounts.
 
 | Variable | Meaning |
 |---|---|
-| `STAPEL_LOCAL_ROOT` | The folder shown; `~/Documents`, else the home folder, when absent |
-| `STAPEL_LOCAL_ROOT_NAME` | What the app calls it; the folder's own name when absent |
-| `STAPEL_LOCAL_TOKEN` | The key (at least 16 characters); a random one, printed with the unlock address, when absent |
+| `SCHREIBZEUG_LOCAL_ROOT` | The folder shown; `~/Documents`, else the home folder, when absent |
+| `SCHREIBZEUG_LOCAL_ROOT_NAME` | What the app calls it; the folder's own name when absent |
+| `SCHREIBZEUG_LOCAL_TOKEN` | The key (at least 16 characters); a random one, printed with the unlock address, when absent |
 | `PORT` | 0 (default): any free port |
-| `STAPEL_WEB_DIR` | The built web app to serve beside the API |
-| `STAPEL_LOCAL_CACHE` | Where images wait until saved; a folder in the system's temp folder by default |
+| `SCHREIBZEUG_WEB_DIR` | The built web app to serve beside the API |
+| `SCHREIBZEUG_LOCAL_CACHE` | Where images wait until saved; a folder in the system's temp folder by default |
 
-Once it listens it prints `STAPEL_LOCAL_READY http://127.0.0.1:<port>`. By hand, with the web
+Once it listens it prints `SCHREIBZEUG_LOCAL_READY http://127.0.0.1:<port>`. By hand, with the web
 app's dev server in front of it:
 
 ```sh
-STAPEL_LOCAL_ROOT=~/Dokumente PORT=3300 bun run --filter @stapel/local start
-STAPEL_API_URL=http://localhost:3300 bun run --filter @stapel/web dev
+SCHREIBZEUG_LOCAL_ROOT=~/Dokumente PORT=3300 bun run --filter @schreibzeug/local start
+SCHREIBZEUG_API_URL=http://localhost:3300 bun run --filter @schreibzeug/web dev
 # then open http://localhost:5173/api/local/unlock?token=<the printed token>
 ```
 
@@ -100,8 +100,8 @@ Tauri before every build into `src-tauri/binaries/`). So build the web app first
 
 ```sh
 bun run engine:prepare && bun run build          # apps/web/dist (Linux x86_64 for the engine's fonts)
-bun run --filter @stapel/desktop desktop:dev     # the app against the start page's dev server
-bun run --filter @stapel/desktop desktop:build   # installers for this machine
+bun run --filter @schreibzeug/desktop desktop:dev     # the app against the start page's dev server
+bun run --filter @schreibzeug/desktop desktop:build   # installers for this machine
 ```
 
 The engine's fonts and the Bun runtime make the installers large (about 200 MB); slimming the
@@ -120,5 +120,5 @@ Open. Linux packages need no signature.
 ## Next
 
 - Local and server files side by side, several folders.
-- Stapel as the default app for .docx, .xlsx and .pptx.
+- Schreibzeug as the default app for .docx, .xlsx and .pptx.
 - Signing and updates through the Tauri updater.

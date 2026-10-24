@@ -19,7 +19,7 @@ if (!config.ok) {
 
 const { dataDir, port, maxUploadBytes, authSecret, openSignup, trustedOrigins, webDir } = config.value;
 // One SQLite file next to the blobs: backing up the data folder backs up everything.
-const { db, close } = connect(join(resolve(dataDir), "stapel.db"));
+const { db, close } = connect(join(resolve(dataDir), "schreibzeug.db"));
 migrateDatabase(db);
 
 const auth = createAuth({
@@ -53,7 +53,7 @@ const server = Bun.serve({
   websocket,
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,
 });
-console.log(`Stapel server on http://localhost:${server.port}`);
+console.log(`Schreibzeug server on http://localhost:${server.port}`);
 
 const shutdown = async () => {
   await server.stop();

@@ -1,10 +1,10 @@
-import { type ApiError, apiErrorSchema } from "@stapel/files-api";
-import type { AppType } from "@stapel/server";
+import { type ApiError, apiErrorSchema } from "@schreibzeug/files-api";
+import type { AppType } from "@schreibzeug/server";
 import { hc } from "hono/client";
 import type { z } from "zod";
 
 /**
- * The typed client for the Stapel server. Its routes and request bodies come from the server's own
+ * The typed client for the Schreibzeug server. Its routes and request bodies come from the server's own
  * types (`AppType`), so a changed route breaks the build here, not at run time.
  */
 export const createApiClient = (baseUrl: string) => hc<AppType>(baseUrl).api;

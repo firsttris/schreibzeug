@@ -1,4 +1,4 @@
-import type { HeaderFooterCommands, PageNumberPlace } from "@stapel/editor-core";
+import type { HeaderFooterCommands, PageNumberPlace } from "@schreibzeug/editor-core";
 import type { MenuItem } from "../ui/menu";
 
 /** The usual places; web-apps' picker has all six, the menu keeps the ones letters use. */

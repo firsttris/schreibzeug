@@ -1,4 +1,4 @@
-import { nodeSchema } from "@stapel/files-api";
+import { nodeSchema } from "@schreibzeug/files-api";
 import { describe, expect, it } from "vitest";
 import { expectBytes, expectJson, isApiFailure, messageOf } from "./client";
 

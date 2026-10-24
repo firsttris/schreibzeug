@@ -1,4 +1,4 @@
-import { nodeNameSchema } from "@stapel/files-api";
+import { nodeNameSchema } from "@schreibzeug/files-api";
 import { useState } from "react";
 import { messageOf } from "../api/client";
 import { Button } from "../ui/button";

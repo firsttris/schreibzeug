@@ -34,7 +34,9 @@ test.describe("formatting a text document", () => {
     await expect(strike).toHaveAttribute("aria-pressed", "true");
 
     await save(page);
-    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toContain("<w:strike");
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("")).toContain(
+      "<w:strike",
+    );
   });
 
   test("colours text with one of Word's standard colours", async ({ page }, testInfo) => {
@@ -43,7 +45,7 @@ test.describe("formatting a text document", () => {
     await page.getByRole("button", { name: "Rot", exact: true }).click();
 
     await save(page);
-    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toMatch(
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("")).toMatch(
       /<w:color w:val="FF0000"/i,
     );
   });
@@ -56,7 +58,7 @@ test.describe("formatting a text document", () => {
     await expect(font).toHaveValue("Liberation Serif");
 
     await save(page);
-    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toContain(
+    expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Schreibzeug").join("")).toContain(
       'w:ascii="Liberation Serif"',
     );
   });
@@ -68,12 +70,12 @@ test.describe("formatting a text document", () => {
     await expect(bullets).toHaveAttribute("aria-pressed", "true");
 
     await save(page);
-    expect(paragraphWith(await storedXml(page, fileId), "Hallo Stapel")).toContain("<w:numPr>");
+    expect(paragraphWith(await storedXml(page, fileId), "Hallo Schreibzeug")).toContain("<w:numPr>");
 
     await bullets.click();
     await expect(bullets).toHaveAttribute("aria-pressed", "false");
     await save(page);
-    expect(paragraphWith(await storedXml(page, fileId), "Hallo Stapel")).not.toContain("<w:numPr>");
+    expect(paragraphWith(await storedXml(page, fileId), "Hallo Schreibzeug")).not.toContain("<w:numPr>");
   });
 
   test("numbers paragraphs", async ({ page }, testInfo) => {
@@ -94,7 +96,7 @@ test.describe("formatting a text document", () => {
     await expect(style).toHaveValue("Heading 1");
 
     await save(page);
-    expect(styleNameOf(await storedDocx(page, fileId), "Hallo Stapel")).toMatch(/^heading 1$/i);
+    expect(styleNameOf(await storedDocx(page, fileId), "Hallo Schreibzeug")).toMatch(/^heading 1$/i);
   });
 
   test("inserts a table from the grid and adds a row", async ({ page }, testInfo) => {

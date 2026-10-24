@@ -1,4 +1,4 @@
-import { AUTOSAVE_DELAY, autosaveDelay, type CoreState, type OpenedDocument } from "@stapel/editor-core";
+import { AUTOSAVE_DELAY, autosaveDelay, type CoreState, type OpenedDocument } from "@schreibzeug/editor-core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type DocumentSave = {

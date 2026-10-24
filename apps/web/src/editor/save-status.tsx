@@ -1,4 +1,4 @@
-import { type CoreState, hasUnsavedChanges } from "@stapel/editor-core";
+import { type CoreState, hasUnsavedChanges } from "@schreibzeug/editor-core";
 import { Check, Eye, LoaderCircle, WifiOff } from "lucide-react";
 import { useEffect } from "react";
 

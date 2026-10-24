@@ -1,4 +1,4 @@
-import { type ServerInfo, serverInfoSchema } from "@stapel/files-api";
+import { type ServerInfo, serverInfoSchema } from "@schreibzeug/files-api";
 import { createContext, type ReactNode, useContext } from "react";
 import type { ApiClient } from "./client";
 import { fileCommands, fileQueries } from "./files";
@@ -10,7 +10,7 @@ export type Files = {
   collabUrl: (fileId: string) => string;
   /** Where an image added to a file while editing is served (apps/server src/files/routes.ts). */
   mediaUrl: (fileId: string, name: string) => string;
-  /** A Stapel server, or the desktop app's files on this computer (apps/local). */
+  /** A Schreibzeug server, or the desktop app's files on this computer (apps/local). */
   info: ServerInfo;
 };
 
@@ -26,7 +26,7 @@ export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): 
 
 /**
  * Which kind of server this is (`/api/info`). A server from before that route answers 404: that
- * one is a Stapel server, as is anything that does not answer as expected.
+ * one is a Schreibzeug server, as is anything that does not answer as expected.
  */
 export const fetchServerInfo = async (baseUrl: string): Promise<ServerInfo> => {
   const reply = await fetch(`${baseUrl}/api/info`).catch(() => null);

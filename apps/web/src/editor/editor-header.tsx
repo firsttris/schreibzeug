@@ -1,4 +1,4 @@
-import type { CoreState, OfficeFormat } from "@stapel/editor-core";
+import type { CoreState, OfficeFormat } from "@schreibzeug/editor-core";
 import { ArrowLeft, Download, History, Save, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { FileBadge } from "../files/file-badge";

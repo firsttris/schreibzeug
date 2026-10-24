@@ -18,7 +18,7 @@ export type AuthDeps = {
 };
 
 /** The header that carries an invitation's token with a sign-up (web: api/account.ts). */
-export const INVITE_HEADER = "x-stapel-invite";
+export const INVITE_HEADER = "x-schreibzeug-invite";
 
 const userCount = (db: Database): number => db.select({ value: count() }).from(schema.user).get()?.value ?? 0;
 

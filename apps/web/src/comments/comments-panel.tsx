@@ -1,4 +1,4 @@
-import type { Comment, CommentCommands, CommentEntry } from "@stapel/editor-core";
+import type { Comment, CommentCommands, CommentEntry } from "@schreibzeug/editor-core";
 import { Check, MessageSquare, RotateCcw, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { formatChanged } from "../lib/format";

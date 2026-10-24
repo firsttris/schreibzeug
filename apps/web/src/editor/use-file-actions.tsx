@@ -1,5 +1,5 @@
-import type { OfficeFormat } from "@stapel/editor-core";
-import type { FileNode } from "@stapel/files-api";
+import type { OfficeFormat } from "@schreibzeug/editor-core";
+import type { FileNode } from "@schreibzeug/files-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { isApiFailure } from "../api/client";

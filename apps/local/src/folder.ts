@@ -1,9 +1,9 @@
 import type { Stats } from "node:fs";
 import { copyFile, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import { copyName, type FileNode, type FolderListing } from "@stapel/files-api";
-import { mimeOf } from "@stapel/server/files/mime";
-import { fail, ok, type Result } from "@stapel/server/result";
+import { copyName, type FileNode, type FolderListing } from "@schreibzeug/files-api";
+import { mimeOf } from "@schreibzeug/server/files/mime";
+import { fail, ok, type Result } from "@schreibzeug/server/result";
 import type { Ids } from "./ids";
 
 /**
@@ -30,7 +30,7 @@ const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
 const childPath = (folder: string, name: string): string => (folder ? `${folder}/${name}` : name);
 
 /** The file that newly created content goes into, written whole before it takes the real name. */
-const temporaryName = (target: string) => join(target, "..", `.~stapel-${crypto.randomUUID()}`);
+const temporaryName = (target: string) => join(target, "..", `.~schreibzeug-${crypto.randomUUID()}`);
 
 const writeWhole = async (target: string, bytes: Uint8Array) => {
   const temporary = temporaryName(target);

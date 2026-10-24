@@ -6,7 +6,7 @@ both live in the data folder, so copying that folder backs up everything.
 
 SQLite rather than PostgreSQL: one process and one folder to run, nothing else to install, the
 same database the desktop app can use locally, and the same choice as firsttris/sekretaer, which
-Stapel is meant to join. While several people edit, their changes go through the relay in memory;
+Schreibzeug is meant to join. While several people edit, their changes go through the relay in memory;
 the database sees a save every few seconds, which one writer at a time handles easily.
 `bun:sqlite` is synchronous, so the repository functions are too: a function that does not await
 is not interleaved with other requests, and a transaction must not await (`src/db/database.ts`).
@@ -86,14 +86,14 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 
 | Variable | Default |
 |---|---|
-| `STAPEL_DATA_DIR` | `data`: the database `stapel.db`, the blobs in `blobs/`, the generated `auth-secret` |
+| `SCHREIBZEUG_DATA_DIR` | `data`: the database `schreibzeug.db`, the blobs in `blobs/`, the generated `auth-secret` |
 | `PORT` | `3000` |
-| `STAPEL_MAX_UPLOAD_MB` | `512` |
-| `STAPEL_OPEN_SIGNUP`, `STAPEL_AUTH_SECRET`, `STAPEL_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
-| `STAPEL_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
+| `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` |
+| `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
+| `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on
-start. After a change to the schema, `bun run --filter @stapel/server db:generate` writes the next
+start. After a change to the schema, `bun run --filter @schreibzeug/server db:generate` writes the next
 migration. drizzle-kit 0.31 quotes the expressions of a SQLite index as column names; check
 generated indexes on expressions (as `nodes_name_per_parent` in `0000_init.sql`, fixed by hand).
 

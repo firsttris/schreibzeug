@@ -83,7 +83,7 @@ export const Shell = () => {
           <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
             <Layers size={16} />
           </span>
-          <span className="text-[15px] font-semibold tracking-tight">Stapel</span>
+          <span className="text-[15px] font-semibold tracking-tight">Schreibzeug</span>
         </Link>
         <nav aria-label="Bereiche" className="flex gap-1 md:flex-col">
           <NavLink to="/" icon={<FolderClosed size={16} />}>

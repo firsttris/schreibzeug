@@ -7,7 +7,7 @@ import {
   PAPER_SIZES,
   type PageLayout,
   paperSizeOf,
-} from "@stapel/editor-core";
+} from "@schreibzeug/editor-core";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 

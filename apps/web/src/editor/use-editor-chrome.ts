@@ -3,7 +3,7 @@ import type {
   ContextMenuArea,
   ContextMenuListener,
   ContextMenuRequest,
-} from "@stapel/editor-core";
+} from "@schreibzeug/editor-core";
 import { type RefObject, useEffect, useState } from "react";
 import { useNotice } from "../ui/use-notice";
 import { useInsertImage } from "./use-insert-image";

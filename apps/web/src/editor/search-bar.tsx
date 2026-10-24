@@ -1,4 +1,4 @@
-import type { SearchCommands, SearchQuery, SearchState } from "@stapel/editor-core";
+import type { SearchCommands, SearchQuery, SearchState } from "@schreibzeug/editor-core";
 import { CaseSensitive, ChevronDown, ChevronUp, WholeWord, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";

@@ -1,7 +1,7 @@
 import { mkdir, stat } from "node:fs/promises";
-import { createBlobStore } from "@stapel/server/blobs";
-import { createHub } from "@stapel/server/collab/hub";
-import { webRoutes } from "@stapel/server/web";
+import { createBlobStore } from "@schreibzeug/server/blobs";
+import { createHub } from "@schreibzeug/server/collab/hub";
+import { webRoutes } from "@schreibzeug/server/web";
 import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
 import { createLocalApp } from "./app";
@@ -12,7 +12,7 @@ import { createTrash } from "./trash";
 
 /**
  * The local server the desktop app starts beside its window (docs/desktop.md). It prints one line,
- * `STAPEL_LOCAL_READY <url>`, once it listens; the app opens `<url>/api/local/unlock?token=…`.
+ * `SCHREIBZEUG_LOCAL_READY <url>`, once it listens; the app opens `<url>/api/local/unlock?token=…`.
  */
 const config = readConfig(process.env);
 if (!config.ok) {
@@ -53,8 +53,8 @@ const server = Bun.serve({
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,
 });
 const url = `http://127.0.0.1:${server.port}`;
-console.log(`STAPEL_LOCAL_READY ${url}`);
-if (!process.env.STAPEL_LOCAL_TOKEN) console.log(`Open ${url}/api/local/unlock?token=${token}`);
+console.log(`SCHREIBZEUG_LOCAL_READY ${url}`);
+if (!process.env.SCHREIBZEUG_LOCAL_TOKEN) console.log(`Open ${url}/api/local/unlock?token=${token}`);
 
 const shutdown = async () => {
   await server.stop();
@@ -63,7 +63,7 @@ const shutdown = async () => {
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 // Started by the desktop app: its end closes our stdin, also when it crashed (local.rs).
-if (process.env.STAPEL_LOCAL_EXIT_WITH_STDIN === "1") {
+if (process.env.SCHREIBZEUG_LOCAL_EXIT_WITH_STDIN === "1") {
   process.stdin.on("end", () => void shutdown());
   process.stdin.on("close", () => void shutdown());
   process.stdin.resume();

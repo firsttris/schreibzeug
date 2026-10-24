@@ -12,7 +12,7 @@ import {
   shareSchema,
   type UpdateNode,
   versionSchema,
-} from "@stapel/files-api";
+} from "@schreibzeug/files-api";
 import { type QueryClient, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ApiClient, expectBytes, expectJson, expectOk } from "./client";
 

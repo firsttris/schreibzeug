@@ -1,4 +1,4 @@
-import { nodeIdSchema } from "@stapel/files-api";
+import { nodeIdSchema } from "@schreibzeug/files-api";
 import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import type { AuthEnv } from "../auth/middleware";
@@ -22,7 +22,7 @@ const parse = (data: unknown): Incoming | null => {
 
 /**
  * `/api/collab/:fileId`: one WebSocket per open editor. JSON messages in both directions: sdkjs's
- * own (see session.ts) and ours, prefixed `stapel:`.
+ * own (see session.ts) and ours, prefixed `schreibzeug:`.
  */
 export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSocket: UpgradeWebSocket }) =>
   new Hono<AuthEnv>().get(

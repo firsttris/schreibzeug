@@ -6,6 +6,6 @@ export const Brand = () => (
     <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
       <Layers size={18} />
     </span>
-    <span className="text-lg font-semibold tracking-tight">Stapel</span>
+    <span className="text-lg font-semibold tracking-tight">Schreibzeug</span>
   </div>
 );

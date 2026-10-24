@@ -1,4 +1,4 @@
-import type { SearchCommands, SearchState } from "@stapel/editor-core";
+import type { SearchCommands, SearchState } from "@schreibzeug/editor-core";
 import type { RefObject } from "react";
 import { SearchBar } from "./search-bar";
 import type { useSearchBar } from "./use-search-bar";

@@ -1,4 +1,4 @@
-import type { LinkDraft } from "@stapel/editor-core";
+import type { LinkDraft } from "@schreibzeug/editor-core";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";

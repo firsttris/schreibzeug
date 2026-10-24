@@ -142,7 +142,7 @@ const slideBinding: EditorBinding<
     };
   },
   // web-apps presentationeditor/mobile Main.jsx onDocumentContentReady; spell checking needs a
-  // dictionary service Stapel does not run.
+  // dictionary service Schreibzeug does not run.
   contentReady: (api) => {
     api.SetDrawingFreeze(false);
     api.asc_setSpellCheck(false);

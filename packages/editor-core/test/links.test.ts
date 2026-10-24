@@ -39,7 +39,7 @@ const engine = (selected: string | false, atCursor: ReturnType<typeof props> | n
 describe("links", () => {
   it("completes addresses as web-apps does", () => {
     expect(completeUrl(" example.org ")).toBe("http://example.org");
-    expect(completeUrl("https://stapel.dev")).toBe("https://stapel.dev");
+    expect(completeUrl("https://schreibzeug.dev")).toBe("https://schreibzeug.dev");
     expect(completeUrl("info@example.org")).toBe("mailto:info@example.org");
   });
 
@@ -53,8 +53,8 @@ describe("links", () => {
 
   it("writes the address where nothing is selected and no text is given", () => {
     const { calls, commands } = engine("");
-    commands.draft()?.apply({ url: "stapel.dev", text: "" });
-    expect(calls[0]?.[1].text).toBe("http://stapel.dev");
+    commands.draft()?.apply({ url: "schreibzeug.dev", text: "" });
+    expect(calls[0]?.[1].text).toBe("http://schreibzeug.dev");
   });
 
   it("changes and removes the link at the cursor", () => {

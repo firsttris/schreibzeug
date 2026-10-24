@@ -1,6 +1,6 @@
 /**
  * Format fidelity: every document in test-files/fidelity opens as its reference picture, and
- * looks the same again after Stapel saved it and opened the saved file. The references are taken in
+ * looks the same again after Schreibzeug saved it and opened the saved file. The references are taken in
  * CI (Actions → Update screenshots, `bun run fidelity:update`) in the Playwright image, so the
  * browser and fonts match; an engine update passes only when they stay the same.
  */

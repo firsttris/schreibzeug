@@ -47,7 +47,7 @@ export const kindOf = (node: { kind: "folder" | "file"; name: string }): FileKin
     : "other";
 };
 
-/** The kinds Stapel can open in an editor today. */
+/** The kinds Schreibzeug can open in an editor today. */
 export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean => {
   const kind = kindOf(node);
   return kind === "docx" || kind === "xlsx" || kind === "pptx";

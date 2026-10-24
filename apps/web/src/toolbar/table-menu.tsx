@@ -1,4 +1,4 @@
-import type { TextCommands } from "@stapel/editor-core";
+import type { TextCommands } from "@schreibzeug/editor-core";
 import { Table } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";

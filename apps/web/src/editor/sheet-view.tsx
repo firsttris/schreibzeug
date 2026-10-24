@@ -1,4 +1,4 @@
-import { initialSheetState, isOnSheet, openSheetDocument } from "@stapel/editor-core";
+import { initialSheetState, isOnSheet, openSheetDocument } from "@schreibzeug/editor-core";
 import { useRef } from "react";
 import { SheetTabs } from "../sheets/sheet-tabs";
 import { SheetToolbar } from "../toolbar/sheet-toolbar";

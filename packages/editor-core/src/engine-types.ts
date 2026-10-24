@@ -4,7 +4,7 @@ import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
 import type { EngineHighlight, MarkingApi } from "./marking";
 import type { SlideShowApi } from "./slide-show";
 /**
- * The part of the sdkjs API that Stapel uses, typed by hand. sdkjs has no type definitions; every
+ * The part of the sdkjs API that Schreibzeug uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
  * these types; everything outside sees EditorState and the command functions.
  */

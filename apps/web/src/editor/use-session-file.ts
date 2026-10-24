@@ -1,4 +1,4 @@
-import { type ImageStore, joinSession } from "@stapel/editor-core";
+import { type ImageStore, joinSession } from "@schreibzeug/editor-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { messageOf } from "../api/client";

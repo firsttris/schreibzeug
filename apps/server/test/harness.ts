@@ -16,8 +16,8 @@ export const MAX_UPLOAD_BYTES = 64 * 1024;
 const TEST_SECRET = "a-test-secret-that-is-long-enough-for-better-auth";
 
 export const startServer = async () => {
-  const dataDir = await mkdtemp(join(tmpdir(), "stapel-test-"));
-  const connection = connect(join(dataDir, "stapel.db"));
+  const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
+  const connection = connect(join(dataDir, "schreibzeug.db"));
   migrateDatabase(connection.db);
   const auth = createAuth({ db: connection.db, secret: TEST_SECRET, openSignup: true });
   const app = createApp({

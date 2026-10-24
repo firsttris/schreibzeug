@@ -1,4 +1,4 @@
-import type { TextColor } from "@stapel/editor-core";
+import type { TextColor } from "@schreibzeug/editor-core";
 import { Baseline, Check, Highlighter, PaintBucket } from "lucide-react";
 import { Button } from "../ui/button";
 import { popoverPanel, usePopover } from "../ui/use-popover";

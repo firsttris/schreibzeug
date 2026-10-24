@@ -58,7 +58,7 @@ const CHANGING = new Set([
   "isSaveLock",
   "unSaveLock",
   "unLockDocument",
-  "stapel:saved",
+  "schreibzeug:saved",
 ]);
 
 /**
@@ -96,7 +96,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
 
   return {
     /**
-     * A new connection to a file. It first learns the version to open (our own `stapel:session`
+     * A new connection to a file. It first learns the version to open (our own `schreibzeug:session`
      * message, before anything sdkjs sees), then gets the license sdkjs waits for after connecting.
      * Returns its id, or null when the file does not exist.
      */
@@ -109,7 +109,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       sessions.set(fileId, session);
       const connectionId = randomUUID();
       connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
-      send({ type: "stapel:session", baseVersion: session.baseVersion });
+      send({ type: "schreibzeug:session", baseVersion: session.baseVersion });
       send(licenseMessage());
       return connectionId;
     },

@@ -1,7 +1,7 @@
 # Accounts
 
 Everyone signs in with an email address and a password. The accounts are
-[Better Auth](https://www.better-auth.com/) on the Stapel server (`apps/server/src/auth`), stored
+[Better Auth](https://www.better-auth.com/) on the Schreibzeug server (`apps/server/src/auth`), stored
 in the app's own SQLite database through Better Auth's Drizzle adapter.
 
 ## Server
@@ -13,8 +13,8 @@ in the app's own SQLite database through Better Auth's Drizzle adapter.
 | The session check in front of every other route | `src/auth/middleware.ts` (`requireUser`); without a session the answer is `401` with `kind: "unauthorized"` |
 
 The session is a cookie. Better Auth checks the `Origin` of requests that carry it against its
-trusted origins; Stapel trusts its own origin, whatever host name the server is reached by, and
-the ones in `STAPEL_TRUSTED_ORIGINS` (the desktop app, later).
+trusted origins; Schreibzeug trusts its own origin, whatever host name the server is reached by, and
+the ones in `SCHREIBZEUG_TRUSTED_ORIGINS` (the desktop app, later).
 
 Every node has an `owner_id`. Every query in `src/files/repository.ts` takes the signed-in user and
 asks `src/files/access.ts` what they may do with the node; a file they have no access to is "not
@@ -55,7 +55,7 @@ The link opens `/invite/<token>` in the web app, which shows who shares what (`G
 /api/invites/:token` needs no session). Someone without a session signs in or creates an account
 and comes back; "Einladung annehmen" adds a share with the link's role, or keeps a stronger one the
 user already has. A link that holds also opens a closed sign-up: the page sends its token in the
-`x-stapel-invite` header, and the sign-up hook in `src/auth/auth.ts` lets that one account in.
+`x-schreibzeug-invite` header, and the sign-up hook in `src/auth/auth.ts` lets that one account in.
 
 In the editor the relay takes the role from the database for every connection. A viewer joins
 with `mode: "view"` whatever the client says, and the relay drops what would change the document
@@ -68,9 +68,9 @@ others' changes as they come.
 
 | Variable | Default | |
 |---|---|---|
-| `STAPEL_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account. Otherwise only the first account can be created there. |
-| `STAPEL_AUTH_SECRET` | generated | Signs the session cookies, at least 32 characters. Without it the server generates one on first start and keeps it in `STAPEL_DATA_DIR/auth-secret` (mode 600). |
-| `STAPEL_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas. |
+| `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account. Otherwise only the first account can be created there. |
+| `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies, at least 32 characters. Without it the server generates one on first start and keeps it in `SCHREIBZEUG_DATA_DIR/auth-secret` (mode 600). |
+| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas. |
 
 The first account takes over the files from before there were accounts (nodes without an owner),
 so an existing installation keeps its files.
@@ -87,7 +87,7 @@ and the way out.
 
 `apps/server/test/accounts.test.ts`: no session, no API; each person sees only their files; closed
 sign-up and the takeover of old files; the secret file. The server tests sign up an account in
-their harness. In the E2E run (`STAPEL_OPEN_SIGNUP=true`) every test signs up an account of its own
+their harness. In the E2E run (`SCHREIBZEUG_OPEN_SIGNUP=true`) every test signs up an account of its own
 through the API (`e2e/app.ts`); `e2e/accounts.spec.ts` goes through the form, signs out and back in,
 and checks that someone else's folder is not found. `apps/server/test/shares.test.ts` covers the
 roles, shares on folders, taking a share back and the trash; `e2e/sharing.spec.ts` shares a

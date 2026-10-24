@@ -7,8 +7,8 @@ import {
   nodeNameSchema,
   putShareSchema,
   updateNodeSchema,
-} from "@stapel/files-api";
-import { blankDocx, blankPptx, blankXlsx } from "@stapel/ooxml";
+} from "@schreibzeug/files-api";
+import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
@@ -179,7 +179,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
           "content-type": file.mime ?? "application/octet-stream",
           "content-disposition": contentDisposition(file.name),
           etag: `"${version.sha256}"`,
-          "x-stapel-version": String(version.number),
+          "x-schreibzeug-version": String(version.number),
           "cache-control": "no-store",
         });
       })

@@ -1,4 +1,4 @@
-import { type FileNode, putShareSchema, type Share, type ShareRole } from "@stapel/files-api";
+import { type FileNode, putShareSchema, type Share, type ShareRole } from "@schreibzeug/files-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";

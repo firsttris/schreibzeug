@@ -1,6 +1,6 @@
 /**
  * The engine names paragraph styles in English, as they are stored in the .docx (`w:name`). Word
- * shows the built-in ones in the language of its interface; so does Stapel. Styles a document
+ * shows the built-in ones in the language of its interface; so does Schreibzeug. Styles a document
  * brings with its own name keep that name.
  */
 const GERMAN: Record<string, string> = {

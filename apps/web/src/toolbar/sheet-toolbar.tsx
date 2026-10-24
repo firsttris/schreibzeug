@@ -1,4 +1,4 @@
-import type { Align, CellCommands, NumberFormat, SheetState } from "@stapel/editor-core";
+import type { Align, CellCommands, NumberFormat, SheetState } from "@schreibzeug/editor-core";
 import {
   AlignCenter,
   AlignLeft,

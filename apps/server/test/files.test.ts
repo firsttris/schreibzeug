@@ -1,4 +1,4 @@
-import { type FileNode, folderListingSchema, nodeSchema, versionSchema } from "@stapel/files-api";
+import { type FileNode, folderListingSchema, nodeSchema, versionSchema } from "@schreibzeug/files-api";
 import { strFromU8, unzipSync } from "fflate";
 import { testClient } from "hono/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -73,14 +73,14 @@ describe("health", () => {
 describe("folders", () => {
   it("lists folders before files, by name, with a path to the folder", async () => {
     const projects = await folder("Projekte");
-    const stapel = await folder("Stapel", projects.id);
-    await uploaded("b.docx", "b", stapel.id);
-    await folder("Zeug", stapel.id);
-    await uploaded("A.docx", "a", stapel.id);
+    const schreibzeug = await folder("Schreibzeug", projects.id);
+    await uploaded("b.docx", "b", schreibzeug.id);
+    await folder("Zeug", schreibzeug.id);
+    await uploaded("A.docx", "a", schreibzeug.id);
 
-    const listing = await list(stapel.id);
-    expect(listing.folder?.id).toBe(stapel.id);
-    expect(listing.path.map((node) => node.name)).toEqual(["Projekte", "Stapel"]);
+    const listing = await list(schreibzeug.id);
+    expect(listing.folder?.id).toBe(schreibzeug.id);
+    expect(listing.path.map((node) => node.name)).toEqual(["Projekte", "Schreibzeug"]);
     expect(listing.children.map((node) => node.name)).toEqual(["Zeug", "A.docx", "b.docx"]);
   });
 
@@ -131,7 +131,7 @@ describe("files", () => {
     const response = await content(file.id);
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe(DOCX);
-    expect(response.headers.get("x-stapel-version")).toBe("1");
+    expect(response.headers.get("x-schreibzeug-version")).toBe("1");
     expect(await response.text()).toBe("Inhalt");
   });
 

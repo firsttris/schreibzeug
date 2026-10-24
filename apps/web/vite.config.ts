@@ -5,8 +5,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { enginePlugin } from "./engine-plugin";
 
-/** The Stapel server the dev server forwards /api to (apps/server, `bun run server`). */
-const apiUrl = process.env.STAPEL_API_URL ?? "http://localhost:3000";
+/** The Schreibzeug server the dev server forwards /api to (apps/server, `bun run server`). */
+const apiUrl = process.env.SCHREIBZEUG_API_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), enginePlugin(resolve(import.meta.dirname, "../../engine/dist"))],

@@ -28,7 +28,7 @@ export const mediaNameOf = (sha256: string, type: ImageType): string => `${sha25
 
 const MEDIA_NAME = /^([0-9a-f]{64})\.([a-z]+)$/;
 
-/** The blob key and type behind a media name, or null for a name Stapel did not give out. */
+/** The blob key and type behind a media name, or null for a name Schreibzeug did not give out. */
 export const parseMediaName = (name: string): { sha256: string; type: ImageType } | null => {
   const [, sha256, extension] = MEDIA_NAME.exec(name) ?? [];
   const type = IMAGE_TYPES.find((candidate) => candidate.extension === extension);

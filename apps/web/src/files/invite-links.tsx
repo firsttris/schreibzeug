@@ -1,4 +1,4 @@
-import { type FileNode, INVITE_DAYS, type ShareRole } from "@stapel/files-api";
+import { type FileNode, INVITE_DAYS, type ShareRole } from "@schreibzeug/files-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Link2, X } from "lucide-react";
 import { useState } from "react";

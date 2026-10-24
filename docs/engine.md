@@ -163,6 +163,20 @@ Cut, copy and paste from a menu go through the engine (`common/clipboard_base.js
 (`allow="clipboard-read; clipboard-write"`). When the browser refuses, the entry answers `false`
 and the app says which keys to use, like web-apps.
 
+## Page layout and spacing
+
+The "Layout" menu sets the orientation, the paper size and the margins of the section at the
+cursor; "Format" and the toolbar set the line spacing and the indent of the paragraphs
+(`src/layout.ts`). The choices are web-apps' (documenteditor main `view/Toolbar.js`: A4, A5,
+Letter, Legal; margins normal, narrow, moderate, wide; spacing 1 to 3 lines), and so are the
+calls (`controller/Toolbar.js`): `change_PageOrient(isPortrait)`, `change_DocSize(width, height)`
+with the upright size (the engine turns it for a landscape page), `asc_SetSectionProps` with an
+`Asc.CDocumentSectionProps` that has only the margins set (`CDocument.Set_SectionProps` leaves
+what is undefined alone), `put_PrLineSpacing(Asc.linerule_Auto, multiple)`, and
+`IncreaseIndent` / `DecreaseIndent`. What the cursor's section and paragraph have comes from
+`asc_onSectionProps` (`CDocument.UpdateInterface`) and `asc_onParaSpacingLine`; a preset is
+checked when every value is within a tenth of a millimetre, as web-apps checks it.
+
 ## Find and replace
 
 `src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,

@@ -1,13 +1,21 @@
-import type { ClipboardAction, EditorState, TextCommands, ViewCommands } from "@stapel/editor-core";
+import type {
+  ClipboardAction,
+  EditorState,
+  LayoutCommands,
+  TextCommands,
+  ViewCommands,
+} from "@stapel/editor-core";
 import { tableActions } from "../toolbar/table-menu";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
+import { layoutMenu, paragraphSpacingGroups } from "./layout-menus";
 
 /** What the menus of the text editor work with; null while the document opens. */
 export type WordMenuContext = {
   state: EditorState;
   commands: TextCommands | null;
+  layout: LayoutCommands | null;
   view: ViewCommands | null;
   /** The browser refused the clipboard: say which keys to use instead. */
   onClipboardRefused: (action: ClipboardAction) => void;
@@ -21,7 +29,7 @@ export type WordMenuContext = {
 };
 
 /**
- * Bearbeiten, Ansicht, Einfügen and Format of the text editor, following the menus of the desktop
+ * Bearbeiten, Ansicht, Einfügen, Layout and Format of the text editor, following the menus of the desktop
  * editors in web-apps (documenteditor main: Toolbar.js, ViewTab.js) as far as Stapel has the
  * commands.
  */
@@ -90,6 +98,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ],
       ],
     },
+    layoutMenu(state.page, context.layout, off),
     {
       label: "Format",
       groups: [
@@ -180,6 +189,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
             onSelect: run((c) => void c.toggleList("number")),
           },
         ],
+        ...paragraphSpacingGroups(state.paragraph.lineSpacing, context.layout, off),
         [
           {
             label: "Formatierung löschen",

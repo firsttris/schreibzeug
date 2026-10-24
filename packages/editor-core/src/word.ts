@@ -4,6 +4,7 @@ import { type CommentCommands, createCommentCommands } from "./comments";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
 import type { EngineWindow, WordEngineApi, WordEventArgs, WordWindow } from "./engine-types";
 import { stateEvents } from "./events";
+import { createLayoutCommands, type LayoutCommands, readLineSpacing, readSection } from "./layout";
 import { readListKind } from "./lists";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
@@ -19,6 +20,7 @@ export type OpenWordOptions = OpenOptions;
 
 export type WordEditor = OpenedDocument<EditorState> & {
   commands: TextCommands;
+  layout: LayoutCommands;
   comments: CommentCommands;
   view: ViewCommands;
   search: SearchCommands;
@@ -45,7 +47,7 @@ const wordBinding: EditorBinding<
   WordEngineApi,
   EditorState,
   WordEvent,
-  Pick<WordEditor, "commands" | "comments" | "view" | "search" | "onContextMenu">
+  Pick<WordEditor, "commands" | "layout" | "comments" | "view" | "search" | "onContextMenu">
 > = {
   format: "docx",
   createApi: (win) => {
@@ -64,6 +66,16 @@ const wordBinding: EditorBinding<
       const table = win.Asc.c_oAscTypeSelectElement.Table;
       dispatch({ type: "inTable", value: objects.some((object) => object.asc_getObjectType() === table) });
     });
+    const layoutConstants = {
+      portrait: win.Asc.c_oAscPageOrientation.PagePortrait,
+      lineRuleAuto: win.Asc.linerule_Auto,
+    };
+    api.asc_registerCallback("asc_onSectionProps", (props) =>
+      dispatch({ type: "page", value: readSection(props, layoutConstants) }),
+    );
+    api.asc_registerCallback("asc_onParaSpacingLine", (spacing) =>
+      dispatch({ type: "lineSpacing", value: readLineSpacing(spacing, layoutConstants) }),
+    );
     const onContextMenu = contextMenuSource(api, () => win.document.getElementById("editor_sdk"), {
       headerFooter: win.Asc.c_oAscContextMenuTypes.ChangeHdrFtr,
     });
@@ -75,6 +87,7 @@ const wordBinding: EditorBinding<
         () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
       ),
       onContextMenu,
+      layout: createLayoutCommands(api, () => new win.Asc.CDocumentSectionProps(), layoutConstants),
       commands: withListRefresh(
         createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),
         refreshList,

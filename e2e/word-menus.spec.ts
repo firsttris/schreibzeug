@@ -60,6 +60,34 @@ test.describe("menus of the text editor", () => {
     expect(properties).toContain('w:vertAlign w:val="superscript"');
   });
 
+  test("sets up the page and the line spacing", async ({ page }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await pick(page, "Layout", "Querformat");
+    await pick(page, "Layout", "A5");
+    await pick(page, "Layout", "Ränder schmal");
+    await pick(page, "Format", "Zeilenabstand 1,5");
+
+    await page.getByRole("menubar").getByRole("button", { name: "Layout" }).click();
+    for (const entry of ["Querformat", "A5", "Ränder schmal"]) {
+      await expect(page.getByRole("menuitemcheckbox", { name: entry })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+    }
+    await page.keyboard.press("Escape");
+
+    await save(page);
+    const xml = await storedXml(page, fileId);
+    // Twentieths of a point: A5 lying is 210 × 148 mm, 12.7 mm is 720.
+    const size = xml.match(/<w:pgSz [^>]*>/)?.[0] ?? "";
+    expect(size).toContain('w:w="11906"');
+    expect(size).toMatch(/w:h="839\d"/);
+    expect(size).toContain('w:orient="landscape"');
+    expect(xml).toMatch(/<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/);
+    expect(xml).toMatch(/<w:spacing [^>]*w:line="360" w:lineRule="auto"/);
+  });
+
   test("zooms from the view menu", async ({ page }, testInfo) => {
     await openHello(page, testInfo);
     await pick(page, "Ansicht", "150 %");

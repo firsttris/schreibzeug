@@ -46,6 +46,18 @@ export {
 export type { DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
+export {
+  type LayoutCommands,
+  LINE_SPACINGS,
+  MARGIN_PRESETS,
+  type MarginPreset,
+  type Margins,
+  marginPresetOf,
+  PAPER_SIZES,
+  type PageLayout,
+  type PaperSize,
+  paperSizeOf,
+} from "./layout";
 export type { ImageStore } from "./media";
 export { createSearchCommands, type SearchCommands, type SearchQuery } from "./search";
 export {

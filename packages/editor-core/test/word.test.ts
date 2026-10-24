@@ -284,6 +284,37 @@ describe("openWordDocument", () => {
     expect(editor.store.get().status).toBe("ready");
   });
 
+  it("knows the page and the line spacing at the cursor, and changes them", async () => {
+    const { engine, editor } = await openReady();
+    const section = {
+      get_W: () => 297,
+      get_H: () => 210,
+      get_Orientation: () => 1,
+      get_TopMargin: () => 12.7,
+      get_LeftMargin: () => 12.7,
+      get_BottomMargin: () => 12.7,
+      get_RightMargin: () => 12.7,
+      put_TopMargin: () => {},
+      put_LeftMargin: () => {},
+      put_BottomMargin: () => {},
+      put_RightMargin: () => {},
+    };
+    engine.api().emit("asc_onSectionProps", section);
+    engine.api().emit("asc_onParaSpacingLine", { asc_getLine: () => 1.5, asc_getLineRule: () => 1 });
+    expect(editor.store.get().page).toEqual({
+      width: 297,
+      height: 210,
+      portrait: false,
+      margins: { top: 12.7, left: 12.7, bottom: 12.7, right: 12.7 },
+    });
+    expect(editor.store.get().paragraph.lineSpacing).toBe(1.5);
+
+    editor.layout.setOrientation(true);
+    editor.layout.setLineSpacing(1.15);
+    expect(engine.api().calls).toContainEqual(["change_PageOrient", true]);
+    expect(engine.api().calls).toContainEqual(["put_PrLineSpacing", 1, 1.15]);
+  });
+
   it("feeds engine events into the store", async () => {
     const { engine, editor } = await openReady();
     engine.api().emit("asc_onBold", true);

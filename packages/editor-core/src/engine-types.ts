@@ -1,3 +1,4 @@
+import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
 /**
  * The part of the sdkjs API that Stapel uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
@@ -134,6 +135,10 @@ export type WordEventArgs = TextEventArgs & {
   asc_onInitEditorStyles: [styles: { get_MergedStyles(): Array<{ get_Name(): string }> }];
   /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
   asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number }>];
+  /** word/Editor/Document.js UpdateInterface: the section at the cursor. */
+  asc_onSectionProps: [props: SectionProps];
+  /** word/api.js sync_ParaSpacingLine: the spacing of the paragraph at the cursor. */
+  asc_onParaSpacingLine: [spacing: ParagraphSpacing];
   /** word/api.js sync_AddComment: on open for each comment in the file, and for each new one. */
   asc_onAddComment: [id: string, data: EngineCommentData];
   asc_onChangeCommentData: [id: string, data: EngineCommentData];
@@ -220,7 +225,12 @@ export interface CharacterApi {
 }
 
 /** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
-export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterApi, ViewApi, SearchApi {
+export interface WordEngineApi
+  extends EngineApiBase<WordEventArgs>,
+    CharacterApi,
+    ViewApi,
+    SearchApi,
+    LayoutApi {
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   put_AddPageBreak(): void;
@@ -321,6 +331,11 @@ export interface WordWindow extends EngineWindow {
     c_oAscTypeSelectElement: { Table: number };
     /** word/apiDefines.js */
     c_oAscContextMenuTypes: { Common: number; ChangeHdrFtr: number };
+    /** word/Editor/api/document-section-props.js */
+    CDocumentSectionProps: new () => SectionProps;
+    /** common/commonDefines.js */
+    c_oAscPageOrientation: { PagePortrait: number };
+    linerule_Auto: number;
   };
 }
 

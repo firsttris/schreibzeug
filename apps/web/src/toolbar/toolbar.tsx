@@ -1,4 +1,4 @@
-import type { Align, EditorState, TextCommands } from "@stapel/editor-core";
+import type { Align, EditorState, LayoutCommands, TextCommands } from "@stapel/editor-core";
 import {
   AlignCenter,
   AlignJustify,
@@ -22,6 +22,7 @@ import {
 import { Button } from "../ui/button";
 import { Choice } from "./choice";
 import { ColorPicker } from "./color-picker";
+import { ParagraphSpacing } from "./paragraph-spacing";
 import { styleLabel } from "./style-labels";
 import { TableMenu } from "./table-menu";
 
@@ -45,6 +46,7 @@ const ToggleButton = ({ label, icon: Icon, pressed, run, disabled }: Toggle & { 
 export type ToolbarProps = {
   state: EditorState;
   commands: TextCommands | null;
+  layout: LayoutCommands | null;
   /** Opens the comment field for the selection; comments live beside the document. */
   onAddComment: () => void;
   /** Opens the file dialog for an image; null where none can be put in. */
@@ -52,7 +54,7 @@ export type ToolbarProps = {
 };
 
 /** The formatting row above the document: every control reads EditorState and calls a command. */
-export const Toolbar = ({ state, commands, onAddComment, onInsertImage }: ToolbarProps) => {
+export const Toolbar = ({ state, commands, layout, onAddComment, onInsertImage }: ToolbarProps) => {
   const disabled = !commands || state.status !== "ready";
   const { text, paragraph, catalog, document } = state;
   const fontSize = text.fontSize ?? 11;
@@ -158,6 +160,7 @@ export const Toolbar = ({ state, commands, onAddComment, onInsertImage }: Toolba
       {lists.map((toggle) => (
         <ToggleButton key={toggle.label} {...toggle} disabled={disabled} />
       ))}
+      <ParagraphSpacing lineSpacing={paragraph.lineSpacing} layout={layout} disabled={disabled} />
       <TableMenu inTable={paragraph.inTable} disabled={disabled} commands={commands} />
       <Button
         variant="ghost"

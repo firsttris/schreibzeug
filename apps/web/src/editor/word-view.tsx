@@ -47,6 +47,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   const context: WordMenuContext = {
     state,
     commands: editor?.commands ?? null,
+    layout: editor?.layout ?? null,
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onAddComment: () => setComments("composing"),
@@ -90,6 +91,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
           <Toolbar
             state={state}
             commands={editor?.commands ?? null}
+            layout={editor?.layout ?? null}
             onAddComment={() => setComments("composing")}
             onInsertImage={chrome.insertImage}
           />

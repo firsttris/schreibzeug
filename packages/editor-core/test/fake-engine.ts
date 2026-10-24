@@ -209,6 +209,12 @@ export const createFakeEngine = (): FakeEngine => {
         put_TextPrBaseline: record(calls, "put_TextPrBaseline"),
         ClearFormating: record(calls, "ClearFormating"),
         put_AddPageBreak: record(calls, "put_AddPageBreak"),
+        change_PageOrient: record(calls, "change_PageOrient"),
+        change_DocSize: record(calls, "change_DocSize"),
+        asc_SetSectionProps: record(calls, "asc_SetSectionProps"),
+        put_PrLineSpacing: record(calls, "put_PrLineSpacing"),
+        IncreaseIndent: record(calls, "IncreaseIndent"),
+        DecreaseIndent: record(calls, "DecreaseIndent"),
         asc_findText: (settings, isNext) => {
           calls.push(["asc_findText", (settings as unknown as FakeSearchSettings).values, isNext]);
           return 3;
@@ -354,6 +360,11 @@ export const createFakeEngine = (): FakeEngine => {
       c_oAscNumberingFormat: NUMBERING_FORMATS,
       c_oAscTypeSelectElement: { Paragraph: 0, Table: 1 },
       c_oAscContextMenuTypes: { Common: 0, ChangeHdrFtr: 1 },
+      c_oAscPageOrientation: { PagePortrait: 0 },
+      linerule_Auto: 1,
+      CDocumentSectionProps: function FakeSectionProps() {
+        return {};
+      },
       c_oAscAsyncAction: { Disconnect: 20 },
       c_oAscCollaborativeMarksShowType: { All: 0, LastChanges: 1, None: 2 },
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },

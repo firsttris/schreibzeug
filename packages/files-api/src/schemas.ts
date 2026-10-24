@@ -21,6 +21,15 @@ export const nodeIdSchema = z.uuid();
 
 export const nodeKindSchema = z.enum(["folder", "file"]);
 
+/**
+ * What the signed-in user may do with a node: everything as its owner, change it with "edit",
+ * look at it with "view". A share on a folder holds for everything in it.
+ */
+export const roleSchema = z.enum(["owner", "edit", "view"]);
+
+/** The roles a share gives. */
+export const shareRoleSchema = z.enum(["edit", "view"]);
+
 export const nodeSchema = z.object({
   id: nodeIdSchema,
   parentId: nodeIdSchema.nullable(),
@@ -32,6 +41,23 @@ export const nodeSchema = z.object({
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
   trashedAt: z.iso.datetime({ offset: true }).nullable(),
+  role: roleSchema,
+});
+
+/** A node someone shared with the signed-in user, with who owns it. */
+export const sharedNodeSchema = nodeSchema.extend({ ownerName: z.string() });
+
+/** Who a node is shared with (only its owner sees this). */
+export const shareSchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  email: z.string(),
+  role: shareRoleSchema,
+});
+
+export const putShareSchema = z.object({
+  email: z.email("Das ist keine gültige E-Mail-Adresse.").transform((email) => email.toLowerCase()),
+  role: shareRoleSchema,
 });
 
 export const folderListingSchema = z.object({
@@ -77,6 +103,7 @@ export const apiErrorKindSchema = z.enum([
   "conflict",
   "too_large",
   "unauthorized",
+  "forbidden",
   "internal",
 ]);
 
@@ -85,6 +112,11 @@ export const apiErrorSchema = z.object({
 });
 
 export type FileNode = z.infer<typeof nodeSchema>;
+export type Role = z.infer<typeof roleSchema>;
+export type ShareRole = z.infer<typeof shareRoleSchema>;
+export type SharedNode = z.infer<typeof sharedNodeSchema>;
+export type Share = z.infer<typeof shareSchema>;
+export type PutShare = z.infer<typeof putShareSchema>;
 export type FolderListing = z.infer<typeof folderListingSchema>;
 export type FileVersion = z.infer<typeof versionSchema>;
 export type CreateFolder = z.infer<typeof createFolderSchema>;

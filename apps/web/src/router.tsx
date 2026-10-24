@@ -14,6 +14,7 @@ import type { Account } from "./api/account";
 import { EditPage } from "./editor/edit-page";
 import { FolderPage } from "./files/folder-page";
 import { RecentPage } from "./files/recent-page";
+import { SharedPage } from "./files/shared-page";
 import { TrashPage } from "./files/trash-page";
 import { Shell } from "./shell";
 
@@ -81,6 +82,8 @@ const folderRoute = createRoute({
 
 const recentRoute = createRoute({ getParentRoute: () => shellRoute, path: "/recent", component: RecentPage });
 
+const sharedRoute = createRoute({ getParentRoute: () => shellRoute, path: "/shared", component: SharedPage });
+
 const trashRoute = createRoute({ getParentRoute: () => shellRoute, path: "/trash", component: TrashPage });
 
 const editRoute = createRoute({
@@ -95,7 +98,7 @@ const editRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   signedInRoute.addChildren([
-    shellRoute.addChildren([homeRoute, folderRoute, recentRoute, trashRoute]),
+    shellRoute.addChildren([homeRoute, folderRoute, recentRoute, sharedRoute, trashRoute]),
     editRoute,
   ]),
 ]);

@@ -3,6 +3,9 @@ import {
   type FileNode,
   folderListingSchema,
   nodeSchema,
+  type ShareRole,
+  sharedNodeSchema,
+  shareSchema,
   type UpdateNode,
   versionSchema,
 } from "@stapel/files-api";
@@ -16,10 +19,13 @@ export const fileKeys = {
   node: (id: string) => ["files", "node", id] as const,
   recent: ["files", "recent"] as const,
   trash: ["files", "trash"] as const,
+  shared: ["files", "shared"] as const,
+  shares: (id: string) => ["files", "shares", id] as const,
   versions: (id: string) => ["files", "versions", id] as const,
 };
 
 const nodeList = nodeSchema.array();
+const shareList = shareSchema.array();
 
 /** The reads, as query options, so routes and components share keys and fetchers. */
 export const fileQueries = (api: ApiClient) => ({
@@ -38,6 +44,16 @@ export const fileQueries = (api: ApiClient) => ({
     queryOptions({ queryKey: fileKeys.recent, queryFn: () => expectJson(api.recent.$get(), nodeList) }),
   trash: () =>
     queryOptions({ queryKey: fileKeys.trash, queryFn: () => expectJson(api.trash.$get(), nodeList) }),
+  shared: () =>
+    queryOptions({
+      queryKey: fileKeys.shared,
+      queryFn: () => expectJson(api.shared.$get(), sharedNodeSchema.array()),
+    }),
+  shares: (id: string) =>
+    queryOptions({
+      queryKey: fileKeys.shares(id),
+      queryFn: () => expectJson(api.nodes[":id"].shares.$get({ param: { id } }), shareList),
+    }),
   versions: (id: string) =>
     queryOptions({
       queryKey: fileKeys.versions(id),
@@ -70,6 +86,10 @@ export const fileCommands = (api: ApiClient) => ({
       api.files[":id"].versions[":number"].restore.$post({ param: { id, number: String(number) } }),
       nodeSchema,
     ),
+  share: (id: string, email: string, role: ShareRole) =>
+    expectJson(api.nodes[":id"].shares.$put({ param: { id }, json: { email, role } }), shareList),
+  unshare: (id: string, userId: string) =>
+    expectJson(api.nodes[":id"].shares[":userId"].$delete({ param: { id, userId } }), shareList),
   save: (id: string, bytes: Uint8Array) =>
     // hc types only form and JSON bodies; `init` is spread last into fetch (hono/dist/client/client.js).
     expectJson(

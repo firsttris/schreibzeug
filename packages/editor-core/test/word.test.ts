@@ -145,6 +145,18 @@ describe("openWordDocument", () => {
     });
   });
 
+  it("opens read-only for someone who may only look", async () => {
+    const engine = createFakeEngine();
+    const opening = openWordDocument(engine.window, optionsWith(fakeConverter().convert, { mode: "view" }));
+    await flush();
+    engine.api().emit("asc_onDocumentContentReady");
+    await opening;
+    expect(engine.api().docInfo).toMatchObject({ Mode: "view", Permissions: { edit: false } });
+    const names = engine.api().calls.map(([name]) => name);
+    expect(names.indexOf("asc_setViewMode")).toBeGreaterThan(-1);
+    expect(names.indexOf("asc_setViewMode")).toBeLessThan(names.indexOf("asc_LoadDocument"));
+  });
+
   it("follows the web-apps sequence: doc info, permissions, load", async () => {
     const { engine } = await openReady();
     const names = engine.api().calls.map(([name]) => name);

@@ -15,6 +15,13 @@
       "when": 1792781768351,
       "tag": "0001_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792811530465,
+      "tag": "0002_shares",
+      "breakpoints": true
     }
   ]
 }

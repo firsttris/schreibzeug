@@ -16,6 +16,7 @@ const node = {
   createdAt: "2026-10-23T14:00:00.000Z",
   updatedAt: "2026-10-23T14:00:00.000Z",
   trashedAt: null,
+  role: "owner",
 };
 
 describe("expectJson", () => {

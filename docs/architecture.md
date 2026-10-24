@@ -36,8 +36,8 @@ Hono's WebSocket upgrade, so access checks for files and editing sessions live i
 ## The web app
 
 Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an account; every
-other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent` and
-`/trash` the other views, `/edit/:id` opens a file in its editor with the whole window
+other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
+`/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views, `/edit/:id` opens a file in its editor with the whole window
 (`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, sharing
 the header with status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under

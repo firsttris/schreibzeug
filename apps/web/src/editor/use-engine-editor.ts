@@ -57,6 +57,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           title: file.name,
           user: { id: userId, name: userName },
           convert: converter.convert,
+          mode: file.readOnly ? "view" : "edit",
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
         });
         cleanup = () => {

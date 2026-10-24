@@ -17,7 +17,7 @@ export const SlideView = ({ file, onClose, onSave, onShowVersions }: EditorViewP
     openPresentation,
     initialSlideState,
   );
-  const saving = useDocumentSave(editor, state, onSave);
+  const saving = useDocumentSave(editor, state, onSave, file.readOnly);
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(file.name, "pptx"), MIME.pptx);
@@ -32,6 +32,7 @@ export const SlideView = ({ file, onClose, onSave, onShowVersions }: EditorViewP
         failure={failure}
         saving={saving}
         ready={editor !== null}
+        readOnly={file.readOnly}
         onClose={onClose}
         onDownload={download}
         onShowVersions={onShowVersions}

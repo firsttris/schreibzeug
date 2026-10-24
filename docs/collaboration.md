@@ -68,6 +68,9 @@ spreadsheets' `excelAdditionalInfo` goes on to the others with their changes, as
 What it does not do yet: move other people's range locks when someone inserts or deletes rows or
 columns (`_recalcLockArray`); their next lock request sets them right.
 
+Someone who may only look at the file joins as a viewer: the hub sets `mode: "view"` in their
+`auth` and ignores what would change the document ([sharing](accounts.md#sharing)).
+
 The hub (`hub.ts`) keeps one session per file in memory and delivers the answers;
 `routes.ts` does the WebSocket upgrade with Hono on Bun. Malformed messages close the socket with
 code 4400, an unknown file with 4404.

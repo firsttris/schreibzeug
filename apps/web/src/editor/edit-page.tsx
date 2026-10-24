@@ -52,6 +52,15 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
   }
 
   const { parentId } = opened.file;
+  // Back to the folder the file is in; someone it was shared with on its own cannot open that
+  // folder, so they go back to what was shared with them.
+  const close = async () => {
+    if (!parentId) return navigate({ to: opened.file.owned ? "/" : "/shared" });
+    const folder = await queryClient.fetchQuery(queries.folder(parentId)).catch(() => null);
+    return folder
+      ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
+      : navigate({ to: "/shared" });
+  };
   const View = VIEWS[kindOf({ kind: "file", name: opened.file.name })];
   if (!View) {
     return (
@@ -65,11 +74,7 @@ export const EditPage = ({ fileId }: { fileId: string }) => {
     <>
       <View
         file={opened.file}
-        onClose={() =>
-          parentId
-            ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
-            : navigate({ to: "/" })
-        }
+        onClose={() => void close()}
         onSave={store}
         onShowVersions={() => setVersionsOpen(true)}
       />

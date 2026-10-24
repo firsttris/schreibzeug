@@ -20,6 +20,7 @@ export const statusOf = (kind: ApiErrorKind) =>
       not_a_folder: 422,
       too_large: 413,
       unauthorized: 401,
+      forbidden: 403,
       internal: 500,
     }) as const
   )[kind];

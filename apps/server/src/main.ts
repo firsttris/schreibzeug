@@ -7,7 +7,7 @@ import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
 import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
-import { findActive } from "./files/repository";
+import { roleOf } from "./files/access";
 
 const config = readConfig(process.env);
 if (!config.ok) {
@@ -26,9 +26,11 @@ const auth = createAuth({
   trustedOrigins,
 });
 const hub = createHub({
-  currentVersion: async (fileId, userId) => {
-    const node = await findActive(db, userId, fileId);
-    return node?.kind === "file" ? (node.version ?? null) : null;
+  access: async (fileId, userId) => {
+    const found = await roleOf(db, userId, fileId);
+    return found?.node.kind === "file" && found.node.version !== null
+      ? { version: found.node.version, role: found.role }
+      : null;
   },
 });
 const { upgradeWebSocket, websocket } = createBunWebSocket();

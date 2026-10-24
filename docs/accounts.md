@@ -17,13 +17,40 @@ trusted origins; Stapel trusts its own origin, whatever host name the server is 
 the ones in `STAPEL_TRUSTED_ORIGINS` (the desktop app, later).
 
 Every node has an `owner_id`. Every query in `src/files/repository.ts` takes the signed-in user and
-sees only their nodes; someone else's file is "not found", the same as one that does not exist.
-Names are unique per owner at the top level.
+asks `src/files/access.ts` what they may do with the node; a file they have no access to is "not
+found", the same as one that does not exist. Names are unique per owner at the top level.
 
 The collaboration relay needs a session too: the WebSocket upgrade carries the cookie. Every
 connection is checked against the file, also when the file's session is already open, and the
 relay replaces the user that the engine announces in `auth` with the signed-in one, so names at
 cursors and on comments are real.
+
+## Sharing
+
+The owner shares a folder or a file with the account behind an e-mail address, as `edit` or
+`view` (table `shares`; `src/files/shares.ts`). There are no invitations yet: the person needs an
+account. A share on a folder holds for everything below it; the user's role on a node is "owner",
+or the strongest share on the node or on any folder above it, found with one recursive query
+(`roleOf`).
+
+| | view | edit | owner |
+|---|:-:|:-:|:-:|
+| Open, download, see versions | ✓ | ✓ | ✓ |
+| Save, restore a version, rename, create in a folder | | ✓ | ✓ |
+| Move, trash, share | | | ✓ |
+
+Everything stays its owner's: what an editor creates in a shared folder belongs to the folder's
+owner, and moving only happens within the owner's own folders. A weaker role than needed answers
+`403 forbidden`. Trash and recent files list only the user's own nodes; "Für mich freigegeben"
+(`GET /api/shared`) lists what was shared with them, and the path of a shared folder starts at the
+folder that was shared.
+
+In the editor the relay takes the role from the database for every connection. A viewer joins
+with `mode: "view"` whatever the client says, and the relay drops what would change the document
+(`getLock`, `saveChanges`, `isSaveLock`, the save messages; DocsCoServer refuses the first three
+from viewers too). The web app opens the file read-only (`put_Mode("view")`, `asc_setViewMode`)
+without toolbar or saving; with fast co-editing the engine is then a live viewer and shows the
+others' changes as they come.
 
 ## Sign-up
 
@@ -50,4 +77,6 @@ and the way out.
 sign-up and the takeover of old files; the secret file. The server tests sign up an account in
 their harness. In the E2E run (`STAPEL_OPEN_SIGNUP=true`) every test signs up an account of its own
 through the API (`e2e/app.ts`); `e2e/accounts.spec.ts` goes through the form, signs out and back in,
-and checks that someone else's folder is not found.
+and checks that someone else's folder is not found. `apps/server/test/shares.test.ts` covers the
+roles, shares on folders, taking a share back and the trash; `e2e/sharing.spec.ts` shares a
+folder between two accounts: read-only with live changes, and editing.

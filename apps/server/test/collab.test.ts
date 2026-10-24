@@ -255,10 +255,14 @@ describe("collaboration hub", () => {
   const ANNA = { id: "anna", name: "Anna" };
   const BEN = { id: "ben", name: "Ben" };
 
-  /** `access`: who may edit FILE, at version 3. */
-  const setup = (access: string[] = ["anna", "ben"]) => {
+  /** `editors` may edit FILE, at version 3; `viewers` may look at it. */
+  const setup = (editors: string[] = ["anna", "ben"], viewers: string[] = []) => {
     const hub = createHub({
-      currentVersion: async (id, userId) => (id === FILE && access.includes(userId) ? 3 : null),
+      access: async (id, userId) => {
+        if (id !== FILE) return null;
+        if (editors.includes(userId)) return { version: 3, role: "edit" };
+        return viewers.includes(userId) ? { version: 3, role: "view" } : null;
+      },
       now: () => NOW,
     });
     const join = async (user = ANNA) => {
@@ -310,5 +314,32 @@ describe("collaboration hub", () => {
     expect(b.messages.at(-1)).toMatchObject({ type: "connectState", participants: [{ id: "ben2" }] });
     hub.close(b.id);
     expect(hub.session(FILE)).toBeUndefined();
+  });
+
+  it("lets a viewer follow along but not change anything", async () => {
+    const { hub, join } = setup(["anna"], ["ben"]);
+    const a = await join(ANNA);
+    const b = await join(BEN);
+    hub.message(a.id, auth("anna"));
+    hub.message(b.id, auth("ben"));
+    expect(hub.session(FILE)?.participants).toMatchObject([{ view: false }, { view: true }]);
+
+    hub.message(b.id, { type: "getLock", block: ["p1"] });
+    hub.message(b.id, {
+      type: "saveChanges",
+      changes: '["evil"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    expect(a.messages.map((m) => m.type)).not.toContain("saveChanges");
+    expect(hub.session(FILE)?.changes).toEqual([]);
+
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    expect(b.messages.map((m) => m.type)).toContain("saveChanges");
   });
 });

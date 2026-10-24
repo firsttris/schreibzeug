@@ -3,6 +3,8 @@ import type { CollabChannel, OfficeFormat } from "@stapel/editor-core";
 export type OpenedFile = {
   name: string;
   bytes: Uint8Array;
+  /** Opened to look at only: the user's role on it is "view". */
+  readOnly: boolean;
   /** The editing session the file belongs to; absent for a file edited alone. */
   collaboration?: { channel: CollabChannel; documentId: string };
 };

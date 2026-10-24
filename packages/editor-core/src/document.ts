@@ -17,6 +17,8 @@ export type OpenOptions = {
   /** Turns the file into the engine's binary format and back (converter.ts). */
   convert: Convert;
   lang?: string;
+  /** "view" opens the document read-only: for someone it is shared with to look at. */
+  mode?: "edit" | "view";
   /** How long to wait until the document is shown, in milliseconds. */
   timeoutMs?: number;
   /**
@@ -106,8 +108,9 @@ const createDocInfo = (win: EngineWindow, options: OpenOptions, format: OfficeFo
   info.put_Title(options.title);
   info.put_Format(format);
   info.put_UserInfo(user);
-  info.put_Permissions({ edit: true, download: true, print: true, comment: true, review: true });
-  info.put_Mode("edit");
+  const edit = options.mode !== "view";
+  info.put_Permissions({ edit, download: true, print: true, comment: edit, review: edit });
+  info.put_Mode(edit ? "edit" : "view");
   info.put_Lang(options.lang ?? "de");
   // Fast co-editing, as web-apps chooses by default (documenteditor/mobile Main.jsx coEditMode).
   if (options.collaboration) info.put_CoEditingMode("fast");
@@ -227,7 +230,13 @@ export const openDocument = <
         },
       };
 
-      base.asc_registerCallback("asc_onGetEditorPermissions", () => api.asc_LoadDocument());
+      base.asc_registerCallback("asc_onGetEditorPermissions", () => {
+        // web-apps applyMode (documenteditor/mobile Main.jsx): a viewer's engine refuses every
+        // change. Shared, it still follows the others' changes: in view mode with fast co-editing
+        // the engine is a live viewer (common/apiBase.js isLiveViewer).
+        if (options.mode === "view") base.asc_setViewMode(true);
+        api.asc_LoadDocument();
+      });
       base.asc_registerCallback("asc_onDocumentContentReady", () => {
         if (options.collaboration) startCoEditing(base);
         binding.contentReady(api, win, Boolean(options.collaboration));

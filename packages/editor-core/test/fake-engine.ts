@@ -224,6 +224,7 @@ export const createFakeEngine = (): FakeEngine => {
         asc_SetFastCollaborative: record(calls, "asc_SetFastCollaborative"),
         SetCollaborativeMarksShowType: record(calls, "SetCollaborativeMarksShowType"),
         asc_setAutoSaveGap: record(calls, "asc_setAutoSaveGap"),
+        asc_setViewMode: record(calls, "asc_setViewMode"),
         SetUnchangedDocument: () => {
           calls.push(["SetUnchangedDocument"]);
           api.modified = false;

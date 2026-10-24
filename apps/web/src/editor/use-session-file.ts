@@ -8,7 +8,7 @@ import type { OpenedFile } from "./opened-file";
 export type SessionFile =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; file: OpenedFile & { parentId: string | null } };
+  | { status: "ready"; file: OpenedFile & { parentId: string | null; owned: boolean } };
 
 /**
  * Joins the file's editing session and loads the version it started from: everyone in a session
@@ -41,6 +41,8 @@ export const useSessionFile = (fileId: string, generation: number): SessionFile 
           name: node.name,
           parentId: node.parentId,
           bytes,
+          readOnly: node.role === "view",
+          owned: node.role === "owner",
           collaboration: { channel, documentId: fileId },
         },
       });

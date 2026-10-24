@@ -5,10 +5,12 @@ import { useFiles } from "../api/context";
 import { formatChanged, formatSize, isEditable, kindOf } from "../lib/format";
 import { FileBadge } from "./file-badge";
 
-export type NodeTableProps = {
-  nodes: FileNode[];
+export type NodeTableProps<N extends FileNode> = {
+  nodes: N[];
   /** The buttons at the end of a row, shown on hover and focus. */
-  actions: (node: FileNode) => ReactNode;
+  actions: (node: N) => ReactNode;
+  /** A second line under the name, e.g. who shared it. */
+  detail?: (node: N) => ReactNode;
   /** Nodes in the trash are listed, not opened. */
   openable?: boolean;
   empty: ReactNode;
@@ -40,7 +42,13 @@ const NodeName = ({ node, openable }: { node: FileNode; openable: boolean }) => 
 };
 
 /** Folders and files as a table: name, last change, size, and the row's actions. */
-export const NodeTable = ({ nodes, actions, openable = true, empty }: NodeTableProps) => {
+export const NodeTable = <N extends FileNode>({
+  nodes,
+  actions,
+  detail,
+  openable = true,
+  empty,
+}: NodeTableProps<N>) => {
   if (nodes.length === 0)
     return <div className="py-16 text-center text-sm text-[var(--muted-foreground)]">{empty}</div>;
   return (
@@ -50,7 +58,7 @@ export const NodeTable = ({ nodes, actions, openable = true, empty }: NodeTableP
           <th className="py-2 pl-2 font-medium">Name</th>
           <th className="hidden w-40 py-2 font-medium sm:table-cell">Geändert</th>
           <th className="hidden w-24 py-2 text-right font-medium sm:table-cell">Größe</th>
-          <th className="w-40 py-2">
+          <th className="w-48 py-2">
             <span className="sr-only">Aktionen</span>
           </th>
         </tr>
@@ -65,7 +73,12 @@ export const NodeTable = ({ nodes, actions, openable = true, empty }: NodeTableP
             <td className="py-2 pl-2">
               <span className="flex min-w-0 items-center gap-3">
                 <FileBadge kind={kindOf(node)} />
-                <NodeName node={node} openable={openable} />
+                <span className="flex min-w-0 flex-col">
+                  <NodeName node={node} openable={openable} />
+                  {detail && (
+                    <span className="truncate text-xs text-[var(--muted-foreground)]">{detail(node)}</span>
+                  )}
+                </span>
               </span>
             </td>
             <td className="hidden py-2 text-[var(--muted-foreground)] sm:table-cell">

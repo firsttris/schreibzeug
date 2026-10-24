@@ -66,7 +66,7 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
               >
                 <Download size={15} />
               </a>
-              {!current && (
+              {!current && file.role !== "view" && (
                 <Button
                   variant="ghost"
                   aria-label={`Version ${version.number} wiederherstellen`}
@@ -89,9 +89,11 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
           {messageOf(restore.error)}
         </p>
       )}
-      <p className="m-0 text-xs text-[var(--muted-foreground)]">
-        Wiederherstellen legt eine neue Version mit dem alten Inhalt an; keine Version geht verloren.
-      </p>
+      {file.role !== "view" && (
+        <p className="m-0 text-xs text-[var(--muted-foreground)]">
+          Wiederherstellen legt eine neue Version mit dem alten Inhalt an; keine Version geht verloren.
+        </p>
+      )}
     </div>
   );
 };

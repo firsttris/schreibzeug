@@ -63,12 +63,33 @@ const seed = async (api: APIRequestContext) => {
 
 /** The account the pictures show. */
 const ACCOUNT = { name: "Anna Berger", email: "anna.berger@example.org", password: "geheim-genug" };
+/** Someone Anna shares a folder with. */
+const COLLEAGUE = { name: "Ben Krämer", email: "ben.kraemer@example.org", password: "geheim-genug" };
+const SHARED = "Projekte";
+
+/** Shares SHARED with the colleague, who gets an account of their own first. */
+const shareWithColleague = async (api: APIRequestContext, newContext: () => Promise<APIRequestContext>) => {
+  const colleague = await newContext();
+  expect((await colleague.post("/api/auth/sign-up/email", { data: COLLEAGUE })).ok()).toBe(true);
+  await colleague.dispose();
+  const root = (await (await api.get("/api/nodes?parent=root")).json()) as {
+    children: { id: string; name: string }[];
+  };
+  const folder = root.children.find((node) => node.name === SHARED);
+  if (!folder) throw new Error(`No folder ${SHARED}.`);
+  const shared = await api.put(`/api/nodes/${folder.id}/shares`, {
+    data: { email: COLLEAGUE.email, role: "edit" },
+  });
+  expect(shared.ok()).toBe(true);
+};
 
 test.beforeAll(async ({ playwright }, testInfo) => {
   const { baseURL } = testInfo.project.use;
-  const api = await playwright.request.newContext(baseURL ? { baseURL } : {});
+  const newContext = () => playwright.request.newContext(baseURL ? { baseURL } : {});
+  const api = await newContext();
   expect((await api.post("/api/auth/sign-up/email", { data: ACCOUNT })).ok()).toBe(true);
   await seed(api);
+  await shareWithColleague(api, newContext);
   await api.dispose();
 });
 
@@ -125,6 +146,16 @@ for (const scheme of schemes) {
       await page.getByRole("menuitem", { name: "Dokument" }).click();
       await expect(page.getByLabel("Name des Dokuments")).toBeFocused();
       await shoot(page, "new-document", scheme);
+    });
+
+    test("share", async ({ page }) => {
+      await page.clock.setFixedTime(NOW);
+      await page.goto("/");
+      await page.getByRole("button", { name: `${SHARED} teilen` }).click();
+      await expect(page.getByRole("dialog").locator(`[data-share="${COLLEAGUE.email}"]`)).toBeVisible();
+      await page.getByRole("dialog").getByLabel("E-Mail des Kontos").blur();
+      await page.evaluate(() => document.fonts.ready);
+      await shoot(page, "share", scheme);
     });
 
     test("editor", async ({ page }) => {

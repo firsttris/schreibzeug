@@ -15,32 +15,58 @@ export type Send = (message: Record<string, unknown>) => void;
 /** Who is connected, as the server knows them from the session. */
 export type HubUser = { id: string; name: string };
 
+/** What the user may do with a file: its newest version, and whether they may change it. */
+export type FileAccess = { version: number; role: "owner" | "edit" | "view" };
+
 export type HubDeps = {
   /**
-   * The newest version of a file outside the trash that the user may edit, or null when there is
-   * none: every connection is checked, also to a session that is already open.
+   * The file outside the trash as the user may use it, or null when they may not open it: every
+   * connection is checked, also to a session that is already open.
    */
-  currentVersion: (fileId: string, userId: string) => Promise<number | null>;
+  access: (fileId: string, userId: string) => Promise<FileAccess | null>;
   now?: () => number;
 };
 
-type Connection = { fileId: string; user: HubUser; send: Send };
+type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send };
 
 /**
  * sdkjs announces its user in `auth` (docscoapi.js getAuthCommand). The relay replaces id and name
- * with the signed-in user's, so nobody can edit under someone else's name.
+ * with the signed-in user's, so nobody can edit under someone else's name, and sets the mode from
+ * the user's role, so someone who may only look joins as a viewer whatever the client says.
  */
-const withUser = (data: Incoming, user: HubUser): Incoming =>
+const withUser = (data: Incoming, connection: Connection): Incoming =>
   data.type === "auth"
-    ? { ...data, user: { ...(data.user as object | undefined), id: user.id, username: user.name } }
+    ? {
+        ...data,
+        user: {
+          ...(data.user as object | undefined),
+          id: connection.user.id,
+          username: connection.user.name,
+        },
+        ...(connection.viewer ? { mode: "view" } : {}),
+      }
     : data;
+
+/**
+ * What a viewer may not send. DocsCoServer refuses getLock, saveChanges and isSaveLock from a
+ * viewer and drops the connection (DocsCoServer.js, "access deny"); a viewer's engine sends none of
+ * them, so the relay just ignores them, with the messages that would end a save or mark one.
+ */
+const CHANGING = new Set([
+  "getLock",
+  "saveChanges",
+  "isSaveLock",
+  "unSaveLock",
+  "unLockDocument",
+  "stapel:saved",
+]);
 
 /**
  * Holds the sessions of all open files and delivers what session.ts decides. A session starts
  * with the first connection to a file, at the file's newest version, and ends with the last one.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
-export const createHub = ({ currentVersion, now = Date.now }: HubDeps) => {
+export const createHub = ({ access, now = Date.now }: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
 
@@ -75,13 +101,14 @@ export const createHub = ({ currentVersion, now = Date.now }: HubDeps) => {
      * Returns its id, or null when the file does not exist.
      */
     open: async (fileId: string, user: HubUser, send: Send): Promise<string | null> => {
-      const version = await currentVersion(fileId, user.id);
-      if (version === null) return null;
+      const allowed = await access(fileId, user.id);
+      if (allowed === null) return null;
+      const { version } = allowed;
       // Another connection may have started the session while we looked the version up.
       const session = sessions.get(fileId) ?? createSession(fileId, version);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
-      connections.set(connectionId, { fileId, user, send });
+      connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
       send({ type: "stapel:session", baseVersion: session.baseVersion });
       send(licenseMessage());
       return connectionId;
@@ -90,8 +117,9 @@ export const createHub = ({ currentVersion, now = Date.now }: HubDeps) => {
     message: (connectionId: string, data: Incoming) => {
       const connection = connections.get(connectionId);
       if (!connection) return;
+      if (connection.viewer && CHANGING.has(String(data.type))) return;
       apply(connection.fileId, connectionId, (session) =>
-        receive(session, connectionId, withUser(data, connection.user), now()),
+        receive(session, connectionId, withUser(data, connection), now()),
       );
     },
 

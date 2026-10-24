@@ -9,6 +9,7 @@
 |---|---|
 | `nodes` | Folders and files in one tree (`parent_id`, `null` is the root of the owner's files, `owner_id` whose they are; see [accounts](accounts.md)). A file has `mime`, `size` and its newest `version`. |
 | `versions` | Every saved state of a file: number, size and the SHA-256 of its bytes. |
+| `shares` | Who else may open a node, with `edit` or `view`; see [accounts](accounts.md#sharing). |
 
 The bytes are in the blob store (`src/blobs.ts`), under `data/blobs/ab/abcdef…` by their SHA-256:
 the same bytes are stored once, and a blob is written to a temporary name and renamed, so a crash
@@ -34,20 +35,26 @@ again.
 All under `/api`; bodies are JSON unless noted. Every route but `/health` and Better Auth's
 `/auth/*` needs a session and acts for its user ([accounts](accounts.md)). Errors are
 `{ "error": { "kind", "message" } }`, with `kind` one of `not_found` (404), `invalid` (400),
-`unauthorized` (401), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
+`unauthorized` (401), `forbidden` (403: the role is too weak), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
 `internal` (500).
+
+Every node in an answer carries `role`, what the user may do with it: `owner`, `edit` or `view`.
 
 | Route | What it does |
 |---|---|
-| `GET /nodes?parent=root\|<id>` | A folder: the folder, its path from the root, its children (folders first, by name) |
+| `GET /nodes?parent=root\|<id>` | A folder: the folder, its path from the root (for a shared folder, from the folder that was shared), its children (folders first, by name) |
 | `GET /nodes/:id` | One node |
 | `PATCH /nodes/:id` | Rename (`name`) and/or move (`parentId`) |
 | `POST /nodes/:id/trash` | Move into the trash |
 | `POST /nodes/:id/restore` | Bring back from the trash |
-| `GET /trash`, `GET /recent` | What is in the trash; files by last change |
+| `GET /trash`, `GET /recent` | What is in the trash; files by last change (both only the user's own) |
+| `GET /nodes/:id/shares` | Who the node is shared with (owner only) |
+| `PUT /nodes/:id/shares` | Share with the account behind `email`, or change its `role` (`edit`, `view`) |
+| `DELETE /nodes/:id/shares/:userId` | Take a share back |
+| `GET /shared` | What others shared with the user, with `ownerName` |
 | `POST /folders` | New folder (`parentId`, `name`) |
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
-| `POST /files/blank` | New empty document (`parentId`, `name`, `format: "docx"`) |
+| `POST /files/blank` | New empty file (`parentId`, `name`, `format`: `docx`, `xlsx` or `pptx`) |
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
 | `PUT /files/:id/content` | Save: the body becomes a new version |
 | `GET /files/:id/versions` | All versions, newest first |

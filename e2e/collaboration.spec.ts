@@ -18,7 +18,7 @@ const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
 /**
  * A second editor: a browser context of its own, signed in and opening the same file by its
- * address. Until files can be shared it is the same account on another device.
+ * address: the same account on another device (sharing.spec.ts has two accounts).
  */
 const openAs = async (
   browser: Browser,

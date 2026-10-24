@@ -18,7 +18,7 @@ export const SheetView = ({ file, onClose, onSave, onShowVersions }: EditorViewP
     openSheetDocument,
     initialSheetState,
   );
-  const saving = useDocumentSave(editor, state, onSave);
+  const saving = useDocumentSave(editor, state, onSave, file.readOnly);
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(file.name, "xlsx"), MIME.xlsx);
@@ -33,13 +33,18 @@ export const SheetView = ({ file, onClose, onSave, onShowVersions }: EditorViewP
         failure={failure}
         saving={saving}
         ready={editor !== null}
+        readOnly={file.readOnly}
         onClose={onClose}
         onDownload={download}
         onShowVersions={onShowVersions}
         toolbar={<SheetToolbar state={state} commands={editor?.commands ?? null} />}
       />
       <div ref={container} className="min-h-0 flex-1 bg-[var(--muted)]" />
-      <SheetTabs sheets={state.sheets} active={state.activeSheet} commands={editor?.sheets ?? null} />
+      <SheetTabs
+        sheets={state.sheets}
+        active={state.activeSheet}
+        commands={file.readOnly ? null : (editor?.sheets ?? null)}
+      />
     </div>
   );
 };

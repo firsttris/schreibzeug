@@ -35,10 +35,14 @@ const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; n
 
 type Creating = "folder" | NewFile | null;
 
-const Breadcrumb = ({ path }: { path: { id: string; name: string }[] }) => (
+/** The path from the top: the user's own files, or what was shared with them. */
+const Breadcrumb = ({ path, shared }: { path: { id: string; name: string }[]; shared: boolean }) => (
   <nav aria-label="Pfad" className="flex min-w-0 items-center gap-1 text-sm text-[var(--muted-foreground)]">
-    <Link to="/" className="shrink-0 text-inherit no-underline hover:text-[var(--foreground)]">
-      Meine Dateien
+    <Link
+      to={shared ? "/shared" : "/"}
+      className="shrink-0 text-inherit no-underline hover:text-[var(--foreground)]"
+    >
+      {shared ? "Für mich freigegeben" : "Meine Dateien"}
     </Link>
     {path.map((folder, index) => (
       <span key={folder.id} className="flex min-w-0 items-center gap-1">
@@ -75,49 +79,60 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
   );
 
   const title = listing.data?.folder?.name ?? "Meine Dateien";
+  const role = listing.data?.folder?.role ?? "owner";
+  // Someone who may only look adds nothing; the buttons wait for the listing to know.
+  const canAdd = listing.data !== undefined && role !== "view";
 
   return (
-    <section {...dropZone} className="relative flex min-h-full flex-col gap-4" aria-label={title}>
+    <section
+      {...(canAdd ? dropZone : {})}
+      className="relative flex min-h-full flex-col gap-4"
+      aria-label={title}
+    >
       <PageHeader title={title}>
-        <Button variant="outline" onClick={() => setCreating("folder")}>
-          <FolderPlus size={15} />
-          Neuer Ordner
-        </Button>
-        <MenuButton
-          label="Neu"
-          variant="outline"
-          align="right"
-          groups={[
-            (Object.keys(NEW_FILES) as NewFile[]).map((format) => ({
-              label: NEW_FILES[format].item,
-              icon: <FileBadge kind={format} size={22} />,
-              onSelect: () => setCreating(format),
-            })),
-          ]}
-        >
-          <FilePlus2 size={15} />
-          Neu
-        </MenuButton>
-        <Button variant="primary" onClick={() => picker.current?.click()}>
-          <Upload size={15} />
-          Hochladen
-        </Button>
-        <input
-          ref={picker}
-          type="file"
-          multiple
-          data-testid="upload-input"
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-          onChange={(event) => {
-            void upload([...(event.target.files ?? [])]);
-            event.target.value = "";
-          }}
-        />
+        {canAdd && (
+          <>
+            <Button variant="outline" onClick={() => setCreating("folder")}>
+              <FolderPlus size={15} />
+              Neuer Ordner
+            </Button>
+            <MenuButton
+              label="Neu"
+              variant="outline"
+              align="right"
+              groups={[
+                (Object.keys(NEW_FILES) as NewFile[]).map((format) => ({
+                  label: NEW_FILES[format].item,
+                  icon: <FileBadge kind={format} size={22} />,
+                  onSelect: () => setCreating(format),
+                })),
+              ]}
+            >
+              <FilePlus2 size={15} />
+              Neu
+            </MenuButton>
+            <Button variant="primary" onClick={() => picker.current?.click()}>
+              <Upload size={15} />
+              Hochladen
+            </Button>
+            <input
+              ref={picker}
+              type="file"
+              multiple
+              data-testid="upload-input"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(event) => {
+                void upload([...(event.target.files ?? [])]);
+                event.target.value = "";
+              }}
+            />
+          </>
+        )}
       </PageHeader>
 
-      {folderId && listing.data && <Breadcrumb path={listing.data.path} />}
+      {folderId && listing.data && <Breadcrumb path={listing.data.path} shared={role !== "owner"} />}
 
       {state.running > 0 && (
         <p role="status" className="m-0 text-sm text-[var(--muted-foreground)]">

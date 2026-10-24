@@ -20,7 +20,7 @@ export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewPr
     openWordDocument,
     initialEditorState,
   );
-  const saving = useDocumentSave(editor, state, onSave);
+  const saving = useDocumentSave(editor, state, onSave, file.readOnly);
   const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
 
@@ -43,6 +43,7 @@ export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewPr
         failure={failure}
         saving={saving}
         ready={editor !== null}
+        readOnly={file.readOnly}
         onClose={onClose}
         onDownload={download}
         onShowVersions={onShowVersions}
@@ -72,7 +73,7 @@ export const WordView = ({ file, onClose, onSave, onShowVersions }: EditorViewPr
           <CommentsPanel
             comments={state.comments}
             active={state.activeComments}
-            commands={editor?.comments ?? null}
+            commands={file.readOnly ? null : (editor?.comments ?? null)}
             composing={comments === "composing"}
             onComposed={() => setComments("open")}
             onClose={() => setComments("closed")}

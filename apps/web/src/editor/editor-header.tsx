@@ -1,5 +1,5 @@
 import { type CoreState, hasUnsavedChanges, type OfficeFormat } from "@stapel/editor-core";
-import { ArrowLeft, Check, Download, History, LoaderCircle, Save, WifiOff } from "lucide-react";
+import { ArrowLeft, Check, Download, Eye, History, LoaderCircle, Save, WifiOff } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 import { FileBadge } from "../files/file-badge";
 import { Button } from "../ui/button";
@@ -9,17 +9,19 @@ type Status = "loading" | "ready" | "error";
 
 type StatusFacts = {
   status: Status;
+  readOnly: boolean;
   modified: boolean;
   saving: boolean;
   connected: boolean;
   failure: string | null;
 };
 
-const statusText = ({ status, modified, saving, connected, failure }: StatusFacts): string => {
+const statusText = ({ status, readOnly, modified, saving, connected, failure }: StatusFacts): string => {
   if (failure) return failure;
   if (status === "loading") return "Öffnet …";
   if (status === "error") return "Fehler beim Öffnen";
   if (!connected) return "Verbindung unterbrochen, verbindet neu …";
+  if (readOnly) return "Nur ansehen";
   if (saving) return "Speichert …";
   return modified ? "Nicht gespeicherte Änderungen" : "Gespeichert";
 };
@@ -42,6 +44,8 @@ export type EditorHeaderProps = {
   failure: string | null;
   saving: DocumentSave;
   ready: boolean;
+  /** Opened to look at only: no saving and no toolbar. */
+  readOnly?: boolean;
   onClose: () => void;
   onDownload: () => void;
   /** Opens the file's versions; absent where the file has none (not stored on a server). */
@@ -63,6 +67,7 @@ export const EditorHeader = ({
   failure,
   saving: { save, saving, failure: saveFailure },
   ready,
+  readOnly = false,
   onClose,
   onDownload,
   onShowVersions,
@@ -71,7 +76,8 @@ export const EditorHeader = ({
 }: EditorHeaderProps) => {
   const status: Status = failure ? "error" : state.status;
   const { connected } = state.document;
-  const modified = hasUnsavedChanges(state);
+  // What a viewer sees may not be stored yet, but that is for the editors to save.
+  const modified = !readOnly && hasUnsavedChanges(state);
   useLeaveWarning(modified);
 
   return (
@@ -94,8 +100,11 @@ export const EditorHeader = ({
             {connected && (status === "loading" || saving) && (
               <LoaderCircle size={12} className="animate-spin" />
             )}
-            {connected && status === "ready" && !saving && !modified && !saveFailure && <Check size={12} />}
-            {statusText({ status, modified, saving, connected, failure: failure ?? saveFailure })}
+            {connected && status === "ready" && readOnly && <Eye size={12} />}
+            {connected && status === "ready" && !readOnly && !saving && !modified && !saveFailure && (
+              <Check size={12} />
+            )}
+            {statusText({ status, readOnly, modified, saving, connected, failure: failure ?? saveFailure })}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -108,13 +117,15 @@ export const EditorHeader = ({
           <Button variant="ghost" aria-label="Herunterladen" disabled={!ready} onClick={onDownload}>
             <Download size={16} />
           </Button>
-          <Button variant="primary" disabled={!ready || saving} onClick={save}>
-            <Save size={15} />
-            Speichern
-          </Button>
+          {!readOnly && (
+            <Button variant="primary" disabled={!ready || saving} onClick={save}>
+              <Save size={15} />
+              Speichern
+            </Button>
+          )}
         </div>
       </div>
-      {toolbar}
+      {!readOnly && toolbar}
     </header>
   );
 };

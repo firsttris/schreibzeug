@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Clock, FolderClosed, Layers, LogOut, Trash2 } from "lucide-react";
+import { Clock, FolderClosed, Layers, LogOut, Trash2, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAccount, useUser } from "./account/context";
 import { initialsOf } from "./account/initials";
@@ -11,7 +11,7 @@ const NavLink = ({
   icon,
   children,
 }: {
-  to: "/" | "/recent" | "/trash";
+  to: "/" | "/recent" | "/shared" | "/trash";
   icon: ReactNode;
   children: ReactNode;
 }) => (
@@ -79,6 +79,9 @@ export const Shell = () => (
         </NavLink>
         <NavLink to="/recent" icon={<Clock size={16} />}>
           Zuletzt
+        </NavLink>
+        <NavLink to="/shared" icon={<Users size={16} />}>
+          Für mich freigegeben
         </NavLink>
         <NavLink to="/trash" icon={<Trash2 size={16} />}>
           Papierkorb

@@ -140,6 +140,8 @@ export interface EngineApiBase<Events extends CommonEventArgs> {
   asc_SetFastCollaborative(isOn: boolean): void;
   /** common/apiBase.js: seconds between sends of the changes; 0 sends none. */
   asc_setAutoSaveGap(seconds: number): void;
+  /** word/api.js, cell/api.js, slide/api.js: true makes the document read-only. */
+  asc_setViewMode(isViewMode: boolean): void;
   asc_CloseFile?(): void;
 }
 

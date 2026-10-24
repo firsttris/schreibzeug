@@ -1,8 +1,10 @@
-import type { FileNode, FileVersion } from "@stapel/files-api";
-import type { NodeRow, VersionRow } from "../db/schema";
+import type { FileNode, FileVersion, SharedNode } from "@stapel/files-api";
+import type { VersionRow } from "../db/schema";
+import type { Accessible } from "./access";
+import type { SharedWithMe } from "./shares";
 
 /** Rows as the API sends them: the shapes in @stapel/files-api, dates as ISO strings. */
-export const toFileNode = (row: NodeRow): FileNode => ({
+export const toFileNode = ({ node: row, role }: Accessible): FileNode => ({
   id: row.id,
   parentId: row.parentId,
   kind: row.kind,
@@ -13,6 +15,12 @@ export const toFileNode = (row: NodeRow): FileNode => ({
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
   trashedAt: row.trashedAt?.toISOString() ?? null,
+  role,
+});
+
+export const toSharedNode = ({ node, role, ownerName }: SharedWithMe): SharedNode => ({
+  ...toFileNode({ node, role }),
+  ownerName,
 });
 
 export const toFileVersion = (row: VersionRow): FileVersion => ({

@@ -11,12 +11,14 @@ export type DocumentSave = {
  * Saving by hand and on its own. In a shared session the changes live only in the relay's memory
  * until someone stores them, so the editor saves a few seconds after the last change: the author
  * of the newest change first, everyone else later if that did not happen (editor-core
- * session-progress.ts). After a failed save it tries again at the slower pace.
+ * session-progress.ts). After a failed save it tries again at the slower pace. A document opened
+ * read-only is never saved.
  */
 export const useDocumentSave = <S extends CoreState>(
   editor: OpenedDocument<S> | null,
   state: S,
   store: (bytes: Uint8Array) => Promise<unknown>,
+  readOnly = false,
 ): DocumentSave => {
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export const useDocumentSave = <S extends CoreState>(
     }
   }, [saveOnce]);
 
-  const ready = state.status === "ready" && state.document.connected;
+  const ready = !readOnly && state.status === "ready" && state.document.connected;
   const delay = autosaveDelay(state.session, state.document.modified);
   const wait = delay === null ? null : failure ? AUTOSAVE_DELAY.fallback : delay;
 

@@ -8,6 +8,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -18,6 +19,8 @@ import { user } from "./auth-schema";
 export { account, session, user, verification } from "./auth-schema";
 
 export const nodeKind = pgEnum("node_kind", ["folder", "file"]);
+
+export const shareRole = pgEnum("share_role", ["edit", "view"]);
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -85,5 +88,25 @@ export const versions = pgTable(
   (table) => [uniqueIndex("versions_number_per_file").on(table.fileId, table.number)],
 );
 
+/**
+ * Who else may open a node, and how: a share on a folder holds for everything below it. The node
+ * stays its owner's; files created in a shared folder belong to the folder's owner too.
+ */
+export const shares = pgTable(
+  "shares",
+  {
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: shareRole("role").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.nodeId, table.userId] }), index("shares_user").on(table.userId)],
+);
+
 export type NodeRow = typeof nodes.$inferSelect;
+export type ShareRow = typeof shares.$inferSelect;
 export type VersionRow = typeof versions.$inferSelect;

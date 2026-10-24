@@ -11,6 +11,9 @@
       "path": "packages/ooxml"
     },
     {
+      "path": "packages/pdf-ocr"
+    },
+    {
       "path": "packages/pdf-sign"
     },
     {

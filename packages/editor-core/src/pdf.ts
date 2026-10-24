@@ -18,7 +18,7 @@ import {
   SHAPE_TOOLS,
   type ShapeTool,
 } from "./pdf-state";
-import type { PdfEngineApi, PdfEventArgs, PdfWindow } from "./pdf-types";
+import type { PdfEngineApi, PdfEventArgs, PdfFile, PdfWindow } from "./pdf-types";
 import { type ContextMenuListener, contextMenuSource, createViewCommands, type ViewCommands } from "./view";
 
 /** The colours a tool starts with; web-apps lets them be changed the same way. */
@@ -48,6 +48,11 @@ export type PageCommands = {
   append: (pdf: Uint8Array, where: "after" | "end") => void;
   /** The selected pages as a PDF of their own, with what was changed on them. */
   extract: () => Uint8Array;
+  /**
+   * The page, from 0, drawn at this resolution without its rotation, as the file has it (no
+   * annotations); null for a page that is not in the file yet, as a blank one added.
+   */
+  render: (page: number, dpi: number) => HTMLCanvasElement | null;
   goTo: (page: number) => void;
 };
 
@@ -150,6 +155,17 @@ export const createPdfCommands = (
  * pasted in web-apps' thumbnails (pdf/src/document.js GetPagesBinary and, in InsertContent,
  * MergePagesBinary).
  */
+/**
+ * drawingfile.wasm draws the page into pixels (pdf/src/file.js `CFile.getPage`: `getPagePixmap`,
+ * white behind it). Page sizes are in pixels at the page's Dpi (viewer.js reads them so).
+ */
+const renderPage = (file: PdfFile, page: number, dpi: number): HTMLCanvasElement | null => {
+  const info = file.pages[page];
+  if (!info) return null;
+  const scale = dpi / info.Dpi;
+  return file.getPage(page, Math.round(info.W * scale), Math.round(info.H * scale), true, 0xffffff);
+};
+
 export const createPageCommands = (win: PdfWindow, api: PdfEngineApi): PageCommands => {
   const selected = () => {
     const pages = api.getSelectedPages();
@@ -171,6 +187,7 @@ export const createPageCommands = (win: PdfWindow, api: PdfEngineApi): PageComma
       doc.DoAction(() => doc.MergePagesBinary(position, pdf), win.AscDFH.historydescription_Pdf_AddPage, doc);
     },
     extract: () => api.getPDFDoc().GetPagesBinary(selected(), false),
+    render: (page, dpi) => renderPage(api.getPDFDoc().Viewer.file, page, dpi),
     goTo: (page) => api.goToPage(page),
   };
 };

@@ -289,4 +289,22 @@ describe("pages between files", () => {
     expect(createPageCommands(fakeWindow(), api).extract()).toBe(extracted);
     expect(asked).toEqual([[[1, 3], false]]);
   });
+
+  it("draws a page at the resolution asked, unrotated and on white", () => {
+    const canvas = {} as HTMLCanvasElement;
+    const asked: unknown[] = [];
+    const file = {
+      // 72 dpi: the page's size in points, A4.
+      pages: [{ W: 595, H: 842, Dpi: 72 }],
+      getPage: (...args: unknown[]) => {
+        asked.push(args);
+        return canvas;
+      },
+    };
+    const { api } = fakeApi({ getPDFDoc: { Viewer: { file } } });
+    const pages = createPageCommands(fakeWindow(), api);
+    expect(pages.render(0, 144)).toBe(canvas);
+    expect(asked).toEqual([[0, 1190, 1684, true, 0xffffff]]);
+    expect(pages.render(1, 144)).toBeNull();
+  });
 });

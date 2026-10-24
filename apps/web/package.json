@@ -15,14 +15,19 @@
     "@schreibzeug/editor-core": "workspace:*",
     "@schreibzeug/files-api": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
+    "@schreibzeug/pdf-ocr": "workspace:*",
     "@schreibzeug/pdf-sign": "workspace:*",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.46",
+    "@tesseract.js-data/deu": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "better-auth": "1.7.12",
     "hono": "4.13.13",
     "lucide-react": "1.61.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "tesseract.js": "7.0.0",
+    "tesseract.js-core": "7.0.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
@@ -31,6 +36,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
+    "pdf-lib": "1.17.1",
     "tailwindcss": "4.3.3",
     "vite": "8.3.5"
   }

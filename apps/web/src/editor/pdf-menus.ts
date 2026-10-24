@@ -28,6 +28,8 @@ export type PdfMenuContext = {
   onAppendPdf: () => void;
   /** Stores the selected pages as a new PDF beside this one; null where no file can be made. */
   onExtractPages: (() => void) | null;
+  /** Opens "Text erkennen" for scanned pages; null where the PDF cannot be replaced. */
+  onRecognizeText: (() => void) | null;
   /** Tells the person why a command did nothing. */
   notify: (message: string) => void;
 };
@@ -168,7 +170,19 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
         })),
       ],
     },
-    { label: "Seiten", groups: pageItems(context, off) },
+    {
+      label: "Seiten",
+      groups: [
+        ...pageItems(context, off),
+        [
+          {
+            label: "Text erkennen (OCR) …",
+            disabled: off || !context.onRecognizeText,
+            onSelect: () => context.onRecognizeText?.(),
+          },
+        ],
+      ],
+    },
     {
       label: "Schwärzen",
       groups: [

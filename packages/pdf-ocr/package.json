@@ -1,0 +1,14 @@
+{
+  "name": "@schreibzeug/pdf-ocr",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Searchable scans: finds the pages of a PDF without text and lays the text recognised on them over the page, invisible.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "pdf-lib": "1.17.1"
+  }
+}

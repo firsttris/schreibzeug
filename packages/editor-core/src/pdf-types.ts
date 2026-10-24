@@ -67,8 +67,21 @@ export interface PdfViewer {
   getPageRotate(page: number): number;
   /** The part of the page in view, as fractions of its width and height. */
   getViewingRect(page: number): { x: number; y: number; r: number; b: number };
-  /** The pages as drawingfile.wasm reads them, in points. */
-  file: { pages: Array<{ W: number; H: number }> };
+  file: PdfFile;
+}
+
+/** pdf/src/file.js `CFile`: the file as drawingfile.wasm reads it. */
+export interface PdfFile {
+  /** The pages, without their rotation, in pixels at Dpi (pdf/src/viewer.js). */
+  pages: Array<{ W: number; H: number; Dpi: number }>;
+  /** The page drawn at this size; null when it is not in the file (a page added since). */
+  getPage(
+    page: number,
+    width: number,
+    height: number,
+    noCache: boolean,
+    background: number,
+  ): HTMLCanvasElement | null;
 }
 
 /** The PDF document behind the editor (pdf/src/document.js `CPDFDoc`). */

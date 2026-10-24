@@ -13,6 +13,7 @@ import {
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { PDF_SHORTCUTS } from "./help-dialogs";
+import { ScanNotice } from "./ocr-dialog";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import { type PdfMenuContext, pagesLabel, pdfContextMenu, pdfMenus } from "./pdf-menus";
 import type { EditorViewProps } from "./props";
@@ -21,6 +22,7 @@ import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
+import { useOcr } from "./use-ocr";
 
 /** A PDF: title and menus, the tools above, the engine's page thumbnails and the pages below. */
 /** "%PDF" at the start: what PDF readers check before they read a file. */
@@ -75,6 +77,13 @@ export const PdfView = ({
   const appendInput = useRef<HTMLInputElement>(null);
   const checks = useSignatureChecks(file.bytes);
   const [signingDigitally, setSigningDigitally] = useState(false);
+  const ocr = useOcr({
+    editor,
+    bytes: file.bytes,
+    readOnly: file.readOnly,
+    onReplace,
+    signed: checks.length > 0,
+  });
 
   /** Signs what is saved now, stores it as the newest version and opens that (the edit page). */
   const signDigitally = async (request: SigningRequest): Promise<string | null> => {
@@ -135,6 +144,7 @@ export const PdfView = ({
     onSignDigitally: onReplace && !file.readOnly ? () => setSigningDigitally(true) : null,
     onAppendPdf: () => appendInput.current?.click(),
     onExtractPages: extractPages,
+    onRecognizeText: ocr.start,
     notify: chrome.notify,
   };
 
@@ -168,6 +178,7 @@ export const PdfView = ({
         }
       />
       <SignatureNotice checks={checks} modified={state.document.modified} />
+      {ocr.scanned && <ScanNotice onRecognize={ocr.start} />}
       <div className="flex min-h-0 flex-1">
         <DocumentArea
           container={container}
@@ -197,6 +208,7 @@ export const PdfView = ({
           if (picked) void appendPdf(picked);
         }}
       />
+      {ocr.dialog}
       <DigitalSignatureDialog
         open={signingDigitally}
         onClose={() => setSigningDigitally(false)}

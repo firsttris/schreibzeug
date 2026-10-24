@@ -16,6 +16,7 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 |---|---|
 | `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store, for the text, spreadsheet, presentation and PDF editors. Framework-free. See [the engine](engine.md) and [PDFs](pdf.md). |
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
+| `packages/pdf-ocr` | Searchable scans: finds the pages of a PDF without text and lays recognised text over them, invisible. See [PDFs](pdf.md#text-recognition). |
 | `packages/pdf-sign` | Digital signatures in PDFs: signs with a PKCS#12 certificate (PKCS#7, detached) and checks the signatures a PDF holds. See [PDFs](pdf.md#digital-signatures). |
 | `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests. |
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |

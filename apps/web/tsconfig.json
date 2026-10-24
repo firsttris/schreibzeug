@@ -6,7 +6,7 @@
     "tsBuildInfoFile": "../../node_modules/.tsc/web.tsbuildinfo",
     "types": ["vite/client", "bun"]
   },
-  "include": ["src", "vite.config.ts", "engine-plugin.ts"],
+  "include": ["src", "vite.config.ts", "engine-plugin.ts", "ocr-plugin.ts"],
   "references": [
     {
       "path": "../../packages/editor-core"
@@ -16,6 +16,9 @@
     },
     {
       "path": "../../packages/ooxml"
+    },
+    {
+      "path": "../../packages/pdf-ocr"
     },
     {
       "path": "../../packages/pdf-sign"

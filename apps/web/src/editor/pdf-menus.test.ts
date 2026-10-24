@@ -33,12 +33,20 @@ describe("pdfMenus", () => {
       onSignDigitally: null,
       onAppendPdf: () => {},
       onExtractPages: null,
+      onRecognizeText: null,
       notify: () => {},
     };
     const pages = pdfMenus(context).find((menu) => menu.label === "Seiten");
     const items = pages?.groups.flat() ?? [];
     expect(items.find((item) => item.label === "PDF anhängen …")?.disabled).toBe(false);
     expect(items.find((item) => item.label === "Als neues PDF speichern")?.disabled).toBe(true);
+    expect(items.find((item) => item.label === "Text erkennen (OCR) …")?.disabled).toBe(true);
+    const recognize = () => {};
+    const withOcr = pdfMenus({ ...context, onRecognizeText: recognize }).find(
+      (menu) => menu.label === "Seiten",
+    );
+    const item = withOcr?.groups.flat().find((entry) => entry.label === "Text erkennen (OCR) …");
+    expect(item?.disabled).toBe(false);
     const comment = pdfMenus(context).find((menu) => menu.label === "Kommentieren");
     expect(comment?.groups.flat().find((item) => item.label === "Unterschreiben …")?.disabled).toBe(true);
   });

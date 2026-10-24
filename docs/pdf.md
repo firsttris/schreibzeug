@@ -91,6 +91,31 @@ what was changed on them (`CPDFDoc.GetPagesBinary`, which `drawingfile.wasm` `Sp
 and stores it beside the file as "<Name> – Seiten 1–2.pdf" (in "Meine Dateien" when the folder
 belongs to someone else).
 
+## Text recognition
+
+A scanned PDF is pictures of pages: its words can be neither searched nor copied. Opening one
+shows a notice above it ("Dieses PDF besteht nur aus Bildern …"), and "Text erkennen" there or in
+"Seiten → Text erkennen (OCR) …" recognises the text with [Tesseract](https://github.com/naptha/tesseract.js)
+(Apache-2.0) in a worker of the page, German and English, and stores the PDF as a new version.
+It looks as before; the text lies over the page, invisible, where its letters are.
+
+- Which pages: `packages/pdf-ocr` `textlessPages` reads the saved PDF with pdf-lib and takes the
+  pages whose content, and the form XObjects it draws, shows no text (no `Tj`/`TJ` in a text
+  object). Pages with text stay as they are, so a second run finds nothing to do.
+- The page images: the engine draws each of those pages at 300 dpi, unrotated and without
+  annotations (`PageCommands.render` → pdf/src/file.js `CFile.getPage`); Tesseract gets them as PNG,
+  as its loader does not take the frame's canvases for canvases.
+- The text layer: `addTextLayer` sets each word in Helvetica, text rendering mode 3 (invisible,
+  ISO 32000-1 9.3.6), at the place and height of its box on the image and stretched to its width
+  (`Tz`), as OCRmyPDF does; Helvetica is not embedded, as invisible text is never drawn. Characters
+  WinAnsi has no code for become "?".
+- Nothing leaves the computer: tesseract.js would load its core and the language models from a CDN;
+  `apps/web/ocr-plugin.ts` serves them from the app at `/ocr` instead (the core builds with and
+  without SIMD, `tessdata_best` integer models of `deu` and `eng`, about 16 MB in all), and the
+  desktop app has them offline. They load when text is recognised, not with the app.
+
+A digitally signed PDF is not changed: the text layer would break the signature.
+
 ## PDF/A
 
 "Datei → Als PDF/A herunterladen" gives the PDF with the changes made as PDF/A-2 for archiving,
@@ -138,7 +163,10 @@ connection someone who types very fast can lose a character in a shared form.
 `e2e/pdf-sign.spec.ts` signs through the app with a certificate made for the test (a wrong
 password first), checks the stored file and the warning after a change; `packages/pdf-sign/test`
 signs and checks below the app, also a changed byte and bytes added after signing.
-`e2e/pdf-a.spec.ts` downloads a text document and an edited PDF as PDF/A and checks the
+`e2e/pdf-ocr.spec.ts` uploads a scan made in the browser (text drawn into a PNG), recognises its
+text through the notice and checks the stored text layer and that a second run has nothing to do;
+`packages/pdf-ocr/test` checks which pages count as textless and where the words go, and
+`apps/web/src/editor/ocr.test.ts` the run over the pages. `e2e/pdf-a.spec.ts` downloads a text document and an edited PDF as PDF/A and checks the
 conformance in the XMP metadata, the output intent, and that every font is embedded with a
 ToUnicode map. `e2e/pdf-engine.spec.ts` checks the engine below the app; `e2e/pdf-together.spec.ts` has two
 people fill in and comment the same PDF. `e2e/pdf.spec.ts` works through the app

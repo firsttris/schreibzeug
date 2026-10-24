@@ -1,10 +1,16 @@
 import { escapeXml, officePackage, XML_HEADER } from "./zip";
 
+/** The few cell formats the templates use: bold, euro amounts, a German date, a percentage. */
+export type CellStyle = "bold" | "currency" | "boldCurrency" | "date" | "percent";
+
 /**
- * A cell: a number, a text, or a formula (with "=", e.g. "=SUM(A1:A3)"). Formulas are written
- * without a cached value; the engine calculates them on open.
+ * A cell: a number, a text, or a formula (with "=", e.g. "=SUM(A1:A3)"), plain or with a style.
+ * Formulas are written without a cached value; the engine calculates them on open.
  */
-export type CellValue = number | string;
+export type CellValue = number | string | { value: number | string; style: CellStyle };
+
+/** The index of each style in cellXfs below (0 is the plain cell). */
+const STYLE_INDEX: Record<CellStyle, number> = { bold: 1, currency: 2, boldCurrency: 3, date: 4, percent: 5 };
 
 /**
  * One sheet: its name, its rows from row 1 down (each a list of cells from column A), and
@@ -22,10 +28,12 @@ export const columnName = (index: number): string =>
     : columnName(Math.floor(index / 26) - 1) + columnName(index % 26);
 
 /** A cell in SpreadsheetML (ECMA-376 Part 1, 18.3.1.4); texts as inline strings, no shared table. */
-const cellXml = (value: CellValue, reference: string): string => {
-  if (typeof value === "number") return `<c r="${reference}"><v>${value}</v></c>`;
-  if (value.startsWith("=")) return `<c r="${reference}"><f>${escapeXml(value.slice(1))}</f></c>`;
-  return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+const cellXml = (cell: CellValue, reference: string): string => {
+  const [value, style] = typeof cell === "object" ? [cell.value, STYLE_INDEX[cell.style]] : [cell, 0];
+  const at = `r="${reference}"${style ? ` s="${style}"` : ""}`;
+  if (typeof value === "number") return `<c ${at}><v>${value}</v></c>`;
+  if (value.startsWith("=")) return `<c ${at}><f>${escapeXml(value.slice(1))}</f></c>`;
+  return `<c ${at} t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
 };
 
 /** Column widths (ECMA-376 Part 1, 18.3.1.13); `cols` must come before the cells. */
@@ -44,14 +52,19 @@ const sheetXml = ({ rows, widths = [] }: Sheet): string => `${XML_HEADER}
     .join("")}</sheetData>
 </worksheet>`;
 
-/** Calibri 11, the defaults of a new workbook; the engine shows Calibri with its twin Carlito. */
+/**
+ * Calibri 11, the defaults of a new workbook (the engine shows Calibri with its twin Carlito), and
+ * the cell styles of CellStyle: number formats 164 (euro, as German Excel writes it) and 165 (date)
+ * are our own, 10 is the built-in "0.00%" (ECMA-376 Part 1, 18.8.30).
+ */
 const styles = `${XML_HEADER}
 <styleSheet xmlns="${MAIN}">
-  <fonts count="1"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font></fonts>
+  <numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.00\\ &quot;€&quot;"/><numFmt numFmtId="165" formatCode="dd.mm.yyyy"/></numFmts>
+  <fonts count="2"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><name val="Calibri"/><family val="2"/></font></fonts>
   <fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
   <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
   <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-  <cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
+  <cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="10" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>
   <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
 

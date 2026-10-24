@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, FilePlus2, FolderPlus, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { messageOf } from "../api/client";
 import { rootLabel, useFiles } from "../api/context";
-import { useFileMutation } from "../api/files";
+import { refreshFiles, useFileMutation } from "../api/files";
 import { Button } from "../ui/button";
 import { MenuButton } from "../ui/menu";
 import { FileBadge } from "./file-badge";
@@ -12,6 +12,7 @@ import { NameDialog } from "./name-dialog";
 import { NodeActions } from "./node-actions";
 import { NodeTable } from "./node-table";
 import { PageHeader, PageMessage } from "./page";
+import { TemplateDialog } from "./template-dialog";
 import { useUpload } from "./use-upload";
 
 type NewFile = "docx" | "xlsx" | "pptx";
@@ -33,7 +34,7 @@ const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; n
   },
 };
 
-type Creating = "folder" | NewFile | null;
+type Creating = "folder" | "template" | NewFile | null;
 
 /** The path from the top: the user's own files, or what was shared with them. */
 const Breadcrumb = ({
@@ -77,6 +78,7 @@ const Breadcrumb = ({
 export const FolderPage = ({ folderId }: { folderId: string | null }) => {
   const { queries, commands, info } = useFiles();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const listing = useQuery(queries.folder(folderId));
   const [creating, setCreating] = useState<Creating>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -114,6 +116,7 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
                   icon: <FileBadge kind={format} size={22} />,
                   onSelect: () => setCreating(format),
                 })),
+                [{ label: "Aus Vorlage …", onSelect: () => setCreating("template") }],
               ]}
             >
               <FilePlus2 size={15} />
@@ -207,6 +210,15 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
           onClose={() => setCreating(null)}
         />
       ))}
+      <TemplateDialog
+        open={creating === "template"}
+        folderId={folderId}
+        onCreated={async (fileId) => {
+          await refreshFiles(queryClient);
+          await navigate({ to: "/edit/$fileId", params: { fileId } });
+        }}
+        onClose={() => setCreating(null)}
+      />
     </section>
   );
 };

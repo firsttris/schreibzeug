@@ -82,6 +82,20 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `GET /health` | `{ "ok": true }` |
 | `GET /info` | `{ "mode": "server" }`; the desktop app's local server answers `{ "mode": "local", "rootName" }` ([desktop app](desktop.md#files-on-this-computer)). **No session needed** |
 
+## Templates
+
+"Neu → Aus Vorlage …" (`apps/web/src/files/template-dialog.tsx`) starts a file from a template:
+
+- **Built in** (`packages/ooxml/src/templates.ts`): a letter after DIN 5008, an offer, an invoice
+  with what § 14 UStG asks of one, a calculation (formulas for the totals and the tax, euro
+  formats), a project plan and a presentation. They are written as Office XML there; square
+  brackets mark what to fill in.
+- **Own templates**: every document, spreadsheet and presentation in a folder named "Vorlagen" at
+  the top of the user's files. Nothing else needs setting up, on a server as on the computer.
+
+The new file is the template's bytes uploaded under the name given (`POST /files`), so the API
+needs nothing of its own for it and an own template stays as it is.
+
 ## Running it
 
 | Variable | Default |

@@ -58,11 +58,16 @@ jobs:
         with:
           lockfile: bun.lock
 
-  # Stages 4 to 6: the real engine in a browser, user flows (Playwright)
+  # Stages 4 to 6: the real engine in a browser, user flows (Playwright), in three shards at once:
+  # every test opens the engine anew, so one runner takes about seven minutes for all of them.
   e2e:
     needs: [engine, playwright-image]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     container:
       image: ${{ needs.playwright-image.outputs.image }}
       options: --ipc=host
@@ -77,13 +82,13 @@ jobs:
       # (as firsttris/workflows screenshots.yml does).
       - run: npm install --global "bun@$BUN_VERSION"
       - run: bun install --frozen-lockfile
-      - run: bun run test:e2e
+      - run: bun run test:e2e --shard=${{ matrix.shard }}/3
         env:
           HOME: /root
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             e2e/playwright-report
             e2e/test-results

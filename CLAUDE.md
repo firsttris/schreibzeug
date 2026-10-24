@@ -40,14 +40,16 @@ Update what the change affects, in the same pull request, and only that:
 
 ## Checks
 
-Green before every push, then check CI:
+Green before every push, then check CI. The full end-to-end suite runs in CI (three shards); before a
+push, run the specs that cover the change (`bun run test:e2e e2e/<spec>.ts`, or `-g "<test>"`), and
+the fidelity project when the engine, the frame pages or the converter changed:
 
 ```sh
 bun install --frozen-lockfile
 bun run typecheck        # tsc --noEmit in every workspace
 bun run lint             # biome check
 bun run test             # vitest on Bun: unit + integration (SQLite, see docs/files.md)
-bun run test:e2e         # playwright: engine, flows, collaboration, format fidelity
+bun run test:e2e e2e/<spec>.ts   # playwright: the specs the change touches; all of them run in CI
 bun run build
 cargo fmt --check && cargo clippy -- -D warnings && cargo test   # in apps/desktop, when it changed
 mkdocs build --strict    # when docs/ or mkdocs.yml changed
@@ -58,7 +60,8 @@ mkdocs build --strict    # when docs/ or mkdocs.yml changed
 - Work happens directly on `main`; no pull requests. One commit per self-contained change.
 - `bun run engine:prepare` once before the first dev server or E2E run (Linux x86_64: it runs the
   engine's font generator). Before every push the checks above are green, and after it the CI run
-  on `main` is watched until it is green; a red run is fixed in the next commit right away.
+  on `main` is watched until it is green, the full E2E suite included; a red run is fixed in the
+  next commit right away.
 - Never force-push `main`.
 
 ## Working rules

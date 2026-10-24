@@ -1,5 +1,5 @@
 import type { CollabChannel } from "./collab";
-import type { Convert, Converted, MediaFiles, OfficeFormat, RenderPdf } from "./converter";
+import type { ApplyPdfChanges, Convert, Converted, MediaFiles, OfficeFormat, RenderPdf } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
 import { CSV_DELIMITER_CODES, type CsvDelimiter, detectDelimiter, encodeCsv } from "./csv";
 import type { CommonEventArgs, DocumentUrls, EngineApiBase, EngineWindow } from "./engine-types";
@@ -14,7 +14,7 @@ import { type AppShortcut, createListeners, shortcutOf } from "./view";
 export type DocumentUser = { id: string; name: string };
 
 export type OpenOptions = {
-  /** The Office file (.docx, .xlsx, .pptx). */
+  /** The file: an Office file (.docx, .xlsx, .pptx) or a PDF. */
   bytes: Uint8Array;
   title: string;
   user: DocumentUser;
@@ -22,6 +22,8 @@ export type OpenOptions = {
   convert: Convert;
   /** Turns the engine's print commands into a PDF; without it the document has no PDF. */
   renderPdf?: RenderPdf;
+  /** Writes the PDF editor's changes into the PDF (converter.ts); needed to save a PDF. */
+  applyPdfChanges?: ApplyPdfChanges;
   lang?: string;
   /** The file is a CSV, not an .xlsx: it is read and saved as one (csv.ts). Spreadsheets only. */
   csv?: boolean;
@@ -71,17 +73,22 @@ export type OpenedDocument<S extends CoreState> = {
   insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
 };
 
+/** The formats the editors open: the Office formats and PDF. */
+export type DocumentFormat = OfficeFormat | "pdf";
+
 /** The format of the file itself: the editor's, or a CSV with its delimiter (csv.ts). */
-type FileFormat = { format: OfficeFormat } | { format: "csv"; delimiter: CsvDelimiter };
+type FileFormat = { format: DocumentFormat } | { format: "csv"; delimiter: CsvDelimiter };
 
 /**
  * The file in the engine's format. x2t reads a CSV into an .xlsx only (to the engine's binary it
- * stops with error 89), so a CSV takes that step first.
+ * stops with error 89), so a CSV takes that step first. A PDF needs none: the PDF editor reads the
+ * file itself (pdf/api.js openDocument → DocumentRenderer.open).
  */
 const toBinary = async (
   options: Pick<OpenOptions, "bytes" | "convert">,
   file: FileFormat,
 ): Promise<Converted> => {
+  if (file.format === "pdf") return { bytes: options.bytes, media: {} };
   if (file.format !== "csv") return options.convert(options.bytes, file.format, "bin");
   const delimiter = CSV_DELIMITER_CODES[file.delimiter];
   const workbook = await options.convert(options.bytes, "csv", "xlsx", undefined, delimiter);
@@ -103,8 +110,8 @@ export type EditorBinding<
   E extends { type: string },
   Parts,
 > = {
-  /** The Office format the converter reads and writes for this editor. */
-  format: OfficeFormat;
+  /** The format of the files this editor opens. */
+  format: DocumentFormat;
   /** The editor's API object, created in the frame (word/api.js, cell/api.js, slide/api.js). */
   createApi: (win: W) => Api;
   initialState: S;
@@ -123,6 +130,11 @@ export type EditorBinding<
   printCommands?: (api: Api) => Uint8Array;
   /** The values the sheet shows, row by row, for a CSV file; spreadsheets only (cell.ts). */
   sheetText?: (api: Api) => string[][];
+  /**
+   * Saves the file in its own way, where it is no Office file: a PDF writes the editor's changes
+   * into the original (pdf.ts). Without it the binary goes back through x2t.
+   */
+  saveFile?: (api: Api, options: OpenOptions, media: () => Promise<MediaFiles>) => Promise<Uint8Array>;
 };
 
 export type KindContext<W, Api, S, E> = {
@@ -150,7 +162,7 @@ const subscribe = <Events extends CommonEventArgs, Out>(
   }
 };
 
-const createDocInfo = (win: EngineWindow, options: OpenOptions, format: OfficeFormat, url: string) => {
+const createDocInfo = (win: EngineWindow, options: OpenOptions, format: DocumentFormat, url: string) => {
   const user = new win.Asc.asc_CUserInfo();
   user.put_Id(options.user.id);
   user.put_FullName(options.user.name);
@@ -303,9 +315,10 @@ export const openDocument = <
       provideMedia(urls, media, (image) => win.URL.createObjectURL(new win.Blob([image as BlobPart])));
       // The document with the images it holds: those it came with and those added since, by
       // anyone (others' images arrive by name, and the relay says where they are; collab.ts).
+      const documentMedia = () => collectMedia(urls, fetchBytes(win));
       const snapshot = async (): Promise<Snapshot> => {
         const binary = new TextEncoder().encode(api.asc_nativeGetFile());
-        return { binary, media: await collectMedia(urls, fetchBytes(win)) };
+        return { binary, media: await documentMedia() };
       };
       const base = api as unknown as EngineApiBase<CommonEventArgs>;
       const stopProgress = followProgress(options.collaboration?.channel, dispatch);
@@ -327,6 +340,7 @@ export const openDocument = <
         dispatch({ type: "modified", value: api.isDocumentModified() }),
       );
       const parts = binding.setup({ win, api, store, dispatch, options });
+      const { saveFile } = binding;
 
       const opened: OpenedDocument<S> & Parts = {
         ...parts,
@@ -334,6 +348,8 @@ export const openDocument = <
         save: async () => {
           const seen = store.get().session.seen;
           if (file.format === "csv") return { bytes: csvOf(api, binding.sheetText, file.delimiter), seen };
+          if (saveFile) return { bytes: await saveFile(api, options, documentMedia), seen };
+          if (file.format === "pdf") throw new Error("A PDF editor saves through saveFile.");
           const { binary: binaryNow, media: mediaNow } = await snapshot();
           const saved = await options.convert(binaryNow, "bin", file.format, mediaNow);
           return { bytes: saved.bytes, seen };
@@ -345,7 +361,11 @@ export const openDocument = <
         },
         resize: () => binding.resize(api),
         onShortcut: shortcuts.add,
-        exportPdf: pdfExport(win, api, binding.printCommands, options.renderPdf, snapshot),
+        // A PDF is its own PDF: exporting it is saving it.
+        exportPdf:
+          saveFile && file.format === "pdf"
+            ? () => saveFile(api, options, documentMedia)
+            : pdfExport(win, api, binding.printCommands, options.renderPdf, snapshot),
         insertImage: insertImage(urls, base, options.images),
         close: () => {
           win.removeEventListener("keydown", onKey, true);

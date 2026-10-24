@@ -50,6 +50,7 @@ export {
 export { isOnSheet } from "./comment-state";
 export type { CommentAuthor, CommentCommands } from "./comments";
 export {
+  type ApplyPdfChanges,
   type Convert,
   type Converter,
   type ConvertFormat,
@@ -67,7 +68,7 @@ export {
   initialCoreState,
   type SearchState,
 } from "./core-state";
-export type { DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
+export type { DocumentFormat, DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
 export type { HeaderFooterCommands, PageNumberPlace } from "./header-footer";
@@ -86,6 +87,28 @@ export {
 export type { Link, LinkCommands, LinkDraft } from "./links";
 export { HIGHLIGHT_COLORS, type HighlightColor, type MarkingCommands } from "./marking";
 export type { ImageStore } from "./media";
+export {
+  DEFAULT_TOOL_COLORS,
+  openPdfDocument,
+  type PageCommands,
+  type PdfColor,
+  type PdfCommands,
+  type PdfEditor,
+  type SignatureCommands,
+  type Stroke,
+} from "./pdf";
+export {
+  initialPdfState,
+  isMarkerTool,
+  isShapeTool,
+  MARKER_TOOLS,
+  type MarkerTool,
+  type PdfEvent,
+  type PdfState,
+  type PdfTool,
+  SHAPE_TOOLS,
+  type ShapeTool,
+} from "./pdf-state";
 export type {
   ReviewCommands,
   ReviewDisplay,

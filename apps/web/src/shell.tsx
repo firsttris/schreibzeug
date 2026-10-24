@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Clock, FolderClosed, Layers, LogOut, Trash2, Users } from "lucide-react";
+import { Clock, FolderClosed, LogOut, PenLine, Trash2, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAccount, useUser } from "./account/context";
 import { initialsOf } from "./account/initials";
@@ -81,7 +81,7 @@ export const Shell = () => {
       <aside className="flex shrink-0 flex-col gap-4 border-b border-[var(--border)] p-3 md:w-60 md:border-r md:border-b-0">
         <Link to="/" className="flex items-center gap-2 px-1.5 text-[var(--foreground)] no-underline">
           <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
-            <Layers size={16} />
+            <PenLine size={16} />
           </span>
           <span className="text-[15px] font-semibold tracking-tight">Schreibzeug</span>
         </Link>

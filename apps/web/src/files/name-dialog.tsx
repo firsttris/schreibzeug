@@ -21,9 +21,12 @@ export const NameDialog = (props: NameDialogProps) => (
   </Dialog>
 );
 
-/** Selects the name without its extension, so typing replaces only the part people rename. */
-const selectBaseName = (input: HTMLInputElement | null) => {
-  if (!input) return;
+/**
+ * Selects the name without its extension, so typing replaces only the part people rename. On focus,
+ * after it: the dialog focuses the field when it opens, and WebKit (Safari, the desktop app on
+ * macOS and Linux) places the caret after the focus event, over a selection made before.
+ */
+const selectBaseName = (input: HTMLInputElement) => {
   const dot = input.value.lastIndexOf(".");
   input.setSelectionRange(0, dot > 0 ? dot : input.value.length);
 };
@@ -58,7 +61,10 @@ const NameForm = ({ label, initialName, confirm, onSubmit, onClose }: NameDialog
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium">{label}</span>
         <input
-          ref={selectBaseName}
+          onFocus={(event) => {
+            const input = event.currentTarget;
+            requestAnimationFrame(() => selectBaseName(input));
+          }}
           // biome-ignore lint/a11y/noAutofocus: the dialog exists to type this name
           autoFocus
           value={name}

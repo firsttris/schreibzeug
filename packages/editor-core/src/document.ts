@@ -22,6 +22,8 @@ export type OpenOptions = {
   /** Turns the engine's print commands into a PDF; without it the document has no PDF. */
   renderPdf?: RenderPdf;
   lang?: string;
+  /** Red underlines for misspelled words (spelling.ts); on unless switched off. */
+  spellCheck?: boolean;
   /** "view" opens the document read-only: for someone it is shared with to look at. */
   mode?: "edit" | "view";
   /** How long to wait until the document is shown, in milliseconds. */
@@ -82,7 +84,7 @@ export type EditorBinding<
   /** Callbacks and commands of this editor: its part of the opened document. */
   setup: (context: KindContext<W, Api, S, E>) => Parts;
   /** What the editor sets once the document is shown (spell check, zoom, …). */
-  contentReady: (api: Api, win: W, shared: boolean) => void;
+  contentReady: (api: Api, win: W, opened: { shared: boolean; spellCheck: boolean }) => void;
   resize: (api: Api) => void;
   /** Marks the current state as saved in the engine, where the editor can. */
   markUnchanged: (api: Api) => void;
@@ -323,7 +325,10 @@ export const openDocument = <
       });
       base.asc_registerCallback("asc_onDocumentContentReady", () => {
         if (options.collaboration) startCoEditing(base);
-        binding.contentReady(api, win, Boolean(options.collaboration));
+        binding.contentReady(api, win, {
+          shared: Boolean(options.collaboration),
+          spellCheck: options.spellCheck !== false && options.mode !== "view",
+        });
         settle(() => {
           dispatch({ type: "ready" });
           resolve(opened);

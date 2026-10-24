@@ -3,17 +3,20 @@ import type {
   ContextMenuArea,
   SlideCommands,
   SlideState,
+  SpellingCommands,
   ViewCommands,
 } from "@schreibzeug/editor-core";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
+import { spellCheckItem, suggestionGroups } from "./spelling-menus";
 
 /** What the menus of the presentation work with; null while the document opens. */
 export type SlideMenuContext = {
   state: SlideState;
   commands: SlideCommands | null;
   view: ViewCommands | null;
+  spelling: SpellingCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
   onFind: (mode: "find" | "replace") => void;
   /** Starts the slide show full screen; null while the presentation opens. */
@@ -209,6 +212,7 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
         [{ label: "Formatierung löschen", disabled: off, onSelect: run((c) => c.clearFormatting()) }],
       ],
     },
+    { label: "Überprüfen", groups: [[spellCheckItem(state.spelling, context.spelling, off)]] },
   ];
 };
 
@@ -220,5 +224,7 @@ export const slideContextMenu = (context: SlideMenuContext, area: ContextMenuAre
   const clipboard = clipboardItems(context.view, context.onClipboardRefused);
   const slides = slideItems(run, off, state.document.pages);
   const comment = [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }];
-  return area === "thumbnails" ? [slides, clipboard] : [clipboard, comment, slides];
+  return area === "thumbnails"
+    ? [slides, clipboard]
+    : [...suggestionGroups(state.spelling, context.spelling), clipboard, comment, slides];
 };

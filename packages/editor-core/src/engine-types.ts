@@ -4,6 +4,7 @@ import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
 import type { EngineHighlight, MarkingApi } from "./marking";
 import type { DisplayModes, RevisionTypes } from "./review";
 import type { SlideShowApi } from "./slide-show";
+import type { SpellLanguages } from "./spelling";
 /**
  * The part of the sdkjs API that Schreibzeug uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
@@ -68,6 +69,8 @@ export type CommonEventArgs = {
  * slide/api.js `sendEvent`).
  */
 export type TextEventArgs = CommonEventArgs & {
+  /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
+  asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number } & Partial<SelectedObject>>];
   asc_onBold: [isBold: boolean];
   asc_onItalic: [isItalic: boolean];
   asc_onUnderline: [isUnderline: boolean];
@@ -138,8 +141,6 @@ export type WordEventArgs = TextEventArgs & {
   asc_onParaStyleName: [name: string];
   /** word/api.js sync_InitEditorStyles: the paragraph styles of the document and the defaults */
   asc_onInitEditorStyles: [styles: { get_MergedStyles(): Array<{ get_Name(): string }> }];
-  /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
-  asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number } & Partial<SelectedObject>>];
   /** Strg+K in the document (word/Editor/Shortcuts.js InsertHyperlink): the UI opens its link dialog. */
   asc_onDialogAddHyperlink: [];
   /** A link was followed with Strg+click (word/api.js sync_HyperlinkClickCallback). */
@@ -157,6 +158,22 @@ export type WordEventArgs = TextEventArgs & {
   /** word/api.js sync_EndCatchRevisionsChanges: the changes at the cursor; `isShow` false for a selection. */
   asc_onShowRevisionsChange: [changes: EngineRevision[], isShow: boolean];
 } & CommentEventArgs;
+
+/** common/apiCommon.js asc_CSpellCheckProperty: the word at the cursor, as the spell checker sees it. */
+export interface EngineSpellCheck {
+  get_Word(): string;
+  /** false for a misspelled word. */
+  get_Checked(): boolean | null;
+  get_Variants(): string[] | null | undefined;
+}
+
+/** The spell checker's calls, the same in word/api.js and slide/api.js. */
+export interface SpellingApi {
+  /** Turns the red underlines of the spell checker on or off. */
+  asc_setSpellCheck(isOn: boolean): void;
+  asc_replaceMisspelledWord(word: string, spellCheck: EngineSpellCheck): void;
+  asc_ignoreMisspelledWord(spellCheck: EngineSpellCheck, all: boolean): void;
+}
 
 /** word/Editor/RevisionsChange.js CRevisionsChange: a tracked change. */
 export interface EngineRevision {
@@ -272,6 +289,7 @@ export interface CharacterApi {
 /** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
 export interface WordEngineApi
   extends EngineApiBase<WordEventArgs>,
+    SpellingApi,
     CharacterApi,
     ViewApi,
     SearchApi,
@@ -313,8 +331,6 @@ export interface WordEngineApi
   asc_GetNumberingPr(id: string): { get_Lvl(level: number): { get_Format(): number } | null } | null;
   /** word/api.js: how others' changes are marked (common/commonDefines.js c_oAscCollaborativeMarksShowType). */
   SetCollaborativeMarksShowType(type: number): void;
-  /** word/api.js: turns the red underlines of the spell checker on or off. */
-  asc_setSpellCheck(isOn: boolean): void;
   /** Tracking for this user only; null leaves it to the document's setting. */
   asc_SetLocalTrackRevisions(on: boolean | null): void;
   /** Tracking for the document, stored in the file (w:trackRevisions). */
@@ -372,6 +388,8 @@ export interface EngineWindow extends Window {
     vertalign_SubScript: number;
     CSearchSettings: new () => SearchSettings;
     g_font_loader: FontLoader;
+    /** common/spell/spell.js: the languages the spell checker checks (spelling.ts). */
+    spellcheckGetLanguages?: () => SpellLanguages;
     /** common/editorscommon.js: the URLs of the document's images by their path ("media/…"). */
     g_oDocumentUrls: DocumentUrls;
   };
@@ -386,7 +404,7 @@ export interface WordWindow extends EngineWindow {
     /** common/commonDefines.js */
     c_oAscCollaborativeMarksShowType: { None: number };
     /** common/commonDefines.js: what a selected object is. */
-    c_oAscTypeSelectElement: { Table: number; Header: number; Hyperlink: number };
+    c_oAscTypeSelectElement: { Table: number; Header: number; Hyperlink: number; SpellCheck: number };
     /** word/apiDefines.js */
     c_oAscContextMenuTypes: { Common: number; ChangeHdrFtr: number };
     /** word/Editor/api/document-section-props.js */
@@ -637,6 +655,7 @@ export type SlideEventArgs = TextEventArgs & {
 /** slide/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`). */
 export interface SlideEngineApi
   extends EngineApiBase<SlideEventArgs>,
+    SpellingApi,
     CharacterApi,
     ViewApi,
     SearchApi,
@@ -651,7 +670,6 @@ export interface SlideEngineApi
   zoomFitToPage(): void;
   /** slide/api.js: shows the comment marks on the slides. */
   asc_showComments(): void;
-  asc_setSpellCheck(isOn: boolean): void;
   SetUnchangedDocument(): void;
   /** A new slide after the current one, with the layout at that index of the master. */
   AddSlide(layoutIndex?: number): void;
@@ -679,5 +697,7 @@ export interface SlideWindow extends EngineWindow {
     asc_CCommentData: new (
       data: null,
     ) => EngineCommentData;
+    /** common/commonDefines.js: what a selected object is. */
+    c_oAscTypeSelectElement: { SpellCheck: number };
   };
 }

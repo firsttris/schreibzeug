@@ -9,9 +9,10 @@ import { textEvents } from "./events";
 import { createSearchCommands, type SearchCommands } from "./search";
 import { createSlideShow, hideShowElement, SLIDE_SHOW_ELEMENT, type SlideShow } from "./slide-show";
 import { initialSlideState, reduceSlideState, type SlideEvent, type SlideState } from "./slide-state";
+import { limitSpellLanguages, type SpellingCommands, useDedicatedSpellWorker } from "./spelling";
 import type { ListKind } from "./state";
 import { type ContextMenuListener, contextMenuSource, createViewCommands, type ViewCommands } from "./view";
-import { fontRenderingMode } from "./word";
+import { fontRenderingMode, spellingFor } from "./word";
 
 export type SlideCommands = CharacterCommands & {
   /** Starts a list of this kind, or ends it when the paragraph is in one already. */
@@ -31,6 +32,8 @@ export type PresentationEditor = OpenedDocument<SlideState> & {
   slideShow: SlideShow;
   /** Comments on slides; the engine anchors a new one to the current slide. */
   comments: CommentCommands;
+  /** The spell checker and the misspelled word at the cursor. */
+  spelling: SpellingCommands;
   /** A right click on the slide (area "body") or in the slide list ("thumbnails"). */
   onContextMenu: (listener: ContextMenuListener) => () => void;
 };
@@ -71,10 +74,15 @@ const slideBinding: EditorBinding<
   SlideEngineApi,
   SlideState,
   SlideEvent,
-  Pick<PresentationEditor, "commands" | "view" | "search" | "slideShow" | "comments" | "onContextMenu">
+  Pick<
+    PresentationEditor,
+    "commands" | "view" | "search" | "slideShow" | "comments" | "spelling" | "onContextMenu"
+  >
 > = {
   format: "pptx",
   createApi: (win) => {
+    limitSpellLanguages(win.AscCommon);
+    useDedicatedSpellWorker(win);
     const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: SLIDE_TEXTS });
     api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     api.SetDrawingFreeze(true);
@@ -113,6 +121,13 @@ const slideBinding: EditorBinding<
       dispatch({ type: "showRunning", value: false });
     });
     return {
+      spelling: spellingFor(
+        win,
+        api,
+        (listener) => api.asc_registerCallback("asc_onFocusObject", listener),
+        dispatch,
+        options,
+      ),
       slideShow: createSlideShow(api, showPage),
       comments: createCommentCommands(
         api,
@@ -141,11 +156,11 @@ const slideBinding: EditorBinding<
       ),
     };
   },
-  // web-apps presentationeditor/mobile Main.jsx onDocumentContentReady; spell checking needs a
-  // dictionary service Schreibzeug does not run.
-  contentReady: (api) => {
+  // web-apps presentationeditor/mobile Main.jsx onDocumentContentReady; spell checking as in the
+  // text editor (spelling.ts).
+  contentReady: (api, _win, { spellCheck }) => {
     api.SetDrawingFreeze(false);
-    api.asc_setSpellCheck(false);
+    api.asc_setSpellCheck(spellCheck);
     // The comment marks on the slides, as web-apps shows them (presentationeditor main Main.js).
     api.asc_showComments();
     api.Resize();

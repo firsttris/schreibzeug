@@ -252,6 +252,35 @@ text, or a list of text and drawings) and `get_X`/`get_Y` relative to the view e
 and only while changes are marked. The author is the name the relay gives the session (see
 [collaboration](collaboration.md)).
 
+## Spell checking
+
+`src/spelling.ts`. Without a spell checker address the engine checks in a worker of its own
+(`common/apiBase.js` `_coSpellCheckInit` → `CSpellchecker`, `common/spell/spell.js`: Hunspell as
+WebAssembly) and loads `<lang>/<lang>.aff` and `.dic` from `engine/dictionaries`, which
+`engine/scripts/prepare.ts` fills from the release package with the languages in `engine.json`
+(`de_DE`, `de_AT`, `de_CH`, `en_US`, `en_GB`) and their licenses.
+
+- **Only shipped languages.** The engine checks every language it lists
+  (`AscCommon.spellcheckGetLanguages`); a language without its dictionary marks every word, which is
+  why it was switched off before. The list is cut down to the dictionaries we ship before the editor
+  starts (`limitSpellLanguages`); text in other languages stays unmarked.
+- **A worker of the frame's own.** From the editor's frame the shared worker (`SharedWorker`, named
+  `onlyoffice-spellchecker`) never answered in Chromium, while a dedicated worker does; spell.js
+  already does without the shared one for WebKit's WKWebView, so the frame hides `SharedWorker`
+  before the editor starts (`useDedicatedSpellWorker`).
+- **On or off** with `asc_setSpellCheck(on)` once the document is ready, and from "Überprüfen →
+  Rechtschreibprüfung"; the choice is kept in this browser (`apps/web` `settings/spell-check.ts`,
+  as web-apps keeps "settings-spellcheck"). Someone who may only look gets no underlines.
+- **Suggestions.** With the cursor in a misspelled word, `asc_onFocusObject` lists a
+  `c_oAscTypeSelectElement.SpellCheck` element (`asc_CSpellCheckProperty`: `get_Word`,
+  `get_Checked` false, `get_Variants`). The context menu offers the first five variants
+  (`asc_replaceMisspelledWord(variant, element)`), "Ignorieren" and "Alle ignorieren"
+  (`asc_ignoreMisspelledWord(element, all)`), as web-apps' (`documenteditor/main`
+  `DocumentHolderExt.js` spellProps). The same calls work in the presentation editor.
+
+The format-fidelity pictures and the screenshots are taken with spell checking off, so a
+dictionary update does not change them.
+
 ## Find and replace
 
 `src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,

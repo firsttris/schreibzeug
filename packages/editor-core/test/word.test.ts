@@ -176,8 +176,39 @@ describe("openWordDocument", () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it("switches the spell checker off, since no dictionaries are served", async () => {
-    const { engine } = await openReady();
+  it("checks spelling unless it is switched off, and follows the misspelled word at the cursor", async () => {
+    const { engine, editor } = await openReady();
+    expect(engine.api().calls).toContainEqual(["asc_setSpellCheck", true]);
+    expect(editor.store.get().spelling.enabled).toBe(true);
+
+    const word = { get_Word: () => "Angbot", get_Checked: () => false, get_Variants: () => ["Angebot"] };
+    engine
+      .api()
+      .emit("asc_onFocusObject", [
+        { asc_getObjectType: () => 0 },
+        { asc_getObjectType: () => 5, get_ObjectType: () => 5, get_ObjectValue: () => word },
+      ]);
+    expect(editor.store.get().spelling.misspelled).toEqual({ word: "Angbot", suggestions: ["Angebot"] });
+    editor.spelling.replace("Angebot");
+    editor.spelling.ignore(true);
+    expect(engine.api().calls.slice(-2)).toEqual([
+      ["asc_replaceMisspelledWord", "Angebot", word],
+      ["asc_ignoreMisspelledWord", word, true],
+    ]);
+
+    engine.api().emit("asc_onFocusObject", [{ asc_getObjectType: () => 0 }]);
+    expect(editor.store.get().spelling.misspelled).toBeNull();
+    editor.spelling.setEnabled(false);
+    expect(editor.store.get().spelling.enabled).toBe(false);
+  });
+
+  it("leaves spelling unchecked when switched off", async () => {
+    const engine = createFakeEngine();
+    const converter = fakeConverter();
+    const opening = openWordDocument(engine.window, optionsWith(converter.convert, { spellCheck: false }));
+    await flush();
+    engine.api().emit("asc_onDocumentContentReady");
+    await opening;
     expect(engine.api().calls).toContainEqual(["asc_setSpellCheck", false]);
   });
 

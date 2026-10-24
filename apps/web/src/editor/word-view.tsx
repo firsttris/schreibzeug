@@ -53,6 +53,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     headerFooter: editor?.headerFooter ?? null,
     links: editor?.links ?? null,
     review: editor?.review ?? null,
+    spelling: editor?.spelling ?? null,
     onLink: links.request,
     onOpenLink: openLink,
     view: editor?.view ?? null,

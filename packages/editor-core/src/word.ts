@@ -12,6 +12,12 @@ import { createMarkingCommands, type MarkingCommands, readHighlight } from "./ma
 import { createReviewCommands, type ReviewCommands, readRevision, trackingOf } from "./review";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
+  connectSpelling,
+  limitSpellLanguages,
+  type SpellingCommands,
+  useDedicatedSpellWorker,
+} from "./spelling";
+import {
   type EditorEvent,
   type EditorState,
   initialEditorState,
@@ -36,6 +42,8 @@ export type WordEditor = OpenedDocument<EditorState> & {
   marking: MarkingCommands;
   /** Tracked changes. */
   review: ReviewCommands;
+  /** The spell checker and the misspelled word at the cursor. */
+  spelling: SpellingCommands;
   /** Strg+K in the document: the listener opens the link dialog. Returns the unsubscribe. */
   onLinkRequest: (listener: () => void) => () => void;
   /** Strg+click on a link: the listener opens the address. Returns the unsubscribe. */
@@ -71,6 +79,18 @@ const withPainterState = (commands: MarkingCommands, report: (on: boolean) => vo
   },
 });
 
+/** The spell checker of a text or presentation editor, on as the options say (document.ts). */
+export const spellingFor = (
+  win: { Asc: { c_oAscTypeSelectElement: { SpellCheck: number } } },
+  api: Parameters<typeof connectSpelling>[0],
+  onFocusObject: Parameters<typeof connectSpelling>[1],
+  dispatch: Parameters<typeof connectSpelling>[3],
+  options: Pick<OpenOptions, "spellCheck" | "mode">,
+): SpellingCommands => {
+  dispatch({ type: "spellCheck", value: options.spellCheck !== false && options.mode !== "view" });
+  return connectSpelling(api, onFocusObject, win.Asc.c_oAscTypeSelectElement.SpellCheck, dispatch);
+};
+
 /** The text editor (word/api.js) on top of the shared opening flow (document.ts). */
 const wordBinding: EditorBinding<
   WordWindow,
@@ -86,6 +106,7 @@ const wordBinding: EditorBinding<
     | "links"
     | "marking"
     | "review"
+    | "spelling"
     | "onLinkRequest"
     | "onLinkOpen"
     | "comments"
@@ -96,6 +117,8 @@ const wordBinding: EditorBinding<
 > = {
   format: "docx",
   createApi: (win) => {
+    limitSpellLanguages(win.AscCommon);
+    useDedicatedSpellWorker(win);
     const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: {} });
     api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     return api;
@@ -175,6 +198,13 @@ const wordBinding: EditorBinding<
       marking: withPainterState(createMarkingCommands(api), (on) =>
         dispatch({ type: "painting", value: on }),
       ),
+      spelling: spellingFor(
+        win,
+        api,
+        (listener) => api.asc_registerCallback("asc_onFocusObject", listener),
+        dispatch,
+        options,
+      ),
       review: createReviewCommands(api, win.Asc.c_oAscDisplayModeInReview, (display) =>
         dispatch({ type: "reviewDisplay", value: display }),
       ),
@@ -197,10 +227,10 @@ const wordBinding: EditorBinding<
       ),
     };
   },
-  contentReady: (api, win, shared) => {
-    // Spell checking needs the Document Server's dictionary service, which Schreibzeug does not run:
-    // without it every word is marked. web-apps switches it here too (documenteditor/mobile Main.jsx).
-    api.asc_setSpellCheck(false);
+  contentReady: (api, win, { shared, spellCheck }) => {
+    // Spell checking in the engine's own worker with the dictionaries we ship (spelling.ts); web-apps
+    // switches it here too (documenteditor/mobile Main.jsx).
+    api.asc_setSpellCheck(spellCheck);
     // The engine's shortcut table stays empty unless the UI fills it, so Strg+K did nothing; web-apps
     // resets it to the defaults once the editor runs (common/main/lib/controller/Shortcuts.js →
     // common/apiBase.js asc_resetAllShortcutTypes, word/Editor/Shortcuts.js c_oAscDefaultShortcuts).

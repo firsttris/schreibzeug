@@ -13,7 +13,12 @@ export const REVIEW_DISPLAYS: Record<ReviewDisplay, string> = {
  * "Überprüfen": tracking for the document, moving through the changes, accepting and rejecting
  * them, and how they show, as the review tab of web-apps (common/main view/ReviewChanges.js).
  */
-export const reviewMenu = (review: ReviewState, commands: ReviewCommands | null, off: boolean): Menu => {
+export const reviewMenu = (
+  review: ReviewState,
+  commands: ReviewCommands | null,
+  off: boolean,
+  spelling: MenuItem[] = [],
+): Menu => {
   const disabled = off || !commands;
   const run = (action: (c: ReviewCommands) => void) => () => commands && action(commands);
   const atChanges: MenuItem[] = [
@@ -25,6 +30,7 @@ export const reviewMenu = (review: ReviewState, commands: ReviewCommands | null,
   return {
     label: "Überprüfen",
     groups: [
+      ...(spelling.length > 0 ? [spelling] : []),
       [
         {
           label: "Änderungen nachverfolgen",

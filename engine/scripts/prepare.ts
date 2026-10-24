@@ -9,6 +9,7 @@
  *   dist/x2t/                             the converter (x2t as WebAssembly) for .docx ↔ engine binary
  *   dist/frame/editor/<editor>/main/      the pages that host the engine in an iframe
  *   dist/frame/x2t/worker.js              the worker that runs the converter
+ *   dist/dictionaries/<lang>/             Hunspell dictionaries for the spell checker, with their licenses
  *   dist/licenses/                        engine and font licenses
  *
  * Sources, both pinned in engine.json: the official Euro-Office Document Server release package
@@ -32,6 +33,8 @@ type ReleaseAsset = {
 
 type EngineSpec = ReleaseAsset & {
   editors: string[];
+  /** The spell checker's languages, as named in the package's dictionaries folder (de_DE, en_US). */
+  dictionaries: string[];
   converter: ReleaseAsset;
 };
 
@@ -142,6 +145,7 @@ const extract = async (spec: EngineSpec): Promise<void> => {
     "server/tools/allthemesgen",
     "server/FileConverter/bin",
     ...vendorLibraries.map((library) => `web-apps/vendor/${library}`),
+    ...spec.dictionaries.map((language) => `dictionaries/${language}`),
   ].map((member) => `./${packageRoot}/${member}`);
   await run(["tar", "-xJf", "data.tar.xz", ...members], extractDir);
   rmSync(join(extractDir, "data.tar.xz"));
@@ -165,6 +169,24 @@ const copyEngine = (spec: EngineSpec): void => {
     cpSync(join(pkg, "web-apps/vendor", library), join(distDir, "vendor", library), { recursive: true });
   }
   cpSync(join(engineDir, "frame"), join(distDir, "frame"), { recursive: true });
+};
+
+/**
+ * What the spell checker loads (common/spell/spell.js: <lang>.aff, <lang>.dic, <lang>.json, and
+ * hyph_<lang>.dic for hyphenation) and the licenses that come with it; the thesaurus stays out.
+ */
+const isDictionaryFile = (name: string): boolean =>
+  /\.(aff|dic|json)$/.test(name) || /(copying|license|readme|authors)/i.test(name);
+
+const copyDictionaries = (spec: EngineSpec): void => {
+  for (const language of spec.dictionaries) {
+    const from = join(pkg, "dictionaries", language);
+    for (const entry of readdirSync(from, { withFileTypes: true })) {
+      if (entry.isFile() && isDictionaryFile(entry.name)) {
+        cpSync(join(from, entry.name), join(distDir, "dictionaries", language, entry.name));
+      }
+    }
+  }
 };
 
 const extractConverter = async (spec: ReleaseAsset): Promise<void> => {
@@ -250,6 +272,7 @@ const prepare = async (force: boolean): Promise<void> => {
     { label: "Unpack the converter", run: () => extractConverter(spec.converter) },
     { label: "Generate the fonts (allfontsgen)", run: generateFonts },
     { label: "Generate the presentation themes (allthemesgen)", run: generateThemes },
+    { label: "Copy the dictionaries", run: () => copyDictionaries(spec) },
     { label: "Copy the licenses", run: copyLicenses },
   ]);
 

@@ -6,7 +6,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
-import { collectErrors, expectEditorReady, row } from "./app";
+import { collectErrors, expectEditorReady, row, withoutSpellCheck } from "./app";
 import { runSql } from "./database";
 
 const NOW = new Date("2026-10-23T16:00:00+02:00");
@@ -108,6 +108,7 @@ test.beforeAll(async ({ playwright }, testInfo) => {
 
 // Every picture but the sign-in page shows Anna's files.
 test.beforeEach(async ({ page }, testInfo) => {
+  await withoutSpellCheck(page);
   // The sign-in and the invitation are what someone without a session sees.
   if (testInfo.title === "login" || testInfo.title === "invitation") return;
   const { email, password } = ACCOUNT;

@@ -7,7 +7,15 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
-import { collectErrors, expectEditorReady, openDocument, openOwnFolder, save, upload } from "./app";
+import {
+  collectErrors,
+  expectEditorReady,
+  openDocument,
+  openOwnFolder,
+  save,
+  upload,
+  withoutSpellCheck,
+} from "./app";
 
 const folder = join(import.meta.dirname, "../test-files/fidelity");
 const documents = readdirSync(folder).filter((name) => /\.(docx|xlsx|pptx)$/.test(name));
@@ -22,6 +30,8 @@ const expectPicture = (page: Page, name: string) =>
 for (const name of documents) {
   test(name, async ({ page }, testInfo) => {
     const errors = collectErrors(page);
+    // The documents' languages are many; the pictures show the layout, not the spelling.
+    await withoutSpellCheck(page);
     await openOwnFolder(page, testInfo);
     await upload(page, join(folder, name), name);
     await openDocument(page, name, errors);

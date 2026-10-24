@@ -1,4 +1,5 @@
 import { initialProgress, isAhead, readProgress, type SessionProgress } from "./session-progress";
+import { initialSpellingState, type SpellingEvent, type SpellingState } from "./spelling";
 
 /** What every open document has, whatever the editor. */
 export type DocumentState = {
@@ -27,6 +28,8 @@ export type CoreState = {
   /** A shared session's change log against the stored file; stays empty when editing alone. */
   session: SessionProgress;
   search: SearchState;
+  /** Spell checking, in the text and the presentation editor (spelling.ts). */
+  spelling: SpellingState;
 };
 
 /** What every engine tells, translated (events.ts). */
@@ -42,7 +45,8 @@ export type CoreEvent =
   /** A message from the collaboration relay, as JSON text. */
   | { type: "message"; json: string }
   | { type: "ready" }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | SpellingEvent;
 
 export const initialCoreState: CoreState = {
   status: "loading",
@@ -50,6 +54,7 @@ export const initialCoreState: CoreState = {
   document: { canUndo: false, canRedo: false, modified: false, pages: 0, zoom: null, connected: true },
   session: initialProgress,
   search: { current: -1, total: 0, replaced: null },
+  spelling: initialSpellingState,
 };
 
 const CORE_TYPES: ReadonlySet<string> = new Set([
@@ -64,6 +69,8 @@ const CORE_TYPES: ReadonlySet<string> = new Set([
   "message",
   "ready",
   "error",
+  "spellCheck",
+  "misspelled",
 ]);
 
 export const isCoreEvent = (event: { type: string }): event is CoreEvent => CORE_TYPES.has(event.type);
@@ -100,6 +107,10 @@ export const reduceCore = <S extends CoreState>(state: S, event: CoreEvent): S =
       return { ...state, status: "ready", error: null };
     case "error":
       return { ...state, status: "error", error: event.message };
+    case "spellCheck":
+      return { ...state, spelling: { ...state.spelling, enabled: event.value } };
+    case "misspelled":
+      return { ...state, spelling: { ...state.spelling, misspelled: event.value } };
   }
 };
 

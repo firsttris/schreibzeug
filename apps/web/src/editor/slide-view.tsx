@@ -40,6 +40,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
     state,
     commands: editor?.commands ?? null,
     view: editor?.view ?? null,
+    spelling: editor?.spelling ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,

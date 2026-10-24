@@ -10,6 +10,7 @@ import {
 } from "@schreibzeug/editor-core";
 import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useUser } from "../account/context";
+import { readSpellCheck } from "../settings/spell-check";
 import type { OpenedFile } from "./opened-file";
 
 export type EngineEditorHandle<E extends OpenedDocument<S>, S extends CoreState> = {
@@ -59,6 +60,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           convert: converter.convert,
           renderPdf: converter.renderPdf,
           mode: file.readOnly ? "view" : "edit",
+          spellCheck: readSpellCheck(),
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),
         });

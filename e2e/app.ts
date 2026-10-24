@@ -153,3 +153,16 @@ export const storedMedia = async (page: Page, fileId: string): Promise<Uint8Arra
   Object.entries(unzipSync(await storedDocx(page, fileId)))
     .filter(([name]) => /^(word|xl|ppt)\/media\//.test(name))
     .map(([, bytes]) => bytes);
+
+/**
+ * Switches the spell checker off in this browser (apps/web src/settings/spell-check.ts), for
+ * pictures that must not change with the dictionaries' red underlines.
+ */
+export const withoutSpellCheck = (page: Page) =>
+  page.addInitScript(() => {
+    try {
+      localStorage.setItem("schreibzeug.spellcheck", "off");
+    } catch {
+      // The frames of the engine have no say here.
+    }
+  });

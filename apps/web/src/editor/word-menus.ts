@@ -5,6 +5,7 @@ import type {
   LayoutCommands,
   LinkCommands,
   ReviewCommands,
+  SpellingCommands,
   TextCommands,
   ViewCommands,
 } from "@schreibzeug/editor-core";
@@ -15,6 +16,7 @@ import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
 import { headerFooterGroups } from "./header-footer-menus";
 import { layoutMenu, paragraphSpacingGroups } from "./layout-menus";
 import { reviewMenu } from "./review-menus";
+import { spellCheckItem, suggestionGroups } from "./spelling-menus";
 
 /** What the menus of the text editor work with; null while the document opens. */
 export type WordMenuContext = {
@@ -24,6 +26,7 @@ export type WordMenuContext = {
   headerFooter: HeaderFooterCommands | null;
   links: LinkCommands | null;
   review: ReviewCommands | null;
+  spelling: SpellingCommands | null;
   /** Opens the link dialog for the selection or the link at the cursor. */
   onLink: () => void;
   /** Opens an address in a new tab. */
@@ -214,7 +217,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ],
       ],
     },
-    reviewMenu(state.review, context.review, off),
+    reviewMenu(state.review, context.review, off, [spellCheckItem(state.spelling, context.spelling, off)]),
   ];
 };
 
@@ -237,6 +240,7 @@ export const wordContextMenu = (context: WordMenuContext): MenuItem[][] => {
   const { state, commands, view } = context;
   const run = (action: (commands: TextCommands) => void) => commands && action(commands);
   return [
+    ...suggestionGroups(state.spelling, context.spelling),
     clipboardItems(view, context.onClipboardRefused),
     state.paragraph.inHeaderFooter
       ? [{ label: "Kopf- und Fußzeile schließen", onSelect: () => context.headerFooter?.close() }]

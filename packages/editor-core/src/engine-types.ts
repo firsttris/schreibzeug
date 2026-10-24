@@ -2,6 +2,7 @@ import type { HeaderFooterApi } from "./header-footer";
 import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
 import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
 import type { EngineHighlight, MarkingApi } from "./marking";
+import type { DisplayModes, RevisionTypes } from "./review";
 import type { SlideShowApi } from "./slide-show";
 /**
  * The part of the sdkjs API that Schreibzeug uses, typed by hand. sdkjs has no type definitions; every
@@ -151,7 +152,24 @@ export type WordEventArgs = TextEventArgs & {
   asc_onSectionProps: [props: SectionProps];
   /** word/api.js sync_ParaSpacingLine: the spacing of the paragraph at the cursor. */
   asc_onParaSpacingLine: [spacing: ParagraphSpacing];
+  /** word/api.js sync_OnTrackRevisionsChange: this user's own flag (null: none) and the file's. */
+  asc_onOnTrackRevisionsChange: [local: boolean | null, global: boolean, userId?: string];
+  /** word/api.js sync_EndCatchRevisionsChanges: the changes at the cursor; `isShow` false for a selection. */
+  asc_onShowRevisionsChange: [changes: EngineRevision[], isShow: boolean];
 } & CommentEventArgs;
+
+/** word/Editor/RevisionsChange.js CRevisionsChange: a tracked change. */
+export interface EngineRevision {
+  get_UserName(): string;
+  /** Milliseconds or an ISO date; "" where the file has none. */
+  get_DateTime(): number | string | null | undefined;
+  /** common/commonDefines.js c_oAscRevisionsChangeType */
+  get_Type(): number;
+  /** The text for an insertion or deletion: a string, or a list of strings and drawings. */
+  get_Value(): unknown;
+  get_X(): number;
+  get_Y(): number;
+}
 
 /** The comment events, named the same in the text and the presentation editor. */
 export type CommentEventArgs = {
@@ -297,6 +315,18 @@ export interface WordEngineApi
   SetCollaborativeMarksShowType(type: number): void;
   /** word/api.js: turns the red underlines of the spell checker on or off. */
   asc_setSpellCheck(isOn: boolean): void;
+  /** Tracking for this user only; null leaves it to the document's setting. */
+  asc_SetLocalTrackRevisions(on: boolean | null): void;
+  /** Tracking for the document, stored in the file (w:trackRevisions). */
+  asc_SetGlobalTrackRevisions(on: boolean): void;
+  /** common/commonDefines.js c_oAscDisplayModeInReview */
+  asc_SetDisplayModeInReview(mode: number): void;
+  asc_GetNextRevisionsChange(): void;
+  asc_GetPrevRevisionsChange(): void;
+  asc_AcceptChangesBySelection(moveToNext: boolean): void;
+  asc_RejectChangesBySelection(moveToNext: boolean): void;
+  asc_AcceptAllChanges(): void;
+  asc_RejectAllChanges(): void;
   /** word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged. */
   SetUnchangedDocument(): void;
 }
@@ -366,6 +396,9 @@ export interface WordWindow extends EngineWindow {
     linerule_Auto: number;
     /** common/apiCommon.js */
     CHyperlinkProperty: new () => HyperlinkProps;
+    /** common/commonDefines.js */
+    c_oAscRevisionsChangeType: RevisionTypes;
+    c_oAscDisplayModeInReview: DisplayModes;
   };
 }
 

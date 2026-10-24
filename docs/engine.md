@@ -229,6 +229,29 @@ reports "none" (-1) as black. "Format übertragen" is `SetPaintFormat(1)`; the e
 copied formatting to the next selection made with the mouse and reports the painter off
 (`asc_onPaintFormatChanged`), but not on, so the button keeps that state itself (`src/marking.ts`).
 
+## Tracked changes
+
+`src/review.ts`, after web-apps' review (`common/main` `controller/ReviewChanges.js`,
+`common/mobile` `controller/collaboration/Review.jsx`). The menu "Überprüfen" switches tracking,
+moves through the changes, accepts and rejects them and picks how they show; a balloon next to the
+change at the cursor names who made it and when, with accept and reject.
+
+| Command | Engine call (word/api.js) |
+|---|---|
+| track changes | `asc_SetLocalTrackRevisions(null)`, `asc_SetGlobalTrackRevisions(on)`: for the document, stored as `w:trackRevisions` in `settings.xml`, as web-apps' "for everyone"; state from `asc_onOnTrackRevisionsChange(local, global)` (local `null`: the document's setting holds) |
+| accept, reject at the cursor | `asc_AcceptChangesBySelection(true)`, `asc_RejectChangesBySelection(true)`: the change at the cursor or in the selection, then on to the next |
+| previous, next | `asc_GetPrevRevisionsChange()`, `asc_GetNextRevisionsChange()` |
+| all | `asc_AcceptAllChanges()`, `asc_RejectAllChanges()` |
+| display | `asc_SetDisplayModeInReview(c_oAscDisplayModeInReview.Edit \| Final \| Original)`; there is no event, so the choice is kept by the editor |
+
+The changes at the cursor come with `asc_onShowRevisionsChange(changes, isShow)`, each a
+`CRevisionsChange` (`word/Editor/RevisionsChange.js`): `get_UserName`, `get_DateTime`, `get_Type`
+(`c_oAscRevisionsChangeType`: text or paragraph added or removed, formatting), `get_Value` (the
+text, or a list of text and drawings) and `get_X`/`get_Y` relative to the view element
+(`#editor_sdk`). As web-apps, the balloon shows only for the cursor (`isShow`), not for a selection,
+and only while changes are marked. The author is the name the relay gives the session (see
+[collaboration](collaboration.md)).
+
 ## Find and replace
 
 `src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,

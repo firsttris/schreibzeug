@@ -2,6 +2,7 @@ import { type CommentEvent, type CommentsState, isCommentEvent, reduceComments }
 import { type CoreEvent, type CoreState, initialCoreState, isCoreEvent, reduceCore } from "./core-state";
 import type { PageLayout } from "./layout";
 import type { Link } from "./links";
+import { initialReviewState, type ReviewDisplay, type ReviewState, type Revision } from "./review";
 
 export type Align = "left" | "center" | "right" | "justify";
 
@@ -71,6 +72,8 @@ export type EditorState = CoreState &
     /** The page of the section at the cursor; null until the engine reported it. */
     page: PageLayout | null;
     catalog: CatalogState;
+    /** Tracked changes (review.ts). */
+    review: ReviewState;
   };
 
 /** Character formatting at the cursor and the fonts, from the text or the presentation engine. */
@@ -99,6 +102,9 @@ export type WordEvent =
   | { type: "highlight"; value: string | null }
   | { type: "painting"; value: boolean }
   | { type: "styles"; value: string[] }
+  | { type: "tracking"; value: boolean }
+  | { type: "reviewDisplay"; value: ReviewDisplay }
+  | { type: "revisions"; value: Revision[] }
   | CommentEvent;
 
 export type EditorEvent = WordEvent | CoreEvent;
@@ -153,6 +159,7 @@ export const initialEditorState: EditorState = {
   page: null,
   marks: { highlight: null, painting: false },
   catalog: { fonts: [], styles: [] },
+  review: initialReviewState,
   comments: [],
   activeComments: [],
 };
@@ -192,5 +199,11 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return { ...state, page: event.value };
     case "styles":
       return withCatalog(state, { styles: event.value });
+    case "tracking":
+      return { ...state, review: { ...state.review, tracking: event.value } };
+    case "reviewDisplay":
+      return { ...state, review: { ...state.review, display: event.value } };
+    case "revisions":
+      return { ...state, review: { ...state.review, atCursor: event.value } };
   }
 };

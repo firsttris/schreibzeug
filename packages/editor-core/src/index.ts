@@ -72,6 +72,13 @@ export {
 export type { Link, LinkCommands, LinkDraft } from "./links";
 export { HIGHLIGHT_COLORS, type HighlightColor, type MarkingCommands } from "./marking";
 export type { ImageStore } from "./media";
+export type {
+  ReviewCommands,
+  ReviewDisplay,
+  ReviewState,
+  Revision,
+  RevisionKind,
+} from "./review";
 export { createSearchCommands, type SearchCommands, type SearchQuery } from "./search";
 export {
   AUTOSAVE_DELAY,

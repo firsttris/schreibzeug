@@ -432,6 +432,36 @@ describe("openWordDocument", () => {
     expect(editor.store.get().marks.painting).toBe(false);
   });
 
+  it("tracks changes for the document and shows the change at the cursor", async () => {
+    const { engine, editor } = await openReady();
+    editor.review.setTracking(true);
+    expect(engine.api().calls.filter(([name]) => name.includes("TrackRevisions"))).toEqual([
+      ["asc_SetLocalTrackRevisions", null],
+      ["asc_SetGlobalTrackRevisions", true],
+    ]);
+    engine.api().emit("asc_onOnTrackRevisionsChange", null, true);
+    expect(editor.store.get().review.tracking).toBe(true);
+
+    const change = {
+      get_UserName: () => "Anna Berger",
+      get_DateTime: () => 1_790_000_000_000,
+      get_Type: () => 1,
+      get_Value: () => "neu",
+      get_X: () => 40,
+      get_Y: () => 120,
+    };
+    engine.api().emit("asc_onShowRevisionsChange", [change], true);
+    expect(editor.store.get().review.atCursor).toEqual([
+      { author: "Anna Berger", time: 1_790_000_000_000, kind: "insert", text: "neu", x: 40, y: 120 },
+    ]);
+    engine.api().emit("asc_onShowRevisionsChange", [change], false);
+    expect(editor.store.get().review.atCursor).toEqual([]);
+
+    editor.review.setDisplay("final");
+    expect(editor.store.get().review.display).toBe("final");
+    expect(engine.api().calls.at(-1)).toEqual(["asc_SetDisplayModeInReview", 1]);
+  });
+
   it("adds, answers, resolves and removes comments through the engine", async () => {
     const { engine, editor } = await openReady();
     const id = editor.comments.add("  Bitte prüfen ");

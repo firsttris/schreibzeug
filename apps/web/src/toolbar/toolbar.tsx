@@ -3,6 +3,7 @@ import type {
   EditorState,
   LayoutCommands,
   MarkingCommands,
+  ReviewCommands,
   TextCommands,
 } from "@schreibzeug/editor-core";
 import {
@@ -11,6 +12,7 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  FilePenLine,
   ImagePlus,
   Italic,
   Link,
@@ -56,6 +58,7 @@ export type ToolbarProps = {
   commands: TextCommands | null;
   layout: LayoutCommands | null;
   marking: MarkingCommands | null;
+  review: ReviewCommands | null;
   /** Opens the comment field for the selection; comments live beside the document. */
   onAddComment: () => void;
   /** Opens the file dialog for an image; null where none can be put in. */
@@ -69,6 +72,7 @@ export const Toolbar = ({
   commands,
   layout,
   marking,
+  review,
   onAddComment,
   onInsertImage,
   onInsertLink,
@@ -229,6 +233,13 @@ export const Toolbar = ({
       >
         <TextSelect size={16} />
       </Button>
+      <ToggleButton
+        label="Änderungen nachverfolgen"
+        icon={FilePenLine}
+        pressed={state.review.tracking}
+        run={() => review?.setTracking(!state.review.tracking)}
+        disabled={disabled || !review}
+      />
     </div>
   );
 };

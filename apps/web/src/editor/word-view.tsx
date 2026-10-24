@@ -11,9 +11,10 @@ import { WORD_SHORTCUTS } from "./help-dialogs";
 import { LinkDialog } from "./link-dialog";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { RevisionBalloon } from "./revision-balloon";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
-import { useEditorChrome } from "./use-editor-chrome";
+import { frameToWindow, useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
 import { openLink, useLinks } from "./use-links";
 import { type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
@@ -34,6 +35,13 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   const [tableDialog, setTableDialog] = useState(false);
   const links = useLinks(editor, file.readOnly, chrome.notify);
 
+  // The change at the cursor, beside it while changes are marked (not in "Endgültig" or "Original").
+  const [firstRevision] = state.review.atCursor;
+  const balloonAt =
+    firstRevision && state.review.display === "markup" && !file.readOnly
+      ? frameToWindow(container.current, firstRevision)
+      : null;
+
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "docx"), MIME.docx);
   };
@@ -44,6 +52,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     layout: editor?.layout ?? null,
     headerFooter: editor?.headerFooter ?? null,
     links: editor?.links ?? null,
+    review: editor?.review ?? null,
     onLink: links.request,
     onOpenLink: openLink,
     view: editor?.view ?? null,
@@ -80,6 +89,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
             commands={editor?.commands ?? null}
             layout={editor?.layout ?? null}
             marking={editor?.marking ?? null}
+            review={editor?.review ?? null}
             onAddComment={comments.compose}
             onInsertImage={chrome.insertImage}
             onInsertLink={links.request}
@@ -96,6 +106,14 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         />
         {comments.panel}
       </div>
+      {balloonAt && editor && (
+        <RevisionBalloon
+          revisions={state.review.atCursor}
+          x={balloonAt.x}
+          y={balloonAt.y}
+          commands={editor.review}
+        />
+      )}
       {chrome.menuAt && (
         <ContextMenu
           x={chrome.menuAt.x}

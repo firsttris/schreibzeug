@@ -4,6 +4,7 @@ import type {
   HeaderFooterCommands,
   LayoutCommands,
   LinkCommands,
+  ReviewCommands,
   TextCommands,
   ViewCommands,
 } from "@schreibzeug/editor-core";
@@ -13,6 +14,7 @@ import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
 import { headerFooterGroups } from "./header-footer-menus";
 import { layoutMenu, paragraphSpacingGroups } from "./layout-menus";
+import { reviewMenu } from "./review-menus";
 
 /** What the menus of the text editor work with; null while the document opens. */
 export type WordMenuContext = {
@@ -21,6 +23,7 @@ export type WordMenuContext = {
   layout: LayoutCommands | null;
   headerFooter: HeaderFooterCommands | null;
   links: LinkCommands | null;
+  review: ReviewCommands | null;
   /** Opens the link dialog for the selection or the link at the cursor. */
   onLink: () => void;
   /** Opens an address in a new tab. */
@@ -38,7 +41,7 @@ export type WordMenuContext = {
 };
 
 /**
- * Bearbeiten, Ansicht, Einfügen, Layout and Format of the text editor, following the menus of the desktop
+ * Bearbeiten, Ansicht, Einfügen, Layout, Format and Überprüfen of the text editor, following the menus of the desktop
  * editors in web-apps (documenteditor main: Toolbar.js, ViewTab.js) as far as Schreibzeug has the
  * commands.
  */
@@ -211,6 +214,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ],
       ],
     },
+    reviewMenu(state.review, context.review, off),
   ];
 };
 

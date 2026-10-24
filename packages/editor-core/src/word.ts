@@ -9,6 +9,7 @@ import { createLayoutCommands, type LayoutCommands, readLineSpacing, readSection
 import { createLinkCommands, type HyperlinkProps, type LinkCommands, readLink } from "./links";
 import { readListKind } from "./lists";
 import { createMarkingCommands, type MarkingCommands, readHighlight } from "./marking";
+import { createReviewCommands, type ReviewCommands, readRevision, trackingOf } from "./review";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
   type EditorEvent,
@@ -33,6 +34,8 @@ export type WordEditor = OpenedDocument<EditorState> & {
   headerFooter: HeaderFooterCommands;
   links: LinkCommands;
   marking: MarkingCommands;
+  /** Tracked changes. */
+  review: ReviewCommands;
   /** Strg+K in the document: the listener opens the link dialog. Returns the unsubscribe. */
   onLinkRequest: (listener: () => void) => () => void;
   /** Strg+click on a link: the listener opens the address. Returns the unsubscribe. */
@@ -82,6 +85,7 @@ const wordBinding: EditorBinding<
     | "headerFooter"
     | "links"
     | "marking"
+    | "review"
     | "onLinkRequest"
     | "onLinkOpen"
     | "comments"
@@ -131,6 +135,23 @@ const wordBinding: EditorBinding<
     api.asc_registerCallback("asc_onPaintFormatChanged", (state) =>
       dispatch({ type: "painting", value: state !== 0 }),
     );
+    api.asc_registerCallback("asc_onOnTrackRevisionsChange", (local, global) =>
+      dispatch({ type: "tracking", value: trackingOf(local, global) }),
+    );
+    // The balloon shows the changes at the cursor only, not those in a selection (onApiShowChange).
+    api.asc_registerCallback("asc_onShowRevisionsChange", (changes, isShow) => {
+      const view = win.document.getElementById("editor_sdk")?.getBoundingClientRect() ?? { left: 0, top: 0 };
+      const types = win.Asc.c_oAscRevisionsChangeType;
+      dispatch({
+        type: "revisions",
+        value: isShow
+          ? changes.map((change) => {
+              const revision = readRevision(change, types);
+              return { ...revision, x: view.left + revision.x, y: view.top + revision.y };
+            })
+          : [],
+      });
+    });
     const linkRequests = createListeners<void>();
     const linkOpens = createListeners<string>();
     api.asc_registerCallback("asc_onDialogAddHyperlink", () => linkRequests.emit());
@@ -153,6 +174,9 @@ const wordBinding: EditorBinding<
       ),
       marking: withPainterState(createMarkingCommands(api), (on) =>
         dispatch({ type: "painting", value: on }),
+      ),
+      review: createReviewCommands(api, win.Asc.c_oAscDisplayModeInReview, (display) =>
+        dispatch({ type: "reviewDisplay", value: display }),
       ),
       onLinkRequest: linkRequests.add,
       onLinkOpen: linkOpens.add,

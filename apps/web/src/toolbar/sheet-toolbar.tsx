@@ -1,10 +1,12 @@
-import type { Align, CellCommands, NumberFormat, SheetState } from "@schreibzeug/editor-core";
+import type { Align, CellCommands, DataCommands, NumberFormat, SheetState } from "@schreibzeug/editor-core";
 import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  ArrowDownAZ,
   Bold,
   Columns3,
+  Funnel,
   Italic,
   type LucideIcon,
   Merge,
@@ -48,10 +50,14 @@ const ToggleButton = ({ label, icon: Icon, pressed, run, disabled }: Toggle & { 
   </Button>
 );
 
-export type SheetToolbarProps = { state: SheetState; commands: CellCommands | null };
+export type SheetToolbarProps = {
+  state: SheetState;
+  commands: CellCommands | null;
+  data: DataCommands | null;
+};
 
 /** The formatting row above the grid: every control reads SheetState and calls a cell command. */
-export const SheetToolbar = ({ state, commands }: SheetToolbarProps) => {
+export const SheetToolbar = ({ state, commands, data }: SheetToolbarProps) => {
   const disabled = !commands || state.status !== "ready";
   const { cell, document, fonts } = state;
   const fontSize = cell.fontSize ?? 11;
@@ -170,6 +176,27 @@ export const SheetToolbar = ({ state, commands }: SheetToolbarProps) => {
         options={Object.entries(NUMBER_FORMAT_LABELS).map(([value, label]) => ({ value, label }))}
         disabled={disabled}
         onChange={(format) => commands?.setNumberFormat(format as NumberFormat)}
+      />
+      <Separator />
+      <MenuButton
+        label="Sortieren"
+        variant="ghost"
+        disabled={disabled || !data}
+        groups={[
+          [
+            { label: "Aufsteigend sortieren (A–Z)", onSelect: () => data?.sort("ascending") },
+            { label: "Absteigend sortieren (Z–A)", onSelect: () => data?.sort("descending") },
+          ],
+        ]}
+      >
+        <ArrowDownAZ size={16} />
+      </MenuButton>
+      <ToggleButton
+        label="Filter"
+        icon={Funnel}
+        pressed={state.data.filter.on}
+        run={() => data?.toggleFilter()}
+        disabled={disabled || !data || !state.data.filter.available}
       />
       <Separator />
       <MenuButton

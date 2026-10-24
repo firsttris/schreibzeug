@@ -390,6 +390,42 @@ export interface EngineCellInfo {
   asc_getXfs(): EngineCellXfs;
   /** cell/apiDefines.js c_oAscMergeOptions: None, Merge, … for the selection. */
   asc_getMerge(): number;
+  /** The filter of the range around the active cell; null where there is no data. */
+  asc_getAutoFilterInfo(): EngineAutoFilterInfo | null;
+  /** The formatted table the active cell is in, if any. */
+  asc_getFormatTableInfo(): { asc_getTableName(): string | null } | null;
+}
+
+/** cell/model/CellInfo.js asc_CAutoFilterInfo */
+export interface EngineAutoFilterInfo {
+  /** true: the range has filter buttons; false: they can be added; null: not here. */
+  asc_getIsAutoFilter(): boolean | null;
+  /** Some rows are hidden by the filter. */
+  asc_getIsApplyAutoFilter(): boolean | null;
+}
+
+/** cell/model/autofilters.js AutoFiltersOptionsElements: one value of a column. */
+export interface EngineAutoFilterValue {
+  asc_getText(): string;
+  asc_getVisible(): boolean;
+  asc_setVisible(visible: boolean): void;
+}
+
+/** cell/model/autofilters.js asc_CAutoFilterObject: what asc_onSetAFDialog hands over. */
+export interface EngineAutoFilterObject {
+  asc_getCellId(): string;
+  asc_getDisplayName(): string;
+  /** The filter button, relative to the grid's canvas. */
+  asc_getCellCoord(): {
+    asc_getX(): number;
+    asc_getY(): number;
+    asc_getWidth(): number;
+    asc_getHeight(): number;
+  };
+  asc_getValues(): EngineAutoFilterValue[];
+  /** common/commonDefines.js c_oAscSortOptions, or something else when not sorted. */
+  asc_getSortState(): number | null;
+  asc_getFilterObj(): { asc_setType(type: number): void };
 }
 
 /** cell/utils/utils.js `asc_CFindOptions` */
@@ -426,6 +462,8 @@ export type CellEventArgs = CommonEventArgs & {
   /** Comments that moved with their cells, or went with them (CellComment.js updateCommentsList). */
   asc_onChangeComments: [changes: Array<{ Id: string; Comment: CellCommentData }>];
   asc_onRemoveComments: [ids: string[]];
+  /** A click on a filter button (WorkbookView.js setAutoFiltersDialog). */
+  asc_onSetAFDialog: [config: EngineAutoFilterObject];
 } & CommentEventArgs;
 
 /** cell/model/CellComment.js asc_CCommentData: the fields of a comment, its id and its cell. */
@@ -496,6 +534,26 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi 
   };
   /** Leaves the cell being typed into; `cancel` drops what was typed. */
   asc_closeCellEditor(cancel?: boolean): void;
+  /** cell/apiDefines.js c_oAscSelectionSortExpand: whether sorting should take the rows around along. */
+  asc_sortCellsRangeExpand(): number;
+  /** Sorts the selection, or a filtered column by its button's cell id and table name. */
+  asc_sortColFilter(
+    order: number,
+    cellId: string,
+    displayName?: string,
+    color?: unknown,
+    expand?: boolean,
+  ): void;
+  /** Filter buttons on the range around the active cell. */
+  asc_addAutoFilter(): void;
+  /** cell/apiDefines.js c_oAscChangeFilterOptions.filter with false takes the buttons away. */
+  asc_changeAutoFilter(tableName: string | undefined, option: number, value: boolean): void;
+  /** Shows every row the filters of the sheet hide. */
+  asc_clearFilter(): void;
+  asc_applyAutoFilter(config: EngineAutoFilterObject): void;
+  /** cell/apiDefines.js c_oAscFrozenPaneAddType; without one, at the active cell or unfrozen. */
+  asc_freezePane(type?: number): void;
+  asc_getSheetViewSettings(): { asc_getIsFreezePane(): boolean };
 }
 
 /** The spreadsheet editor's frame (engine/frame/editor/cell/main). */
@@ -508,6 +566,16 @@ export interface CellWindow extends EngineWindow {
     c_oAscDeleteOptions: { DeleteColumns: number; DeleteRows: number };
     asc_CFindOptions: new () => CellFindOptions;
     c_oAscFindLookIn: { Formulas: number; Value: number };
+    c_oAscSortOptions: { Ascending: number; Descending: number };
+    c_oAscSelectionSortExpand: {
+      expandAndNotShowMessage: number;
+      notExpandAndNotShowMessage: number;
+      showExpandMessage: number;
+      showLockMessage: number;
+    };
+    c_oAscChangeFilterOptions: { filter: number; style: number };
+    c_oAscFrozenPaneAddType: { firstRow: number; firstCol: number };
+    c_oAscAutoFilterTypes: { Filters: number };
   };
 }
 

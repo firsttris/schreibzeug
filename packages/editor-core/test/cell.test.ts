@@ -44,7 +44,12 @@ const cellInfo = (
     ...overrides,
   };
   const xfs = Object.fromEntries(Object.entries(values).map(([name, value]) => [name, () => value]));
-  return { asc_getXfs: () => xfs as never, asc_getMerge: () => merge };
+  return {
+    asc_getXfs: () => xfs as never,
+    asc_getMerge: () => merge,
+    asc_getAutoFilterInfo: () => null,
+    asc_getFormatTableInfo: () => null,
+  };
 };
 
 describe("readCellFormat", () => {

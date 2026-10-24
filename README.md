@@ -14,7 +14,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
 > password, a file browser (folders,
 > upload, new document, spreadsheet or presentation, rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with a menu bar, context menu, find and replace, PDF export and printing, styles, fonts, colours, highlighting, format painter, lists, tables, images, links, headers and footers with page numbers, page layout, line spacing and
-> comments, a spreadsheet editor with formulas, formatting, number formats, sheets, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
+> comments, a spreadsheet editor with formulas, formatting, number formats, sheets, sorting, filters, frozen rows and columns, merged cells, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, text formatting, lists, images, menus and PDF. All three save on their own, every save a new version, and several people can edit the
 > same file at once. All without a document server. A desktop app for Windows, macOS and Linux
 > works on the files in the computer's documents folder (or another folder) without any server, or
@@ -66,7 +66,7 @@ Word and PowerPoint files. Schreibzeug puts a new, clean interface on top of a p
 ### 📝 Editors
 
 - **Documents (.docx)**: styles, tables, images, comments, tracked changes.
-- **Spreadsheets (.xlsx)**: formulas, number formats, sheets, filters, charts.
+- **Spreadsheets (.xlsx)**: formulas, number formats, sheets, sorting and filters (done), charts.
 - **Presentations (.pptx)**: slide layouts, shapes, themes, speaker notes, presenting.
 
 ### 🖥️ Desktop app

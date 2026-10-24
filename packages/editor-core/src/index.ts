@@ -6,6 +6,15 @@ export {
   nextSheetName,
   type SheetCommands,
 } from "./cell-commands";
+export type {
+  DataCommands,
+  FilterRequest,
+  FilterState,
+  FilterValue,
+  FreezeKind,
+  SheetDataState,
+  SortOrder,
+} from "./cell-data";
 export { NUMBER_FORMATS } from "./cell-format";
 export {
   type CellFormat,

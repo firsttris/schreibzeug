@@ -1,3 +1,4 @@
+import { initialSheetDataState, type SheetDataState } from "./cell-data";
 import type { TextColor } from "./colors";
 import {
   type CommentEvent,
@@ -46,6 +47,8 @@ export type SheetState = CoreState &
     /** Index into `sheets`. */
     activeSheet: number;
     fonts: string[];
+    /** Filter and frozen panes (cell-data.ts). */
+    data: SheetDataState;
   };
 
 export type SheetEvent =
@@ -53,6 +56,7 @@ export type SheetEvent =
   | { type: "reference"; value: string }
   | { type: "sheets"; sheets: SheetTab[]; active: number }
   | { type: "fonts"; value: string[] }
+  | { type: "data"; value: SheetDataState }
   | CommentEvent;
 
 export const initialCellFormat: CellFormat = {
@@ -78,6 +82,7 @@ export const initialSheetState: SheetState = {
   sheets: [],
   activeSheet: 0,
   fonts: [],
+  data: initialSheetDataState,
   ...initialCommentsState,
 };
 
@@ -92,5 +97,7 @@ export const reduceSheetState = (state: SheetState, event: SheetEvent): SheetSta
       return { ...state, sheets: event.sheets, activeSheet: event.active };
     case "fonts":
       return { ...state, fonts: event.value };
+    case "data":
+      return { ...state, data: event.value };
   }
 };

@@ -341,6 +341,35 @@ whose point is already in the frame's coordinates. Search follows web-apps
 The spreadsheet has no `SetUnchangedDocument`; its "modified" flag drops once the relay has the
 changes (`asc_isDocumentModified`, `History.Have_Changes`).
 
+### Sorting, filters and frozen panes
+
+`src/cell-data.ts`, after web-apps' desktop editor (`spreadsheeteditor/main` `controller/Toolbar.js`
+`onSortType`, `onAutoFilter`, `onClearFilter`; `controller/ViewTab.js` `onFreeze`) and its mobile
+column filter (`spreadsheeteditor/mobile` `controller/FilterOptions.jsx`):
+
+| Command | Engine call (cell/api.js) |
+|---|---|
+| sort | `asc_sortCellsRangeExpand()`, then `asc_sortColFilter(c_oAscSortOptions.Ascending \| Descending, "", undefined, undefined, expand)` |
+| filter on, off | `asc_addAutoFilter()`; `asc_changeAutoFilter(tableName, c_oAscChangeFilterOptions.filter, value)` where buttons are or a formatted table is |
+| clear filter | `asc_clearFilter()` |
+| freeze | `asc_freezePane()` (at the active cell, or unfreeze), `asc_freezePane(c_oAscFrozenPaneAddType.firstRow \| firstCol)` |
+| a column's filter | `asc_onSetAFDialog(asc_CAutoFilterObject)`: values with `asc_getText`/`asc_getVisible`; `asc_setVisible` on each, `asc_getFilterObj().asc_setType(c_oAscAutoFilterTypes.Filters)`, `asc_applyAutoFilter(object)`; sort by it with `asc_sortColFilter(order, asc_getCellId(), asc_getDisplayName())` |
+
+- **Sorting one column** asks Excel's question in web-apps when more data is next to it
+  (`c_oAscSelectionSortExpand.showExpandMessage`). Schreibzeug takes that question's default and
+  sorts the rows along, the whole region around the selection; when someone else has those rows
+  (`showLockMessage`) it sorts the selection alone, which is what "yes" there does.
+- **The filter state** comes with the selection: `asc_getAutoFilterInfo()` is `true` with buttons,
+  `false` where they can be added and `null` where not; `asc_getIsApplyAutoFilter()` tells whether
+  a filter hides rows. A formatted table's name is `asc_getFormatTableInfo().asc_getTableName()`.
+- **Frozen panes** have no event: freezing waits for the pane's lock (`WorksheetView.js`
+  `_isLockedFrozenPane`), the relay's answer in a shared session. `asc_getSheetViewSettings()
+  .asc_getIsFreezePane()` is read again shortly after and whenever the selection moves; the menu
+  reads "Fixierung aufheben" while something is frozen, as web-apps' does.
+- **A column's filter** opens under its button. The button's place is relative to the grid's
+  canvas, inside `#ws-canvas-outer`; we add that element's place in the frame and the frame's in the
+  window. "OK" applies the marked values; at least one stays shown.
+
 ## Presentations
 
 `src/slide.ts` binds the presentation engine (`slide/api.js`), set up as web-apps'

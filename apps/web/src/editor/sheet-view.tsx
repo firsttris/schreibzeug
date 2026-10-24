@@ -1,5 +1,6 @@
 import { initialSheetState, isOnSheet, openSheetDocument } from "@schreibzeug/editor-core";
 import { useRef } from "react";
+import { ColumnFilter, useColumnFilter } from "../sheets/column-filter";
 import { SheetTabs } from "../sheets/sheet-tabs";
 import { SheetToolbar } from "../toolbar/sheet-toolbar";
 import { ContextMenu } from "../ui/context-menu";
@@ -34,6 +35,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     activeComments: state.activeComments,
   };
   const comments = useCommentsPanel(editor, sheetComments, file.readOnly, "cell");
+  const filter = useColumnFilter(editor, container, file.readOnly);
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "xlsx"), MIME.xlsx);
@@ -43,6 +45,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     state,
     commands: editor?.commands ?? null,
     sheets: editor?.sheets ?? null,
+    data: editor?.data ?? null,
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onFind: chrome.searchBar.open,
@@ -68,7 +71,9 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         shortcuts={SHEET_SHORTCUTS}
         notice={chrome.notice}
         actions={comments.button}
-        toolbar={<SheetToolbar state={state} commands={editor?.commands ?? null} />}
+        toolbar={
+          <SheetToolbar state={state} commands={editor?.commands ?? null} data={editor?.data ?? null} />
+        }
       />
       <div className="flex min-h-0 flex-1">
         <DocumentArea
@@ -85,6 +90,14 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         active={state.activeSheet}
         commands={file.readOnly ? null : (editor?.sheets ?? null)}
       />
+      {filter.open && (
+        <ColumnFilter
+          request={filter.open.request}
+          x={filter.open.x}
+          y={filter.open.y}
+          onClose={filter.close}
+        />
+      )}
       {chrome.menuAt && (
         <ContextMenu
           x={chrome.menuAt.x}

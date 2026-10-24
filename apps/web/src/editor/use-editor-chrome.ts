@@ -19,11 +19,16 @@ export type ChromeSource = {
   insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
 };
 
-/** Where the engine's frame sits in the window: context menu points come in frame coordinates. */
-const toWindow = (container: HTMLElement | null, request: ContextMenuRequest) => {
+/** Where the engine's frame sits in the window: the engine's points come in frame coordinates. */
+export const frameToWindow = (container: HTMLElement | null, point: { x: number; y: number }) => {
   const frame = container?.querySelector("iframe")?.getBoundingClientRect();
-  return { x: (frame?.left ?? 0) + request.x, y: (frame?.top ?? 0) + request.y, area: request.area };
+  return { x: (frame?.left ?? 0) + point.x, y: (frame?.top ?? 0) + point.y };
 };
+
+const toWindow = (container: HTMLElement | null, request: ContextMenuRequest) => ({
+  ...frameToWindow(container, request),
+  area: request.area,
+});
 
 /**
  * The parts every editor has around its document: short messages, the search bar, PDF and print,

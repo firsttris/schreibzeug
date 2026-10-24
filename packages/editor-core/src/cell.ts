@@ -4,6 +4,13 @@ import {
   createSheetCommands,
   type SheetCommands,
 } from "./cell-commands";
+import {
+  createDataCommands,
+  type DataCommands,
+  type FilterRequest,
+  readSheetData,
+  toFilterRequest,
+} from "./cell-data";
 import { readCellFormat } from "./cell-format";
 import { initialSheetState, reduceSheetState, type SheetEvent, type SheetState } from "./cell-state";
 import {
@@ -32,9 +39,13 @@ export type SheetEditor = OpenedDocument<SheetState> & {
   /** Comments on cells; a new one goes on the active cell. */
   comments: CommentCommands;
   sheets: SheetCommands;
+  /** Sorting, filters and frozen panes. */
+  data: DataCommands;
   view: ViewCommands;
   search: SearchCommands;
   onContextMenu: (listener: ContextMenuListener) => () => void;
+  /** A click on a column's filter button: show its values (cell-data.ts). */
+  onFilter: (listener: (request: FilterRequest) => void) => () => void;
 };
 
 /** German regional format: decimal comma, "." between thousands, ";" between function arguments. */
@@ -43,6 +54,10 @@ const GERMAN_LCID = 0x0407;
 /** The formula bar's input in the frame page (engine/frame/editor/cell/main/index.html). */
 const FORMULA_INPUT_ID = "ce-cell-content";
 const NAME_BOX_ID = "name-box";
+/** The element around the grid's canvas, where filter buttons are measured from (cell/view). */
+const GRID_ID = "ws-canvas-outer";
+/** When to read the frozen panes again after freezing waits for its lock (cell-data.ts). */
+const DATA_REFRESH_DELAYS = [50, 500];
 
 const readSheets = (api: CellEngineApi): SheetEvent => {
   const count = api.asc_getWorksheetsCount();
@@ -92,7 +107,10 @@ const cellBinding: EditorBinding<
   CellEngineApi,
   SheetState,
   SheetEvent,
-  Pick<SheetEditor, "commands" | "comments" | "sheets" | "view" | "search" | "onContextMenu">
+  Pick<
+    SheetEditor,
+    "commands" | "comments" | "sheets" | "data" | "view" | "search" | "onContextMenu" | "onFilter"
+  >
 > = {
   format: "xlsx",
   createApi: (win) => {
@@ -131,7 +149,14 @@ const cellBinding: EditorBinding<
       showReference(reference);
       dispatch({ type: "reference", value: reference });
     });
-    const refreshSheets = () => dispatch(readSheets(api));
+    const refreshData = () => dispatch({ type: "data", value: readSheetData(api, api.asc_getCellInfo()) });
+    api.asc_registerCallback("asc_onSelectionChanged", (info) =>
+      dispatch({ type: "data", value: readSheetData(api, info) }),
+    );
+    const refreshSheets = () => {
+      dispatch(readSheets(api));
+      refreshData();
+    };
     api.asc_registerCallback("asc_onSheetsChanged", refreshSheets);
     api.asc_registerCallback("asc_onActiveSheetChanged", refreshSheets);
     // The tabs and the active cell as the document opens; the events above follow the changes.
@@ -141,6 +166,11 @@ const cellBinding: EditorBinding<
         type: "cell",
         value: readCellFormat(api.asc_getCellInfo(), win.AscCommon, win.Asc.c_oAscMergeOptions),
       });
+    });
+    const filter = createListeners<FilterRequest>();
+    api.asc_registerCallback("asc_onSetAFDialog", (config) => {
+      const grid = win.document.getElementById(GRID_ID)?.getBoundingClientRect() ?? { left: 0, top: 0 };
+      filter.emit(toFilterRequest(config, api, win.Asc, grid));
     });
     const contextMenu = createListeners<ContextMenuRequest>();
     api.asc_registerCallback("asc_onContextMenu", (event) => {
@@ -153,6 +183,10 @@ const cellBinding: EditorBinding<
         dispatch({ type: "searchCurrent", current: -1, total: 0 }),
       ),
       onContextMenu: contextMenu.add,
+      onFilter: filter.add,
+      data: createDataCommands(api, win.Asc, () => {
+        for (const delay of DATA_REFRESH_DELAYS) win.setTimeout(refreshData, delay);
+      }),
       commands: createCellCommands(
         api,
         store.get,

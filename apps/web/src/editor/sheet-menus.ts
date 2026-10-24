@@ -1,6 +1,7 @@
 import type {
   CellCommands,
   ClipboardAction,
+  DataCommands,
   NumberFormat,
   SheetCommands,
   SheetState,
@@ -16,6 +17,7 @@ export type SheetMenuContext = {
   state: SheetState;
   commands: CellCommands | null;
   sheets: SheetCommands | null;
+  data: DataCommands | null;
   view: ViewCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
   onFind: (mode: "find" | "replace") => void;
@@ -40,8 +42,54 @@ const rowsAndColumns = (
   ],
 ];
 
+/** Sorting the selection: in "Daten" and in the context menu. */
+const sortItems = (data: DataCommands | null, off: boolean): MenuItem[] => [
+  { label: "Aufsteigend sortieren (A–Z)", disabled: off || !data, onSelect: () => data?.sort("ascending") },
+  { label: "Absteigend sortieren (Z–A)", disabled: off || !data, onSelect: () => data?.sort("descending") },
+];
+
+/** Sorting and the filter buttons, as web-apps' "Daten" tab (spreadsheeteditor main Toolbar.js). */
+export const dataMenu = (context: SheetMenuContext, off: boolean): Menu => {
+  const { data } = context;
+  const { filter } = context.state.data;
+  return {
+    label: "Daten",
+    groups: [
+      sortItems(data, off),
+      [
+        {
+          label: "Filter",
+          checked: filter.on,
+          disabled: off || !data || !filter.available,
+          onSelect: () => data?.toggleFilter(),
+        },
+        {
+          label: "Filter löschen",
+          disabled: off || !data || !filter.applied,
+          onSelect: () => data?.clearFilter(),
+        },
+      ],
+    ],
+  };
+};
+
+/** Frozen panes, as web-apps' "Fenster fixieren" (spreadsheeteditor main ViewTab.js). */
+const freezeItems = (context: SheetMenuContext, off: boolean): MenuItem[] => {
+  const { data } = context;
+  const disabled = off || !data;
+  return [
+    {
+      label: context.state.data.frozen ? "Fixierung aufheben" : "Fenster fixieren",
+      disabled,
+      onSelect: () => data?.toggleFreeze(),
+    },
+    { label: "Oberste Zeile fixieren", disabled, onSelect: () => data?.freeze("firstRow") },
+    { label: "Erste Spalte fixieren", disabled, onSelect: () => data?.freeze("firstColumn") },
+  ];
+};
+
 /**
- * Bearbeiten, Ansicht, Einfügen and Format of the spreadsheet, after the desktop spreadsheet editor
+ * Bearbeiten, Ansicht, Einfügen, Format and Daten of the spreadsheet, after the desktop spreadsheet editor
  * of web-apps (spreadsheeteditor main Toolbar.js) as far as Schreibzeug has the commands.
  */
 export const sheetMenus = (context: SheetMenuContext): Menu[] => {
@@ -72,7 +120,7 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
         searchItems(context.onFind, off),
       ],
     },
-    { label: "Ansicht", groups: zoomGroups(view, document.zoom) },
+    { label: "Ansicht", groups: [freezeItems(context, off), ...zoomGroups(view, document.zoom)] },
     {
       label: "Einfügen",
       groups: [
@@ -156,6 +204,7 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
         })),
       ],
     },
+    dataMenu(context, off),
   ];
 };
 
@@ -167,6 +216,7 @@ export const sheetContextMenu = (context: SheetMenuContext): MenuItem[][] => {
   return [
     clipboardItems(context.view, context.onClipboardRefused),
     [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
+    sortItems(context.data, off),
     ...rowsAndColumns(run, off),
   ];
 };

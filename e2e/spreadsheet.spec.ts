@@ -19,6 +19,10 @@ import { solidPng } from "./png";
 
 const preise = join(import.meta.dirname, "../test-files/preise.xlsx");
 
+/** Where the filter button of A1 in preise.xlsx is, in the frame (widths set in test-files/make.ts). */
+const FILTER_BUTTON_X = 170;
+const FILTER_BUTTON_Y = 62;
+
 const frame = (page: Page) => page.frameLocator('[data-testid="engine-frame"]');
 
 /** Selects a cell through the name box, as a person types a reference there. */
@@ -178,6 +182,58 @@ test.describe("menus of the spreadsheet", () => {
     await expect(menu.getByRole("menuitem", { name: "Zeile einfügen" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
+  });
+
+  test("sorts the rows, freezes the first row and keeps both", async ({ page }, testInfo) => {
+    const fileId = await openPreise(page, testInfo);
+    // One column of a table: its rows come along (the whole region, the total too), as Excel's
+    // question would by default.
+    await goTo(page, "A2:A4");
+    await pick(page, "Daten", "Absteigend sortieren (Z–A)");
+    await goTo(page, "A2");
+    await expect(formulaBar(page)).toHaveValue("Regaletiketten");
+    await goTo(page, "B2");
+    await expect(formulaBar(page)).toHaveValue("500");
+
+    await pick(page, "Ansicht", "Oberste Zeile fixieren");
+    await page.getByRole("menubar").getByRole("button", { name: "Ansicht" }).click();
+    await expect(page.getByRole("menuitem", { name: "Fixierung aufheben" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await save(page);
+
+    const xml = await sheetXml(page, fileId);
+    expect(xml).toMatch(/<c r="A2"[^>]*t="s"/);
+    expect(xml).toMatch(/<pane [^>]*ySplit="1"[^>]*state="frozen"/);
+    const strings = partXml(await storedDocx(page, fileId), "xl/sharedStrings.xml");
+    const order = ["Regaletiketten", "Etikettendrucker", "Barcode-Scanner"].map((text) =>
+      strings.indexOf(text),
+    );
+    expect(order.every((index) => index >= 0)).toBe(true);
+  });
+
+  test("filters a column by its values and keeps the filter", async ({ page }, testInfo) => {
+    const fileId = await openPreise(page, testInfo);
+    await goTo(page, "A1");
+    const filter = page.getByRole("button", { name: "Filter", exact: true });
+    await filter.click();
+    await expect(filter).toHaveAttribute("aria-pressed", "true");
+
+    // The button sits at the right edge of the header cell A1.
+    await page.getByTestId("engine-frame").click({ position: { x: FILTER_BUTTON_X, y: FILTER_BUTTON_Y } });
+    const dialog = page.getByRole("dialog", { name: "Filter" });
+    await expect(dialog.getByRole("checkbox", { name: "Barcode-Scanner" })).toBeChecked();
+    await dialog.getByRole("checkbox", { name: "Barcode-Scanner" }).uncheck();
+    await dialog.getByRole("button", { name: "OK" }).click();
+    await expect(dialog).toHaveCount(0);
+    await page.getByRole("menubar").getByRole("button", { name: "Daten" }).click();
+    await expect(page.getByRole("menuitem", { name: "Filter löschen" })).toBeEnabled();
+    await page.keyboard.press("Escape");
+    await save(page);
+
+    const xml = await sheetXml(page, fileId);
+    expect(xml).toMatch(/<autoFilter ref="A1:D5"/);
+    expect(xml).toMatch(/<row r="2"[^>]*hidden="1"/);
+    expect(xml).toMatch(/<filterColumn colId="0"/);
   });
 
   test("downloads the sheet as a PDF", async ({ page }, testInfo) => {

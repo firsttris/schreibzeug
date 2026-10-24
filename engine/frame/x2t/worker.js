@@ -5,6 +5,7 @@
  * can be released by terminating the worker.
  *
  * Message in:  { id, bytes: Uint8Array, from: "docx" | "bin", to: "bin" | "docx", media: { name: bytes } }
+ *              from a CSV file (to "xlsx") also { csvDelimiter: number } (common/commonDefines.js c_oAscCsvDelimiter)
  *              or, for a PDF, { id, bytes, from: "bin", to: "pdf", media, commands: Uint8Array, fonts: [{ name, bytes }] }
  * Message out: { id, bytes: Uint8Array, media: { name: bytes } } or { id, error: string }
  *
@@ -65,13 +66,36 @@ const loadX2t = () => {
 // as bytes with its "DOCY;v10;<size>;" header. For a PDF, x2t reads the engine's drawing commands
 // from "pdf.bin" next to the document and embeds fonts from the font folder, as CryptPad converts
 // it (www/common/outer/x2t.js x2tConvertDataInternal).
-const taskXml = (from, to, fontDir) =>
+// x2t reads a CSV (writing one is left to the page: x2t's CSV writer encodes text through ICU, which
+// the WebAssembly build has no converter data for, so every character past ASCII came out as one
+// byte; core OOXML/Binary/Sheets/Writer/CSVWriter.cpp WriteFile, UnicodeConverter.cpp fromUnicode).
+// It wants both formats of the task, or it takes the direction as unknown and answers
+// AVS_FILEUTILS_ERROR_CONVERT_NEED_PARAMS, 89 (core X2tConverter/src/cextracttools.h
+// getConversionDirection, ASCConverters.cpp fromInputParams). The ids are core's
+// Common/OfficeFileFormats.h, as CryptPad lists them (www/common/outer/x2t.js getFormatId). The
+// text is UTF-8 (46: sdkjs common/commonDefines.js c_oAscCodePageUtf8, which CSVReader.cpp decodes
+// itself), the delimiter c_oAscCsvDelimiter, and numbers and dates are read as German ones
+// (m_nLcid 1031, CSVReader.cpp CellFormatController): "-4,20" and "01.10.2026".
+const FORMAT_IDS = { csv: 260, xlsx: 257 };
+const UTF8 = 46;
+const GERMAN_LCID = 1031;
+const csvXml = (from, to, delimiter) =>
+  from === "csv"
+    ? `<m_nFormatFrom>${FORMAT_IDS.csv}</m_nFormatFrom>` +
+      `<m_nFormatTo>${FORMAT_IDS[to]}</m_nFormatTo>` +
+      `<m_nCsvTxtEncoding>${UTF8}</m_nCsvTxtEncoding>` +
+      `<m_nCsvDelimiter>${delimiter}</m_nCsvDelimiter>` +
+      `<m_nLcid>${GERMAN_LCID}</m_nLcid>`
+    : "";
+
+const taskXml = (from, to, fontDir, csv) =>
   '<?xml version="1.0" encoding="utf-8"?>' +
   '<TaskQueueDataConvert xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' +
   `<m_sFileFrom>${from}</m_sFileFrom>` +
   `<m_sFileTo>${to}</m_sFileTo>` +
   "<m_bIsNoBase64>true</m_bIsNoBase64>" +
   (fontDir ? `<m_sFontDir>${fontDir}/</m_sFontDir>` : "") +
+  csv +
   "</TaskQueueDataConvert>";
 
 const removeTree = (fs, path) => {
@@ -93,7 +117,7 @@ const readMedia = (fs, dir) => {
   return media;
 };
 
-const convert = (x2t, id, bytes, from, to, media, commands, fonts) => {
+const convert = (x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter) => {
   const dir = `/job-${id}`;
   const input = `${dir}/input.${from}`;
   const output = `${dir}/output.${to}`;
@@ -109,7 +133,7 @@ const convert = (x2t, id, bytes, from, to, media, commands, fonts) => {
     x2t.FS.mkdir(`${dir}/media`);
     for (const [name, image] of Object.entries(media ?? {})) x2t.FS.writeFile(`${dir}/media/${name}`, image);
     x2t.FS.writeFile(input, bytes);
-    x2t.FS.writeFile(task, taskXml(input, output, fontDir));
+    x2t.FS.writeFile(task, taskXml(input, output, fontDir, csvXml(from, to, csvDelimiter)));
     stderr = [];
     const code = x2t.ccall("main1", "number", ["string"], [task]);
     if (code !== 0) {
@@ -123,10 +147,10 @@ const convert = (x2t, id, bytes, from, to, media, commands, fonts) => {
 };
 
 self.onmessage = async (event) => {
-  const { id, bytes, from, to, media, commands, fonts } = event.data;
+  const { id, bytes, from, to, media, commands, fonts, csvDelimiter } = event.data;
   try {
     const x2t = await loadX2t();
-    const result = convert(x2t, id, bytes, from, to, media, commands, fonts);
+    const result = convert(x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter);
     const transfer = [result.bytes.buffer, ...Object.values(result.media).map((image) => image.buffer)];
     self.postMessage({ id, ...result }, transfer);
   } catch (error) {

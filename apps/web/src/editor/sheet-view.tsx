@@ -1,6 +1,8 @@
 import { initialSheetState, isOnSheet, openSheetDocument } from "@schreibzeug/editor-core";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { kindOf } from "../lib/format";
 import { ColumnFilter, useColumnFilter } from "../sheets/column-filter";
+import { DropdownDialog } from "../sheets/dropdown-dialog";
 import { SheetTabs } from "../sheets/sheet-tabs";
 import { SheetToolbar } from "../toolbar/sheet-toolbar";
 import { ContextMenu } from "../ui/context-menu";
@@ -22,6 +24,9 @@ import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
 
+const CSV_NOTICE =
+  "CSV-Datei: Gespeichert werden nur die Werte des ersten Blatts, ohne Formatierung und Formeln.";
+
 /** A spreadsheet: title and menus, the toolbar above the grid (with the formula bar), the sheets below. */
 export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
@@ -42,10 +47,22 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
   };
   const comments = useCommentsPanel(editor, sheetComments, file.readOnly, "cell");
   const filter = useColumnFilter(editor, container, file.readOnly);
+  // The dropdown dialog with the selection's list when it opened; undefined while closed.
+  const [dropdown, setDropdown] = useState<string[] | null | undefined>(undefined);
 
+  // A CSV stays one: it is saved and downloaded as the file it is (csv.ts).
+  const format = kindOf({ kind: "file", name: file.name }) === "csv" ? "csv" : "xlsx";
   const download = async () => {
-    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "xlsx"), MIME.xlsx);
+    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, format), MIME[format]);
   };
+  const downloadCsv = async () => {
+    if (editor) downloadBytes(await editor.exportAs("csv"), fileNameFor(name, "csv"), MIME.csv);
+  };
+  // What a CSV keeps, said once it is open, as Excel warns when saving one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per opened editor
+  useEffect(() => {
+    if (editor && format === "csv" && !file.readOnly) chrome.notify(CSV_NOTICE);
+  }, [editor]);
 
   const context: SheetMenuContext = {
     state,
@@ -53,6 +70,8 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     sheets: editor?.sheets ?? null,
     data: editor?.data ?? null,
     charts: editor?.charts ?? null,
+    rules: editor?.rules ?? null,
+    onDropdown: () => editor && setDropdown(editor.rules.dropdown()),
     onChartFailure: (failure) => chrome.notify(CHART_FAILURES[failure]),
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
@@ -75,6 +94,9 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         onRename={onRename}
         onDownload={download}
         pdf={chrome.pdf}
+        downloads={
+          format === "xlsx" ? [{ label: "Als CSV herunterladen", onSelect: () => void downloadCsv() }] : []
+        }
         menus={file.readOnly ? [] : sheetMenus(context)}
         shortcuts={SHEET_SHORTCUTS}
         notice={chrome.notice}
@@ -103,6 +125,9 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         active={state.activeSheet}
         commands={file.readOnly ? null : (editor?.sheets ?? null)}
       />
+      {dropdown !== undefined && editor && (
+        <DropdownDialog values={dropdown} rules={editor.rules} onClose={() => setDropdown(undefined)} />
+      )}
       {filter.open && (
         <ColumnFilter
           request={filter.open.request}

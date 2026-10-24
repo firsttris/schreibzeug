@@ -13,11 +13,13 @@ import {
   toFilterRequest,
 } from "./cell-data";
 import { readCellFormat } from "./cell-format";
+import { createRuleCommands, type RuleCommands } from "./cell-rules";
 import { initialSheetState, reduceSheetState, type SheetEvent, type SheetState } from "./cell-state";
 import {
   cellPrintCommands,
   createCellSearchCommands,
   createCellViewCommands,
+  sheetText,
   toCellContextMenuRequest,
 } from "./cell-view";
 import { createEngineColor } from "./colors";
@@ -43,6 +45,8 @@ export type SheetEditor = OpenedDocument<SheetState> & {
   /** Sorting, filters and frozen panes. */
   data: DataCommands;
   charts: ChartCommands;
+  /** Dropdown lists and quick conditional formats. */
+  rules: RuleCommands;
   view: ViewCommands;
   search: SearchCommands;
   onContextMenu: (listener: ContextMenuListener) => () => void;
@@ -111,7 +115,16 @@ const cellBinding: EditorBinding<
   SheetEvent,
   Pick<
     SheetEditor,
-    "commands" | "comments" | "sheets" | "data" | "charts" | "view" | "search" | "onContextMenu" | "onFilter"
+    | "commands"
+    | "comments"
+    | "sheets"
+    | "data"
+    | "charts"
+    | "rules"
+    | "view"
+    | "search"
+    | "onContextMenu"
+    | "onFilter"
   >
 > = {
   format: "xlsx",
@@ -188,6 +201,7 @@ const cellBinding: EditorBinding<
       onContextMenu: contextMenu.add,
       onFilter: filter.add,
       charts: createChartCommands(api, win.Asc),
+      rules: createRuleCommands(api, win.Asc),
       data: createDataCommands(api, win.Asc, () => {
         for (const delay of DATA_REFRESH_DELAYS) win.setTimeout(refreshData, delay);
       }),
@@ -223,6 +237,7 @@ const cellBinding: EditorBinding<
   // the relay has the changes (cell/api.js asc_isDocumentModified, History.Have_Changes).
   markUnchanged: () => {},
   printCommands: cellPrintCommands,
+  sheetText,
 };
 
 /** Opens an .xlsx in the spreadsheet engine of a frame mounted with kind "cell" (see document.ts). */

@@ -449,6 +449,17 @@ export interface EngineCellInfo {
   asc_getSelectionType(): number;
 }
 
+/** cell/model/DataValidation.js CDataValidation: the rule on the selected cells. */
+export interface EngineDataValidation {
+  /** cell/model/Serialize.js EDataValidationType */
+  asc_getType(): number;
+  asc_setType(type: number): void;
+  asc_getFormula1(): { asc_getValue(): string | null } | null;
+  asc_setFormula1(formula: { asc_setValue(value: string): void }): void;
+  asc_setAllowBlank(allow: boolean): void;
+  asc_setShowErrorMessage(show: boolean): void;
+}
+
 /** common/apiCommon.js asc_ChartSettings: a chart to add, or the selected one. */
 export interface EngineChartSettings {
   /** common/commonDefines.js c_oAscChartTypeSettings */
@@ -538,6 +549,15 @@ export interface CellCommentData extends EngineCommentData {
   asc_putDocumentFlag(onDocument: boolean): void;
 }
 
+/**
+ * The part of the spreadsheet's Document Builder API used here (cell/apiBuilder.js): the active
+ * sheet's used range, and its values as the cells show them (ApiRange.GetText: one value for one
+ * cell, otherwise rows of values; Range.getValueWithFormat).
+ */
+export type EngineBuilderApi = {
+  GetActiveSheet(): { GetUsedRange(): { GetText(): string | string[][] } };
+};
+
 /** cell/api.js `spreadsheet_api` (with common/apiBase.js `baseEditorsApi`). */
 export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi {
   /** cell/api.js: draws the comment marks in the cells; `showResolved` includes resolved ones. */
@@ -551,6 +571,8 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi 
   asc_Undo(): void;
   asc_Redo(): void;
   asc_getCellInfo(): EngineCellInfo;
+  /** The Document Builder API on the open workbook (cell/api.js getJsApi, cell/apiBuilder.js). */
+  getJsApi(): EngineBuilderApi;
   asc_setCellBold(value: boolean): void;
   asc_setCellItalic(value: boolean): void;
   asc_setCellUnderline(value: boolean): void;
@@ -624,6 +646,16 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi 
   /** cell/apiDefines.js c_oAscSelectionDialogType.Chart; common/commonDefines.js c_oAscError.ID. */
   asc_checkDataRange(dialog: number, range: string, full: boolean, inRows: boolean, type: number): number;
   asc_addChartDrawingObject(settings: EngineChartSettings): void;
+  /**
+   * The rule of the selection, or an error id (c_oAscError.ID) where it holds different ones; then
+   * `true` extends the rule, null starts over (spreadsheeteditor DataTab.js onDataValidation).
+   */
+  asc_getDataValidationProps(extend?: boolean | null): EngineDataValidation | number | null;
+  asc_setDataValidation(props: EngineDataValidation): void;
+  /** Rules to set and delete, or a preset: [c_oAscCFRuleTypeSettings, its index in the picker]. */
+  asc_setCF(rules: unknown[], deleted: unknown[], preset?: [number, number]): void;
+  /** cell/apiDefines.js c_oAscSelectionForCFType */
+  asc_clearCF(where: number): void;
   /** The selected drawings: pictures, shapes, charts (asc_CImgProperty with get_ChartProperties). */
   asc_getGraphicObjectProps(): Array<{
     get_ObjectValue(): { get_ChartProperties?: () => EngineChartSettings | null } | null;
@@ -658,7 +690,11 @@ export interface CellWindow extends EngineWindow {
       areaNormal: number;
     };
     c_oAscSelectionDialogType: { Chart: number };
-    c_oAscError: { ID: { No: number; MaxDataSeriesError: number } };
+    c_oAscError: { ID: { No: number; MaxDataSeriesError: number; MoreOneTypeDataValidate: number } };
+    c_oAscEDataValidationType: { None: number; List: number };
+    CDataFormula: new () => { asc_setValue(value: string): void };
+    c_oAscCFRuleTypeSettings: { dataBar: number; colorScale: number };
+    c_oAscSelectionForCFType: { selection: number };
     c_oAscSelectionType: { RangeChart: number; RangeChartText: number };
   };
 }

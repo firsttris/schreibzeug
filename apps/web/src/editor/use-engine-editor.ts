@@ -10,6 +10,7 @@ import {
 } from "@schreibzeug/editor-core";
 import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useUser } from "../account/context";
+import { kindOf } from "../lib/format";
 import { readSpellCheck } from "../settings/spell-check";
 import type { OpenedFile } from "./opened-file";
 
@@ -61,6 +62,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           renderPdf: converter.renderPdf,
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
+          csv: kindOf({ kind: "file", name: file.name }) === "csv",
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),
         });

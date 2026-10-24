@@ -17,6 +17,7 @@ export type {
   SortOrder,
 } from "./cell-data";
 export { NUMBER_FORMATS } from "./cell-format";
+export { type QuickFormat, type RuleCommands, splitList } from "./cell-rules";
 export {
   type CellFormat,
   initialSheetState,

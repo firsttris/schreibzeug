@@ -438,6 +438,43 @@ columns, bars, lines, a pie and areas (`c_oAscChartTypeSettings` `barNormal`, `h
   chart is among `asc_getGraphicObjectProps()`, its settings `get_ObjectValue().get_ChartProperties()`;
   `changeType(type)` changes it at once. The menu then checks the selected chart's kind.
 
+### Dropdown lists and conditional formats
+
+`src/cell-rules.ts`, after web-apps' desktop spreadsheet editor (`controller/DataTab.js`
+`onDataValidation` with `view/DataValidationDialog.js`; `controller/Toolbar.js` for the
+conditional-format pickers):
+
+- **A dropdown list** ("Daten → Dropdown-Liste …") is a data validation of type list.
+  `asc_getDataValidationProps()` gives the selection's rule; where the selection holds several
+  rules it answers `c_oAscError.ID.MoreOneTypeDataValidate` and is asked again with `null` (start
+  over), otherwise with `true` (extend the rule). The values go in as `CDataFormula` with the
+  entries joined by ";" (the German argument separator), with `asc_setType(List)`,
+  `asc_setAllowBlank(true)`, `asc_setShowErrorMessage(true)`, then `asc_setDataValidation(props)`;
+  type `None` takes the list away. The .xlsx gets it in the `x14` extension form.
+- **Conditional formats** ("Format"): a data bar and a green–yellow–red colour scale, the first
+  preset of web-apps' pickers: `asc_setCF([], [], [c_oAscCFRuleTypeSettings.dataBar | colorScale, 0])`.
+  `asc_clearCF(c_oAscSelectionForCFType.selection)` takes them off the selected cells.
+
+### CSV files
+
+A .csv opens in the spreadsheet editor and is saved as a CSV again, with the delimiter it came
+with (`src/csv.ts` `detectDelimiter`: the one most of the first lines use outside quotes, ";" on a
+tie). The editor says once that only values are kept.
+
+- **Reading**: x2t reads a CSV into an .xlsx, not into the binary format (that stops with error
+  89), and only with both formats in the task (`m_nFormatFrom` 260, `m_nFormatTo` 257) plus
+  `m_nCsvTxtEncoding` 46 (UTF-8) and `m_nCsvDelimiter` (`c_oAscCsvDelimiter`: tab 1, ";" 2, "," 4);
+  `m_nLcid` 1031 makes it read "-4,20" and "01.10.2026" as a number and a date
+  (core `X2tConverter/src/cextracttools.h`, `OOXML/Binary/Sheets/Reader/CSVReader.cpp`). The .xlsx
+  then opens as usual.
+- **Writing** happens in the page, not in x2t: x2t's CSV writer encodes text through ICU, which
+  has no converter data in the WebAssembly build, so every character past ASCII came out as a
+  single byte (`Writer/CSVWriter.cpp` `WriteFile`, `UnicodeConverter.cpp` `fromUnicode`). The
+  values are the active sheet's as its cells show them, through the Document Builder API
+  (`api.getJsApi().GetActiveSheet().GetUsedRange().GetText()`, `cell/apiBuilder.js`), and
+  `encodeCsv` writes them as UTF-8 with a byte order mark and CR LF, quoting what holds the
+  delimiter, a quote or a line break. "Als CSV herunterladen" on an .xlsx does the same with ";".
+
 ## Presentations
 
 `src/slide.ts` binds the presentation engine (`slide/api.js`), set up as web-apps'

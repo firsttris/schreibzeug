@@ -108,3 +108,12 @@ export const cellPrintCommands = (api: CellEngineApi): Uint8Array => {
   const pages = api.wb.calcPagesPrint();
   return api.wb.printSheets(pages, null).DocumentRenderer.Memory.GetData();
 };
+
+/**
+ * The active sheet's values as its cells show them, row by row over the used range (ApiRange.GetText
+ * in cell/apiBuilder.js: a single cell's value alone, more cells as rows): what a CSV file holds.
+ */
+export const sheetText = (api: CellEngineApi): string[][] => {
+  const text = api.getJsApi().GetActiveSheet().GetUsedRange().GetText();
+  return typeof text === "string" ? [[text]] : text;
+};

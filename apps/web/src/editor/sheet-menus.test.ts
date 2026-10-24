@@ -21,6 +21,8 @@ const contextWith = (data: DataCommands, state: Partial<SheetState>): SheetMenuC
   data,
   charts: null,
   onChartFailure: () => {},
+  rules: null,
+  onDropdown: () => {},
   view: null,
   onClipboardRefused: () => {},
   onFind: () => {},

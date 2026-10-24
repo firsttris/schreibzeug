@@ -17,6 +17,7 @@ import { WordView } from "./word-view";
 const VIEWS: Partial<Record<ReturnType<typeof kindOf>, ComponentType<EditorViewProps>>> = {
   docx: WordView,
   xlsx: SheetView,
+  csv: SheetView,
   pptx: SlideView,
 };
 

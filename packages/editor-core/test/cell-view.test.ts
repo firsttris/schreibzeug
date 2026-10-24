@@ -3,6 +3,7 @@ import {
   cellPrintCommands,
   createCellSearchCommands,
   createCellViewCommands,
+  sheetText,
   toCellContextMenuRequest,
 } from "../src/cell-view";
 import type { CellEngineApi, CellWindow } from "../src/engine-types";
@@ -119,5 +120,27 @@ describe("spreadsheet context menu and print", () => {
     const { api, calls } = fakeApi();
     expect([...cellPrintCommands(api)]).toEqual([9]);
     expect(calls).toContainEqual(["printSheets", "pages"]);
+  });
+});
+
+describe("the sheet's text", () => {
+  const withText = (text: string | string[][]) =>
+    ({
+      getJsApi: () => ({ GetActiveSheet: () => ({ GetUsedRange: () => ({ GetText: () => text }) }) }),
+    }) as unknown as CellEngineApi;
+
+  it("is the used range's values row by row, also for a single cell", () => {
+    expect(
+      sheetText(
+        withText([
+          ["a", "b"],
+          ["1,5", ""],
+        ]),
+      ),
+    ).toEqual([
+      ["a", "b"],
+      ["1,5", ""],
+    ]);
+    expect(sheetText(withText("allein"))).toEqual([["allein"]]);
   });
 });

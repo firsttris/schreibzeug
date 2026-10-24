@@ -1,8 +1,8 @@
 /** The Office formats the editors open and save. */
 export type OfficeFormat = "docx" | "xlsx" | "pptx";
 
-/** Formats the converter moves between: Office files and the engine's own binary format. */
-export type ConvertFormat = OfficeFormat | "bin";
+/** Formats the converter moves between: Office files, CSV, and the engine's own binary format. */
+export type ConvertFormat = OfficeFormat | "csv" | "bin";
 
 /** The images of a document by their file name in its "media" folder, e.g. "image1.png". */
 export type MediaFiles = Record<string, Uint8Array>;
@@ -15,6 +15,8 @@ export type Convert = (
   from: ConvertFormat,
   to: ConvertFormat,
   media?: MediaFiles,
+  /** For a CSV file: its delimiter as x2t numbers it (csv.ts). */
+  csvDelimiter?: number,
 ) => Promise<Converted>;
 
 /** A font file the PDF embeds: its name in the engine's font folder and its bytes, decoded. */
@@ -99,7 +101,8 @@ export const createConverter = (
     });
 
   return {
-    convert: (bytes, from, to, media = {}) => request(bytes, { from, to, media }),
+    convert: (bytes, from, to, media = {}, csvDelimiter) =>
+      request(bytes, { from, to, media, ...(csvDelimiter === undefined ? {} : { csvDelimiter }) }),
     renderPdf: async (document, commands, fonts, media = {}) =>
       (await request(document, { from: "bin", to: "pdf", commands, fonts, media })).bytes,
     terminate: () => {

@@ -93,6 +93,32 @@ test("opens an .xlsx with its sheets and formulas, formats a cell and keeps it",
   expect(errors.filter((line) => line.includes("[engine]"))).toEqual([]);
 });
 
+test("opens a CSV file, edits it and saves it as CSV with its delimiter", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await page.getByTestId("upload-input").setInputFiles({
+    name: "konto.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("Datum;Empfänger;Betrag\n01.10.2026;Bäckerei Müller;-4,20\n", "utf8"),
+  });
+  await openDocument(page, "konto.csv", errors);
+  const fileId = openFileId(page);
+  await expect(page.getByText(/CSV-Datei: Gespeichert werden nur die Werte/)).toBeVisible();
+  await goTo(page, "B2");
+  await expect(formulaBar(page)).toHaveValue("Bäckerei Müller");
+
+  await goTo(page, "B3");
+  await page.keyboard.type("Stadtwerke Bühl");
+  await page.keyboard.press("Enter");
+  await save(page);
+
+  const response = await page.request.get(`/api/files/${fileId}/content`);
+  const text = (await response.body()).toString("utf8");
+  expect(text).toBe(
+    "\uFEFFDatum;Empfänger;Betrag\r\n01.10.2026;Bäckerei Müller;-4,20\r\n;Stadtwerke Bühl;\r\n",
+  );
+});
+
 test("adds, renames and deletes sheets", async ({ page }, testInfo) => {
   const errors = collectErrors(page);
   await openOwnFolder(page, testInfo);
@@ -258,6 +284,45 @@ test.describe("menus of the spreadsheet", () => {
     const xml = strFromU8(files[chart ?? ""] ?? new Uint8Array());
     expect(xml).toContain("<c:lineChart>");
     expect(xml).toContain("Preise!$B$2:$B$4");
+  });
+
+  test("gives the selection a dropdown list and a colour scale, kept in the .xlsx", async ({
+    page,
+  }, testInfo) => {
+    const fileId = await openPreise(page, testInfo);
+    await goTo(page, "E2:E4");
+    await pick(page, "Daten", "Dropdown-Liste …");
+    const dialog = page.getByRole("dialog", { name: "Dropdown-Liste" });
+    await dialog.getByLabel("Erlaubte Werte, einer pro Zeile").fill("offen\nbestellt\ngeliefert");
+    await dialog.getByRole("button", { name: "Übernehmen" }).click();
+
+    await pick(page, "Daten", "Dropdown-Liste …");
+    await expect(dialog.getByLabel("Erlaubte Werte, einer pro Zeile")).toHaveValue(
+      "offen\nbestellt\ngeliefert",
+    );
+    await dialog.getByRole("button", { name: "Abbrechen" }).click();
+
+    await goTo(page, "D2:D4");
+    await pick(page, "Format", "Bedingt: Farbskala Grün–Gelb–Rot");
+    await save(page);
+
+    const xml = await sheetXml(page, fileId);
+    // Written as Excel 2010 does a list in quotes (x14:dataValidation), read by every Excel since.
+    expect(xml).toMatch(/dataValidation [^>]*type="list"/);
+    expect(xml).toContain("offen,bestellt,geliefert");
+    expect(xml).toContain("<xm:sqref>E2:E4</xm:sqref>");
+    expect(xml).toMatch(/<conditionalFormatting sqref="D2:D4"><cfRule type="colorScale"/);
+  });
+
+  test("downloads the active sheet as CSV, with ; as German Excel writes it", async ({ page }, testInfo) => {
+    await openPreise(page, testInfo);
+    const download = page.waitForEvent("download");
+    await pick(page, "Datei", "Als CSV herunterladen");
+    const file = await download;
+    expect(file.suggestedFilename()).toBe("preise.csv");
+    const text = (await readFile((await file.path()) as string)).toString("utf8");
+    expect(text).toContain("Artikel;Menge;Preis;Summe");
+    expect(text).toContain("Barcode-Scanner;4;189;756");
   });
 
   test("downloads the sheet as a PDF", async ({ page }, testInfo) => {

@@ -62,6 +62,15 @@ describe("createConverter", () => {
     });
   });
 
+  it("tells the worker a CSV file's delimiter, and nothing for other files", () => {
+    const fake = fakeWorker();
+    const converter = createConverter(() => fake.worker);
+    void converter.convert(new Uint8Array([1]), "csv", "xlsx", {}, 2);
+    void converter.convert(new Uint8Array([1]), "docx", "bin");
+    expect(fake.sent[0]).toMatchObject({ from: "csv", to: "xlsx", csvDelimiter: 2 });
+    expect(fake.sent[1]).not.toHaveProperty("csvDelimiter");
+  });
+
   it("matches replies to their requests", async () => {
     const fake = fakeWorker();
     const converter = createConverter(() => fake.worker);

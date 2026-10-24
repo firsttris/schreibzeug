@@ -32,7 +32,7 @@ export const formatDay = (iso: string, now: Date = new Date()): string => {
   return (date.getFullYear() === now.getFullYear() ? dayThisYear : dayOtherYear).format(date);
 };
 
-export type FileKind = "docx" | "xlsx" | "pptx" | "pdf" | "folder" | "other";
+export type FileKind = "docx" | "xlsx" | "pptx" | "csv" | "pdf" | "folder" | "other";
 
 export const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -42,13 +42,17 @@ export const extensionOf = (name: string): string => {
 export const kindOf = (node: { kind: "folder" | "file"; name: string }): FileKind => {
   if (node.kind === "folder") return "folder";
   const extension = extensionOf(node.name);
-  return extension === "docx" || extension === "xlsx" || extension === "pptx" || extension === "pdf"
+  return extension === "docx" ||
+    extension === "xlsx" ||
+    extension === "pptx" ||
+    extension === "csv" ||
+    extension === "pdf"
     ? extension
     : "other";
 };
 
-/** The kinds Schreibzeug can open in an editor today. */
+/** The kinds Schreibzeug can open in an editor today; a CSV opens in the spreadsheet. */
 export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean => {
   const kind = kindOf(node);
-  return kind === "docx" || kind === "xlsx" || kind === "pptx";
+  return kind === "docx" || kind === "xlsx" || kind === "pptx" || kind === "csv";
 };

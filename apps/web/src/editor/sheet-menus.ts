@@ -6,6 +6,7 @@ import type {
   ClipboardAction,
   DataCommands,
   NumberFormat,
+  RuleCommands,
   SheetCommands,
   SheetState,
   ViewCommands,
@@ -22,6 +23,9 @@ export type SheetMenuContext = {
   sheets: SheetCommands | null;
   data: DataCommands | null;
   charts: ChartCommands | null;
+  rules: RuleCommands | null;
+  /** Opens the dropdown list of the selection. */
+  onDropdown: () => void;
   /** Says why no chart could be made of the selection. */
   onChartFailure: (failure: ChartFailure) => void;
   view: ViewCommands | null;
@@ -112,9 +116,21 @@ export const dataMenu = (context: SheetMenuContext, off: boolean): Menu => {
           onSelect: () => data?.clearFilter(),
         },
       ],
+      [{ label: "Dropdown-Liste …", disabled: off || !context.rules, onSelect: context.onDropdown }],
     ],
   };
 };
+
+/** Quick conditional formats, as the first presets of web-apps' pickers (Toolbar.js). */
+const conditionalItems = (rules: RuleCommands | null, off: boolean): MenuItem[] => [
+  { label: "Bedingt: Datenbalken", disabled: off || !rules, onSelect: () => rules?.quickFormat("dataBar") },
+  {
+    label: "Bedingt: Farbskala Grün–Gelb–Rot",
+    disabled: off || !rules,
+    onSelect: () => rules?.quickFormat("colorScale"),
+  },
+  { label: "Bedingte Formate löschen", disabled: off || !rules, onSelect: () => rules?.clearFormats() },
+];
 
 /** Frozen panes, as web-apps' "Fenster fixieren" (spreadsheeteditor main ViewTab.js). */
 const freezeItems = (context: SheetMenuContext, off: boolean): MenuItem[] => {
@@ -246,6 +262,7 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
           disabled: off,
           onSelect: run((c) => c.setNumberFormat(format)),
         })),
+        conditionalItems(context.rules, off),
       ],
     },
     dataMenu(context, off),

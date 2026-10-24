@@ -1,4 +1,5 @@
 import type { OfficeFormat } from "@schreibzeug/editor-core";
+import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 
 /**
@@ -33,6 +34,8 @@ export const fileMenu = (
   download: () => void,
   pdf: PdfActions,
   ready: boolean,
+  /** Further formats to download in, e.g. a spreadsheet as CSV. */
+  downloads: MenuItem[] = [],
 ): Menu => ({
   label: "Datei",
   groups: [
@@ -40,6 +43,7 @@ export const fileMenu = (
     [
       { label: "Kopie erstellen", onSelect: actions.onCopy },
       { label: "Herunterladen", onSelect: download, disabled: !ready },
+      ...downloads.map((item) => ({ ...item, disabled: item.disabled || !ready })),
       ...(pdf
         ? [
             { label: "Als PDF herunterladen", onSelect: pdf.download, disabled: !ready },

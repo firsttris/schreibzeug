@@ -1,6 +1,7 @@
 import type { CollabChannel } from "./collab";
 import type { Convert, Converted, MediaFiles, OfficeFormat, RenderPdf } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
+import { CSV_DELIMITER_CODES, type CsvDelimiter, detectDelimiter, encodeCsv } from "./csv";
 import type { CommonEventArgs, DocumentUrls, EngineApiBase, EngineWindow } from "./engine-types";
 import { coreEvents, type Translators } from "./events";
 import { keepFocusOnClick } from "./frame";
@@ -22,6 +23,8 @@ export type OpenOptions = {
   /** Turns the engine's print commands into a PDF; without it the document has no PDF. */
   renderPdf?: RenderPdf;
   lang?: string;
+  /** The file is a CSV, not an .xlsx: it is read and saved as one (csv.ts). Spreadsheets only. */
+  csv?: boolean;
   /** Red underlines for misspelled words (spelling.ts); on unless switched off. */
   spellCheck?: boolean;
   /** "view" opens the document read-only: for someone it is shared with to look at. */
@@ -52,6 +55,11 @@ export type OpenedDocument<S extends CoreState> = {
   markSaved: (saved: SavedDocument) => void;
   resize: () => void;
   close: () => void;
+  /**
+   * The document in another format, e.g. a spreadsheet as CSV (the active sheet's values, with ";"
+   * as German Excel writes them).
+   */
+  exportAs: (format: "csv") => Promise<Uint8Array>;
   /** The document as a PDF, as it would print; null where the editor cannot make one. */
   exportPdf: (() => Promise<Uint8Array>) | null;
   /**
@@ -61,6 +69,29 @@ export type OpenedDocument<S extends CoreState> = {
   onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void;
   /** Puts an image (PNG, JPEG, GIF, BMP) in at the cursor; null without an image store. */
   insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
+};
+
+/** The format of the file itself: the editor's, or a CSV with its delimiter (csv.ts). */
+type FileFormat = { format: OfficeFormat } | { format: "csv"; delimiter: CsvDelimiter };
+
+/**
+ * The file in the engine's format. x2t reads a CSV into an .xlsx only (to the engine's binary it
+ * stops with error 89), so a CSV takes that step first.
+ */
+const toBinary = async (
+  options: Pick<OpenOptions, "bytes" | "convert">,
+  file: FileFormat,
+): Promise<Converted> => {
+  if (file.format !== "csv") return options.convert(options.bytes, file.format, "bin");
+  const delimiter = CSV_DELIMITER_CODES[file.delimiter];
+  const workbook = await options.convert(options.bytes, "csv", "xlsx", undefined, delimiter);
+  return options.convert(workbook.bytes, "xlsx", "bin");
+};
+
+/** The sheet as a CSV file, written here rather than by x2t (csv.ts says why). */
+const csvOf = <Api>(api: Api, sheetText: ((api: Api) => string[][]) | undefined, delimiter: CsvDelimiter) => {
+  if (!sheetText) throw new Error("Only a spreadsheet can be saved as CSV.");
+  return encodeCsv(sheetText(api), delimiter);
 };
 
 /** What one editor's engine needs on top of the shared opening flow. */
@@ -90,6 +121,8 @@ export type EditorBinding<
   markUnchanged: (api: Api) => void;
   /** Every page as drawing commands for a PDF, where the editor can (print.ts). */
   printCommands?: (api: Api) => Uint8Array;
+  /** The values the sheet shows, row by row, for a CSV file; spreadsheets only (cell.ts). */
+  sheetText?: (api: Api) => string[][];
 };
 
 export type KindContext<W, Api, S, E> = {
@@ -240,6 +273,9 @@ export const openDocument = <
   binding: EditorBinding<W, Events, Api, S, E, Parts>,
 ): Promise<OpenedDocument<S> & Parts> => {
   const store = createStore<S>(binding.initialState);
+  const file: FileFormat = options.csv
+    ? { format: "csv", delimiter: detectDelimiter(options.bytes) }
+    : { format: binding.format };
   const dispatch = (event: E | CoreEvent) =>
     store.set((state) => (isCoreEvent(event) ? reduceCore(state, event) : binding.reduce(state, event as E)));
 
@@ -297,10 +333,12 @@ export const openDocument = <
         store,
         save: async () => {
           const seen = store.get().session.seen;
+          if (file.format === "csv") return { bytes: csvOf(api, binding.sheetText, file.delimiter), seen };
           const { binary: binaryNow, media: mediaNow } = await snapshot();
-          const saved = await options.convert(binaryNow, "bin", binding.format, mediaNow);
+          const saved = await options.convert(binaryNow, "bin", file.format, mediaNow);
           return { bytes: saved.bytes, seen };
         },
+        exportAs: async () => csvOf(api, binding.sheetText, "semicolon"),
         markSaved: ({ seen }) => {
           binding.markUnchanged(api);
           options.collaboration?.channel.send(JSON.stringify({ type: "schreibzeug:saved", index: seen }));
@@ -342,8 +380,7 @@ export const openDocument = <
       api.asc_getEditorPermissions();
     };
 
-    options
-      .convert(options.bytes, binding.format, "bin")
+    toBinary(options, file)
       .then(start)
       .catch((error: unknown) => onFailure(error instanceof Error ? error.message : String(error)));
   });

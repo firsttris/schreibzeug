@@ -3,6 +3,7 @@ import { ArrowLeft, Download, History, Save, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { FileBadge } from "../files/file-badge";
 import { Button } from "../ui/button";
+import type { MenuItem } from "../ui/menu";
 import { type Menu, MenuBar } from "../ui/menu-bar";
 import { useNotice } from "../ui/use-notice";
 import { type FileActions, fileMenu, helpMenu, type PdfActions } from "./file-menu";
@@ -27,6 +28,8 @@ export type EditorHeaderProps = {
   onDownload: () => void;
   /** A PDF of the document to download or print, where the editor can make one. */
   pdf?: PdfActions;
+  /** Further formats to download in ("Datei" menu). */
+  downloads?: MenuItem[];
   /** The editor's own menus between "Datei" and "Hilfe": Bearbeiten, Ansicht, Einfügen, Format. */
   menus: Menu[];
   shortcuts: Shortcut[];
@@ -54,6 +57,7 @@ export const EditorHeader = ({
   onRename,
   onDownload,
   pdf = null,
+  downloads = [],
   menus,
   shortcuts,
   notice,
@@ -84,7 +88,7 @@ export const EditorHeader = ({
           </div>
           <MenuBar
             label="Menü"
-            menus={[fileMenu(file, onDownload, pdf, ready), ...menus, helpMenu(setDialog)]}
+            menus={[fileMenu(file, onDownload, pdf, ready, downloads), ...menus, helpMenu(setDialog)]}
           />
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">

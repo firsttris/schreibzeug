@@ -1,8 +1,15 @@
 import { initialPdfState, openPdfDocument } from "@schreibzeug/editor-core";
-import { useRef, useState } from "react";
+import type { SignatureCheck } from "@schreibzeug/pdf-sign";
+import { useEffect, useRef, useState } from "react";
 import { PdfToolbar } from "../toolbar/pdf-toolbar";
 import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
+import {
+  DigitalSignatureDialog,
+  loadPdfSign,
+  SignatureNotice,
+  type SigningRequest,
+} from "./digital-signature";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { PDF_SHORTCUTS } from "./help-dialogs";
@@ -22,7 +29,35 @@ const isPdf = (bytes: Uint8Array) =>
 
 const baseName = (name: string) => name.replace(/\.pdf$/i, "");
 
-export const PdfView = ({ file, name, onSave, fileActions, onRename, onCreateFile }: EditorViewProps) => {
+/** Whether the file has a signature at all, before the signing code is loaded to check it. */
+const mayBeSigned = (bytes: Uint8Array) => new TextDecoder("latin1").decode(bytes).includes("/ByteRange");
+
+/** The signatures the opened file holds, checked once it is open. */
+const useSignatureChecks = (bytes: Uint8Array): SignatureCheck[] => {
+  const [checks, setChecks] = useState<SignatureCheck[]>([]);
+  useEffect(() => {
+    setChecks([]);
+    if (!mayBeSigned(bytes)) return;
+    let current = true;
+    void loadPdfSign().then(({ checkSignatures }) => {
+      if (current) setChecks(checkSignatures(bytes));
+    });
+    return () => {
+      current = false;
+    };
+  }, [bytes]);
+  return checks;
+};
+
+export const PdfView = ({
+  file,
+  name,
+  onSave,
+  fileActions,
+  onRename,
+  onCreateFile,
+  onReplace,
+}: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
     container,
@@ -38,6 +73,31 @@ export const PdfView = ({ file, name, onSave, fileActions, onRename, onCreateFil
   const signature = editor?.signature ?? null;
   const onSign = signature && !file.readOnly ? () => setSigning(true) : null;
   const appendInput = useRef<HTMLInputElement>(null);
+  const checks = useSignatureChecks(file.bytes);
+  const [signingDigitally, setSigningDigitally] = useState(false);
+
+  /** Signs what is saved now, stores it as the newest version and opens that (the edit page). */
+  const signDigitally = async (request: SigningRequest): Promise<string | null> => {
+    if (!editor || !onReplace) return "Das PDF kann hier nicht signiert werden.";
+    if (checks.length > 0)
+      return "Das PDF ist bereits digital signiert; eine zweite Signatur kann Schreibzeug noch nicht hinzufügen.";
+    const { readIdentity, signPdf } = await loadPdfSign();
+    const identity = await readIdentity(request.certificate, request.password);
+    if (!identity.ok) return identity.error;
+    try {
+      const saved = await editor.save();
+      const signed = await signPdf(saved.bytes, identity.value, {
+        date: new Date(),
+        ...(request.reason ? { reason: request.reason } : {}),
+        ...(request.location ? { location: request.location } : {}),
+      });
+      if (!signed.ok) return signed.error;
+      await onReplace(signed.value);
+      return null;
+    } catch (error) {
+      return `Das signierte PDF konnte nicht gespeichert werden: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  };
 
   const appendPdf = async (picked: File) => {
     const bytes = new Uint8Array(await picked.arrayBuffer());
@@ -72,6 +132,7 @@ export const PdfView = ({ file, name, onSave, fileActions, onRename, onCreateFil
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onAddNote: comments.compose,
     onSign,
+    onSignDigitally: onReplace && !file.readOnly ? () => setSigningDigitally(true) : null,
     onAppendPdf: () => appendInput.current?.click(),
     onExtractPages: extractPages,
     notify: chrome.notify,
@@ -106,6 +167,7 @@ export const PdfView = ({ file, name, onSave, fileActions, onRename, onCreateFil
           />
         }
       />
+      <SignatureNotice checks={checks} modified={state.document.modified} />
       <div className="flex min-h-0 flex-1">
         <DocumentArea
           container={container}
@@ -134,6 +196,11 @@ export const PdfView = ({ file, name, onSave, fileActions, onRename, onCreateFil
           event.target.value = "";
           if (picked) void appendPdf(picked);
         }}
+      />
+      <DigitalSignatureDialog
+        open={signingDigitally}
+        onClose={() => setSigningDigitally(false)}
+        onSign={signDigitally}
       />
       {signature && (
         <SignatureDialog open={signing} onClose={() => setSigning(false)} onInsert={signature.insert} />

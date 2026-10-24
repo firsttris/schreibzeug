@@ -1,0 +1,19 @@
+{
+  "name": "@schreibzeug/pdf-sign",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Digital signatures in PDFs: sign with a PKCS#12 certificate (PKCS#7, detached) and check the signatures a PDF holds.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./test/identity.ts"
+  },
+  "dependencies": {
+    "node-forge": "1.4.0",
+    "pdf-lib": "1.17.1"
+  },
+  "devDependencies": {
+    "@types/node-forge": "1.3.14"
+  }
+}

@@ -18,6 +18,9 @@
       "path": "../../packages/ooxml"
     },
     {
+      "path": "../../packages/pdf-sign"
+    },
+    {
       "path": "../../apps/server"
     }
   ]

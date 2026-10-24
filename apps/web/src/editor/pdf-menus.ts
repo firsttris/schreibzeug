@@ -22,6 +22,8 @@ export type PdfMenuContext = {
   onAddNote: () => void;
   /** Opens the signature dialog; null where no picture can be put on the page. */
   onSign: (() => void) | null;
+  /** Opens the dialog for a digital signature with a certificate; null where the PDF cannot be replaced. */
+  onSignDigitally: (() => void) | null;
   /** Asks for a PDF on the computer and appends its pages. */
   onAppendPdf: () => void;
   /** Stores the selected pages as a new PDF beside this one; null where no file can be made. */
@@ -152,6 +154,11 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
           { label: "Notiz", disabled: off, onSelect: context.onAddNote },
           { label: "Textfeld", disabled: off, onSelect: run((c) => c.addTextBox()) },
           { label: "Unterschreiben …", disabled: off || !context.onSign, onSelect: () => context.onSign?.() },
+          {
+            label: "Digital signieren …",
+            disabled: off || !context.onSignDigitally,
+            onSelect: () => context.onSignDigitally?.(),
+          },
         ],
         ANNOTATION_TOOLS.map(({ tool: entry, label }) => ({
           label,

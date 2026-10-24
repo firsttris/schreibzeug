@@ -15,6 +15,7 @@
     "@schreibzeug/editor-core": "workspace:*",
     "@schreibzeug/files-api": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
+    "@schreibzeug/pdf-sign": "workspace:*",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.46",
     "better-auth": "1.7.12",

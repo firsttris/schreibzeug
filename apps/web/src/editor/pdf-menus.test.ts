@@ -30,6 +30,7 @@ describe("pdfMenus", () => {
       onClipboardRefused: () => {},
       onAddNote: () => {},
       onSign: null,
+      onSignDigitally: null,
       onAppendPdf: () => {},
       onExtractPages: null,
       notify: () => {},

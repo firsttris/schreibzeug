@@ -55,6 +55,33 @@ worked around, x2t's WebAssembly build stops on writing the stamp. So the dialog
 only. Saving still hands the document's images to x2t in "media/" beside the change file, for
 changes that refer to pictures.
 
+## Digital signatures
+
+"Kommentieren → Digital signieren …" signs the PDF with the person's own certificate, a PKCS#12
+file (.p12, .pfx) and its password, in the browser; the certificate never leaves it.
+`packages/pdf-sign` does the work, without the engine:
+
+1. `readIdentity` opens the PKCS#12 file with node-forge (RSA keys; a wrong password is said as
+   such) and takes the certificate that belongs to the key, the others as its chain.
+2. `signPdf` saves the PDF once more with pdf-lib, with an invisible signature field and a
+   signature dictionary (`/Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached`, a /Contents of
+   16 KB of zeros, a /ByteRange of placeholders), then fills in the byte range around /Contents
+   and a detached PKCS#7 signature (RFC 2315, SHA-256, with content type, message digest and
+   signing time as signed attributes) over those bytes (ISO 32000-1 12.8).
+3. The PDF view stores the signed PDF as the newest version and opens it.
+
+`checkSignatures` reads every signature of a PDF: the digest of the byte ranges against the
+signed message digest, the RSA signature over the signed attributes with the certificate the
+signature carries, and whether the ranges reach the end of the file. The view shows the result
+above the pages, with who signed, when and why; a self-signed certificate is called so, and the
+trust chain of other certificates is not checked. Once a signed PDF is changed, the view warns
+that saving breaks the signature: the engine writes the file anew. A PDF that is signed already
+is not signed a second time yet; that needs an incremental update, which pdf-lib does not write.
+Poppler's `pdfsig` takes the signatures as valid ("Signature is Valid", "Total document signed").
+
+The signing code (node-forge and pdf-lib, about 700 KB before compression) loads when someone signs or opens a PDF with a
+signature, not with the app.
+
 ## Pages between files
 
 "Seiten → PDF anhängen …" puts the pages of a PDF from the computer at the end, the way pages
@@ -94,6 +121,9 @@ connection someone who types very fast can lose a character in a shared form.
 
 ## Tests
 
+`e2e/pdf-sign.spec.ts` signs through the app with a certificate made for the test (a wrong
+password first), checks the stored file and the warning after a change; `packages/pdf-sign/test`
+signs and checks below the app, also a changed byte and bytes added after signing.
 `e2e/pdf-engine.spec.ts` checks the engine below the app; `e2e/pdf-together.spec.ts` has two
 people fill in and comment the same PDF. `e2e/pdf.spec.ts` works through the app
 with `test-files/formular.pdf`: turn a page and add one, fill in both fields (typed at once, Tab to

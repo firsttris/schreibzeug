@@ -19,4 +19,9 @@ export type EditorViewProps = {
    * and resolves with the name it got, e.g. pages taken out of a PDF.
    */
   onCreateFile?: ((name: string, bytes: Uint8Array, type: string) => Promise<string>) | undefined;
+  /**
+   * Stores the bytes as the newest version and opens that version in place of what the editor
+   * shows, e.g. a PDF once it is digitally signed.
+   */
+  onReplace?: ((bytes: Uint8Array) => Promise<void>) | undefined;
 };

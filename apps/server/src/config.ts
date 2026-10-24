@@ -14,6 +14,7 @@ const configSchema = z.object({
   STAPEL_AUTH_SECRET: z.string().min(32, "STAPEL_AUTH_SECRET needs at least 32 characters.").optional(),
   STAPEL_OPEN_SIGNUP: flag,
   STAPEL_TRUSTED_ORIGINS: z.string().optional(),
+  STAPEL_WEB_DIR: z.string().min(1).optional(),
 });
 
 export type Config = {
@@ -25,6 +26,8 @@ export type Config = {
   authSecret: string | undefined;
   openSignup: boolean;
   trustedOrigins: string[];
+  /** The built web app (apps/web/dist) to serve beside the API; absent: the API only. */
+  webDir: string | undefined;
 };
 
 /** Reads the server's settings from the environment; every one has a default for development. */
@@ -42,6 +45,7 @@ export const readConfig = (env: Record<string, string | undefined>) => {
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
+    webDir: value.STAPEL_WEB_DIR,
   };
   return { ok: true as const, value: config };
 };

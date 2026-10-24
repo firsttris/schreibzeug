@@ -89,6 +89,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `PORT` | `3000` |
 | `STAPEL_MAX_UPLOAD_MB` | `512` |
 | `STAPEL_OPEN_SIGNUP`, `STAPEL_AUTH_SECRET`, `STAPEL_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
+| `STAPEL_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on
 start. After a change to the schema, `bun run --filter @stapel/server db:generate` writes the next

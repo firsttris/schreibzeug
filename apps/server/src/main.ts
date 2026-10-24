@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
 import { createApp } from "./app";
 import { createAuth } from "./auth/auth";
@@ -8,6 +9,7 @@ import { createHub } from "./collab/hub";
 import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
 import { roleOf } from "./files/access";
+import { webRoutes } from "./web";
 
 const config = readConfig(process.env);
 if (!config.ok) {
@@ -15,7 +17,7 @@ if (!config.ok) {
   process.exit(1);
 }
 
-const { dataDir, port, maxUploadBytes, authSecret, openSignup, trustedOrigins } = config.value;
+const { dataDir, port, maxUploadBytes, authSecret, openSignup, trustedOrigins, webDir } = config.value;
 // One SQLite file next to the blobs: backing up the data folder backs up everything.
 const { db, close } = connect(join(resolve(dataDir), "stapel.db"));
 migrateDatabase(db);
@@ -42,10 +44,12 @@ const app = createApp({
   maxUploadBytes,
   collab: { hub, upgradeWebSocket },
 });
+// The API first; the web app, when there is one to serve, gets every other path.
+const site = webDir ? new Hono().route("/", app).route("/", webRoutes(webDir)) : app;
 // Bun's own limit is 128 MB; uploads are bounded by the API's body limit instead.
 const server = Bun.serve({
   port,
-  fetch: app.fetch,
+  fetch: site.fetch,
   websocket,
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,
 });

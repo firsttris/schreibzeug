@@ -4,6 +4,7 @@
  * controller/ViewTab.js onFreeze) and its mobile one shows a column's filter
  * (spreadsheeteditor mobile controller/FilterOptions.jsx).
  */
+import { type ChartKind, readSelectedChart } from "./cell-chart";
 import type { CellEngineApi, CellWindow, EngineAutoFilterObject, EngineCellInfo } from "./engine-types";
 
 /** The filter of the range around the active cell, and what the toolbar may do with it. */
@@ -16,12 +17,16 @@ export type FilterState = {
   applied: boolean;
 };
 
-/** The sheet's view around the data: its filter and whether rows or columns are frozen. */
-export type SheetDataState = { filter: FilterState; frozen: boolean };
+/**
+ * The sheet's view around the data: its filter, whether rows or columns are frozen, and the kind
+ * of the selected chart (cell-chart.ts), null without one.
+ */
+export type SheetDataState = { filter: FilterState; frozen: boolean; chart: ChartKind | null };
 
 export const initialSheetDataState: SheetDataState = {
   filter: { available: false, on: false, applied: false },
   frozen: false,
+  chart: null,
 };
 
 /**
@@ -39,9 +44,14 @@ export const readFilterState = (info: Pick<EngineCellInfo, "asc_getAutoFilterInf
 };
 
 /** The filter at the active cell and the sheet's frozen panes, as the engine has them now. */
-export const readSheetData = (api: CellEngineApi, info: EngineCellInfo): SheetDataState => ({
+export const readSheetData = (
+  api: CellEngineApi,
+  info: EngineCellInfo,
+  Asc: Parameters<typeof readSelectedChart>[2],
+): SheetDataState => ({
   filter: readFilterState(info),
   frozen: Boolean(api.asc_getSheetViewSettings().asc_getIsFreezePane()),
+  chart: readSelectedChart(api, info, Asc),
 });
 
 export type SortOrder = "ascending" | "descending";

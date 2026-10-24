@@ -1,5 +1,8 @@
 import type {
   CellCommands,
+  ChartCommands,
+  ChartFailure,
+  ChartKind,
   ClipboardAction,
   DataCommands,
   NumberFormat,
@@ -18,6 +21,9 @@ export type SheetMenuContext = {
   commands: CellCommands | null;
   sheets: SheetCommands | null;
   data: DataCommands | null;
+  charts: ChartCommands | null;
+  /** Says why no chart could be made of the selection. */
+  onChartFailure: (failure: ChartFailure) => void;
   view: ViewCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
   onFind: (mode: "find" | "replace") => void;
@@ -41,6 +47,43 @@ const rowsAndColumns = (
     { label: "Spalte löschen", danger: true, disabled: off, onSelect: run((c) => c.deleteColumns()) },
   ],
 ];
+
+/** The kinds of chart in the words of German Excel. */
+export const CHART_LABELS: Record<ChartKind, string> = {
+  column: "Säulen",
+  bar: "Balken",
+  line: "Linien",
+  pie: "Kreis",
+  area: "Fläche",
+};
+
+export const CHART_FAILURES: Record<ChartFailure, string> = {
+  noData: "Für ein Diagramm bitte zuerst die Zellen mit den Zahlen markieren.",
+  tooManySeries: "Die Markierung hat zu viele Datenreihen für ein Diagramm.",
+};
+
+/**
+ * A chart of the selection, or, with a chart selected, its kind (checked) to change: in "Einfügen"
+ * and under the toolbar's chart button, as web-apps' chart types (AddChart.jsx, EditChart.jsx).
+ */
+export const chartItems = (
+  context: Pick<SheetMenuContext, "charts" | "onChartFailure" | "state">,
+  off: boolean,
+): MenuItem[] => {
+  const { charts, onChartFailure } = context;
+  const selected = context.state.data.chart;
+  return (Object.keys(CHART_LABELS) as ChartKind[]).map((kind) => ({
+    label: `Diagramm: ${CHART_LABELS[kind]}`,
+    disabled: off || !charts,
+    ...(selected ? { checked: selected === kind } : {}),
+    onSelect: () => {
+      if (!charts) return;
+      if (selected) return charts.changeKind(kind);
+      const failure = charts.insert(kind);
+      if (failure) onChartFailure(failure);
+    },
+  }));
+};
 
 /** Sorting the selection: in "Daten" and in the context menu. */
 const sortItems = (data: DataCommands | null, off: boolean): MenuItem[] => [
@@ -126,6 +169,7 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
       groups: [
         ...rowsAndColumns(run, off),
         [{ label: "Tabellenblatt", disabled: !context.sheets, onSelect: () => context.sheets?.add() }],
+        chartItems(context, off),
         [
           {
             label: "Bild …",

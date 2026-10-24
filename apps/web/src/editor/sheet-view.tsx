@@ -10,7 +10,13 @@ import { EditorHeader } from "./editor-header";
 import { SHEET_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
-import { type SheetMenuContext, sheetContextMenu, sheetMenus } from "./sheet-menus";
+import {
+  CHART_FAILURES,
+  chartItems,
+  type SheetMenuContext,
+  sheetContextMenu,
+  sheetMenus,
+} from "./sheet-menus";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
@@ -46,6 +52,8 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     commands: editor?.commands ?? null,
     sheets: editor?.sheets ?? null,
     data: editor?.data ?? null,
+    charts: editor?.charts ?? null,
+    onChartFailure: (failure) => chrome.notify(CHART_FAILURES[failure]),
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onFind: chrome.searchBar.open,
@@ -72,7 +80,12 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         notice={chrome.notice}
         actions={comments.button}
         toolbar={
-          <SheetToolbar state={state} commands={editor?.commands ?? null} data={editor?.data ?? null} />
+          <SheetToolbar
+            state={state}
+            commands={editor?.commands ?? null}
+            data={editor?.data ?? null}
+            chartItems={chartItems(context, file.readOnly || state.status !== "ready")}
+          />
         }
       />
       <div className="flex min-h-0 flex-1">

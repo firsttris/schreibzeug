@@ -445,6 +445,20 @@ export interface EngineCellInfo {
   asc_getAutoFilterInfo(): EngineAutoFilterInfo | null;
   /** The formatted table the active cell is in, if any. */
   asc_getFormatTableInfo(): { asc_getTableName(): string | null } | null;
+  /** common/commonDefines.js c_oAscSelectionType: cells, a chart, a picture … */
+  asc_getSelectionType(): number;
+}
+
+/** common/apiCommon.js asc_ChartSettings: a chart to add, or the selected one. */
+export interface EngineChartSettings {
+  /** common/commonDefines.js c_oAscChartTypeSettings */
+  getType(): number;
+  putType(type: number): void;
+  /** The data's range, e.g. "Tabelle1!$A$1:$B$5"; empty without data. */
+  getRange(): string | null;
+  getInColumns(): boolean | null;
+  /** Changes a chart on the sheet to the type, at once. */
+  changeType(type: number): boolean | undefined;
 }
 
 /** cell/model/CellInfo.js asc_CAutoFilterInfo */
@@ -605,6 +619,15 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi 
   /** cell/apiDefines.js c_oAscFrozenPaneAddType; without one, at the active cell or unfrozen. */
   asc_freezePane(type?: number): void;
   asc_getSheetViewSettings(): { asc_getIsFreezePane(): boolean };
+  /** The settings for a chart of the selection; `true` without opening the chart editor's frame. */
+  asc_getChartSettings(noLock: true): EngineChartSettings | null;
+  /** cell/apiDefines.js c_oAscSelectionDialogType.Chart; common/commonDefines.js c_oAscError.ID. */
+  asc_checkDataRange(dialog: number, range: string, full: boolean, inRows: boolean, type: number): number;
+  asc_addChartDrawingObject(settings: EngineChartSettings): void;
+  /** The selected drawings: pictures, shapes, charts (asc_CImgProperty with get_ChartProperties). */
+  asc_getGraphicObjectProps(): Array<{
+    get_ObjectValue(): { get_ChartProperties?: () => EngineChartSettings | null } | null;
+  }> | null;
 }
 
 /** The spreadsheet editor's frame (engine/frame/editor/cell/main). */
@@ -627,6 +650,16 @@ export interface CellWindow extends EngineWindow {
     c_oAscChangeFilterOptions: { filter: number; style: number };
     c_oAscFrozenPaneAddType: { firstRow: number; firstCol: number };
     c_oAscAutoFilterTypes: { Filters: number };
+    c_oAscChartTypeSettings: {
+      barNormal: number;
+      hBarNormal: number;
+      lineNormal: number;
+      pie: number;
+      areaNormal: number;
+    };
+    c_oAscSelectionDialogType: { Chart: number };
+    c_oAscError: { ID: { No: number; MaxDataSeriesError: number } };
+    c_oAscSelectionType: { RangeChart: number; RangeChartText: number };
   };
 }
 

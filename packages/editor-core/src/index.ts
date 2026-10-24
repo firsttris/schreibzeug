@@ -1,4 +1,5 @@
 export { openSheetDocument, type SheetEditor } from "./cell";
+export { CHART_KINDS, type ChartCommands, type ChartFailure, type ChartKind } from "./cell-chart";
 export {
   type CellCommands,
   isValidSheetName,

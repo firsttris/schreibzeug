@@ -5,6 +5,7 @@ import {
   AlignRight,
   ArrowDownAZ,
   Bold,
+  ChartColumn,
   Columns3,
   Funnel,
   Italic,
@@ -20,7 +21,7 @@ import {
   WrapText,
 } from "lucide-react";
 import { Button } from "../ui/button";
-import { MenuButton } from "../ui/menu";
+import { MenuButton, type MenuItem } from "../ui/menu";
 import { Choice } from "./choice";
 import { ColorPicker } from "./color-picker";
 
@@ -54,10 +55,12 @@ export type SheetToolbarProps = {
   state: SheetState;
   commands: CellCommands | null;
   data: DataCommands | null;
+  /** A chart of the selection, or the selected chart's kind (sheet-menus.ts chartItems). */
+  chartItems: MenuItem[];
 };
 
 /** The formatting row above the grid: every control reads SheetState and calls a cell command. */
-export const SheetToolbar = ({ state, commands, data }: SheetToolbarProps) => {
+export const SheetToolbar = ({ state, commands, data, chartItems }: SheetToolbarProps) => {
   const disabled = !commands || state.status !== "ready";
   const { cell, document, fonts } = state;
   const fontSize = cell.fontSize ?? 11;
@@ -190,6 +193,9 @@ export const SheetToolbar = ({ state, commands, data }: SheetToolbarProps) => {
         ]}
       >
         <ArrowDownAZ size={16} />
+      </MenuButton>
+      <MenuButton label="Diagramm" variant="ghost" disabled={disabled} groups={[chartItems]}>
+        <ChartColumn size={16} />
       </MenuButton>
       <ToggleButton
         label="Filter"

@@ -1,3 +1,4 @@
+import { type ChartCommands, createChartCommands } from "./cell-chart";
 import {
   type CellCommands,
   createCellCommands,
@@ -41,6 +42,7 @@ export type SheetEditor = OpenedDocument<SheetState> & {
   sheets: SheetCommands;
   /** Sorting, filters and frozen panes. */
   data: DataCommands;
+  charts: ChartCommands;
   view: ViewCommands;
   search: SearchCommands;
   onContextMenu: (listener: ContextMenuListener) => () => void;
@@ -109,7 +111,7 @@ const cellBinding: EditorBinding<
   SheetEvent,
   Pick<
     SheetEditor,
-    "commands" | "comments" | "sheets" | "data" | "view" | "search" | "onContextMenu" | "onFilter"
+    "commands" | "comments" | "sheets" | "data" | "charts" | "view" | "search" | "onContextMenu" | "onFilter"
   >
 > = {
   format: "xlsx",
@@ -149,9 +151,10 @@ const cellBinding: EditorBinding<
       showReference(reference);
       dispatch({ type: "reference", value: reference });
     });
-    const refreshData = () => dispatch({ type: "data", value: readSheetData(api, api.asc_getCellInfo()) });
+    const refreshData = () =>
+      dispatch({ type: "data", value: readSheetData(api, api.asc_getCellInfo(), win.Asc) });
     api.asc_registerCallback("asc_onSelectionChanged", (info) =>
-      dispatch({ type: "data", value: readSheetData(api, info) }),
+      dispatch({ type: "data", value: readSheetData(api, info, win.Asc) }),
     );
     const refreshSheets = () => {
       dispatch(readSheets(api));
@@ -184,6 +187,7 @@ const cellBinding: EditorBinding<
       ),
       onContextMenu: contextMenu.add,
       onFilter: filter.add,
+      charts: createChartCommands(api, win.Asc),
       data: createDataCommands(api, win.Asc, () => {
         for (const delay of DATA_REFRESH_DELAYS) win.setTimeout(refreshData, delay);
       }),

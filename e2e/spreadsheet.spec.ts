@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { strFromU8, unzipSync } from "fflate";
 import {
   collectErrors,
   createFile,
@@ -234,6 +235,29 @@ test.describe("menus of the spreadsheet", () => {
     expect(xml).toMatch(/<autoFilter ref="A1:D5"/);
     expect(xml).toMatch(/<row r="2"[^>]*hidden="1"/);
     expect(xml).toMatch(/<filterColumn colId="0"/);
+  });
+
+  test("makes a chart of the selection, changes its kind and keeps it in the .xlsx", async ({
+    page,
+  }, testInfo) => {
+    const fileId = await openPreise(page, testInfo);
+    await goTo(page, "A1:B4");
+    await pick(page, "Einfügen", "Diagramm: Säulen");
+    // The new chart is selected: the menu now shows its kind and changes it.
+    await page.getByRole("menubar").getByRole("button", { name: "Einfügen" }).click();
+    await expect(page.getByRole("menuitemcheckbox", { name: "Diagramm: Säulen" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await page.getByRole("menuitemcheckbox", { name: "Diagramm: Linien" }).click();
+    await save(page);
+
+    const files = unzipSync(await storedDocx(page, fileId));
+    const chart = Object.keys(files).find((path) => /^xl\/charts\/chart\d+\.xml$/.test(path));
+    expect(chart).toBeDefined();
+    const xml = strFromU8(files[chart ?? ""] ?? new Uint8Array());
+    expect(xml).toContain("<c:lineChart>");
+    expect(xml).toContain("Preise!$B$2:$B$4");
   });
 
   test("downloads the sheet as a PDF", async ({ page }, testInfo) => {

@@ -422,6 +422,22 @@ column filter (`spreadsheeteditor/mobile` `controller/FilterOptions.jsx`):
   canvas, inside `#ws-canvas-outer`; we add that element's place in the frame and the frame's in the
   window. "OK" applies the marked values; at least one stays shown.
 
+### Charts
+
+`src/cell-chart.ts`, after web-apps' mobile spreadsheet editor (`controller/add/AddChart.jsx`
+`onInsertChart`, `controller/edit/EditChart.jsx` `onType`). "Einfügen" and the toolbar offer
+columns, bars, lines, a pie and areas (`c_oAscChartTypeSettings` `barNormal`, `hBarNormal`,
+`lineNormal`, `pie`, `areaNormal`):
+
+- **A new chart**: `asc_getChartSettings(true)` gives the settings for the selection (`true`
+  without opening the chart editor's frame), `putType(type)`, then `asc_checkDataRange(
+  c_oAscSelectionDialogType.Chart, getRange(), true, !getInColumns(), getType())`; with
+  `c_oAscError.ID.No` the chart goes in with `asc_addChartDrawingObject(settings)`, too many
+  series (`MaxDataSeriesError`) or no range are said in a message.
+- **The selected chart**: with `asc_getSelectionType()` `RangeChart` (or `RangeChartText`) the
+  chart is among `asc_getGraphicObjectProps()`, its settings `get_ObjectValue().get_ChartProperties()`;
+  `changeType(type)` changes it at once. The menu then checks the selected chart's kind.
+
 ## Presentations
 
 `src/slide.ts` binds the presentation engine (`slide/api.js`), set up as web-apps'

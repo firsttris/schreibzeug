@@ -13,6 +13,10 @@ const Asc = {
   c_oAscChangeFilterOptions: { filter: 1, style: 2 },
   c_oAscFrozenPaneAddType: { firstRow: 1, firstCol: 2 },
   c_oAscAutoFilterTypes: { Filters: 4 },
+  c_oAscChartTypeSettings: { barNormal: 0, hBarNormal: 16, lineNormal: 7, pie: 14, areaNormal: 22 },
+  c_oAscSelectionDialogType: { Chart: 2 },
+  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91 } },
+  c_oAscSelectionType: { RangeChart: 6, RangeChartText: 10 },
 };
 
 const info = (isAutoFilter: boolean | null, applied = false, table: string | null = null): EngineCellInfo =>
@@ -22,6 +26,7 @@ const info = (isAutoFilter: boolean | null, applied = false, table: string | nul
         ? null
         : { asc_getIsAutoFilter: () => isAutoFilter, asc_getIsApplyAutoFilter: () => applied },
     asc_getFormatTableInfo: () => (table ? { asc_getTableName: () => table } : null),
+    asc_getSelectionType: () => 1,
   }) as unknown as EngineCellInfo;
 
 /** The calls the commands make, with a cell info and frozen state to answer with. */
@@ -60,7 +65,7 @@ describe("the filter state", () => {
 
   it("reads the frozen panes with it", () => {
     const { api } = recorder(info(false), 1, true);
-    expect(readSheetData(api, info(false)).frozen).toBe(true);
+    expect(readSheetData(api, info(false), Asc)).toMatchObject({ frozen: true, chart: null });
   });
 });
 

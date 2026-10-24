@@ -62,3 +62,9 @@ const shutdown = async () => {
 };
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+// Started by the desktop app: its end closes our stdin, also when it crashed (local.rs).
+if (process.env.STAPEL_LOCAL_EXIT_WITH_STDIN === "1") {
+  process.stdin.on("end", () => void shutdown());
+  process.stdin.on("close", () => void shutdown());
+  process.stdin.resume();
+}

@@ -9,14 +9,24 @@
   <body>
     <main>
       <h1>Stapel</h1>
-      <p>Mit welchem Stapel-Server soll sich die App verbinden?</p>
-      <form id="connect">
-        <label for="server">Adresse des Servers</label>
-        <input id="server" name="server" placeholder="https://stapel.example.org" autocomplete="url" required />
-        <p id="error" role="alert" hidden></p>
-        <button type="submit">Verbinden</button>
-      </form>
-      <ul id="recent" aria-label="Zuletzt verbunden"></ul>
+      <p id="error" role="alert" hidden></p>
+      <section id="local" aria-labelledby="local-title" hidden>
+        <h2 id="local-title">Auf diesem Computer</h2>
+        <p>Die Dateien im Ordner <strong id="folder"></strong>, ohne Server.</p>
+        <div class="row">
+          <button id="open-local" type="button">Öffnen</button>
+          <button id="change-folder" type="button" class="secondary">Ordner ändern …</button>
+        </div>
+      </section>
+      <section aria-labelledby="server-title">
+        <h2 id="server-title">Mit einem Stapel-Server</h2>
+        <form id="connect">
+          <label for="server">Adresse des Servers</label>
+          <input id="server" name="server" placeholder="https://stapel.example.org" autocomplete="url" required />
+          <button type="submit">Verbinden</button>
+        </form>
+        <ul id="recent" aria-label="Zuletzt verbunden"></ul>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

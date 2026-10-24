@@ -38,12 +38,18 @@ const defaultRoot = (home: string) => {
   return existsSync(documents) ? documents : home;
 };
 
-const nameOfUser = () => {
+const accountName = (): string | undefined => {
   try {
     return userInfo().username;
   } catch {
-    return "Ich";
+    return undefined;
   }
+};
+
+/** The account's name as a person's name ("tristan" → "Tristan"), shown where an account's would be. */
+export const nameOfUser = (env: Record<string, string | undefined>, account = accountName()): string => {
+  const name = [env.USER, env.USERNAME, account].find((candidate) => candidate && candidate !== "unknown");
+  return name ? name.charAt(0).toUpperCase() + name.slice(1) : "Ich";
 };
 
 export const readConfig = (env: Record<string, string | undefined>, home = homedir()) => {
@@ -59,7 +65,7 @@ export const readConfig = (env: Record<string, string | undefined>, home = homed
     webDir: value.STAPEL_WEB_DIR,
     cacheDir: value.STAPEL_LOCAL_CACHE ?? join(tmpdir(), "stapel-local-media"),
     maxUploadBytes: value.STAPEL_MAX_UPLOAD_MB * MEGABYTE,
-    userName: nameOfUser(),
+    userName: nameOfUser(env),
   };
   return { ok: true as const, value: config };
 };

@@ -1,30 +1,47 @@
 # The desktop app
 
-`apps/desktop` is Stapel as a desktop app for Windows, macOS and Linux, built with Tauri 2. For now
-it is a window onto a Stapel server: it asks for the server's address once, remembers the last
-ones, and then shows the server's own web app. Everything the browser can do works the same, and an
-update of the server updates the app's pages too.
+`apps/desktop` is Stapel as a desktop app for Windows, macOS and Linux, built with Tauri 2. It works
+in one of two places, chosen on its start page and remembered for the next start:
+
+- **On this computer**: the files in the documents folder (or another folder), through a small
+  server the app starts beside its window ([below](#files-on-this-computer)). No account, no
+  network.
+- **On a Stapel server**: the app asks for the server's address once, remembers the last ones, and
+  then shows the server's own web app. Everything the browser can do works the same, and an update
+  of the server updates the app's pages too.
 
 ```
-Stapel window (Tauri) ── start page (apps/desktop/src) ──▶ https://your-server (apps/server + apps/web/dist)
+                      ┌─▶ http://127.0.0.1:<port> (apps/local + the web app inside the app) ─▶ ~/Documents
+Stapel window (Tauri) ┤
+  start page          └─▶ https://your-server (apps/server + apps/web/dist)
 ```
 
 ## How it fits together
 
-- **The start page** (`apps/desktop/index.html`, `src/main.ts`, `src/servers.ts`) is the app's own
-  page. It completes what is typed (`stapel.example.org` gets `https://`, `localhost:3000` or an
+- **The start page** (`apps/desktop/index.html`, `src/main.ts`, `src/servers.ts`, `src/start.ts`)
+  is the app's own page. "Öffnen" starts the local server and opens the folder; "Ordner ändern …"
+  picks another one. For a server it completes what is typed (`stapel.example.org` gets `https://`, `localhost:3000` or an
   address in the local network `http://`), checks that something answers at `/api/health`, keeps
-  the last five servers in its own storage and goes to the newest one on the next start.
+  the last five servers in its own storage. The next start goes back to where the app was last: the
+  folder or the newest server.
 - **The server serves the web app**: with `STAPEL_WEB_DIR` pointing at `apps/web/dist`, the API
   server answers every path that is not `/api` with the built app, and unknown paths with
   `index.html` (`apps/server/src/web.ts`). The window loads the server's address directly, so
   sessions, the collaboration socket and the engine work exactly as in a browser on that server; no
   cross-origin requests, no second copy of the interface in the app.
 - **The window** (`src-tauri/src/lib.rs`): downloads go to the download folder ("Downloads" at
-  home where Linux has none configured) without overwriting a file (`downloads.rs`); a link that
-  opens a new window (Strg+click on a link in a document) opens in the system's browser, for http,
-  https and mailto only. The menu "Stapel → Server wechseln …" goes back to the start page.
-- **No native calls from pages**: the start page needs none, and the server's pages get none
+  home where Linux has none configured) without overwriting a file (`downloads.rs`). A page of the
+  same server that opens a new window (a new or copied document) gets a window of the app, where
+  the session holds; any other link (Strg+click on a link in a document) opens in the system's
+  browser, for http, https and mailto only. The menu "Stapel" has "Auf diesem Computer", "Ordner
+  wählen …" and "Mit Server verbinden …" (back to the start page).
+- **The local server** (`local.rs`): started on first use with a random key, stopped with the app;
+  it also ends when its stdin closes, so a crashed app leaves nothing running. A new folder
+  restarts it and closes the windows that showed the old one. The folder is kept in `settings.json`
+  in the app's config folder (`settings.rs`); without one it is the system's documents folder
+  (Windows' known folder, `~/Documents` on macOS, XDG's on Linux), called "Dokumente" in the app.
+- **Native calls only from the start page**: its three commands (`open_local`, `local_folder`,
+  `choose_folder`) are the app's own; the pages of a server or of the local server get none
   (`capabilities/default.json` grants only the core defaults to the app's own window content).
 
 The browser engine is the system's: WebView2 (Chromium) on Windows, WebKit on macOS, WebKitGTK on
@@ -77,14 +94,22 @@ STAPEL_API_URL=http://localhost:3300 bun run --filter @stapel/web dev
 
 ## Building
 
+The app carries the built web app (`apps/web/dist`, the engine included) and the local server,
+compiled with `bun build --compile` into one executable per platform (`scripts/sidecar.ts`, run by
+Tauri before every build into `src-tauri/binaries/`). So build the web app first:
+
 ```sh
+bun run engine:prepare && bun run build          # apps/web/dist (Linux x86_64 for the engine's fonts)
 bun run --filter @stapel/desktop desktop:dev     # the app against the start page's dev server
 bun run --filter @stapel/desktop desktop:build   # installers for this machine
 ```
 
+The engine's fonts and the Bun runtime make the installers large (about 200 MB); slimming the
+fonts is for later.
+
 Linux needs WebKitGTK and its tooling (`libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
-librsvg2-dev`, Tauri's prerequisites). The workflow **Actions → Desktop app** builds all three
-platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
+librsvg2-dev`, Tauri's prerequisites). The workflow **Actions → Desktop app** builds the web app once on Linux and then all
+three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
 by hand it keeps them as artifacts; a tag `desktop-v<version>` also attaches them to a draft
 release. The version comes from `apps/desktop/package.json`.
 
@@ -94,6 +119,6 @@ Open. Linux packages need no signature.
 
 ## Next
 
-- Local files in the app: start `apps/local` beside the window, with a setting for the folder.
+- Local and server files side by side, several folders.
 - Stapel as the default app for .docx, .xlsx and .pptx.
 - Signing and updates through the Tauri updater.

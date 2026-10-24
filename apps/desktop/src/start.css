@@ -85,3 +85,31 @@ button {
   text-align: left;
   padding: 0 0.75rem;
 }
+h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+strong {
+  color: var(--foreground);
+  font-weight: 500;
+  word-break: break-all;
+}
+.row {
+  display: flex;
+  gap: 0.5rem;
+}
+.row > * {
+  flex: 1;
+}
+button.secondary {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--border);
+}

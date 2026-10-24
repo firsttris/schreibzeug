@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readConfig } from "../src/config";
+import { nameOfUser, readConfig } from "../src/config";
 import { isVisible } from "../src/folder";
 import { createIds, uuidV5 } from "../src/ids";
 import { createTrash, trashCommand } from "../src/trash";
@@ -80,5 +80,13 @@ describe("the configuration", () => {
   it("makes up a token when none is given", () => {
     const config = readConfig({ STAPEL_LOCAL_ROOT: "/tmp" });
     expect(config.ok && config.value.token.length).toBeGreaterThanOrEqual(32);
+  });
+});
+
+describe("the person's name", () => {
+  it("is the account's, as a name", () => {
+    expect(nameOfUser({ USER: "tristan" })).toBe("Tristan");
+    expect(nameOfUser({ USERNAME: "Anna" }, undefined)).toBe("Anna");
+    expect(nameOfUser({}, "unknown")).toBe("Ich");
   });
 });

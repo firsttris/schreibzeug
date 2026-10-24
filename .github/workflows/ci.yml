@@ -60,8 +60,11 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
-      # tauri-build checks that the start page was built (tauri.conf.json frontendDist).
-      - run: mkdir -p ../dist && touch ../dist/index.html
+      # tauri-build checks that what tauri.conf.json bundles exists: the start page (frontendDist),
+      # the local server (externalBin) and the web app (resources). Stand-ins do for these checks.
+      - run: |
+          mkdir -p ../dist binaries ../../web/dist
+          touch ../dist/index.html ../../web/dist/index.html binaries/stapel-local-x86_64-unknown-linux-gnu
       - run: cargo fmt --check
       - run: cargo clippy -- -D warnings
       - run: cargo test

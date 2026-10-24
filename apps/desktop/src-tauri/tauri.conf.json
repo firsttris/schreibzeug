@@ -4,9 +4,9 @@
   "version": "../package.json",
   "identifier": "io.github.firsttris.stapel",
   "build": {
-    "beforeDevCommand": "bun run start:dev",
+    "beforeDevCommand": "bun run sidecar && bun run start:dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run start:build",
+    "beforeBuildCommand": "bun run start:build && bun run sidecar",
     "frontendDist": "../dist"
   },
   "app": {
@@ -20,7 +20,7 @@
     "targets": "all",
     "category": "Productivity",
     "shortDescription": "Office files, edited together",
-    "longDescription": "Documents, spreadsheets and presentations on a Stapel server, edited together in real time.",
+    "longDescription": "Documents, spreadsheets and presentations: the files on this computer, or on a Stapel server, edited together in real time.",
     "copyright": "AGPL-3.0-only",
     "license": "AGPL-3.0-only",
     "icon": [
@@ -29,6 +29,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "externalBin": ["binaries/stapel-local"],
+    "resources": {
+      "../../web/dist/": "web/"
+    }
   }
 }

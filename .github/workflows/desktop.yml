@@ -1,6 +1,8 @@
 name: Desktop app
 
-# Builds the desktop app (apps/desktop, Tauri) for Windows, macOS and Linux.
+# Builds the desktop app (apps/desktop, Tauri) for Windows, macOS and Linux. The app carries the web
+# app (built once, on Linux, where the engine is prepared) and the local server (apps/local),
+# compiled with Bun for each platform by the app's beforeBuildCommand (scripts/sidecar.ts).
 # - Run by hand (Actions → Desktop app → Run workflow): the installers as workflow artifacts.
 # - A tag "desktop-v0.1.0": the same, attached to a draft release of that tag.
 # The builds are not signed yet: Windows SmartScreen and macOS Gatekeeper warn on the first start.
@@ -16,7 +18,33 @@ env:
   BUN_VERSION: 1.4.4
 
 jobs:
+  engine:
+    uses: ./.github/workflows/engine.yml
+
+  web:
+    needs: engine
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: engine/dist
+          key: ${{ needs.engine.outputs.key }}
+          fail-on-cache-miss: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+          retention-days: 1
+
   build:
+    needs: web
     strategy:
       fail-fast: false
       matrix:
@@ -50,9 +78,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAPEL_SIDECAR_TARGET: ${{ matrix.name == 'macos' && 'universal-apple-darwin' || '' }}
         with:
           projectPath: apps/desktop
           tauriScript: bunx tauri

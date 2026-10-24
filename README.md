@@ -17,6 +17,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > comments, a spreadsheet editor with formulas, formatting, number formats, sheets, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, text formatting, lists, images, menus and PDF. All three save on their own, every save a new version, and several people can edit the
 > same file at once. All without a document server. A desktop app for Windows, macOS and Linux
+> works on the files in the computer's documents folder (or another folder) without any server, or
 > opens a Stapel server in a window of its own (builds not signed yet).
 
 <picture>
@@ -71,7 +72,8 @@ Word and PowerPoint files. Stapel puts a new, clean interface on top of a proven
 ### 🖥️ Desktop app
 
 - **Default app** for Office files: opens them with a double click, in tabs.
-- **Local and server files** side by side; local files work offline.
+- **Local and server files**: the documents folder or a Stapel server, one at a time (done); side by
+  side later.
 
 ## 🔀 Stapel and the alternatives
 

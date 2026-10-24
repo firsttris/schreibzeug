@@ -4,7 +4,7 @@
     "outDir": "../../node_modules/.tsc/desktop",
     "tsBuildInfoFile": "../../node_modules/.tsc/desktop.tsbuildinfo",
     "lib": ["ES2023", "DOM"],
-    "types": ["vite/client"]
+    "types": ["vite/client", "bun"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "scripts", "vite.config.ts"]
 }

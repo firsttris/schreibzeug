@@ -420,6 +420,15 @@ describe("openWordDocument", () => {
     expect(requests).toEqual(["dialog", "https://stapel.dev"]);
   });
 
+  it("knows the highlight at the cursor and whether formatting is being copied", async () => {
+    const { engine, editor } = await openReady();
+    engine.api().emit("asc_onTextHighLight", {});
+    editor.marking.togglePaintFormat(true);
+    expect(editor.store.get().marks).toEqual({ highlight: "#ffff00", painting: true });
+    engine.api().emit("asc_onPaintFormatChanged", 0);
+    expect(editor.store.get().marks.painting).toBe(false);
+  });
+
   it("adds, answers, resolves and removes comments through the engine", async () => {
     const { engine, editor } = await openReady();
     const id = editor.comments.add("  Bitte prüfen ");

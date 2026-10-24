@@ -1,4 +1,4 @@
-import type { Align, EditorState, LayoutCommands, TextCommands } from "@stapel/editor-core";
+import type { Align, EditorState, LayoutCommands, MarkingCommands, TextCommands } from "@stapel/editor-core";
 import {
   AlignCenter,
   AlignJustify,
@@ -13,6 +13,7 @@ import {
   type LucideIcon,
   MessageSquarePlus,
   Minus,
+  Paintbrush,
   Plus,
   Redo2,
   Strikethrough,
@@ -48,6 +49,7 @@ export type ToolbarProps = {
   state: EditorState;
   commands: TextCommands | null;
   layout: LayoutCommands | null;
+  marking: MarkingCommands | null;
   /** Opens the comment field for the selection; comments live beside the document. */
   onAddComment: () => void;
   /** Opens the file dialog for an image; null where none can be put in. */
@@ -60,6 +62,7 @@ export const Toolbar = ({
   state,
   commands,
   layout,
+  marking,
   onAddComment,
   onInsertImage,
   onInsertLink,
@@ -125,7 +128,7 @@ export const Toolbar = ({
       <Separator />
       <Choice
         label="Absatzvorlage"
-        className="w-40"
+        className="w-36"
         value={paragraph.style}
         options={catalog.styles.map((name) => ({ value: name, label: styleLabel(name) }))}
         disabled={disabled}
@@ -133,7 +136,7 @@ export const Toolbar = ({
       />
       <Choice
         label="Schriftart"
-        className="ml-1 w-40"
+        className="ml-1 w-36"
         value={text.fontName}
         options={catalog.fonts.map((name) => ({ value: name, label: name }))}
         disabled={disabled}
@@ -165,6 +168,21 @@ export const Toolbar = ({
         <ToggleButton key={toggle.label} {...toggle} disabled={disabled} />
       ))}
       <ColorPicker color={text.color} disabled={disabled} onPick={(color) => commands?.setColor(color)} />
+      <ColorPicker
+        target="highlight"
+        color={state.marks.highlight}
+        disabled={disabled || !marking}
+        onPick={(color) => marking?.highlight(color)}
+      />
+      <Button
+        variant="toggle"
+        aria-label="Format übertragen"
+        aria-pressed={state.marks.painting}
+        disabled={disabled || !marking}
+        onClick={() => marking?.togglePaintFormat(!state.marks.painting)}
+      >
+        <Paintbrush size={16} />
+      </Button>
       <Separator />
       {lists.map((toggle) => (
         <ToggleButton key={toggle.label} {...toggle} disabled={disabled} />

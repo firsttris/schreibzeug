@@ -99,6 +99,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
             state={state}
             commands={editor?.commands ?? null}
             layout={editor?.layout ?? null}
+            marking={editor?.marking ?? null}
             onAddComment={() => setComments("composing")}
             onInsertImage={chrome.insertImage}
             onInsertLink={links.request}

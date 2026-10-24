@@ -1,6 +1,7 @@
 import type { HeaderFooterApi } from "./header-footer";
 import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
 import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
+import type { EngineHighlight, MarkingApi } from "./marking";
 /**
  * The part of the sdkjs API that Stapel uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
@@ -141,6 +142,10 @@ export type WordEventArgs = TextEventArgs & {
   asc_onDialogAddHyperlink: [];
   /** A link was followed with Strg+click (word/api.js sync_HyperlinkClickCallback). */
   asc_onHyperlinkClick: [url: string];
+  /** word/api.js sync_TextHighLight: the highlight at the cursor changed (read it from get_TextProps). */
+  asc_onTextHighLight: [color: unknown];
+  /** word/api.js sync_PaintFormatCallback: c_oAscFormatPainterState, 0 when it is off again. */
+  asc_onPaintFormatChanged: [state: number];
   /** word/Editor/Document.js UpdateInterface: the section at the cursor. */
   asc_onSectionProps: [props: SectionProps];
   /** word/api.js sync_ParaSpacingLine: the spacing of the paragraph at the cursor. */
@@ -240,7 +245,10 @@ export interface WordEngineApi
     SearchApi,
     LayoutApi,
     HeaderFooterApi,
-    LinkApi {
+    LinkApi,
+    MarkingApi {
+  /** word/api.js: the paragraph and character properties at the cursor. */
+  get_TextProps(): { get_TextPr(): { get_HighLight(): EngineHighlight } | null };
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   put_AddPageBreak(): void;

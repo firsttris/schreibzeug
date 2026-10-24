@@ -1,5 +1,5 @@
 import type { TextColor } from "@stapel/editor-core";
-import { Baseline, Check, PaintBucket } from "lucide-react";
+import { Baseline, Check, Highlighter, PaintBucket } from "lucide-react";
 import { Button } from "../ui/button";
 import { popoverPanel, usePopover } from "../ui/use-popover";
 
@@ -17,17 +17,45 @@ const COLORS: Array<{ value: string; name: string }> = [
   { value: "#7030a0", name: "Lila" },
 ];
 
+/** Word's highlight colours, the first of web-apps' palette (editor-core HIGHLIGHT_COLORS). */
+const HIGHLIGHTS: Array<{ value: string; name: string }> = [
+  { value: "#ffff00", name: "Gelb" },
+  { value: "#00ff00", name: "Hellgrün" },
+  { value: "#00ffff", name: "Türkis" },
+  { value: "#ff00ff", name: "Pink" },
+  { value: "#ff0000", name: "Rot" },
+];
+
 export type ColorPickerProps = {
   color: TextColor;
   disabled: boolean;
   onPick: (color: TextColor) => void;
-  /** What is coloured: the text (default) or a cell's fill. */
-  target?: "text" | "fill";
+  /** What is coloured: the text (default), a cell's fill, or the highlight behind text. */
+  target?: "text" | "fill" | "highlight";
 };
 
 const TARGETS = {
-  text: { label: "Schriftfarbe", palette: "Schriftfarben", none: "Automatisch", Icon: Baseline },
-  fill: { label: "Füllfarbe", palette: "Füllfarben", none: "Keine Füllung", Icon: PaintBucket },
+  text: {
+    label: "Schriftfarbe",
+    palette: "Schriftfarben",
+    none: "Automatisch",
+    Icon: Baseline,
+    colors: COLORS,
+  },
+  fill: {
+    label: "Füllfarbe",
+    palette: "Füllfarben",
+    none: "Keine Füllung",
+    Icon: PaintBucket,
+    colors: COLORS,
+  },
+  highlight: {
+    label: "Hervorheben",
+    palette: "Markierungsfarben",
+    none: "Keine Markierung",
+    Icon: Highlighter,
+    colors: HIGHLIGHTS,
+  },
 } as const;
 
 /**
@@ -35,7 +63,7 @@ const TARGETS = {
  * colour-less choice ("Automatisch" for text, "Keine Füllung" for a fill).
  */
 export const ColorPicker = ({ color, disabled, onPick, target = "text" }: ColorPickerProps) => {
-  const { label, palette, none, Icon } = TARGETS[target];
+  const { label, palette, none, Icon, colors } = TARGETS[target];
   const { open, toggle, close, ref } = usePopover();
   const pick = (value: TextColor) => {
     onPick(value);
@@ -75,7 +103,7 @@ export const ColorPicker = ({ color, disabled, onPick, target = "text" }: ColorP
             {color === null && <Check size={14} className="ml-auto" aria-hidden />}
           </button>
           <div className="grid grid-cols-10 gap-1">
-            {COLORS.map(({ value, name }) => (
+            {colors.map(({ value, name }) => (
               <button
                 key={value}
                 type="button"

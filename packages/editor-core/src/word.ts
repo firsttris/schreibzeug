@@ -8,6 +8,7 @@ import { createHeaderFooterCommands, type HeaderFooterCommands } from "./header-
 import { createLayoutCommands, type LayoutCommands, readLineSpacing, readSection } from "./layout";
 import { createLinkCommands, type HyperlinkProps, type LinkCommands, readLink } from "./links";
 import { readListKind } from "./lists";
+import { createMarkingCommands, type MarkingCommands, readHighlight } from "./marking";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
   type EditorEvent,
@@ -31,6 +32,7 @@ export type WordEditor = OpenedDocument<EditorState> & {
   layout: LayoutCommands;
   headerFooter: HeaderFooterCommands;
   links: LinkCommands;
+  marking: MarkingCommands;
   /** Strg+K in the document: the listener opens the link dialog. Returns the unsubscribe. */
   onLinkRequest: (listener: () => void) => () => void;
   /** Strg+click on a link: the listener opens the address. Returns the unsubscribe. */
@@ -54,6 +56,18 @@ const withListRefresh = (commands: TextCommands, refreshList: () => void): TextC
   toggleList: (kind) => commands.toggleList(kind).then(refreshList),
 });
 
+/**
+ * SetPaintFormat sets the painter without telling (word/api.js); the engine reports only that it
+ * is off again (sync_PaintFormatCallback). web-apps keeps the button state itself, and so does this.
+ */
+const withPainterState = (commands: MarkingCommands, report: (on: boolean) => void): MarkingCommands => ({
+  ...commands,
+  togglePaintFormat: (on) => {
+    commands.togglePaintFormat(on);
+    report(on);
+  },
+});
+
 /** The text editor (word/api.js) on top of the shared opening flow (document.ts). */
 const wordBinding: EditorBinding<
   WordWindow,
@@ -67,6 +81,7 @@ const wordBinding: EditorBinding<
     | "layout"
     | "headerFooter"
     | "links"
+    | "marking"
     | "onLinkRequest"
     | "onLinkOpen"
     | "comments"
@@ -107,6 +122,15 @@ const wordBinding: EditorBinding<
     api.asc_registerCallback("asc_onParaSpacingLine", (spacing) =>
       dispatch({ type: "lineSpacing", value: readLineSpacing(spacing, layoutConstants) }),
     );
+    api.asc_registerCallback("asc_onTextHighLight", () =>
+      dispatch({
+        type: "highlight",
+        value: readHighlight(api.get_TextProps().get_TextPr()?.get_HighLight()),
+      }),
+    );
+    api.asc_registerCallback("asc_onPaintFormatChanged", (state) =>
+      dispatch({ type: "painting", value: state !== 0 }),
+    );
     const linkRequests = createListeners<void>();
     const linkOpens = createListeners<string>();
     api.asc_registerCallback("asc_onDialogAddHyperlink", () => linkRequests.emit());
@@ -126,6 +150,9 @@ const wordBinding: EditorBinding<
         api,
         () => new win.Asc.CHyperlinkProperty(),
         win.Asc.c_oAscTypeSelectElement.Hyperlink,
+      ),
+      marking: withPainterState(createMarkingCommands(api), (on) =>
+        dispatch({ type: "painting", value: on }),
       ),
       onLinkRequest: linkRequests.add,
       onLinkOpen: linkOpens.add,

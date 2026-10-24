@@ -145,6 +145,43 @@ test.describe("menus of the text editor", () => {
     );
   });
 
+  test("highlights text and copies formatting with the format painter", async ({ page }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    const frame = page.getByTestId("engine-frame");
+    await frame.click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("Shift+End");
+    await page.getByRole("button", { name: "Hervorheben" }).click();
+    await page.getByRole("button", { name: "Gelb" }).click();
+    await expect(page.getByRole("button", { name: "Format übertragen" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    // From the italic second paragraph onto the first line, dragged with the mouse.
+    await frame.click({ position: { x: 300, y: 255 } });
+    await page.getByRole("button", { name: "Format übertragen" }).click();
+    await expect(page.getByRole("button", { name: "Format übertragen" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("The engine frame is not visible.");
+    await page.mouse.move(box.x + 186, box.y + 210);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 260, box.y + 210, { steps: 5 });
+    await page.mouse.up();
+    await expect(page.getByRole("button", { name: "Format übertragen" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await save(page);
+
+    const properties = runPropertiesOf(await storedXml(page, fileId), "Hallo").join("");
+    expect(properties).toContain("<w:i");
+    expect(properties).not.toContain("w:highlight");
+  });
+
   test("zooms from the view menu", async ({ page }, testInfo) => {
     await openHello(page, testInfo);
     await pick(page, "Ansicht", "150 %");

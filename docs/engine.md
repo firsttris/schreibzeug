@@ -201,6 +201,17 @@ shortcut table is empty until it is reset to the defaults (`asc_resetAllShortcut
 web-apps' `Shortcuts.js` does), which the text editor does once the document shows. Strg+click on
 a link sends `asc_onHyperlinkClick`; the app opens http, https and mailto addresses in a new tab.
 
+## Highlight and format painter
+
+"Hervorheben" highlights the selection in one of the first colours of web-apps' palette, or takes
+the highlight away: `SetMarkerFormat(true, isColor, r, g, b)` (`CDocument.SetParagraphHighlight`),
+then `SetMarkerFormat(false)`, so the mouse does not stay a highlighter as in web-apps, where it
+does until Escape. The colour at the cursor is read from `get_TextProps().get_TextPr().get_HighLight()`
+when `asc_onTextHighLight` comes, as web-apps' `onApiHighlightColor` does, since the event itself
+reports "none" (-1) as black. "Format übertragen" is `SetPaintFormat(1)`; the engine applies the
+copied formatting to the next selection made with the mouse and reports the painter off
+(`asc_onPaintFormatChanged`), but not on, so the button keeps that state itself (`src/marking.ts`).
+
 ## Find and replace
 
 `src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,

@@ -60,6 +60,7 @@ export {
   paperSizeOf,
 } from "./layout";
 export type { Link, LinkCommands, LinkDraft } from "./links";
+export { HIGHLIGHT_COLORS, type HighlightColor, type MarkingCommands } from "./marking";
 export type { ImageStore } from "./media";
 export { createSearchCommands, type SearchCommands, type SearchQuery } from "./search";
 export {

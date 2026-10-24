@@ -64,6 +64,8 @@ export type Comment = CommentEntry & {
 export type EditorState = CoreState & {
   text: TextState;
   paragraph: ParagraphState;
+  /** The highlight at the cursor ("#rrggbb"), and whether formatting is being copied. */
+  marks: { highlight: string | null; painting: boolean };
   /** The page of the section at the cursor; null until the engine reported it. */
   page: PageLayout | null;
   catalog: CatalogState;
@@ -96,6 +98,8 @@ export type WordEvent =
   | { type: "link"; value: Link | null }
   | { type: "lineSpacing"; value: number | null }
   | { type: "page"; value: PageLayout }
+  | { type: "highlight"; value: string | null }
+  | { type: "painting"; value: boolean }
   | { type: "styles"; value: string[] }
   | { type: "commentSet"; comment: Comment }
   | { type: "commentRemoved"; id: string }
@@ -151,6 +155,7 @@ export const initialEditorState: EditorState = {
     lineSpacing: null,
   },
   page: null,
+  marks: { highlight: null, painting: false },
   catalog: { fonts: [], styles: [] },
   comments: [],
   activeComments: [],
@@ -188,6 +193,10 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withParagraph(state, { inHeaderFooter: event.value });
     case "lineSpacing":
       return withParagraph(state, { lineSpacing: event.value });
+    case "highlight":
+      return { ...state, marks: { ...state.marks, highlight: event.value } };
+    case "painting":
+      return { ...state, marks: { ...state.marks, painting: event.value } };
     case "page":
       return { ...state, page: event.value };
     case "styles":

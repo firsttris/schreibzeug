@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import {
@@ -141,5 +142,25 @@ test.describe("find and replace", () => {
     await pick(page, "Bearbeiten", "Suchen");
     await expect(page.getByRole("search").getByLabel("Suchen", { exact: true })).toBeFocused();
     await expect(page.getByLabel("Ersetzen durch")).toHaveCount(0);
+  });
+});
+
+test.describe("PDF", () => {
+  test("downloads the document as a PDF with its fonts", async ({ page }, testInfo) => {
+    await openHello(page, testInfo);
+    const download = page.waitForEvent("download");
+    await pick(page, "Datei", "Als PDF herunterladen");
+    const file = await download;
+    expect(file.suggestedFilename()).toBe("hello.pdf");
+    const bytes = await readFile((await file.path()) as string);
+    expect(bytes.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+    expect(bytes.toString("latin1")).toMatch(/\/FontFile2?/);
+  });
+
+  test("prints through the browser's dialog with Strg+P", async ({ page }, testInfo) => {
+    await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+p");
+    await expect(page.locator('iframe[title="Drucken"]')).toHaveCount(1);
   });
 });

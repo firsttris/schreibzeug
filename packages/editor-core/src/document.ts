@@ -1,12 +1,13 @@
 import type { CollabChannel } from "./collab";
-import type { Convert, OfficeFormat } from "./converter";
+import type { Convert, OfficeFormat, RenderPdf } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
 import type { CommonEventArgs, EngineApiBase, EngineWindow } from "./engine-types";
 import { coreEvents, type Translators } from "./events";
 import { keepFocusOnClick } from "./frame";
 import { createFrameSocketIO } from "./frame-socket";
+import { fontsForPdf } from "./print";
 import { createStore, type Store } from "./store";
-import { createListeners, type FindShortcut, findShortcutOf } from "./view";
+import { type AppShortcut, createListeners, shortcutOf } from "./view";
 
 export type DocumentUser = { id: string; name: string };
 
@@ -17,6 +18,8 @@ export type OpenOptions = {
   user: DocumentUser;
   /** Turns the file into the engine's binary format and back (converter.ts). */
   convert: Convert;
+  /** Turns the engine's print commands into a PDF; without it the document has no PDF. */
+  renderPdf?: RenderPdf;
   lang?: string;
   /** "view" opens the document read-only: for someone it is shared with to look at. */
   mode?: "edit" | "view";
@@ -44,11 +47,13 @@ export type OpenedDocument<S extends CoreState> = {
   markSaved: (saved: SavedDocument) => void;
   resize: () => void;
   close: () => void;
+  /** The document as a PDF, as it would print; null where the editor cannot make one. */
+  exportPdf: (() => Promise<Uint8Array>) | null;
   /**
-   * Strg+F or Strg+H in the document. The engine leaves both to its UI (web-apps opens its search
-   * panel); here they go to the listener instead of the browser's own search.
+   * Strg+F, Strg+H or Strg+P in the document. The engine leaves them to its UI (web-apps opens its
+   * search panel or print preview); here they go to the listener instead of the browser.
    */
-  onFindShortcut: (listener: (shortcut: FindShortcut) => void) => () => void;
+  onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void;
 };
 
 /** What one editor's engine needs on top of the shared opening flow. */
@@ -76,6 +81,8 @@ export type EditorBinding<
   resize: (api: Api) => void;
   /** Marks the current state as saved in the engine, where the editor can. */
   markUnchanged: (api: Api) => void;
+  /** Every page as drawing commands for a PDF, where the editor can (print.ts). */
+  printCommands?: (api: Api) => Uint8Array;
 };
 
 export type KindContext<W, Api, S, E> = {
@@ -121,6 +128,26 @@ const createDocInfo = (win: EngineWindow, options: OpenOptions, format: OfficeFo
   // Fast co-editing, as web-apps chooses by default (documenteditor/mobile Main.jsx coEditMode).
   if (options.collaboration) info.put_CoEditingMode("fast");
   return info;
+};
+
+/**
+ * The document as a PDF: the editor's print commands with the fonts it drew with, turned into a
+ * PDF by x2t. The fonts come from the frame's own font folder, which the browser has cached.
+ */
+const pdfExport = <Api extends { asc_nativeGetFile(): string }>(
+  win: EngineWindow,
+  api: Api,
+  printCommands: ((api: Api) => Uint8Array) | undefined,
+  renderPdf: RenderPdf | undefined,
+): OpenedDocument<CoreState>["exportPdf"] => {
+  if (!printCommands || !renderPdf) return null;
+  return async () => {
+    const document = new TextEncoder().encode(api.asc_nativeGetFile());
+    const commands = printCommands(api);
+    const fetchFont = async (url: string) => (await win.fetch(url)).arrayBuffer();
+    const fonts = await fontsForPdf(win.AscCommon.g_font_loader, win.location.href, fetchFont);
+    return renderPdf(document, commands, fonts);
+  };
 };
 
 /** Feeds the relay's messages into the session progress (session-progress.ts). */
@@ -211,13 +238,13 @@ export const openDocument = <
       subscribe(base, coreEvents(win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
       subscribe(api, binding.events(win), dispatch);
       keepFocusOnClick(win, () => api.getFocusElement());
-      const findShortcut = createListeners<FindShortcut>();
+      const shortcuts = createListeners<AppShortcut>();
       const onKey = (event: KeyboardEvent) => {
-        const shortcut = findShortcutOf(event);
+        const shortcut = shortcutOf(event);
         if (!shortcut) return;
         event.preventDefault();
         event.stopPropagation();
-        findShortcut.emit(shortcut);
+        shortcuts.emit(shortcut);
       };
       win.addEventListener("keydown", onKey, true);
       // The event carries no value in word and slide; web-apps reads the flag on it.
@@ -239,7 +266,8 @@ export const openDocument = <
           options.collaboration?.channel.send(JSON.stringify({ type: "stapel:saved", index: seen }));
         },
         resize: () => binding.resize(api),
-        onFindShortcut: findShortcut.add,
+        onShortcut: shortcuts.add,
+        exportPdf: pdfExport(win, api, binding.printCommands, options.renderPdf),
         close: () => {
           win.removeEventListener("keydown", onKey, true);
           stopProgress();

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { initialCoreState, reduceCore } from "../src/core-state";
 import { stateEvents } from "../src/events";
 import { createSearchCommands } from "../src/search";
-import { findShortcutOf } from "../src/view";
+import { shortcutOf } from "../src/view";
 import { createFakeEngine } from "./fake-engine";
 
 const setup = () => {
@@ -76,7 +76,7 @@ describe("search state", () => {
   });
 });
 
-describe("findShortcutOf", () => {
+describe("shortcutOf", () => {
   const key = (
     k: string,
     extra: Partial<Record<"ctrlKey" | "metaKey" | "altKey" | "shiftKey", boolean>> = {},
@@ -90,9 +90,9 @@ describe("findShortcutOf", () => {
   });
 
   it("knows Strg+F and Strg+H, also with Cmd", () => {
-    expect(findShortcutOf(key("f", { ctrlKey: true }))).toBe("find");
-    expect(findShortcutOf(key("H", { metaKey: true }))).toBe("replace");
-    expect(findShortcutOf(key("f"))).toBeNull();
-    expect(findShortcutOf(key("f", { ctrlKey: true, shiftKey: true }))).toBeNull();
+    expect(shortcutOf(key("f", { ctrlKey: true }))).toBe("find");
+    expect(shortcutOf(key("H", { metaKey: true }))).toBe("replace");
+    expect(shortcutOf(key("f"))).toBeNull();
+    expect(shortcutOf(key("f", { ctrlKey: true, shiftKey: true }))).toBeNull();
   });
 });

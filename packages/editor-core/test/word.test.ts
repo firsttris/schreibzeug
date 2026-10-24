@@ -190,11 +190,40 @@ describe("openWordDocument", () => {
   it("opens our search on Strg+F instead of the browser's", async () => {
     const { engine, editor } = await openReady();
     const shortcuts: string[] = [];
-    editor.onFindShortcut((shortcut) => shortcuts.push(shortcut));
+    editor.onShortcut((shortcut) => shortcuts.push(shortcut));
     const event = new KeyboardEvent("keydown", { key: "h", ctrlKey: true, cancelable: true });
     engine.window.dispatchEvent(event);
     expect(shortcuts).toEqual(["replace"]);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("makes a PDF from the print commands and the fonts in use", async () => {
+    const engine = createFakeEngine();
+    Object.assign(engine.window, {
+      location: { href: "https://office.example.org/engine/frame/editor/word/main/index.html" },
+      fetch: async () => ({ arrayBuffer: async () => new Uint8Array(40).buffer }),
+    });
+    const rendered: Array<{ commands: number[]; fonts: string[] }> = [];
+    const opening = openWordDocument(
+      engine.window,
+      optionsWith(fakeConverter().convert, {
+        renderPdf: async (_document, commands, fonts) => {
+          rendered.push({ commands: [...commands], fonts: fonts.map((font) => font.name) });
+          return new Uint8Array([0x25, 0x50, 0x44, 0x46]);
+        },
+      }),
+    );
+    await flush();
+    engine.api().emit("asc_onDocumentContentReady");
+    const editor = await opening;
+    expect([...((await editor.exportPdf?.()) ?? [])]).toEqual([0x25, 0x50, 0x44, 0x46]);
+    expect(rendered).toEqual([{ commands: [1, 2, 3], fonts: ["000", "002"] }]);
+    expect(engine.api().calls).toContainEqual(["ToRendererPart", true, true]);
+  });
+
+  it("has no PDF without a converter for it", async () => {
+    const { editor } = await openReady();
+    expect(editor.exportPdf).toBeNull();
   });
 
   it("is ready once the content is shown", async () => {

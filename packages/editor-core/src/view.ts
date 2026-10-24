@@ -65,20 +65,24 @@ export const toContextMenuRequest = (
   };
 };
 
-/** Strg+F opens the search, Strg+H the search with replace (word/Editor/Shortcuts.js OpenFindDialog, OpenFindAndReplaceMenu). */
-export type FindShortcut = "find" | "replace";
+/**
+ * Keys the engine leaves to its UI (word/Editor/Shortcuts.js OpenFindDialog, OpenFindAndReplaceMenu,
+ * PrintPreviewAndPrint): Strg+F searches, Strg+H replaces, Strg+P prints.
+ */
+export type AppShortcut = "find" | "replace" | "print";
 
-/** The search shortcut a key press stands for, if any; Cmd on a Mac counts as Strg. */
-export const findShortcutOf = (event: {
+const SHORTCUT_KEYS: Record<string, AppShortcut> = { f: "find", h: "replace", p: "print" };
+
+/** The shortcut a key press stands for, if any; Cmd on a Mac counts as Strg. */
+export const shortcutOf = (event: {
   key: string;
   ctrlKey: boolean;
   metaKey: boolean;
   altKey: boolean;
   shiftKey: boolean;
-}): FindShortcut | null => {
+}): AppShortcut | null => {
   if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return null;
-  const key = event.key.toLowerCase();
-  return key === "f" ? "find" : key === "h" ? "replace" : null;
+  return SHORTCUT_KEYS[event.key.toLowerCase()] ?? null;
 };
 
 /** A small list of listeners, for engine events that are things to do rather than state. */

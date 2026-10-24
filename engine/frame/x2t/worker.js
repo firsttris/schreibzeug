@@ -5,11 +5,15 @@
  * can be released by terminating the worker.
  *
  * Message in:  { id, bytes: Uint8Array, from: "docx" | "bin", to: "bin" | "docx" }
+ *              or, for a PDF, { id, bytes, from: "bin", to: "pdf", commands: Uint8Array, fonts: [{ name, bytes }] }
  * Message out: { id, bytes: Uint8Array } or { id, error: string }
  */
 "use strict";
 
 let x2tReady = null;
+
+// What x2t writes to stderr during the current conversion, for the error message.
+let stderr = [];
 
 const x2tUrl = (file) => new URL(`../../x2t/${file}`, self.location.href).href;
 
@@ -38,7 +42,10 @@ const loadX2t = () => {
           onRuntimeInitialized: () => resolve(self.Module),
           onAbort: (reason) => reject(new Error(`x2t aborted: ${reason}`)),
           print: () => {},
-          printErr: (text) => console.warn("[x2t]", text),
+          printErr: (text) => {
+            stderr.push(text);
+            console.warn("[x2t]", text);
+          },
         };
         importScripts(x2tUrl("x2t.js"));
       }),
@@ -51,13 +58,16 @@ const loadX2t = () => {
 };
 
 // The task format x2t reads (core: TaskQueueDataConvert). No base64: the binary format is written
-// as bytes with its "DOCY;v10;<size>;" header.
-const taskXml = (from, to) =>
+// as bytes with its "DOCY;v10;<size>;" header. For a PDF, x2t reads the engine's drawing commands
+// from "pdf.bin" next to the document and embeds fonts from the font folder, as CryptPad converts
+// it (www/common/outer/x2t.js x2tConvertDataInternal).
+const taskXml = (from, to, fontDir) =>
   '<?xml version="1.0" encoding="utf-8"?>' +
   '<TaskQueueDataConvert xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' +
   `<m_sFileFrom>${from}</m_sFileFrom>` +
   `<m_sFileTo>${to}</m_sFileTo>` +
   "<m_bIsNoBase64>true</m_bIsNoBase64>" +
+  (fontDir ? `<m_sFontDir>${fontDir}/</m_sFontDir>` : "") +
   "</TaskQueueDataConvert>";
 
 const removeTree = (fs, path) => {
@@ -70,17 +80,27 @@ const removeTree = (fs, path) => {
   fs.rmdir(path);
 };
 
-const convert = (x2t, id, bytes, from, to) => {
+const convert = (x2t, id, bytes, from, to, commands, fonts) => {
   const dir = `/job-${id}`;
   const input = `${dir}/input.${from}`;
   const output = `${dir}/output.${to}`;
   const task = `${dir}/task.xml`;
+  const fontDir = fonts ? `${dir}/fonts` : null;
   x2t.FS.mkdir(dir);
   try {
+    if (fontDir) {
+      x2t.FS.mkdir(fontDir);
+      for (const font of fonts) x2t.FS.writeFile(`${fontDir}/${font.name}.ttf`, font.bytes);
+    }
+    if (commands) x2t.FS.writeFile(`${dir}/pdf.bin`, commands);
     x2t.FS.writeFile(input, bytes);
-    x2t.FS.writeFile(task, taskXml(input, output));
+    x2t.FS.writeFile(task, taskXml(input, output, fontDir));
+    stderr = [];
     const code = x2t.ccall("main1", "number", ["string"], [task]);
-    if (code !== 0) throw new Error(`x2t could not convert ${from} to ${to} (code ${code})`);
+    if (code !== 0) {
+      const details = stderr.length > 0 ? `: ${stderr.join(" ").slice(0, 500)}` : "";
+      throw new Error(`x2t could not convert ${from} to ${to} (code ${code})${details}`);
+    }
     return x2t.FS.readFile(output);
   } finally {
     removeTree(x2t.FS, dir);
@@ -88,10 +108,10 @@ const convert = (x2t, id, bytes, from, to) => {
 };
 
 self.onmessage = async (event) => {
-  const { id, bytes, from, to } = event.data;
+  const { id, bytes, from, to, commands, fonts } = event.data;
   try {
     const x2t = await loadX2t();
-    const result = convert(x2t, id, bytes, from, to);
+    const result = convert(x2t, id, bytes, from, to, commands, fonts);
     self.postMessage({ id, bytes: result }, [result.buffer]);
   } catch (error) {
     self.postMessage({ id, error: error instanceof Error ? error.message : String(error) });

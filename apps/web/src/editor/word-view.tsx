@@ -15,7 +15,9 @@ import type { EditorViewProps } from "./props";
 import { SearchBar } from "./search-bar";
 import { useDocumentSave } from "./use-document-save";
 import { useEngineEditor } from "./use-engine-editor";
+import { usePdf } from "./use-pdf";
 import { useSearchBar } from "./use-search-bar";
+import { useShortcuts } from "./use-shortcuts";
 import { clipboardHint, type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 
 /** Where the engine's frame sits in the window: context menu points come in frame coordinates. */
@@ -39,7 +41,13 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   const [tableDialog, setTableDialog] = useState(false);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [notice, notify] = useNotice();
-  const searchBar = useSearchBar(editor, !file.readOnly);
+  const searchBar = useSearchBar(!file.readOnly);
+  const pdf = usePdf(editor, name, notify);
+  useShortcuts(editor, {
+    find: () => searchBar.open("find"),
+    replace: () => searchBar.open("replace"),
+    ...(pdf ? { print: pdf.print } : {}),
+  });
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
 
   // The engine measures its frame only on resize; the panel takes width from it.
@@ -83,6 +91,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         file={fileActions}
         onRename={onRename}
         onDownload={download}
+        pdf={pdf}
         menus={file.readOnly ? [] : wordMenus(context)}
         shortcuts={WORD_SHORTCUTS}
         notice={notice}

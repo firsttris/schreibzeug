@@ -6,8 +6,22 @@ export type ConvertFormat = OfficeFormat | "bin";
 
 export type Convert = (bytes: Uint8Array, from: ConvertFormat, to: ConvertFormat) => Promise<Uint8Array>;
 
+/** A font file the PDF embeds: its name in the engine's font folder and its bytes, decoded. */
+export type FontFile = { name: string; bytes: Uint8Array };
+
+/**
+ * Turns a document into a PDF: its binary format, the engine's drawing commands for print, and the
+ * fonts they use.
+ */
+export type RenderPdf = (
+  document: Uint8Array,
+  commands: Uint8Array,
+  fonts: FontFile[],
+) => Promise<Uint8Array>;
+
 export type Converter = {
   convert: Convert;
+  renderPdf: RenderPdf;
   terminate: () => void;
 };
 
@@ -60,15 +74,18 @@ export const createConverter = (
     return created;
   };
 
+  const request = (bytes: Uint8Array, message: Record<string, unknown>, transfer: Transferable[] = []) =>
+    new Promise<Uint8Array>((resolve, reject) => {
+      const id = nextId++;
+      pending.set(id, { resolve, reject });
+      // A copy is sent, so the caller keeps its bytes (the open document stays usable).
+      const copy = bytes.slice();
+      ensureWorker().postMessage({ id, bytes: copy, ...message }, [copy.buffer, ...transfer]);
+    });
+
   return {
-    convert: (bytes, from, to) =>
-      new Promise<Uint8Array>((resolve, reject) => {
-        const id = nextId++;
-        pending.set(id, { resolve, reject });
-        // A copy is sent, so the caller keeps its bytes (the open document stays usable).
-        const copy = bytes.slice();
-        ensureWorker().postMessage({ id, bytes: copy, from, to }, [copy.buffer]);
-      }),
+    convert: (bytes, from, to) => request(bytes, { from, to }),
+    renderPdf: (document, commands, fonts) => request(document, { from: "bin", to: "pdf", commands, fonts }),
     terminate: () => {
       failAll(new Error("The converter was closed."));
       worker?.terminate();

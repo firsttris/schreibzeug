@@ -73,14 +73,14 @@ export {
 } from "./state";
 export { createStore, type Store } from "./store";
 export {
+  type AppShortcut,
   type ClipboardAction,
   type ContextMenuListener,
   type ContextMenuRequest,
   clampZoom,
-  type FindShortcut,
-  findShortcutOf,
   MAX_ZOOM,
   MIN_ZOOM,
+  shortcutOf,
   type ViewCommands,
 } from "./view";
 export { type OpenWordOptions, openWordDocument, type WordEditor } from "./word";

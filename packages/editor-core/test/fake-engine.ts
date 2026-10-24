@@ -218,6 +218,14 @@ export const createFakeEngine = (): FakeEngine => {
           return true;
         },
         asc_endFindText: record(calls, "asc_endFindText"),
+        WordControl: {
+          m_oDrawingDocument: {
+            ToRendererPart: (noBase64, isPrint) => {
+              calls.push(["ToRendererPart", noBase64, isPrint]);
+              return new Uint8Array([1, 2, 3]);
+            },
+          },
+        },
         put_TextPrBold: record(calls, "put_TextPrBold"),
         put_TextPrItalic: record(calls, "put_TextPrItalic"),
         put_TextPrUnderline: record(calls, "put_TextPrUnderline"),
@@ -339,6 +347,15 @@ export const createFakeEngine = (): FakeEngine => {
       vertalign_SubScript: 1,
       vertalign_SuperScript: 2,
       CSearchSettings: FakeSearchSettings,
+      // Two fonts the document drew with, one it did not.
+      g_font_loader: {
+        fontFilesPath: "../../../../fonts/",
+        fontFiles: [
+          { Id: "000", Status: 0 },
+          { Id: "001", Status: -1 },
+          { Id: "002", Status: 1 },
+        ],
+      },
     },
   } as unknown as WordWindow;
 

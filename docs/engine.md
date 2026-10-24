@@ -178,6 +178,27 @@ keydown listener in the frame (`document.ts`, `onFindShortcut`) and one in the a
 the search bar instead of the browser's search. Someone who may only look can search but not
 replace.
 
+## PDF and printing
+
+This x2t build does not turn a document into a PDF by itself; it writes a PDF from the engine's
+drawing commands, as the Document Server does for printing. `exportPdf` (`src/document.ts`) hands
+the converter three things, the way CryptPad does (`www/common/outer/x2t.js`
+`x2tConvertDataInternal`):
+
+- the document in the engine's binary format (`asc_nativeGetFile()`), as `input.bin`;
+- every page as drawing commands, as `pdf.bin` next to it: `WordControl.m_oDrawingDocument
+  .ToRendererPart(true, true)`, what `word/api.js` `_downloadAs` sends for a PDF to print; x2t reads
+  that file by this name (`X2tConverter/src/lib/pdf_image.h` `doct_bin2pdf`, CryptPad's patch);
+- the fonts the document was drawn with, in `m_sFontDir`: the font files the engine has loaded
+  (`AscCommon.g_font_loader`, status 0 or 1), fetched again from its font folder (the browser has
+  them cached) and with the obfuscation of their first 32 bytes undone, as the engine does when it
+  loads them (`common/Drawings/Externals.js`, `guidOdttf`); `src/print.ts`.
+
+"Drucken" prints that PDF through the browser's dialog from a hidden frame (`apps/web/src/editor/pdf.ts`).
+Strg+P is another key the engine leaves to its UI; it goes to the same place as Strg+F
+(`onShortcut`). Images in the document are not in the PDF yet: the converter does not get the
+document's media.
+
 ## Keyboard focus
 
 The engine takes keys through a hidden text area in its frame (`common/text_input2.js`, id

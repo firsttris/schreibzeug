@@ -1,15 +1,16 @@
-import type { FindShortcut, SearchCommands, SearchQuery, SearchState } from "@stapel/editor-core";
+import type { SearchCommands, SearchQuery, SearchState } from "@stapel/editor-core";
 import { CaseSensitive, ChevronDown, ChevronUp, WholeWord, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
+import type { SearchMode } from "./use-search-bar";
 
 export type SearchBarProps = {
   search: SearchCommands | null;
   state: SearchState;
   /** "replace" shows the second row; someone who may only look gets "find" only. */
-  mode: FindShortcut;
+  mode: SearchMode;
   canReplace: boolean;
-  onModeChange: (mode: FindShortcut) => void;
+  onModeChange: (mode: SearchMode) => void;
   onClose: () => void;
 };
 

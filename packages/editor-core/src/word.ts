@@ -116,6 +116,8 @@ const wordBinding: EditorBinding<
   resize: (api) => api.Resize(),
   // word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged.
   markUnchanged: (api) => api.SetUnchangedDocument(),
+  // As word/api.js `_downloadAs` for a PDF to print: all pages, printed look (no marks).
+  printCommands: (api) => api.WordControl.m_oDrawingDocument.ToRendererPart(true, true),
 };
 
 /** Opens a .docx in the text engine of a frame mounted with kind "word" (see document.ts). */

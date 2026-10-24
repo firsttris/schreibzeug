@@ -219,6 +219,11 @@ export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterAp
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   put_AddPageBreak(): void;
+  /**
+   * word/Drawing/DrawingDocument.js ToRendererPart: every page as the drawing commands x2t turns
+   * into a PDF; what word/api.js `_downloadAs` sends for a PDF or for printing.
+   */
+  WordControl: { m_oDrawingDocument: { ToRendererPart(noBase64: true, isPrint: boolean): Uint8Array } };
   /** Applies a paragraph style by its name. */
   put_Style(name: string): void;
   /**
@@ -253,6 +258,14 @@ export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterAp
   SetUnchangedDocument(): void;
 }
 
+/** common/GlobalLoaders.js `g_font_loader`: where the web fonts are and which are loaded. */
+export interface FontLoader {
+  /** Relative to the frame's page, ending in "/". */
+  fontFilesPath: string;
+  /** common/Drawings/Externals.js CFontFileLoader: Status 0 or 1 once loaded. */
+  fontFiles: Array<{ Id: string; Status: number }>;
+}
+
 /** The window of an engine frame after sdkjs has loaded (engine/frame/editor/<kind>/main). */
 export interface EngineWindow extends Window {
   /** The socket.io client sdkjs connects with, if set (common/editorscommon.js getSocketIO). */
@@ -279,6 +292,7 @@ export interface EngineWindow extends Window {
     vertalign_SuperScript: number;
     vertalign_SubScript: number;
     CSearchSettings: new () => SearchSettings;
+    g_font_loader: FontLoader;
   };
 }
 

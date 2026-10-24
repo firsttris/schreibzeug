@@ -5,7 +5,7 @@ import { FileBadge } from "../files/file-badge";
 import { Button } from "../ui/button";
 import { type Menu, MenuBar } from "../ui/menu-bar";
 import { useNotice } from "../ui/use-notice";
-import { type FileActions, fileMenu, helpMenu } from "./file-menu";
+import { type FileActions, fileMenu, helpMenu, type PdfActions } from "./file-menu";
 import { FileTitle } from "./file-title";
 import { AboutDialog, type Shortcut, ShortcutsDialog } from "./help-dialogs";
 import { SaveStatus } from "./save-status";
@@ -25,6 +25,8 @@ export type EditorHeaderProps = {
   file: FileActions;
   onRename?: ((name: string) => Promise<unknown>) | undefined;
   onDownload: () => void;
+  /** A PDF of the document to download or print, where the editor can make one. */
+  pdf?: PdfActions;
   /** The editor's own menus between "Datei" and "Hilfe": Bearbeiten, Ansicht, Einfügen, Format. */
   menus: Menu[];
   shortcuts: Shortcut[];
@@ -51,6 +53,7 @@ export const EditorHeader = ({
   file,
   onRename,
   onDownload,
+  pdf = null,
   menus,
   shortcuts,
   notice,
@@ -79,7 +82,10 @@ export const EditorHeader = ({
               readOnly={readOnly}
             />
           </div>
-          <MenuBar label="Menü" menus={[fileMenu(file, onDownload, ready), ...menus, helpMenu(setDialog)]} />
+          <MenuBar
+            label="Menü"
+            menus={[fileMenu(file, onDownload, pdf, ready), ...menus, helpMenu(setDialog)]}
+          />
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {actions}

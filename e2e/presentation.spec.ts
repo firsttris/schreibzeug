@@ -155,3 +155,39 @@ test("puts an image on the slide and keeps it in the .pptx", async ({ page }, te
   expect(await storedMedia(page, fileId)).toContainEqual(logo);
   expect(await slideXml(page, fileId, 1)).toContain("<p:pic>");
 });
+
+/** The slide the engine's show is on (slide/Drawing/Transitions.js CDemonstrationManager); tests only. */
+const shownSlide = async (page: Page): Promise<number | null> => {
+  const frame = await (await page.getByTestId("engine-frame").elementHandle())?.contentFrame();
+  if (!frame) throw new Error("No engine frame.");
+  return frame.evaluate(() => {
+    const engine = (
+      window as unknown as {
+        editor?: { WordControl: { DemonstrationManager: { Mode: boolean; SlideNum: number } } };
+      }
+    ).editor;
+    const show = engine?.WordControl.DemonstrationManager;
+    return show?.Mode ? show.SlideNum : null;
+  });
+};
+
+test("presents the slides full screen and steps through them with the keys", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, vortrag, "vortrag.pptx");
+  await openDocument(page, "vortrag.pptx", errors);
+
+  await page.getByRole("button", { name: "Präsentieren" }).click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement?.tagName ?? null)).toBe("IFRAME");
+  await expect.poll(() => shownSlide(page)).toBe(0);
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => shownSlide(page)).toBe(1);
+
+  // Leaving full screen ends the show.
+  await page.evaluate(() => document.exitFullscreen());
+  await expect.poll(() => shownSlide(page)).toBeNull();
+  await expect(
+    page.frameLocator('[data-testid="engine-frame"]').locator("#presentation-preview"),
+  ).toBeHidden();
+  expect(errors.filter((line) => line.includes("[engine]"))).toEqual([]);
+});

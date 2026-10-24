@@ -2,6 +2,7 @@ import type { HeaderFooterApi } from "./header-footer";
 import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
 import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
 import type { EngineHighlight, MarkingApi } from "./marking";
+import type { SlideShowApi } from "./slide-show";
 /**
  * The part of the sdkjs API that Stapel uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
@@ -500,10 +501,19 @@ export type SlideEventArgs = TextEventArgs & {
   asc_onUpdateLayout: [layouts: EngineLayout[]];
   /** The list at the cursor: type 0 bullets, 1 numbering, -1 none (slide/api.js sync_ListType). */
   asc_onListType: [list: { get_ListType(): number; get_ListSubType(): number }];
+  /** slide/api.js sync_startDemonstration, sync_endDemonstration, sync_DemonstrationSlideChanged */
+  asc_onStartDemonstration: [];
+  asc_onEndDemonstration: [];
+  asc_onDemonstrationSlideChanged: [index: number];
 };
 
 /** slide/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`). */
-export interface SlideEngineApi extends EngineApiBase<SlideEventArgs>, CharacterApi, ViewApi, SearchApi {
+export interface SlideEngineApi
+  extends EngineApiBase<SlideEventArgs>,
+    CharacterApi,
+    ViewApi,
+    SearchApi,
+    SlideShowApi {
   SetFontRenderingMode(mode: number): void;
   /** Holds back drawing while the document opens (web-apps presentationeditor/mobile Main.jsx). */
   SetDrawingFreeze(freeze: boolean): void;

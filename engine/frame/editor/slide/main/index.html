@@ -22,10 +22,22 @@
         position: absolute;
         inset: 0;
       }
+      /* The slide show (editor-core src/slide-show.ts): the engine draws into it, over the editor. */
+      #presentation-preview {
+        position: fixed;
+        inset: 0;
+        /* Above the engine's own scroll bars and panes. */
+        z-index: 1000;
+        background: #000;
+      }
+      #presentation-preview[hidden] {
+        display: none;
+      }
     </style>
   </head>
   <body>
     <div id="editor_sdk"></div>
+    <div id="presentation-preview" hidden></div>
     <script>
       // The flat look of the canvas controls (scroll bars, rulers); web-apps sets the same flag.
       window["flat_desine"] = true;

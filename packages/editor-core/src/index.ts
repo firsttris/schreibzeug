@@ -72,6 +72,7 @@ export {
   type SessionProgress,
 } from "./session-progress";
 export { openPresentation, type PresentationEditor, type SlideCommands } from "./slide";
+export type { SlideShow } from "./slide-show";
 export { initialSlideState, type LayoutInfo, type SlideEvent, type SlideState } from "./slide-state";
 export {
   type Align,

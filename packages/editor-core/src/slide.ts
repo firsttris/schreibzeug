@@ -5,6 +5,7 @@ import { SLIDE_TEXTS } from "./engine-texts";
 import type { EngineWindow, SlideEngineApi, SlideEventArgs, SlideWindow } from "./engine-types";
 import { textEvents } from "./events";
 import { createSearchCommands, type SearchCommands } from "./search";
+import { createSlideShow, hideShowElement, SLIDE_SHOW_ELEMENT, type SlideShow } from "./slide-show";
 import { initialSlideState, reduceSlideState, type SlideEvent, type SlideState } from "./slide-state";
 import type { ListKind } from "./state";
 import { type ContextMenuListener, contextMenuSource, createViewCommands, type ViewCommands } from "./view";
@@ -24,6 +25,8 @@ export type PresentationEditor = OpenedDocument<SlideState> & {
   commands: SlideCommands;
   view: ViewCommands;
   search: SearchCommands;
+  /** Full screen presentation; the app makes the frame full screen first. */
+  slideShow: SlideShow;
   /** A right click on the slide (area "body") or in the slide list ("thumbnails"). */
   onContextMenu: (listener: ContextMenuListener) => () => void;
 };
@@ -64,7 +67,7 @@ const slideBinding: EditorBinding<
   SlideEngineApi,
   SlideState,
   SlideEvent,
-  Pick<PresentationEditor, "commands" | "view" | "search" | "onContextMenu">
+  Pick<PresentationEditor, "commands" | "view" | "search" | "slideShow" | "onContextMenu">
 > = {
   format: "pptx",
   createApi: (win) => {
@@ -87,32 +90,46 @@ const slideBinding: EditorBinding<
         image: layout.get_Image(),
       })),
     }),
+    asc_onStartDemonstration: () => ({ type: "showRunning", value: true }),
+    asc_onDemonstrationSlideChanged: (index) => ({ type: "showSlide", value: index }),
     asc_onListType: (list) => ({
       type: "list",
       value: readListKind(list.get_ListType(), list.get_ListSubType()),
     }),
   }),
-  setup: ({ win, api, store, dispatch }) => ({
-    view: createViewCommands(api),
-    search: createSearchCommands(
-      api,
-      () => new win.AscCommon.CSearchSettings(),
-      () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
-    ),
-    onContextMenu: contextMenuSource(api, () => win.document.getElementById("editor_sdk"), {
-      thumbnails: win.Asc.c_oAscContextMenuTypes.Thumbnails,
-    }),
-    commands: createSlideCommands(
-      api,
-      store.get,
-      createCharacterCommands(
+  setup: ({ win, api, store, dispatch }) => {
+    const showPage = {
+      element: () => win.document.getElementById(SLIDE_SHOW_ELEMENT),
+      activeElement: () => win.document.activeElement,
+      focus: () => win.focus(),
+    };
+    api.asc_registerCallback("asc_onEndDemonstration", () => {
+      hideShowElement(showPage);
+      dispatch({ type: "showRunning", value: false });
+    });
+    return {
+      slideShow: createSlideShow(api, showPage),
+      view: createViewCommands(api),
+      search: createSearchCommands(
         api,
-        () => store.get().text,
-        win.AscCommon,
-        createEngineColor(win.Asc.asc_CColor),
+        () => new win.AscCommon.CSearchSettings(),
+        () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
       ),
-    ),
-  }),
+      onContextMenu: contextMenuSource(api, () => win.document.getElementById("editor_sdk"), {
+        thumbnails: win.Asc.c_oAscContextMenuTypes.Thumbnails,
+      }),
+      commands: createSlideCommands(
+        api,
+        store.get,
+        createCharacterCommands(
+          api,
+          () => store.get().text,
+          win.AscCommon,
+          createEngineColor(win.Asc.asc_CColor),
+        ),
+      ),
+    };
+  },
   // web-apps presentationeditor/mobile Main.jsx onDocumentContentReady; spell checking needs a
   // dictionary service Stapel does not run.
   contentReady: (api) => {

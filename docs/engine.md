@@ -354,3 +354,17 @@ New presentations come from `packages/ooxml` (`pptx.ts`): one master with the la
 "Titelfolie", "Titel und Inhalt", "Nur Titel" and "Leer", a theme with Office's default colours
 and Calibri, 16:9.
 
+
+### Slide show
+
+"Präsentieren" (and "Bildschirmpräsentation" in the menu, from the start or from the current
+slide) shows the slides full screen, as web-apps' preview does (`controller/Viewport.js`
+`onPreviewStart`, mobile `controller/Preview.jsx`). The engine draws the show into an element of
+its own page, `#presentation-preview` (`CDemonstrationManager.Start` in
+`slide/Drawing/Transitions.js`), and handles the arrow keys, space, clicks and Escape there itself,
+but only while nothing in its page holds the keys (`wrapKeyboard`), so `src/slide-show.ts` gives
+the frame's window the focus and blurs the engine's input first. The app makes the frame full
+screen and starts the show once it has the screen's size (`StartDemonstrationFromBeginning`,
+`StartDemonstrationFromCurrentSlide`). Leaving full screen ends the show (`EndDemonstration`), and
+the end of the show (`asc_onEndDemonstration`) leaves full screen. Someone who may only look can
+present too.

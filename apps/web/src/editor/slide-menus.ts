@@ -16,6 +16,8 @@ export type SlideMenuContext = {
   view: ViewCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
   onFind: (mode: "find" | "replace") => void;
+  /** Starts the slide show full screen; null while the presentation opens. */
+  onPresent: ((from: "current" | "beginning") => void) | null;
   /** Opens the file dialog for an image; null where none can be put in. */
   onInsertImage: (() => void) | null;
 };
@@ -37,7 +39,7 @@ const slideItems = (
 ];
 
 /**
- * Bearbeiten, Ansicht, Folie and Format of the presentation, after the desktop presentation editor
+ * Bearbeiten, Ansicht, Einfügen, Folie, Bildschirmpräsentation and Format of the presentation, after the desktop presentation editor
  * of web-apps (presentationeditor main Toolbar.js) as far as Stapel has the commands.
  */
 export const slideMenus = (context: SlideMenuContext): Menu[] => {
@@ -98,6 +100,23 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
           disabled: off,
           onSelect: run((c) => c.setLayout(layout.index)),
         })),
+      ],
+    },
+    {
+      label: "Bildschirmpräsentation",
+      groups: [
+        [
+          {
+            label: "Von Anfang an",
+            disabled: !context.onPresent,
+            onSelect: () => context.onPresent?.("beginning"),
+          },
+          {
+            label: "Ab aktueller Folie",
+            disabled: !context.onPresent,
+            onSelect: () => context.onPresent?.("current"),
+          },
+        ],
       ],
     },
     {

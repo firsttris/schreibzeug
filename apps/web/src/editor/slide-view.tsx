@@ -1,6 +1,8 @@
 import { initialSlideState, openPresentation } from "@stapel/editor-core";
+import { Presentation } from "lucide-react";
 import { useRef } from "react";
 import { SlideToolbar } from "../toolbar/slide-toolbar";
+import { Button } from "../ui/button";
 import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
@@ -12,6 +14,7 @@ import { type SlideMenuContext, slideContextMenu, slideMenus } from "./slide-men
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
+import { useSlideShow } from "./use-slide-show";
 
 /** A presentation: title and menus, the toolbar above, the engine's slide list and the slide below. */
 export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
@@ -25,6 +28,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
+  const present = useSlideShow(editor, container, state.show.running);
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "pptx"), MIME.pptx);
@@ -37,6 +41,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
+    onPresent: present,
   };
 
   return (
@@ -56,6 +61,12 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
         menus={file.readOnly ? [] : slideMenus(context)}
         shortcuts={SLIDE_SHORTCUTS}
         notice={chrome.notice}
+        actions={
+          <Button variant="outline" disabled={!present} onClick={() => void present?.("beginning")}>
+            <Presentation size={16} />
+            Präsentieren
+          </Button>
+        }
         toolbar={<SlideToolbar state={state} commands={editor?.commands ?? null} />}
       />
       <DocumentArea

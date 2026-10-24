@@ -19,13 +19,17 @@ export type SlideState = CoreState & {
   /** The slide shown, from 0. */
   currentSlide: number;
   layouts: LayoutInfo[];
+  /** The slide show: whether it runs, and the slide it shows, from 0. */
+  show: { running: boolean; slide: number };
 };
 
 export type SlideEvent =
   | TextEvent
   | { type: "list"; value: ListKind | null }
   | { type: "currentSlide"; value: number }
-  | { type: "layouts"; value: LayoutInfo[] };
+  | { type: "layouts"; value: LayoutInfo[] }
+  | { type: "showRunning"; value: boolean }
+  | { type: "showSlide"; value: number };
 
 export const initialSlideState: SlideState = {
   ...initialCoreState,
@@ -34,12 +38,17 @@ export const initialSlideState: SlideState = {
   list: null,
   currentSlide: 0,
   layouts: [],
+  show: { running: false, slide: 0 },
 };
 
 export const reduceSlideState = (state: SlideState, event: SlideEvent): SlideState => {
   switch (event.type) {
     case "list":
       return { ...state, list: event.value };
+    case "showRunning":
+      return { ...state, show: { ...state.show, running: event.value } };
+    case "showSlide":
+      return { ...state, show: { ...state.show, slide: event.value } };
     case "currentSlide":
       return { ...state, currentSlide: event.value };
     case "layouts":

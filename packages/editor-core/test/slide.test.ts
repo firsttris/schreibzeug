@@ -83,6 +83,23 @@ describe("reduceSlideState", () => {
   });
 });
 
+describe("the design in the state", () => {
+  it("keeps the designs, the slide's transition and the notes", () => {
+    const themes = [{ index: 0, name: "Blank" }];
+    const events: SlideEvent[] = [
+      { type: "themes", value: themes },
+      { type: "transition", value: "fade" },
+      { type: "notes", value: false },
+    ];
+    expect(events.reduce(reduceSlideState, initialSlideState)).toMatchObject({
+      themes,
+      transition: "fade",
+      notes: false,
+    });
+    expect(initialSlideState).toMatchObject({ transition: null, notes: true });
+  });
+});
+
 describe("slide comments in the state", () => {
   it("keeps the comments the engine reports and the one that is open", () => {
     const comment = {

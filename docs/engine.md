@@ -368,7 +368,9 @@ The engine takes keys through a hidden text area in its frame (`common/text_inpu
 focus out of the app: after a toolbar button had the focus, typing went nowhere. `editor-core`
 listens for `pointerdown` in the frame and, when nothing in the frame holds the keys, focuses the
 engine's input (`api.getFocusElement()`, `common/apiBase.js`); the engine's own `focus` handler
-then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`).
+then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`). It checks again when the
+main button is released: a click into the presentation's notes leaves the focus on the page's body
+afterwards. A right click is left alone there, since the app's context menu then has the focus.
 
 ## Spreadsheets
 
@@ -505,7 +507,10 @@ tie). The editor says once that only values are kept.
 `src/slide.ts` binds the presentation engine (`slide/api.js`), set up as web-apps'
 `presentationeditor/mobile` does: `SetDrawingFreeze(true)` and `SetThemesPath` before loading,
 `SetDrawingFreeze(false)`, `zoomFitToPage()` once the document is shown. The engine draws the slide
-list and the notes field inside its frame. Its own texts (empty placeholders, "click to add
+list and the notes field inside its frame; the notes show once the document is shown
+(`asc_ShowNotes(true)`, as web-apps' desktop editor does unless they were hidden), and "Ansicht →
+Notizen" hides and shows them. The engine does not report whether they show, so the command keeps
+that in the state. Its own texts (empty placeholders, "click to add
 notes") come from the `translate` map the API is created with; `src/engine-texts.ts` has them in
 German.
 
@@ -522,6 +527,30 @@ Character formatting is named and reported the same as in the text editor, so bo
 | clipboard, zoom, find and replace | as in the text editor (`Copy`, `zoom`, `asc_findText`, …) | as in the text editor |
 | PDF | `WordControl.m_oDrawingDocument.ToRendererPart(true, false)`: all slides, as `slide/api.js` `_downloadAs` | – |
 
+### Shapes, designs and transitions
+
+`src/slide-design.ts`, after web-apps (`presentationeditor/mobile` `controller/add/AddShape.jsx`,
+`controller/edit/EditSlide.jsx`, `lib/editor.jsx`; main `controller/Transitions.js`):
+
+- **Shapes** ("Einfügen"): `AddShapeOnCurrentPage(preset)` puts a shape in the middle of the slide,
+  selected: a text box (`textRect`, saved with `txBox="1"`), a rectangle (`rect`), a rounded one
+  (`roundRect`), an ellipse, an arrow (`rightArrow`) and a line. The keys go back to the engine
+  afterwards, so typing fills the text box.
+- **Designs** ("Design"): the engine loads the list of its designs from `themes.js` in the themes
+  path (`SetThemesPath`, `g_defaultThemes`) and sends it with `asc_onInitEditorStyles`
+  (`[editor's, document's]`, `CAscThemeInfo` with `get_Index`, `get_Name`); the menu names them in
+  German. `ChangeTheme(index)` loads `theme<index + 1>/theme.bin` and applies it to every slide.
+  The design in use is reported only by its master (`asc_onUpdateThemeIndex` with `-master - 1`),
+  so none is checked.
+- **Transitions** ("Übergänge"): `SetSlideProps(props)` with a `CAscSlideTransition` of
+  `c_oAscSlideTransitionTypes` and the first option of each, as web-apps' `fillEffectTypes` picks it
+  (`c_oAscSlideTransitionParams`), on the selected slides; `SlideTransitionApplyToAll()` gives the
+  current slide's to every slide. The selected slide's transition comes with `asc_onFocusObject`
+  (the object of type `Slide`, `get_transition().get_TransitionType()`) and is checked.
+
+The slide show is in "Ansicht" (from the start or from the current slide), beside the
+"Präsentieren" button.
+
 A right click sends `CContextMenuData` as in the text editor; its type tells the slide
 (`c_oAscContextMenuTypes.Main`) from the slide list (`Thumbnails`), and the context menu offers the
 slides first in the list (`apps/web/src/editor/slide-menus.ts`).
@@ -533,7 +562,7 @@ and Calibri, 16:9.
 
 ### Slide show
 
-"Präsentieren" (and "Bildschirmpräsentation" in the menu, from the start or from the current
+"Präsentieren" (and "Ansicht → Bildschirmpräsentation …", from the start or from the current
 slide) shows the slides full screen, as web-apps' preview does (`controller/Viewport.js`
 `onPreviewStart`, mobile `controller/Preview.jsx`). The engine draws the show into an element of
 its own page, `#presentation-preview` (`CDemonstrationManager.Start` in

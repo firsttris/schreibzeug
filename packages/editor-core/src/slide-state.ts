@@ -6,6 +6,7 @@ import {
   reduceComments,
 } from "./comment-state";
 import { type CoreState, initialCoreState } from "./core-state";
+import type { ThemeInfo, TransitionKind } from "./slide-design";
 import {
   type CatalogState,
   initialTextState,
@@ -29,6 +30,12 @@ export type SlideState = CoreState &
     layouts: LayoutInfo[];
     /** The slide show: whether it runs, and the slide it shows, from 0. */
     show: { running: boolean; slide: number };
+    /** The designs to choose from. */
+    themes: ThemeInfo[];
+    /** The transition into the current slide; null while no slide is selected. */
+    transition: TransitionKind | null;
+    /** Whether the speaker notes show under the slide; they do once the presentation opens. */
+    notes: boolean;
   };
 
 export type SlideEvent =
@@ -38,6 +45,9 @@ export type SlideEvent =
   | { type: "layouts"; value: LayoutInfo[] }
   | { type: "showRunning"; value: boolean }
   | { type: "showSlide"; value: number }
+  | { type: "themes"; value: ThemeInfo[] }
+  | { type: "transition"; value: TransitionKind | null }
+  | { type: "notes"; value: boolean }
   | CommentEvent;
 
 export const initialSlideState: SlideState = {
@@ -48,6 +58,9 @@ export const initialSlideState: SlideState = {
   currentSlide: 0,
   layouts: [],
   show: { running: false, slide: 0 },
+  themes: [],
+  transition: null,
+  notes: true,
   ...initialCommentsState,
 };
 
@@ -64,6 +77,12 @@ export const reduceSlideState = (state: SlideState, event: SlideEvent): SlideSta
       return { ...state, currentSlide: event.value };
     case "layouts":
       return { ...state, layouts: event.value };
+    case "themes":
+      return { ...state, themes: event.value };
+    case "transition":
+      return { ...state, transition: event.value };
+    case "notes":
+      return { ...state, notes: event.value };
     default:
       return reduceTextEvent(state, event);
   }

@@ -3,6 +3,13 @@ import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
 import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
 import type { EngineHighlight, MarkingApi } from "./marking";
 import type { DisplayModes, RevisionTypes } from "./review";
+import type {
+  DesignApi,
+  DesignConstants,
+  EngineSlideProps,
+  EngineSlideTransition,
+  EngineThemeInfo,
+} from "./slide-design";
 import type { SlideShowApi } from "./slide-show";
 import type { SpellLanguages } from "./spelling";
 import type { EngineTableOfContentsPr, InsertApi, InsertConstants } from "./word-insert";
@@ -723,6 +730,8 @@ export type SlideEventArgs = TextEventArgs & {
   asc_onStartDemonstration: [];
   asc_onEndDemonstration: [];
   asc_onDemonstrationSlideChanged: [index: number];
+  /** slide/api.js sync_InitEditorThemes: the designs the editor ships with, and the document's. */
+  asc_onInitEditorStyles: [styles: [EngineThemeInfo[]?, EngineThemeInfo[]?]];
 } & CommentEventArgs;
 
 /** slide/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`). */
@@ -733,6 +742,7 @@ export interface SlideEngineApi
     ViewApi,
     SearchApi,
     SlideShowApi,
+    DesignApi,
     CommentApi {
   SetFontRenderingMode(mode: number): void;
   /** Holds back drawing while the document opens (web-apps presentationeditor/mobile Main.jsx). */
@@ -771,6 +781,9 @@ export interface SlideWindow extends EngineWindow {
       data: null,
     ) => EngineCommentData;
     /** common/commonDefines.js: what a selected object is. */
-    c_oAscTypeSelectElement: { SpellCheck: number };
-  };
+    c_oAscTypeSelectElement: { SpellCheck: number; Slide: number };
+    /** slide/apiCommon.js */
+    CAscSlideProps: new () => EngineSlideProps;
+    CAscSlideTransition: new () => EngineSlideTransition;
+  } & DesignConstants;
 }

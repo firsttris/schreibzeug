@@ -91,6 +91,13 @@ export {
   type SessionProgress,
 } from "./session-progress";
 export { openPresentation, type PresentationEditor, type SlideCommands } from "./slide";
+export {
+  type DesignCommands,
+  type ShapeKind,
+  type ThemeInfo,
+  TRANSITION_KINDS,
+  type TransitionKind,
+} from "./slide-design";
 export type { SlideShow } from "./slide-show";
 export { initialSlideState, type LayoutInfo, type SlideEvent, type SlideState } from "./slide-state";
 export { type Misspelled, SPELL_LANGUAGES, type SpellingCommands, type SpellingState } from "./spelling";

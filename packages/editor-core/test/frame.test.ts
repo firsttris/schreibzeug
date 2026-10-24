@@ -46,7 +46,11 @@ describe("keepFocusOnClick", () => {
       document: { hasFocus: () => focused, body, activeElement: active === "body" ? body : input },
     };
     keepFocusOnClick(win as never, () => input as never);
-    return { press: () => target.dispatchEvent(new Event("pointerdown")), focusCalls: () => focusCalls };
+    return {
+      press: () => target.dispatchEvent(new Event("pointerdown")),
+      release: (button = 0) => target.dispatchEvent(Object.assign(new Event("pointerup"), { button })),
+      focusCalls: () => focusCalls,
+    };
   };
 
   it("focuses the engine's input when a press lands in the frame while focus is elsewhere", () => {
@@ -61,9 +65,18 @@ describe("keepFocusOnClick", () => {
     expect(frame.focusCalls()).toBe(1);
   });
 
+  it("checks again on release, where the engine left the keys with the page", () => {
+    const frame = fakeFrame(true, "body");
+    frame.release();
+    expect(frame.focusCalls()).toBe(1);
+    frame.release(2);
+    expect(frame.focusCalls()).toBe(1);
+  });
+
   it("leaves focus alone when the engine already has it", () => {
     const frame = fakeFrame(true, "input");
     frame.press();
+    frame.release();
     expect(frame.focusCalls()).toBe(0);
   });
 });

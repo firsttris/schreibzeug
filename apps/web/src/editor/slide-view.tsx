@@ -39,6 +39,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
   const context: SlideMenuContext = {
     state,
     commands: editor?.commands ?? null,
+    design: editor?.design ?? null,
     view: editor?.view ?? null,
     spelling: editor?.spelling ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),

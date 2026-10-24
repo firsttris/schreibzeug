@@ -1,6 +1,7 @@
 import type {
   ClipboardAction,
   ContextMenuArea,
+  DesignCommands,
   SlideCommands,
   SlideState,
   SpellingCommands,
@@ -9,12 +10,14 @@ import type {
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
+import { designMenus, notesItem, shapeItems } from "./slide-design-menus";
 import { spellCheckItem, suggestionGroups } from "./spelling-menus";
 
 /** What the menus of the presentation work with; null while the document opens. */
 export type SlideMenuContext = {
   state: SlideState;
   commands: SlideCommands | null;
+  design: DesignCommands | null;
   view: ViewCommands | null;
   spelling: SpellingCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
@@ -44,7 +47,7 @@ const slideItems = (
 ];
 
 /**
- * Bearbeiten, Ansicht, Einfügen, Folie, Bildschirmpräsentation and Format of the presentation, after the desktop presentation editor
+ * Bearbeiten, Ansicht, Einfügen, Folie, Design, Übergänge and Format of the presentation, after the desktop presentation editor
  * of web-apps (presentationeditor main Toolbar.js) as far as Schreibzeug has the commands.
  */
 export const slideMenus = (context: SlideMenuContext): Menu[] => {
@@ -83,7 +86,25 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
         searchItems(context.onFind, off),
       ],
     },
-    { label: "Ansicht", groups: zoomGroups(view, document.zoom) },
+    {
+      label: "Ansicht",
+      groups: [
+        [
+          {
+            label: "Bildschirmpräsentation von Anfang an",
+            disabled: !context.onPresent,
+            onSelect: () => context.onPresent?.("beginning"),
+          },
+          {
+            label: "Bildschirmpräsentation ab aktueller Folie",
+            disabled: !context.onPresent,
+            onSelect: () => context.onPresent?.("current"),
+          },
+        ],
+        ...zoomGroups(view, document.zoom),
+        [notesItem(state, context.design, off)],
+      ],
+    },
     {
       label: "Einfügen",
       groups: [
@@ -95,6 +116,7 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
           },
           { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
         ],
+        shapeItems(context.design, off),
       ],
     },
     {
@@ -108,23 +130,7 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
         })),
       ],
     },
-    {
-      label: "Bildschirmpräsentation",
-      groups: [
-        [
-          {
-            label: "Von Anfang an",
-            disabled: !context.onPresent,
-            onSelect: () => context.onPresent?.("beginning"),
-          },
-          {
-            label: "Ab aktueller Folie",
-            disabled: !context.onPresent,
-            onSelect: () => context.onPresent?.("current"),
-          },
-        ],
-      ],
-    },
+    ...designMenus(state, context.design, off),
     {
       label: "Format",
       groups: [

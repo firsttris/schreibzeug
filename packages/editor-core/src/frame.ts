@@ -49,17 +49,18 @@ type FocusableWindow = Pick<Window, "addEventListener"> & {
  * mousedown on its canvas, so the browser leaves focus where it was, e.g. on a toolbar button of the
  * app, and typed keys never reach the document. Focusing the engine's hidden input fires the
  * document "focus" event sdkjs listens for (common/text_input2.js), which turns key events back on.
+ * It is checked again when the main button is released: a click into the presentation's notes leaves the
+ * focus on the page's body (slide/Drawing/HtmlPage.js, the notes pane's own mouse handling).
  */
 export const keepFocusOnClick = (win: FocusableWindow, input: () => HTMLElement): void => {
-  win.addEventListener(
-    "pointerdown",
-    () => {
-      const { document } = win;
-      // Nothing in the frame holds the keys; an element of the engine that does keeps them.
-      if (!document.hasFocus() || document.activeElement === document.body) input().focus();
-    },
-    true,
-  );
+  const refocus = () => {
+    const { document } = win;
+    // Nothing in the frame holds the keys; an element of the engine that does keeps them.
+    if (!document.hasFocus() || document.activeElement === document.body) input().focus();
+  };
+  win.addEventListener("pointerdown", refocus, true);
+  // Only for the main button: a right click opens the app's context menu, which keeps the focus.
+  win.addEventListener("pointerup", (event: PointerEvent) => event.button === 0 && refocus(), true);
 };
 
 /**

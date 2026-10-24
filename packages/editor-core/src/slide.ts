@@ -7,6 +7,7 @@ import { SLIDE_TEXTS } from "./engine-texts";
 import type { EngineWindow, SlideEngineApi, SlideEventArgs, SlideWindow } from "./engine-types";
 import { textEvents } from "./events";
 import { createSearchCommands, type SearchCommands } from "./search";
+import { createDesignCommands, type DesignCommands, readThemes, readTransition } from "./slide-design";
 import { createSlideShow, hideShowElement, SLIDE_SHOW_ELEMENT, type SlideShow } from "./slide-show";
 import { initialSlideState, reduceSlideState, type SlideEvent, type SlideState } from "./slide-state";
 import { limitSpellLanguages, type SpellingCommands, useDedicatedSpellWorker } from "./spelling";
@@ -36,6 +37,8 @@ export type PresentationEditor = OpenedDocument<SlideState> & {
   spelling: SpellingCommands;
   /** A right click on the slide (area "body") or in the slide list ("thumbnails"). */
   onContextMenu: (listener: ContextMenuListener) => () => void;
+  /** Shapes, designs, transitions and the speaker notes. */
+  design: DesignCommands;
 };
 
 /** List types of slide/api.js put_ListType: bullets 0, numbering 1; subtype 1 is "•" and "1." */
@@ -63,6 +66,15 @@ export const createSlideCommands = (
   setLayout: (layoutIndex) => api.ChangeLayout(layoutIndex),
 });
 
+/** The engine does not report whether the notes show, so the command tells the state. */
+const withNotesState = (design: DesignCommands, onNotes: (shown: boolean) => void): DesignCommands => ({
+  ...design,
+  showNotes: (show) => {
+    design.showNotes(show);
+    onNotes(show);
+  },
+});
+
 /**
  * The presentation editor (slide/api.js) on top of the shared opening flow (document.ts), set up as
  * web-apps' presentationeditor/mobile does. The engine draws the slide list itself, left of the
@@ -76,7 +88,7 @@ const slideBinding: EditorBinding<
   SlideEvent,
   Pick<
     PresentationEditor,
-    "commands" | "view" | "search" | "slideShow" | "comments" | "spelling" | "onContextMenu"
+    "commands" | "view" | "search" | "slideShow" | "comments" | "spelling" | "onContextMenu" | "design"
   >
 > = {
   format: "pptx",
@@ -109,6 +121,15 @@ const slideBinding: EditorBinding<
       type: "list",
       value: readListKind(list.get_ListType(), list.get_ListSubType()),
     }),
+    asc_onInitEditorStyles: (styles) => ({ type: "themes", value: readThemes(styles) }),
+    asc_onFocusObject: (objects) => ({
+      type: "transition",
+      value: readTransition(
+        objects,
+        win.Asc.c_oAscTypeSelectElement.Slide,
+        win.Asc.c_oAscSlideTransitionTypes,
+      ),
+    }),
   }),
   setup: ({ win, api, store, dispatch, options }) => {
     const showPage = {
@@ -129,6 +150,18 @@ const slideBinding: EditorBinding<
         options,
       ),
       slideShow: createSlideShow(api, showPage),
+      design: withNotesState(
+        createDesignCommands(
+          api,
+          win.Asc,
+          { props: () => new win.Asc.CAscSlideProps(), transition: () => new win.Asc.CAscSlideTransition() },
+          () => {
+            win.focus();
+            api.getFocusElement().focus();
+          },
+        ),
+        (shown) => dispatch({ type: "notes", value: shown }),
+      ),
       comments: createCommentCommands(
         api,
         () => store.get().comments,
@@ -163,6 +196,8 @@ const slideBinding: EditorBinding<
     api.asc_setSpellCheck(spellCheck);
     // The comment marks on the slides, as web-apps shows them (presentationeditor main Main.js).
     api.asc_showComments();
+    // The notes under the slide, as web-apps' desktop editor shows them unless hidden (Main.js).
+    api.asc_ShowNotes(true);
     api.Resize();
     api.zoomFitToPage();
   },

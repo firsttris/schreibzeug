@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { strFromU8, unzipSync } from "fflate";
 import {
   collectErrors,
   createFile,
@@ -112,6 +113,10 @@ test.describe("menus of the presentation", () => {
 
   test("adds and duplicates slides from the slide menu", async ({ page }, testInfo) => {
     await openVortrag(page, testInfo);
+    // The menus end before the buttons on the right begin.
+    const menus = await page.getByRole("menubar").boundingBox();
+    const comments = await page.getByRole("button", { name: "Kommentare" }).boundingBox();
+    expect((menus?.x ?? 0) + (menus?.width ?? 0)).toBeLessThan(comments?.x ?? 0);
     await expect(page.getByTestId("slide-position")).toHaveText("Folie 1 von 3");
     await pick(page, "Folie", "Folie duplizieren");
     await expect(page.getByTestId("slide-position")).toHaveText(/von 4$/);
@@ -124,6 +129,57 @@ test.describe("menus of the presentation", () => {
     await expect(menu.getByRole("menuitem").first()).toHaveText("Neue Folie");
     await menu.getByRole("menuitem", { name: "Neue Folie" }).click();
     await expect(page.getByTestId("slide-position")).toHaveText(/von 4$/);
+  });
+
+  test("puts a text box and an arrow on the slide", async ({ page }, testInfo) => {
+    const fileId = await openVortrag(page, testInfo);
+    await pick(page, "Einfügen", "Textfeld");
+    await page.keyboard.type("Hinweis");
+    await pick(page, "Einfügen", "Pfeil");
+    await save(page);
+    const xml = await slideXml(page, fileId, 1);
+    expect(xml).toMatch(/<p:cNvSpPr txBox="1"[\s\S]*<a:t>Hinweis<\/a:t>/);
+    expect(xml).toContain('prst="rightArrow"');
+  });
+
+  test("changes the design and gives every slide a transition", async ({ page }, testInfo) => {
+    const fileId = await openVortrag(page, testInfo);
+    await pick(page, "Design", "Klassisch");
+    await pick(page, "Übergänge", "Verblassen");
+    await pick(page, "Übergänge", "Auf alle Folien anwenden");
+    await save(page);
+
+    const files = unzipSync(await storedDocx(page, fileId));
+    const themes = Object.entries(files)
+      .filter(([name]) => /^ppt\/theme\/theme\d+\.xml$/.test(name))
+      .map(([, bytes]) => strFromU8(bytes));
+    expect(themes.some((xml) => /<a:theme [^>]*name="Classic"/.test(xml))).toBe(true);
+    for (const slide of [1, 2, 3]) {
+      expect(strFromU8(files[`ppt/slides/slide${slide}.xml`] as Uint8Array)).toMatch(
+        /<p:transition[\s\S]*<p:fade/,
+      );
+    }
+  });
+
+  test("writes speaker notes under the slide and hides them", async ({ page }, testInfo) => {
+    const fileId = await openVortrag(page, testInfo);
+    const frame = page.getByTestId("engine-frame");
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("The engine frame is not visible.");
+    // The notes show under the slide, below its scroll bar.
+    await frame.click({ position: { x: 260 + (box.width - 260) / 2, y: box.height - 20 } });
+    await page.keyboard.type("Nicht vergessen");
+    await save(page);
+    await pick(page, "Ansicht", "Notizen");
+    await page.getByRole("menubar").getByRole("button", { name: "Ansicht", exact: true }).click();
+    await expect(page.getByRole("menuitemcheckbox", { name: "Notizen" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await page.keyboard.press("Escape");
+    expect(partXml(await storedDocx(page, fileId), "ppt/notesSlides/notesSlide1.xml")).toContain(
+      "Nicht vergessen",
+    );
   });
 
   test("finds text on the slides and downloads them as a PDF", async ({ page }, testInfo) => {

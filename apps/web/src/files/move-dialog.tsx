@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Folder } from "lucide-react";
 import { useState } from "react";
 import { messageOf } from "../api/client";
-import { useFiles } from "../api/context";
+import { rootLabel, useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
@@ -18,7 +18,7 @@ export const MoveDialog = ({ node, open, onClose }: MoveDialogProps) => (
 );
 
 const FolderPicker = ({ node, onClose }: { node: FileNode; onClose: () => void }) => {
-  const { queries, commands } = useFiles();
+  const { queries, commands, info } = useFiles();
   const [folderId, setFolderId] = useState<string | null>(node.parentId);
   const listing = useQuery(queries.folder(folderId));
   const move = useFileMutation((parentId: string | null) => commands.update(node.id, { parentId }));
@@ -28,7 +28,7 @@ const FolderPicker = ({ node, onClose }: { node: FileNode; onClose: () => void }
   const folders = (listing.data?.children ?? []).filter(
     (child) => child.kind === "folder" && child.id !== node.id,
   );
-  const here = listing.data?.folder?.name ?? "Meine Dateien";
+  const here = listing.data?.folder?.name ?? rootLabel(info);
 
   return (
     <div className="flex flex-col gap-3">

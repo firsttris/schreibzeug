@@ -1,3 +1,4 @@
+import type { ServerInfo } from "@stapel/files-api";
 import { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
 import type { Auth } from "./auth/auth";
@@ -24,6 +25,7 @@ export const createApp = ({ log = console.error, collab, auth, ...deps }: AppDep
   new Hono<AuthEnv>()
     .basePath("/api")
     .get("/health", (c) => c.json({ ok: true }))
+    .get("/info", (c) => c.json({ mode: "server" } satisfies ServerInfo))
     .on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw))
     .route("/", invitationRoutes(deps))
     .use(requireUser(auth))

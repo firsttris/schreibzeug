@@ -6,7 +6,16 @@
   "license": "AGPL-3.0-only",
   "description": "The Stapel server: the files API (folders, uploads, versions, trash) on Bun with Hono and SQLite.",
   "exports": {
-    ".": "./src/app.ts"
+    ".": "./src/app.ts",
+    "./blobs": "./src/blobs.ts",
+    "./result": "./src/result.ts",
+    "./collab/hub": "./src/collab/hub.ts",
+    "./collab/routes": "./src/collab/routes.ts",
+    "./web": "./src/web.ts",
+    "./files/media": "./src/files/media.ts",
+    "./files/mime": "./src/files/mime.ts",
+    "./files/serialize": "./src/files/serialize.ts",
+    "./auth/middleware": "./src/auth/middleware.ts"
   },
   "scripts": {
     "dev": "bun --watch src/main.ts",

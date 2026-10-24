@@ -1,3 +1,4 @@
+import { copyName } from "@stapel/files-api";
 import { and, asc, desc, eq, inArray, isNull, max, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
 import { type NodeRow, nameKey, nodes, type VersionRow, versions } from "../db/schema";
@@ -262,12 +263,6 @@ export const restoreVersion = (
 };
 
 /** "Angebot.docx" → "Angebot (Kopie).docx", then "Angebot (Kopie 2).docx" and so on. */
-export const copyName = (name: string, attempt: number): string => {
-  const dot = name.lastIndexOf(".");
-  const [base, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
-  return `${base} (Kopie${attempt > 1 ? ` ${attempt}` : ""})${extension}`;
-};
-
 const MAX_COPY_ATTEMPTS = 50;
 
 /**

@@ -30,6 +30,51 @@ Stapel window (Tauri) ── start page (apps/desktop/src) ──▶ https://you
 The browser engine is the system's: WebView2 (Chromium) on Windows, WebKit on macOS, WebKitGTK on
 Linux. The editors, the converter (WebAssembly) and saving were tried in WebKitGTK 2.52.
 
+## Files on this computer
+
+`apps/local` is a small server for working without a Stapel server: it speaks the same files API
+as `apps/server` (the same routes and shapes from `@stapel/files-api`) over a folder on the
+computer, the system's documents folder by default. The web app is the same; it asks `/api/info`
+which kind of server it talks to and, for `local`, names the root after the folder ("Dokumente")
+and leaves out what only makes sense with accounts.
+
+- **Files are the files**: a folder in the app is a folder on disk, a file is a file. New
+  documents, uploads, copies, renames and moves happen there; a save overwrites the file (written
+  to a temporary name beside it first, then renamed). Hidden files, Office's `~$` lock files and
+  `desktop.ini`/`Thumbs.db` are not listed.
+- **Ids**: the API names nodes by UUID; here a node's id is a UUID v5 of its path below the root,
+  so a link stays the same after a restart. A rename or move keeps the id for as long as the server
+  runs (`src/ids.ts`), so an open editor stays on its file.
+- **Deleting** moves into the system's trash (`gio trash` on Linux, the Finder on macOS, the
+  recycle bin on Windows; `src/trash.ts`) and only counts as done when the file is gone. There is no
+  trash page of its own, no sharing, no links and no versions to go back to; the version number
+  only counts the saves since the server started, which the editing session needs.
+- **Editing** uses the same relay as the server (`apps/server/src/collab`), so two windows on the
+  same file edit together. Images added while editing wait in a cache folder until the file is
+  saved with them inside.
+- **Only for this computer** (`src/gate.ts`): the server listens on 127.0.0.1 and wants the key the
+  app made at start. The app opens `/api/local/unlock?token=…`, which leaves an HttpOnly,
+  SameSite=Strict cookie; a request with a foreign host name (DNS rebinding) or a change sent from
+  another site's page is refused.
+
+| Variable | Meaning |
+|---|---|
+| `STAPEL_LOCAL_ROOT` | The folder shown; `~/Documents`, else the home folder, when absent |
+| `STAPEL_LOCAL_ROOT_NAME` | What the app calls it; the folder's own name when absent |
+| `STAPEL_LOCAL_TOKEN` | The key (at least 16 characters); a random one, printed with the unlock address, when absent |
+| `PORT` | 0 (default): any free port |
+| `STAPEL_WEB_DIR` | The built web app to serve beside the API |
+| `STAPEL_LOCAL_CACHE` | Where images wait until saved; a folder in the system's temp folder by default |
+
+Once it listens it prints `STAPEL_LOCAL_READY http://127.0.0.1:<port>`. By hand, with the web
+app's dev server in front of it:
+
+```sh
+STAPEL_LOCAL_ROOT=~/Dokumente PORT=3300 bun run --filter @stapel/local start
+STAPEL_API_URL=http://localhost:3300 bun run --filter @stapel/web dev
+# then open http://localhost:5173/api/local/unlock?token=<the printed token>
+```
+
 ## Building
 
 ```sh
@@ -49,7 +94,6 @@ Open. Linux packages need no signature.
 
 ## Next
 
-- Local files: the folder "Dokumente" as "Meine Dateien", new files there, without a server; a
-  small server inside the app speaking the same API over the file system.
+- Local files in the app: start `apps/local` beside the window, with a setting for the folder.
 - Stapel as the default app for .docx, .xlsx and .pptx.
 - Signing and updates through the Tauri updater.

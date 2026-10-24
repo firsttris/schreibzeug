@@ -1,0 +1,23 @@
+{
+  "name": "@stapel/local",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "The desktop app's local server: the files API over a folder on the computer, for one person, without accounts.",
+  "exports": {
+    ".": "./src/app.ts"
+  },
+  "scripts": {
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "0.9.1",
+    "@stapel/files-api": "workspace:*",
+    "@stapel/ooxml": "workspace:*",
+    "@stapel/server": "workspace:*",
+    "hono": "4.13.13",
+    "zod": "4.6.7"
+  }
+}

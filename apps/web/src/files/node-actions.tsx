@@ -17,17 +17,19 @@ type ActionDialog = "rename" | "move" | "versions" | "share";
  * who may look; restoring one needs "edit" (versions-dialog.tsx).
  */
 export const NodeActions = ({ node }: { node: FileNode }) => {
-  const { commands } = useFiles();
+  const { commands, info } = useFiles();
   const [dialog, setDialog] = useState<ActionDialog | null>(null);
   const close = () => setDialog(null);
   const rename = useFileMutation((name: string) => commands.update(node.id, { name }));
   const trash = useFileMutation(() => commands.trash(node.id));
   const owner = node.role === "owner";
   const editor = node.role !== "view";
+  // Files on this computer have no one to share with and no versions to go back to.
+  const server = info.mode === "server";
 
   return (
     <>
-      {owner && (
+      {owner && server && (
         <Button variant="ghost" aria-label={`${node.name} teilen`} onClick={() => setDialog("share")}>
           <Share2 size={15} />
         </Button>
@@ -42,7 +44,7 @@ export const NodeActions = ({ node }: { node: FileNode }) => {
           <FolderInput size={15} />
         </Button>
       )}
-      {node.kind === "file" && (
+      {node.kind === "file" && server && (
         <Button
           variant="ghost"
           aria-label={`Versionen von ${node.name}`}
@@ -71,8 +73,10 @@ export const NodeActions = ({ node }: { node: FileNode }) => {
         onClose={close}
       />
       {owner && <MoveDialog node={node} open={dialog === "move"} onClose={close} />}
-      {owner && <ShareDialog node={node} open={dialog === "share"} onClose={close} />}
-      {node.kind === "file" && <VersionsDialog file={node} open={dialog === "versions"} onClose={close} />}
+      {owner && server && <ShareDialog node={node} open={dialog === "share"} onClose={close} />}
+      {node.kind === "file" && server && (
+        <VersionsDialog file={node} open={dialog === "versions"} onClose={close} />
+      )}
     </>
   );
 };

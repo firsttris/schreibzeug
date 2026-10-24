@@ -42,6 +42,7 @@ describe("accounts", () => {
     expect(await reply.json()).toMatchObject({ error: { kind: "unauthorized" } });
     expect((await call("/api/health", null)).status).toBe(200);
     expect((await call("/api/auth/get-session", null)).status).toBe(200);
+    expect(await (await call("/api/info", null)).json()).toEqual({ mode: "server" });
   });
 
   it("keeps each person's files to themselves", async () => {

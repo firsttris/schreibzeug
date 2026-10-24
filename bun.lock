@@ -22,6 +22,18 @@
         "vite": "8.3.5",
       },
     },
+    "apps/local": {
+      "name": "@stapel/local",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hono/zod-validator": "0.9.1",
+        "@stapel/files-api": "workspace:*",
+        "@stapel/ooxml": "workspace:*",
+        "@stapel/server": "workspace:*",
+        "hono": "4.13.13",
+        "zod": "4.6.7",
+      },
+    },
     "apps/server": {
       "name": "@stapel/server",
       "version": "0.0.0",
@@ -250,6 +262,8 @@
     "@stapel/editor-core": ["@stapel/editor-core@workspace:packages/editor-core"],
 
     "@stapel/files-api": ["@stapel/files-api@workspace:packages/files-api"],
+
+    "@stapel/local": ["@stapel/local@workspace:apps/local"],
 
     "@stapel/ooxml": ["@stapel/ooxml@workspace:packages/ooxml"],
 

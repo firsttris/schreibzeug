@@ -80,6 +80,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |
+| `GET /info` | `{ "mode": "server" }`; the desktop app's local server answers `{ "mode": "local", "rootName" }` ([desktop app](desktop.md#files-on-this-computer)). **No session needed** |
 
 ## Running it
 

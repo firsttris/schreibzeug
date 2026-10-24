@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_LOCAL_PORT as localPort, E2E_LOCAL_WEB_PORT as localWebPort } from "./local";
 
 /** Ports of their own, so a development server that is already running does not get in the way. */
 const webPort = 5174;
@@ -64,6 +65,23 @@ export default defineConfig({
       cwd: "../apps/web",
       url: `http://localhost:${webPort}`,
       env: { STAPEL_API_URL: `http://localhost:${serverPort}` },
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      // A folder of its own on every run (local-server.ts).
+      command: "bun e2e/local-server.ts",
+      cwd: "..",
+      url: `http://localhost:${localPort}/api/health`,
+      env: { E2E_LOCAL_PORT: String(localPort) },
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      command: `bunx vite --port ${localWebPort} --strictPort`,
+      cwd: "../apps/web",
+      url: `http://localhost:${localWebPort}`,
+      env: { STAPEL_API_URL: `http://localhost:${localPort}` },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

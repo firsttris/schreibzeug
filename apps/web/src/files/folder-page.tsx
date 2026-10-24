@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, FilePlus2, FolderPlus, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { messageOf } from "../api/client";
-import { useFiles } from "../api/context";
+import { rootLabel, useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
 import { Button } from "../ui/button";
 import { MenuButton } from "../ui/menu";
@@ -36,13 +36,21 @@ const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; n
 type Creating = "folder" | NewFile | null;
 
 /** The path from the top: the user's own files, or what was shared with them. */
-const Breadcrumb = ({ path, shared }: { path: { id: string; name: string }[]; shared: boolean }) => (
+const Breadcrumb = ({
+  path,
+  shared,
+  root,
+}: {
+  path: { id: string; name: string }[];
+  shared: boolean;
+  root: string;
+}) => (
   <nav aria-label="Pfad" className="flex min-w-0 items-center gap-1 text-sm text-[var(--muted-foreground)]">
     <Link
       to={shared ? "/shared" : "/"}
       className="shrink-0 text-inherit no-underline hover:text-[var(--foreground)]"
     >
-      {shared ? "Für mich freigegeben" : "Meine Dateien"}
+      {shared ? "Für mich freigegeben" : root}
     </Link>
     {path.map((folder, index) => (
       <span key={folder.id} className="flex min-w-0 items-center gap-1">
@@ -67,7 +75,7 @@ const Breadcrumb = ({ path, shared }: { path: { id: string; name: string }[]; sh
 
 /** One folder: what is in it, and the ways to add to it (new folder, new document, upload, drop). */
 export const FolderPage = ({ folderId }: { folderId: string | null }) => {
-  const { queries, commands } = useFiles();
+  const { queries, commands, info } = useFiles();
   const navigate = useNavigate();
   const listing = useQuery(queries.folder(folderId));
   const [creating, setCreating] = useState<Creating>(null);
@@ -78,7 +86,7 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
     commands.createBlank(folderId, name, format),
   );
 
-  const title = listing.data?.folder?.name ?? "Meine Dateien";
+  const title = listing.data?.folder?.name ?? rootLabel(info);
   const role = listing.data?.folder?.role ?? "owner";
   // Someone who may only look adds nothing; the buttons wait for the listing to know.
   const canAdd = listing.data !== undefined && role !== "view";
@@ -132,7 +140,9 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
         )}
       </PageHeader>
 
-      {folderId && listing.data && <Breadcrumb path={listing.data.path} shared={role !== "owner"} />}
+      {folderId && listing.data && (
+        <Breadcrumb path={listing.data.path} shared={role !== "owner"} root={rootLabel(info)} />
+      )}
 
       {state.running > 0 && (
         <p role="status" className="m-0 text-sm text-[var(--muted-foreground)]">

@@ -42,7 +42,9 @@ export const useFileActions = ({
   onClose: () => void;
   onRestored: () => void;
 }): FileActionsHandle => {
-  const { commands } = useFiles();
+  const { commands, info } = useFiles();
+  // Files on this computer have no one to share with and no versions to go back to.
+  const server = info.mode === "server";
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = () => setDialog(null);
@@ -68,8 +70,8 @@ export const useFileActions = ({
         openInNewTab(copy.id);
       });
     },
-    onShare: node?.role === "owner" ? () => setDialog("share") : undefined,
-    onShowVersions: node ? () => setDialog("versions") : undefined,
+    onShare: server && node?.role === "owner" ? () => setDialog("share") : undefined,
+    onShowVersions: server && node ? () => setDialog("versions") : undefined,
     onClose,
   };
 
@@ -95,10 +97,12 @@ export const useFileActions = ({
           onClose={close}
         />
       ))}
-      {node && (
+      {server && node && (
         <VersionsDialog file={node} open={dialog === "versions"} onClose={close} onRestored={onRestored} />
       )}
-      {node?.role === "owner" && <ShareDialog node={node} open={dialog === "share"} onClose={close} />}
+      {server && node?.role === "owner" && (
+        <ShareDialog node={node} open={dialog === "share"} onClose={close} />
+      )}
     </>
   );
 

@@ -89,6 +89,23 @@ export const invitationSchema = z.object({
 export const mediaSchema = z.object({ name: z.string().regex(/^[0-9a-f]{64}\.[a-z]+$/) });
 export type Media = z.infer<typeof mediaSchema>;
 
+/**
+ * Which kind of server the app talks to: a Stapel server with accounts, or the desktop app's local
+ * one over a folder on the computer (apps/local), where sharing, versions and the trash are absent.
+ */
+export const serverInfoSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("server") }),
+  z.object({ mode: z.literal("local"), rootName: z.string() }),
+]);
+export type ServerInfo = z.infer<typeof serverInfoSchema>;
+
+/** The name of the n-th copy of a file next to the original: "Bericht (Kopie 2).docx". */
+export const copyName = (name: string, attempt: number): string => {
+  const dot = name.lastIndexOf(".");
+  const [base, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  return `${base} (Kopie${attempt > 1 ? ` ${attempt}` : ""})${extension}`;
+};
+
 export const folderListingSchema = z.object({
   folder: nodeSchema.nullable(),
   path: z.array(nodeSchema),

@@ -1,3 +1,4 @@
+import { type ServerInfo, serverInfoSchema } from "@stapel/files-api";
 import { createContext, type ReactNode, useContext } from "react";
 import type { ApiClient } from "./client";
 import { fileCommands, fileQueries } from "./files";
@@ -9,16 +10,33 @@ export type Files = {
   collabUrl: (fileId: string) => string;
   /** Where an image added to a file while editing is served (apps/server src/files/routes.ts). */
   mediaUrl: (fileId: string, name: string) => string;
+  /** A Stapel server, or the desktop app's files on this computer (apps/local). */
+  info: ServerInfo;
 };
 
 const FilesContext = createContext<Files | null>(null);
 
-export const createFiles = (api: ApiClient, baseUrl: string): Files => ({
+export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): Files => ({
   queries: fileQueries(api),
   commands: fileCommands(api),
   collabUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/collab/${fileId}`,
   mediaUrl: (fileId, name) => `${baseUrl}/api/files/${fileId}/media/${name}`,
+  info,
 });
+
+/**
+ * Which kind of server this is (`/api/info`). A server from before that route answers 404: that
+ * one is a Stapel server, as is anything that does not answer as expected.
+ */
+export const fetchServerInfo = async (baseUrl: string): Promise<ServerInfo> => {
+  const reply = await fetch(`${baseUrl}/api/info`).catch(() => null);
+  const parsed = serverInfoSchema.safeParse(reply?.ok ? await reply.json().catch(() => null) : null);
+  return parsed.success ? parsed.data : { mode: "server" };
+};
+
+/** What the user's own files are called: "Meine Dateien", or the folder's name on this computer. */
+export const rootLabel = (info: ServerInfo): string =>
+  info.mode === "local" ? info.rootName : "Meine Dateien";
 
 /** Hands the server connection down; the desktop app will pass a client for another server. */
 export const FilesProvider = ({ files, children }: { files: Files; children: ReactNode }) => (

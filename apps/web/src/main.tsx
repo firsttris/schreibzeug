@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { AccountProvider } from "./account/context";
 import { createAccount } from "./api/account";
 import { createApiClient, isApiFailure } from "./api/client";
-import { createFiles, FilesProvider } from "./api/context";
+import { createFiles, FilesProvider, fetchServerInfo } from "./api/context";
 import { createAppRouter } from "./router";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
@@ -17,7 +17,7 @@ if (!root) throw new Error("Missing #root element");
 // The web app talks to the server it was loaded from; the desktop app will pass a configured one.
 const origin = window.location.origin;
 const account = createAccount(origin);
-const files = createFiles(createApiClient(origin), origin);
+const files = createFiles(createApiClient(origin), origin, await fetchServerInfo(origin));
 
 /** A request the server refused for want of a session: the session ended, so sign in again. */
 const onRequestError = (error: unknown) => {

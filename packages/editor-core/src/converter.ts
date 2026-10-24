@@ -33,9 +33,20 @@ export type RenderPdf = (
   media?: MediaFiles,
 ) => Promise<Uint8Array>;
 
+/**
+ * Writes the PDF editor's changes into the PDF they were made on: the original file, the change file
+ * the editor's `Save()` returns (it starts with "%PDF"), and the images the changes refer to.
+ */
+export type ApplyPdfChanges = (
+  original: Uint8Array,
+  changes: Uint8Array,
+  media?: MediaFiles,
+) => Promise<Uint8Array>;
+
 export type Converter = {
   convert: Convert;
   renderPdf: RenderPdf;
+  applyPdfChanges: ApplyPdfChanges;
   terminate: () => void;
 };
 
@@ -105,6 +116,10 @@ export const createConverter = (
       request(bytes, { from, to, media, ...(csvDelimiter === undefined ? {} : { csvDelimiter }) }),
     renderPdf: async (document, commands, fonts, media = {}) =>
       (await request(document, { from: "bin", to: "pdf", commands, fonts, media })).bytes,
+    applyPdfChanges: async (original, changes, media = {}) => {
+      const copy = changes.slice();
+      return (await request(original, { from: "pdf", to: "pdf", changes: copy, media }, [copy.buffer])).bytes;
+    },
     terminate: () => {
       failAll(new Error("The converter was closed."));
       worker?.terminate();

@@ -5,6 +5,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { docx, paragraphXml, pptx, type Run, xlsx } from "@schreibzeug/ooxml";
+import { pdf } from "./pdf";
 
 /** Run properties (ECMA-376 Part 1, 17.3.2); sizes are in half-points. */
 const bold = "<w:b/>";
@@ -85,6 +86,17 @@ const files: Record<string, Uint8Array> = {
       bullets: ["Bestände in Echtzeit", "Barcode am Regal", "Anbindung an die Warenwirtschaft"],
     },
     { layout: "content", title: "Zeitplan", bullets: ["Woche 1–4: erste Version", "Woche 5–10: Ausbau"] },
+  ]),
+  // A two-page form with text fields: the PDF the PDF tests open, fill in and edit.
+  "formular.pdf": pdf([
+    {
+      lines: ["Auftragsformular", "Name:", "Ort:", "Bitte ausfüllen und unterschreiben."],
+      fields: [
+        { name: "name", x: 130, y: 707, width: 220, height: 18 },
+        { name: "ort", x: 130, y: 689, width: 220, height: 18 },
+      ],
+    },
+    { lines: ["Seite zwei", "Allgemeine Bedingungen"] },
   ]),
 };
 

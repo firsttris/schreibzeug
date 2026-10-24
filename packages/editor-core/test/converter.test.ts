@@ -71,6 +71,23 @@ describe("createConverter", () => {
     expect(fake.sent[1]).not.toHaveProperty("csvDelimiter");
   });
 
+  it("sends an edited PDF as the original with a copy of the editor's changes", async () => {
+    const fake = fakeWorker();
+    const converter = createConverter(() => fake.worker);
+    const original = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
+    const changes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 1, 2]);
+
+    const result = converter.applyPdfChanges(original, changes, { "image1.png": new Uint8Array([7]) });
+    const [message] = fake.sent as (Sent & { changes: Uint8Array; media: unknown })[];
+    expect(message).toMatchObject({ from: "pdf", to: "pdf", media: { "image1.png": new Uint8Array([7]) } });
+    expect(message?.bytes).toEqual(original);
+    expect(message?.changes).toEqual(changes);
+    expect(message?.changes).not.toBe(changes);
+
+    fake.reply({ id: message?.id ?? 0, bytes: new Uint8Array([9, 9]) });
+    await expect(result).resolves.toEqual(new Uint8Array([9, 9]));
+  });
+
   it("matches replies to their requests", async () => {
     const fake = fakeWorker();
     const converter = createConverter(() => fake.worker);

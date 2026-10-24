@@ -4,7 +4,7 @@
   "version": "v9.3.4-hotfix.1",
   "asset": "euro-office-documentserver_9.3.4-hotfix.1_amd64.deb",
   "sha256": "167ecf4b82bfb28a3c541f134d1508b4072b668cada0786611d90079459f975e",
-  "editors": ["word", "cell", "slide"],
+  "editors": ["word", "cell", "slide", "pdf"],
   "dictionaries": ["de_DE", "de_AT", "de_CH", "en_US", "en_GB"],
   "converter": {
     "$comment": "x2t (ONLYOFFICE core) compiled to WebAssembly by CryptPad; turns .docx/.xlsx/.pptx into the engine's binary format and back.",

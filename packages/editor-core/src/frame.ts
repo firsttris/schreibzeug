@@ -1,7 +1,7 @@
 import type { EngineWindow } from "./engine-types";
 
-/** The three editors of the engine: text documents, spreadsheets, presentations. */
-export type EditorKind = "word" | "cell" | "slide";
+/** The editors of the engine: text documents, spreadsheets, presentations and PDFs. */
+export type EditorKind = "word" | "cell" | "slide" | "pdf";
 
 export type FrameOptions = {
   kind: EditorKind;
@@ -24,11 +24,15 @@ export type EngineFrame = {
 export const framePath = (kind: EditorKind, enginePath = "/engine"): string =>
   `${enginePath.replace(/\/$/, "")}/frame/editor/${kind}/main/index.html`;
 
-/** The constructor each editor's sdk-all defines (word/api.js, cell/api.js, slide/api.js). */
+/**
+ * The constructor each editor's sdk-all defines (word/api.js, cell/api.js, slide/api.js). The PDF
+ * editor is part of the text-document bundle (pdf/api.js PDFEditorApi, built into word/sdk-all).
+ */
 const API_CONSTRUCTOR: Record<EditorKind, string> = {
   word: "asc_docs_api",
   cell: "spreadsheet_api",
   slide: "asc_docs_api",
+  pdf: "PDFEditorApi",
 };
 
 const isEngineLoaded = (win: Window | null, kind: EditorKind): win is EngineWindow => {

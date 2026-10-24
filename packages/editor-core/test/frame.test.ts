@@ -7,6 +7,10 @@ describe("framePath", () => {
     expect(framePath("word")).toBe("/engine/frame/editor/word/main/index.html");
   });
 
+  it("has a host page for the PDF editor beside the Office editors", () => {
+    expect(framePath("pdf")).toBe("/engine/frame/editor/pdf/main/index.html");
+  });
+
   it("accepts an engine path with or without a trailing slash", () => {
     expect(framePath("word", "/assets/engine/")).toBe("/assets/engine/frame/editor/word/main/index.html");
   });

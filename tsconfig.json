@@ -17,6 +17,9 @@
       "path": "apps/web"
     },
     {
+      "path": "apps/desktop"
+    },
+    {
       "path": "tsconfig.tools.json"
     }
   ]

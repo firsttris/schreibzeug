@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stapel</title>
+    <link rel="stylesheet" href="/src/start.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Stapel</h1>
+      <p>Mit welchem Stapel-Server soll sich die App verbinden?</p>
+      <form id="connect">
+        <label for="server">Adresse des Servers</label>
+        <input id="server" name="server" placeholder="https://stapel.example.org" autocomplete="url" required />
+        <p id="error" role="alert" hidden></p>
+        <button type="submit">Verbinden</button>
+      </form>
+      <ul id="recent" aria-label="Zuletzt verbunden"></ul>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -16,7 +16,8 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > upload, new document, spreadsheet or presentation, rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with a menu bar, context menu, find and replace, PDF export and printing, styles, fonts, colours, highlighting, format painter, lists, tables, images, links, headers and footers with page numbers, page layout, line spacing and
 > comments, a spreadsheet editor with formulas, formatting, number formats, sheets, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, text formatting, lists, images, menus and PDF. All three save on their own, every save a new version, and several people can edit the
-> same file at once. All without a document server.
+> same file at once. All without a document server. A desktop app for Windows, macOS and Linux
+> opens a Stapel server in a window of its own (builds not signed yet).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
@@ -97,6 +98,9 @@ bun run dev              # http://localhost:5173, with the files API on http://l
 `bun run dev` first prepares the engine (`bun run engine:prepare`: downloads the pinned Euro-Office
 release and generates its fonts, Linux x86_64; a no-op once it is up to date), then starts the
 server (data: `STAPEL_DATA_DIR`) and the app together. `bun run server` starts the server alone.
+
+The desktop app is in `apps/desktop` ([how it is built](https://firsttris.github.io/stapel/desktop/));
+**Actions → Desktop app** builds it for Windows, macOS and Linux, unsigned for now.
 
 Checks: `bun run lint`, `bun run typecheck`, `bun run test` (unit and integration, on Bun), `bun run test:e2e` (Playwright with the real engine).
 

@@ -42,6 +42,30 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run test
 
+  # The desktop app's Rust side (apps/desktop/src-tauri): format, lints, tests
+  desktop:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/desktop/src-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      # tauri-build checks that the start page was built (tauri.conf.json frontendDist).
+      - run: mkdir -p ../dist && touch ../dist/index.html
+      - run: cargo fmt --check
+      - run: cargo clippy -- -D warnings
+      - run: cargo test
+
   # The engine (sdkjs, fonts) from the pinned Euro-Office release, cached by its spec
   engine:
     uses: ./.github/workflows/engine.yml

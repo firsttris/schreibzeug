@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../node_modules/.tsc/desktop",
+    "tsBuildInfoFile": "../../node_modules/.tsc/desktop.tsbuildinfo",
+    "lib": ["ES2023", "DOM"],
+    "types": ["vite/client"]
+  },
+  "include": ["src", "vite.config.ts"]
+}

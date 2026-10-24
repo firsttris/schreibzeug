@@ -18,6 +18,7 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
 | `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests. |
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
+| `apps/desktop` | The desktop app (Tauri 2): a window onto a Stapel server, for Windows, macOS and Linux. See [the desktop app](desktop.md). |
 | `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`. |
 
 ## Why a SPA and a Hono API, not TanStack Start

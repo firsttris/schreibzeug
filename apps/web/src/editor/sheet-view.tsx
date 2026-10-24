@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { kindOf } from "../lib/format";
 import { ColumnFilter, useColumnFilter } from "../sheets/column-filter";
 import { DropdownDialog } from "../sheets/dropdown-dialog";
+import { PivotDialog } from "../sheets/pivot-dialog";
+import { PivotPanel } from "../sheets/pivot-panel";
 import { SheetTabs } from "../sheets/sheet-tabs";
 import { SheetToolbar } from "../toolbar/sheet-toolbar";
 import { ContextMenu } from "../ui/context-menu";
@@ -49,6 +51,14 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
   const filter = useColumnFilter(editor, container, file.readOnly);
   // The dropdown dialog with the selection's list when it opened; undefined while closed.
   const [dropdown, setDropdown] = useState<string[] | null | undefined>(undefined);
+  const [pivotDialog, setPivotDialog] = useState(false);
+  // The field list shows while the active cell is in a pivot table, unless closed there.
+  const { pivot } = state.data;
+  const [pivotPanelClosed, setPivotPanelClosed] = useState(false);
+  const inPivot = pivot !== null;
+  useEffect(() => {
+    if (!inPivot) setPivotPanelClosed(false);
+  }, [inPivot]);
 
   // A CSV stays one: it is saved and downloaded as the file it is (csv.ts).
   const format = kindOf({ kind: "file", name: file.name }) === "csv" ? "csv" : "xlsx";
@@ -71,6 +81,8 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     data: editor?.data ?? null,
     charts: editor?.charts ?? null,
     rules: editor?.rules ?? null,
+    pivots: editor?.pivots ?? null,
+    onInsertPivot: () => setPivotDialog(true),
     onDropdown: () => editor && setDropdown(editor.rules.dropdown()),
     onChartFailure: (failure) => chrome.notify(CHART_FAILURES[failure]),
     view: editor?.view ?? null,
@@ -118,6 +130,9 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
           searchBar={chrome.searchBar}
           readOnly={file.readOnly}
         />
+        {pivot && editor && !file.readOnly && !pivotPanelClosed && (
+          <PivotPanel pivot={pivot} pivots={editor.pivots} onClose={() => setPivotPanelClosed(true)} />
+        )}
         {comments.panel}
       </div>
       <SheetTabs
@@ -128,6 +143,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
       {dropdown !== undefined && editor && (
         <DropdownDialog values={dropdown} rules={editor.rules} onClose={() => setDropdown(undefined)} />
       )}
+      {pivotDialog && editor && <PivotDialog pivots={editor.pivots} onClose={() => setPivotDialog(false)} />}
       {filter.open && (
         <ColumnFilter
           request={filter.open.request}

@@ -489,6 +489,39 @@ conditional-format pickers):
   preset of web-apps' pickers: `asc_setCF([], [], [c_oAscCFRuleTypeSettings.dataBar | colorScale, 0])`.
   `asc_clearCF(c_oAscSelectionForCFType.selection)` takes them off the selected cells.
 
+### Pivot tables
+
+`src/cell-pivot.ts`, after web-apps' desktop spreadsheet editor (`controller/PivotTable.js`,
+`view/PivotSettings.js`, `view/ValueFieldSettingsDialog.js`); the engine keeps and computes the table
+(`cell/model/PivotTables.js` `CT_pivotTableDefinition`), and x2t writes it to the .xlsx with its
+cache (`xl/pivotTables/`, `xl/pivotCache/`).
+
+- **A new one** ("Einfügen → Pivot-Tabelle …"): the dialog starts with the table around the active
+  cell (`asc_getAddPivotTableOptions().asc_getRange()`), checked with `asc_checkDataRange(
+  c_oAscSelectionDialogType.PivotTableData, …)`; `asc_insertPivotNewWorksheet(source, "Pivot<n>")`
+  puts it on a new sheet with the first free name (`createSheetName`). It answers nothing where the
+  range has no headings; the dialog says so.
+- **The table at the active cell** comes with the selection: `asc_getCellInfo().asc_getPivotTableInfo()`.
+  Its fields are `asc_getPivotFields()` (or the source's `asc_getCacheFields()` names), and the four
+  areas `asc_getPageFields()`, `asc_getColumnFields()`, `asc_getRowFields()` (field indexes; `-2` is
+  the "Werte" entry once there are two values) and `asc_getDataFields()` (`CT_DataField` with the
+  source column, name and `c_oAscDataConsolidateFunction`). The field list beside the grid shows
+  them while the active cell is in a pivot table.
+- **Arranging**: a ticked field goes in with `asc_addField` (numbers to the values, others to the
+  rows, `CT_CacheField.isSumSubtotal`), an unticked one out with `asc_removeField`;
+  `asc_moveToRowField`, `asc_moveToColField`, `asc_moveToPageField`, `asc_moveToDataField` move one
+  (a value with its place among the values). Instead of dragging, each entry offers where it may go.
+- **How a value is summed up**: a `CT_DataField` with `asc_setSubtotal` and `asc_setName`, applied
+  with `value.asc_set(api, pivot, index, change)`. Values are named as German Excel names them
+  ("Summe von Betrag", "Anzahl von …"): the engine fills its name pattern (`%1 of %2`) with the
+  English function name, so the app renames each new value at once.
+- **Refreshing** after the source changed: `asc_refresh(api)` on the table, from "Daten", the context
+  menu or the field list.
+- **German captions**: "Gesamtergebnis", "Zeilenbeschriftungen", "Spaltenbeschriftungen", "Werte",
+  "(Alle)", "(Leer)" through the `translate` map the API is created with (`CELL_TEXTS` in
+  `src/engine-texts.ts`; the keys are `PivotTables.js`'s captions, as web-apps' `Main.js` passes them).
+- The engine changes the table without a selection change, so each command reads the state again.
+
 ### CSV files
 
 A .csv opens in the spreadsheet editor and is saved as a CSV again, with the delimiter it came

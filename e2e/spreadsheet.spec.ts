@@ -17,25 +17,13 @@ import {
 } from "./app";
 import { partXml } from "./docx";
 import { solidPng } from "./png";
+import { formulaBar, goTo } from "./sheet";
 
 const preise = join(import.meta.dirname, "../test-files/preise.xlsx");
 
 /** Where the filter button of A1 in preise.xlsx is, in the frame (widths set in test-files/make.ts). */
 const FILTER_BUTTON_X = 170;
 const FILTER_BUTTON_Y = 62;
-
-const frame = (page: Page) => page.frameLocator('[data-testid="engine-frame"]');
-
-/** Selects a cell through the name box, as a person types a reference there. */
-const goTo = async (page: Page, reference: string) => {
-  const box = frame(page).locator("#name-box");
-  await box.fill(reference);
-  await box.press("Enter");
-  await expect(box).toHaveValue(reference);
-};
-
-/** What the formula bar shows for the active cell: its formula or its value. */
-const formulaBar = (page: Page) => frame(page).locator("#ce-cell-content");
 
 const sheetXml = async (page: Page, fileId: string, sheet = 1) =>
   partXml(await storedDocx(page, fileId), `xl/worksheets/sheet${sheet}.xml`);

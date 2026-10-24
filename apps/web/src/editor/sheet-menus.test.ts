@@ -1,6 +1,6 @@
 import { type DataCommands, initialSheetState, type SheetState } from "@schreibzeug/editor-core";
 import { describe, expect, it } from "vitest";
-import { type SheetMenuContext, sheetMenus } from "./sheet-menus";
+import { type SheetMenuContext, sheetContextMenu, sheetMenus } from "./sheet-menus";
 
 const recording = () => {
   const calls: unknown[][] = [];
@@ -22,6 +22,8 @@ const contextWith = (data: DataCommands, state: Partial<SheetState>): SheetMenuC
   charts: null,
   onChartFailure: () => {},
   rules: null,
+  pivots: null,
+  onInsertPivot: () => {},
   onDropdown: () => {},
   view: null,
   onClipboardRefused: () => {},
@@ -39,7 +41,12 @@ describe("the spreadsheet's Daten menu", () => {
   it("sorts and switches the filter where the engine allows one", () => {
     const { calls, data } = recording();
     const context = contextWith(data, {
-      data: { filter: { available: true, on: true, applied: false }, frozen: false, chart: null },
+      data: {
+        filter: { available: true, on: true, applied: false },
+        frozen: false,
+        chart: null,
+        pivot: null,
+      },
     });
     const items = itemsOf(context, "Daten");
     for (const item of items) if (!item.disabled) item.onSelect();
@@ -57,7 +64,7 @@ describe("the spreadsheet's Daten menu", () => {
 describe("freezing in the Ansicht menu", () => {
   it("unfreezes what is frozen, with the words of Excel", () => {
     const { calls, data } = recording();
-    const frozen = { filter: initialSheetState.data.filter, frozen: true, chart: null };
+    const frozen = { filter: initialSheetState.data.filter, frozen: true, chart: null, pivot: null };
     const items = itemsOf(contextWith(data, { data: frozen }), "Ansicht");
     items.find((item) => item.label === "Fixierung aufheben")?.onSelect();
     items.find((item) => item.label === "Erste Spalte fixieren")?.onSelect();
@@ -103,5 +110,59 @@ describe("charts in the Einfügen menu", () => {
     expect(items.filter((item) => item.checked).map((item) => item.label)).toEqual(["Diagramm: Kreis"]);
     items.find((item) => item.label === "Diagramm: Säulen")?.onSelect();
     expect(calls).toEqual([["change", "column"]]);
+  });
+});
+
+describe("pivot tables in the menus", () => {
+  const pivots = () => {
+    const calls: string[] = [];
+    return {
+      calls,
+      commands: {
+        sourceRange: () => "",
+        insert: () => null,
+        toggleField: () => {},
+        move: () => {},
+        setSummary: () => {},
+        refresh: () => calls.push("refresh"),
+      },
+    };
+  };
+  const pivot = { fields: [], items: [] };
+
+  it("opens the dialog from Einfügen and refreshes the table at the active cell", () => {
+    const { calls, commands } = pivots();
+    let opened = 0;
+    const inPivot = {
+      ...contextWith(recording().data, { data: { ...initialSheetState.data, pivot } }),
+      pivots: commands,
+      onInsertPivot: () => {
+        opened += 1;
+      },
+    };
+    itemsOf(inPivot, "Einfügen")
+      .find((item) => item.label === "Pivot-Tabelle …")
+      ?.onSelect();
+    itemsOf(inPivot, "Daten")
+      .find((item) => item.label === "Pivot-Tabelle aktualisieren")
+      ?.onSelect();
+    expect([opened, calls]).toEqual([1, ["refresh"]]);
+    expect(
+      sheetContextMenu(inPivot)
+        .flat()
+        .map((item) => item.label),
+    ).toContain("Pivot-Tabelle aktualisieren");
+  });
+
+  it("refreshes nothing outside a pivot table", () => {
+    const context = { ...contextWith(recording().data, {}), pivots: pivots().commands };
+    expect(
+      itemsOf(context, "Daten").find((item) => item.label === "Pivot-Tabelle aktualisieren")?.disabled,
+    ).toBe(true);
+    expect(
+      sheetContextMenu(context)
+        .flat()
+        .map((item) => item.label),
+    ).not.toContain("Pivot-Tabelle aktualisieren");
   });
 });

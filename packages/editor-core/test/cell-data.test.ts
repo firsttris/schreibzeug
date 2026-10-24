@@ -14,9 +14,10 @@ const Asc = {
   c_oAscFrozenPaneAddType: { firstRow: 1, firstCol: 2 },
   c_oAscAutoFilterTypes: { Filters: 4 },
   c_oAscChartTypeSettings: { barNormal: 0, hBarNormal: 16, lineNormal: 7, pie: 14, areaNormal: 22 },
-  c_oAscSelectionDialogType: { Chart: 2 },
-  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91, MoreOneTypeDataValidate: -96 } },
+  c_oAscSelectionDialogType: { Chart: 2, PivotTableData: 6 },
+  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91, MoreOneTypeDataValidate: -96, DataRangeError: -75 } },
   c_oAscSelectionType: { RangeChart: 6, RangeChartText: 10 },
+  c_oAscDataConsolidateFunction: { Average: 1, Count: 3, Max: 4, Min: 5, Sum: 9 },
 };
 
 const info = (isAutoFilter: boolean | null, applied = false, table: string | null = null): EngineCellInfo =>
@@ -27,6 +28,7 @@ const info = (isAutoFilter: boolean | null, applied = false, table: string | nul
         : { asc_getIsAutoFilter: () => isAutoFilter, asc_getIsApplyAutoFilter: () => applied },
     asc_getFormatTableInfo: () => (table ? { asc_getTableName: () => table } : null),
     asc_getSelectionType: () => 1,
+    asc_getPivotTableInfo: () => null,
   }) as unknown as EngineCellInfo;
 
 /** The calls the commands make, with a cell info and frozen state to answer with. */

@@ -458,6 +458,43 @@ export interface EngineCellInfo {
   asc_getFormatTableInfo(): { asc_getTableName(): string | null } | null;
   /** common/commonDefines.js c_oAscSelectionType: cells, a chart, a picture … */
   asc_getSelectionType(): number;
+  /** The pivot table the active cell is in, if any. */
+  asc_getPivotTableInfo(): EnginePivotTable | null;
+}
+
+/** cell/model/PivotTables.js CT_DataField: a value of a pivot table, or the change to one. */
+export interface EnginePivotValue {
+  /** The source column it sums up. */
+  asc_getIndex(): number;
+  asc_getName(): string | null;
+  /** cell/model/PivotTables.js c_oAscDataConsolidateFunction */
+  asc_getSubtotal(): number | null;
+  asc_setName(name: string): void;
+  asc_setSubtotal(subtotal: number): void;
+  /** Applies what `change` holds (its fields that are not null) to the value at `index`. */
+  asc_set(api: CellEngineApi, pivot: EnginePivotTable, index: number, change: EnginePivotValue): void;
+}
+
+/**
+ * cell/model/PivotTables.js CT_pivotTableDefinition, the part used here. Field indexes are the
+ * source's columns; `dataIndex` is a value's place among the values when it is the one moved.
+ */
+export interface EnginePivotTable {
+  asc_getCacheFields(): Array<{ asc_getName(): string }>;
+  asc_getPivotFields(): Array<{ asc_getName(): string | null }>;
+  asc_getRowFields(): Array<{ asc_getIndex(): number }> | null;
+  asc_getColumnFields(): Array<{ asc_getIndex(): number }> | null;
+  asc_getPageFields(): Array<{ asc_getIndex(): number }> | null;
+  asc_getDataFields(): EnginePivotValue[] | null;
+  /** Numbers go to the values, everything else to the rows (CT_CacheField.isSumSubtotal). */
+  asc_addField(api: CellEngineApi, field: number): void;
+  asc_removeField(api: CellEngineApi, field: number): void;
+  asc_moveToRowField(api: CellEngineApi, field: number, dataIndex?: number): void;
+  asc_moveToColField(api: CellEngineApi, field: number, dataIndex?: number): void;
+  asc_moveToPageField(api: CellEngineApi, field: number, dataIndex?: number): void;
+  asc_moveToDataField(api: CellEngineApi, field: number, dataIndex?: number): void;
+  /** Reads the source range again. */
+  asc_refresh(api: CellEngineApi): void;
 }
 
 /** cell/model/DataValidation.js CDataValidation: the rule on the selected cells. */
@@ -655,7 +692,11 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi 
   /** The settings for a chart of the selection; `true` without opening the chart editor's frame. */
   asc_getChartSettings(noLock: true): EngineChartSettings | null;
   /** cell/apiDefines.js c_oAscSelectionDialogType.Chart; common/commonDefines.js c_oAscError.ID. */
-  asc_checkDataRange(dialog: number, range: string, full: boolean, inRows: boolean, type: number): number;
+  asc_checkDataRange(dialog: number, range: string, full: boolean, inRows?: boolean, type?: number): number;
+  /** The range a new pivot table would take: the table around the selection (cell/api.js). */
+  asc_getAddPivotTableOptions(): { asc_getRange(): string | null } | null;
+  /** A pivot table of the source range on a new sheet; undefined where the range has no headings. */
+  asc_insertPivotNewWorksheet(source: string, sheetName: string): EnginePivotTable | undefined;
   asc_addChartDrawingObject(settings: EngineChartSettings): void;
   /**
    * The rule of the selection, or an error id (c_oAscError.ID) where it holds different ones; then
@@ -700,8 +741,13 @@ export interface CellWindow extends EngineWindow {
       pie: number;
       areaNormal: number;
     };
-    c_oAscSelectionDialogType: { Chart: number };
-    c_oAscError: { ID: { No: number; MaxDataSeriesError: number; MoreOneTypeDataValidate: number } };
+    c_oAscSelectionDialogType: { Chart: number; PivotTableData: number };
+    c_oAscError: {
+      ID: { No: number; MaxDataSeriesError: number; MoreOneTypeDataValidate: number; DataRangeError: number };
+    };
+    /** cell/model/PivotTables.js */
+    c_oAscDataConsolidateFunction: { Sum: number; Count: number; Average: number; Max: number; Min: number };
+    CT_DataField: new () => EnginePivotValue;
     c_oAscEDataValidationType: { None: number; List: number };
     CDataFormula: new () => { asc_setValue(value: string): void };
     c_oAscCFRuleTypeSettings: { dataBar: number; colorScale: number };

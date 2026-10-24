@@ -8,6 +8,7 @@ belong here; note each file's source below.
 | `hello.docx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/word-roundtrip.spec.ts`, `e2e/files.spec.ts` |
 | `angebot.docx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/screenshots.shot.ts` |
 | `preise.xlsx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/spreadsheet.spec.ts`, `e2e/screenshots.shot.ts` |
+| `umsatz.xlsx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pivot.spec.ts` |
 | `vortrag.pptx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/presentation.spec.ts`, `e2e/screenshots.shot.ts` |
 | `formular.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf-engine.spec.ts` |
 

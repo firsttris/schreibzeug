@@ -5,6 +5,7 @@
  * (spreadsheeteditor mobile controller/FilterOptions.jsx).
  */
 import { type ChartKind, readSelectedChart } from "./cell-chart";
+import { type PivotState, readPivot } from "./cell-pivot";
 import type { CellEngineApi, CellWindow, EngineAutoFilterObject, EngineCellInfo } from "./engine-types";
 
 /** The filter of the range around the active cell, and what the toolbar may do with it. */
@@ -21,12 +22,19 @@ export type FilterState = {
  * The sheet's view around the data: its filter, whether rows or columns are frozen, and the kind
  * of the selected chart (cell-chart.ts), null without one.
  */
-export type SheetDataState = { filter: FilterState; frozen: boolean; chart: ChartKind | null };
+export type SheetDataState = {
+  filter: FilterState;
+  frozen: boolean;
+  chart: ChartKind | null;
+  /** The pivot table at the active cell (cell-pivot.ts). */
+  pivot: PivotState | null;
+};
 
 export const initialSheetDataState: SheetDataState = {
   filter: { available: false, on: false, applied: false },
   frozen: false,
   chart: null,
+  pivot: null,
 };
 
 /**
@@ -47,11 +55,12 @@ export const readFilterState = (info: Pick<EngineCellInfo, "asc_getAutoFilterInf
 export const readSheetData = (
   api: CellEngineApi,
   info: EngineCellInfo,
-  Asc: Parameters<typeof readSelectedChart>[2],
+  Asc: Parameters<typeof readSelectedChart>[2] & Parameters<typeof readPivot>[1],
 ): SheetDataState => ({
   filter: readFilterState(info),
   frozen: Boolean(api.asc_getSheetViewSettings().asc_getIsFreezePane()),
   chart: readSelectedChart(api, info, Asc),
+  pivot: readPivot(info, Asc),
 });
 
 export type SortOrder = "ascending" | "descending";

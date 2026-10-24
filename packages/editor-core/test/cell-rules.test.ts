@@ -12,7 +12,7 @@ const Asc = {
   },
   c_oAscCFRuleTypeSettings: { dataBar: 1, colorScale: 2 },
   c_oAscSelectionForCFType: { selection: 1 },
-  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91, MoreOneTypeDataValidate: -96 } },
+  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91, MoreOneTypeDataValidate: -96, DataRangeError: -75 } },
 };
 
 const validation = (type = 0, list: string | null = null) => {

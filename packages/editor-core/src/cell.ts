@@ -13,6 +13,7 @@ import {
   toFilterRequest,
 } from "./cell-data";
 import { readCellFormat } from "./cell-format";
+import { createPivotCommands, type PivotCommands } from "./cell-pivot";
 import { createRuleCommands, type RuleCommands } from "./cell-rules";
 import { initialSheetState, reduceSheetState, type SheetEvent, type SheetState } from "./cell-state";
 import {
@@ -26,6 +27,7 @@ import { createEngineColor } from "./colors";
 import { cellCommentEvents, commentEvents } from "./comment-state";
 import { type CommentCommands, createCommentCommands } from "./comments";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
+import { CELL_TEXTS } from "./engine-texts";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
 import { uniqueSorted } from "./events";
 import type { SearchCommands } from "./search";
@@ -47,6 +49,8 @@ export type SheetEditor = OpenedDocument<SheetState> & {
   charts: ChartCommands;
   /** Dropdown lists and quick conditional formats. */
   rules: RuleCommands;
+  /** Pivot tables: make one, arrange its fields, read its source again. */
+  pivots: PivotCommands;
   view: ViewCommands;
   search: SearchCommands;
   onContextMenu: (listener: ContextMenuListener) => () => void;
@@ -121,6 +125,7 @@ const cellBinding: EditorBinding<
     | "data"
     | "charts"
     | "rules"
+    | "pivots"
     | "view"
     | "search"
     | "onContextMenu"
@@ -130,7 +135,11 @@ const cellBinding: EditorBinding<
   format: "xlsx",
   createApi: (win) => {
     // The same options as web-apps (spreadsheeteditor/mobile Main.jsx), with our formula bar.
-    const api = new win.Asc.spreadsheet_api({ "id-view": "editor_sdk", "id-input": FORMULA_INPUT_ID });
+    const api = new win.Asc.spreadsheet_api({
+      "id-view": "editor_sdk",
+      "id-input": FORMULA_INPUT_ID,
+      translate: CELL_TEXTS,
+    });
     api.asc_setFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     // Stored until the full API has loaded (cell/api.js asc_setLocale, tmpLCID).
     api.asc_setLocale(GERMAN_LCID);
@@ -202,6 +211,7 @@ const cellBinding: EditorBinding<
       onFilter: filter.add,
       charts: createChartCommands(api, win.Asc),
       rules: createRuleCommands(api, win.Asc),
+      pivots: createPivotCommands(api, win.Asc, refreshData),
       data: createDataCommands(api, win.Asc, () => {
         for (const delay of DATA_REFRESH_DELAYS) win.setTimeout(refreshData, delay);
       }),

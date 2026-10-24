@@ -48,6 +48,7 @@ const cellInfo = (
     asc_getXfs: () => xfs as never,
     asc_getMerge: () => merge,
     asc_getAutoFilterInfo: () => null,
+    asc_getPivotTableInfo: () => null,
     asc_getFormatTableInfo: () => null,
     asc_getSelectionType: () => 1,
   };

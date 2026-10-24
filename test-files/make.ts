@@ -77,6 +77,22 @@ const files: Record<string, Uint8Array> = {
     },
     { name: "Notizen", rows: [["Angebot gültig bis 30.11.2026"]] },
   ]),
+  // Invoices of a few months, with customers and services repeating: the source of the pivot tests.
+  "umsatz.xlsx": xlsx([
+    {
+      name: "Umsatz",
+      rows: [
+        ["Monat", "Kunde", "Leistung", "Betrag"],
+        ["Januar", "Geißer", "Wartung", 450],
+        ["Januar", "Roth", "Entwicklung", 1200],
+        ["Februar", "Geißer", "Entwicklung", 800],
+        ["Februar", "Roth", "Wartung", 300],
+        ["März", "Geißer", "Wartung", 450],
+        ["März", "Roth", "Entwicklung", 950],
+      ],
+      widths: [12, 12, 14, 10],
+    },
+  ]),
   // A short talk: a title slide and two content slides, for the presentation tests and screenshots.
   "vortrag.pptx": pptx([
     { layout: "title", title: "Lagerverwaltung", subtitle: "Projektstart · Oktober 2026" },

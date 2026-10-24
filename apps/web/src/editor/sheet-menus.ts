@@ -6,6 +6,7 @@ import type {
   ClipboardAction,
   DataCommands,
   NumberFormat,
+  PivotCommands,
   RuleCommands,
   SheetCommands,
   SheetState,
@@ -24,6 +25,9 @@ export type SheetMenuContext = {
   data: DataCommands | null;
   charts: ChartCommands | null;
   rules: RuleCommands | null;
+  pivots: PivotCommands | null;
+  /** Opens the dialog for a new pivot table. */
+  onInsertPivot: () => void;
   /** Opens the dropdown list of the selection. */
   onDropdown: () => void;
   /** Says why no chart could be made of the selection. */
@@ -117,9 +121,17 @@ export const dataMenu = (context: SheetMenuContext, off: boolean): Menu => {
         },
       ],
       [{ label: "Dropdown-Liste …", disabled: off || !context.rules, onSelect: context.onDropdown }],
+      [refreshPivotItem(context, off)],
     ],
   };
 };
+
+/** Reads the source of the pivot table at the active cell again (PivotTable.js refresh). */
+const refreshPivotItem = (context: Pick<SheetMenuContext, "pivots" | "state">, off: boolean): MenuItem => ({
+  label: "Pivot-Tabelle aktualisieren",
+  disabled: off || !context.pivots || !context.state.data.pivot,
+  onSelect: () => context.pivots?.refresh(),
+});
 
 /** Quick conditional formats, as the first presets of web-apps' pickers (Toolbar.js). */
 const conditionalItems = (rules: RuleCommands | null, off: boolean): MenuItem[] => [
@@ -186,6 +198,7 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
         ...rowsAndColumns(run, off),
         [{ label: "Tabellenblatt", disabled: !context.sheets, onSelect: () => context.sheets?.add() }],
         chartItems(context, off),
+        [{ label: "Pivot-Tabelle …", disabled: off || !context.pivots, onSelect: context.onInsertPivot }],
         [
           {
             label: "Bild …",
@@ -278,6 +291,7 @@ export const sheetContextMenu = (context: SheetMenuContext): MenuItem[][] => {
     clipboardItems(context.view, context.onClipboardRefused),
     [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
     sortItems(context.data, off),
+    ...(state.data.pivot ? [[refreshPivotItem(context, off)]] : []),
     ...rowsAndColumns(run, off),
   ];
 };

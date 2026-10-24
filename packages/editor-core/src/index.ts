@@ -17,6 +17,18 @@ export type {
   SortOrder,
 } from "./cell-data";
 export { NUMBER_FORMATS } from "./cell-format";
+export {
+  PIVOT_AREAS,
+  PIVOT_SUMMARIES,
+  type PivotArea,
+  type PivotCommands,
+  type PivotFailure,
+  type PivotItem,
+  type PivotState,
+  type PivotSummary,
+  SUMMARY_NAMES,
+  VALUES_FIELD,
+} from "./cell-pivot";
 export { type QuickFormat, type RuleCommands, splitList } from "./cell-rules";
 export {
   type CellFormat,

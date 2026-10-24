@@ -4,8 +4,8 @@ import type { CellEngineApi, EngineChartSettings } from "../src/engine-types";
 
 const Asc = {
   c_oAscChartTypeSettings: { barNormal: 0, hBarNormal: 16, lineNormal: 7, pie: 14, areaNormal: 22 },
-  c_oAscSelectionDialogType: { Chart: 2 },
-  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91, MoreOneTypeDataValidate: -96 } },
+  c_oAscSelectionDialogType: { Chart: 2, PivotTableData: 6 },
+  c_oAscError: { ID: { No: 0, MaxDataSeriesError: -91, MoreOneTypeDataValidate: -96, DataRangeError: -75 } },
   c_oAscSelectionType: { RangeChart: 6, RangeChartText: 10 },
 };
 

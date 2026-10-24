@@ -23,3 +23,19 @@ export const SLIDE_TEXTS: Record<string, string> = {
   "X Axis": "X-Achse",
   "Y Axis": "Y-Achse",
 };
+
+/**
+ * The spreadsheet's texts: the captions of a pivot table (cell/model/PivotTables.js
+ * GRAND_TOTAL_CAPTION, ROW_HEADER_CAPTION, …), named as German Excel names them. A value's name is
+ * set by the app ("Summe von Betrag", cell-pivot.ts), since the engine fills in "Sum" untranslated.
+ */
+export const CELL_TEXTS: Record<string, string> = {
+  "Grand Total": "Gesamtergebnis",
+  "Row Labels": "Zeilenbeschriftungen",
+  "Column Labels": "Spaltenbeschriftungen",
+  Values: "Werte",
+  "(All)": "(Alle)",
+  "(Multiple Items)": "(Mehrere Elemente)",
+  "(blank)": "(Leer)",
+  "%1 of %2": "%1 von %2",
+};

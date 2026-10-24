@@ -50,7 +50,7 @@ export const FileTitle = ({ name, onRename, onError }: FileTitleProps) => {
           requestAnimationFrame(() => (event.target as HTMLInputElement).blur());
         }
       }}
-      className="-mx-1 min-w-0 max-w-full truncate rounded-md border border-transparent bg-transparent px-1 text-[15px] font-semibold outline-none hover:border-[var(--border)] focus:border-[var(--foreground)]"
+      className="-mx-1 min-w-0 max-w-full truncate rounded-md [field-sizing:content] border border-transparent bg-transparent px-1 text-[15px] font-semibold outline-none hover:border-[var(--border)] focus:border-[var(--foreground)]"
     />
   );
 };

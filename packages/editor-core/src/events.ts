@@ -89,6 +89,8 @@ export const textEvents = (
   asc_onFontSize: (value) => (Number.isFinite(value) ? { type: "fontSize", value } : null),
   asc_onFontFamily: (family) => ({ type: "fontName", value: family?.asc_getName() || null }),
   asc_onPrAlign: (value) => ({ type: "align", value: toAlign(value, constants) }),
+  asc_onSetSearchCurrent: (current, total) => ({ type: "searchCurrent", current, total }),
+  asc_onReplaceAll: (_total, replaced) => ({ type: "replaced", count: replaced }),
   asc_onVerticalAlign: (value) => ({ type: "baseline", value: toBaseline(value, constants) }),
   asc_onZoomChange: (percent) =>
     Number.isFinite(percent) ? { type: "zoom", value: Math.round(percent) } : null,

@@ -163,6 +163,21 @@ Cut, copy and paste from a menu go through the engine (`common/clipboard_base.js
 (`allow="clipboard-read; clipboard-write"`). When the browser refuses, the entry answers `false`
 and the app says which keys to use, like web-apps.
 
+## Find and replace
+
+`src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,
+whole words) in the engine's frame and calls `asc_findText(settings, isNext)`,
+`asc_replaceText(settings, replacement, isReplaceAll)` and `asc_endFindText()`, as web-apps does
+(`documenteditor/main` `controller/Search.js`). The engine answers with
+`asc_onSetSearchCurrent(current, total)` and, after replacing all, `asc_onReplaceAll(total,
+replaced)`; both go into `state.search`. When nothing matches it sends nothing, so the command
+reports that itself.
+
+Strg+F and Strg+H are not handled by the engine (web-apps opens its own panel for them); a
+keydown listener in the frame (`document.ts`, `onFindShortcut`) and one in the app window open
+the search bar instead of the browser's search. Someone who may only look can search but not
+replace.
+
 ## Keyboard focus
 
 The engine takes keys through a hidden text area in its frame (`common/text_input2.js`, id

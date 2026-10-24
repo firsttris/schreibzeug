@@ -6,6 +6,7 @@ import { coreEvents, type Translators } from "./events";
 import { keepFocusOnClick } from "./frame";
 import { createFrameSocketIO } from "./frame-socket";
 import { createStore, type Store } from "./store";
+import { createListeners, type FindShortcut, findShortcutOf } from "./view";
 
 export type DocumentUser = { id: string; name: string };
 
@@ -43,6 +44,11 @@ export type OpenedDocument<S extends CoreState> = {
   markSaved: (saved: SavedDocument) => void;
   resize: () => void;
   close: () => void;
+  /**
+   * Strg+F or Strg+H in the document. The engine leaves both to its UI (web-apps opens its search
+   * panel); here they go to the listener instead of the browser's own search.
+   */
+  onFindShortcut: (listener: (shortcut: FindShortcut) => void) => () => void;
 };
 
 /** What one editor's engine needs on top of the shared opening flow. */
@@ -205,6 +211,15 @@ export const openDocument = <
       subscribe(base, coreEvents(win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
       subscribe(api, binding.events(win), dispatch);
       keepFocusOnClick(win, () => api.getFocusElement());
+      const findShortcut = createListeners<FindShortcut>();
+      const onKey = (event: KeyboardEvent) => {
+        const shortcut = findShortcutOf(event);
+        if (!shortcut) return;
+        event.preventDefault();
+        event.stopPropagation();
+        findShortcut.emit(shortcut);
+      };
+      win.addEventListener("keydown", onKey, true);
       // The event carries no value in word and slide; web-apps reads the flag on it.
       base.asc_registerCallback("asc_onDocumentModifiedChanged", () =>
         dispatch({ type: "modified", value: api.isDocumentModified() }),
@@ -224,7 +239,9 @@ export const openDocument = <
           options.collaboration?.channel.send(JSON.stringify({ type: "stapel:saved", index: seen }));
         },
         resize: () => binding.resize(api),
+        onFindShortcut: findShortcut.add,
         close: () => {
+          win.removeEventListener("keydown", onKey, true);
           stopProgress();
           api.asc_CloseFile?.();
         },

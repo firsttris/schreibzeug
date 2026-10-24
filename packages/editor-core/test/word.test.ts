@@ -187,6 +187,16 @@ describe("openWordDocument", () => {
     expect(requests).toEqual([{ x: 12, y: 34, area: "body" }]);
   });
 
+  it("opens our search on Strg+F instead of the browser's", async () => {
+    const { engine, editor } = await openReady();
+    const shortcuts: string[] = [];
+    editor.onFindShortcut((shortcut) => shortcuts.push(shortcut));
+    const event = new KeyboardEvent("keydown", { key: "h", ctrlKey: true, cancelable: true });
+    engine.window.dispatchEvent(event);
+    expect(shortcuts).toEqual(["replace"]);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it("is ready once the content is shown", async () => {
     const { editor } = await openReady();
     expect(editor.store.get().status).toBe("ready");

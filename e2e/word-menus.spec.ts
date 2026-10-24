@@ -113,3 +113,33 @@ test.describe("menus of the text editor", () => {
     expect(runPropertiesOf(await storedXml(page, fileId), "Hallo Stapel").join("")).toContain("<w:i");
   });
 });
+
+test.describe("find and replace", () => {
+  test("finds while typing and replaces all", async ({ page }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+h");
+    const bar = page.getByRole("search", { name: "Suchen und ersetzen" });
+    await bar.getByLabel("Suchen", { exact: true }).fill("Stapel");
+    await expect(bar.getByTestId("search-result")).toHaveText("1 von 1");
+    await bar.getByLabel("Suchen", { exact: true }).fill("gibt es nicht");
+    await expect(bar.getByTestId("search-result")).toHaveText("Keine Treffer");
+
+    await bar.getByLabel("Suchen", { exact: true }).fill("Stapel");
+    await bar.getByLabel("Ersetzen durch").fill("Ordner");
+    await bar.getByRole("button", { name: "Alle ersetzen" }).click();
+    await expect(bar.getByTestId("search-result")).toHaveText("1 ersetzt");
+    await bar.getByRole("button", { name: "Suche schließen" }).click();
+    await expect(bar).toHaveCount(0);
+
+    await save(page);
+    expect(await storedXml(page, fileId)).toContain("Hallo Ordner");
+  });
+
+  test("opens from the edit menu", async ({ page }, testInfo) => {
+    await openHello(page, testInfo);
+    await pick(page, "Bearbeiten", "Suchen");
+    await expect(page.getByRole("search").getByLabel("Suchen", { exact: true })).toBeFocused();
+    await expect(page.getByLabel("Ersetzen durch")).toHaveCount(0);
+  });
+});

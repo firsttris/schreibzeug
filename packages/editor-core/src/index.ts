@@ -41,10 +41,12 @@ export {
   type EditorStatus,
   hasUnsavedChanges,
   initialCoreState,
+  type SearchState,
 } from "./core-state";
 export type { DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
+export { createSearchCommands, type SearchCommands, type SearchQuery } from "./search";
 export {
   AUTOSAVE_DELAY,
   autosaveDelay,
@@ -75,6 +77,8 @@ export {
   type ContextMenuListener,
   type ContextMenuRequest,
   clampZoom,
+  type FindShortcut,
+  findShortcutOf,
   MAX_ZOOM,
   MIN_ZOOM,
   type ViewCommands,

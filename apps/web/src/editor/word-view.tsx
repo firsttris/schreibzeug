@@ -12,8 +12,10 @@ import { EditorHeader } from "./editor-header";
 import { WORD_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { SearchBar } from "./search-bar";
 import { useDocumentSave } from "./use-document-save";
 import { useEngineEditor } from "./use-engine-editor";
+import { useSearchBar } from "./use-search-bar";
 import { clipboardHint, type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 
 /** Where the engine's frame sits in the window: context menu points come in frame coordinates. */
@@ -37,6 +39,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   const [tableDialog, setTableDialog] = useState(false);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [notice, notify] = useNotice();
+  const searchBar = useSearchBar(editor, !file.readOnly);
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
 
   // The engine measures its frame only on resize; the panel takes width from it.
@@ -64,6 +67,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     onInsertTable: () => setTableDialog(true),
     commentsOpen: comments !== "closed",
     onToggleComments: () => setComments(comments === "closed" ? "open" : "closed"),
+    onFind: searchBar.open,
   };
 
   return (
@@ -103,7 +107,19 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         }
       />
       <div className="flex min-h-0 flex-1">
-        <div ref={container} className="min-w-0 flex-1 bg-[var(--muted)]" />
+        <div className="relative min-w-0 flex-1">
+          <div ref={container} className="h-full bg-[var(--muted)]" />
+          {searchBar.mode && (
+            <SearchBar
+              search={editor?.search ?? null}
+              state={state.search}
+              mode={searchBar.mode}
+              canReplace={!file.readOnly}
+              onModeChange={searchBar.open}
+              onClose={searchBar.close}
+            />
+          )}
+        </div>
         {comments !== "closed" && (
           <CommentsPanel
             comments={state.comments}

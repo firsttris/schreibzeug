@@ -17,12 +17,16 @@ export type DocumentState = {
 
 export type EditorStatus = "loading" | "ready" | "error";
 
+/** The search bar's answer: which match is selected (from 0, -1 for none) and how many there are. */
+export type SearchState = { current: number; total: number; replaced: number | null };
+
 export type CoreState = {
   status: EditorStatus;
   error: string | null;
   document: DocumentState;
   /** A shared session's change log against the stored file; stays empty when editing alone. */
   session: SessionProgress;
+  search: SearchState;
 };
 
 /** What every engine tells, translated (events.ts). */
@@ -32,6 +36,8 @@ export type CoreEvent =
   | { type: "modified"; value: boolean }
   | { type: "pages"; value: number }
   | { type: "zoom"; value: number }
+  | { type: "searchCurrent"; current: number; total: number }
+  | { type: "replaced"; count: number }
   | { type: "connected"; value: boolean }
   /** A message from the collaboration relay, as JSON text. */
   | { type: "message"; json: string }
@@ -43,6 +49,7 @@ export const initialCoreState: CoreState = {
   error: null,
   document: { canUndo: false, canRedo: false, modified: false, pages: 0, zoom: null, connected: true },
   session: initialProgress,
+  search: { current: -1, total: 0, replaced: null },
 };
 
 const CORE_TYPES: ReadonlySet<string> = new Set([
@@ -51,6 +58,8 @@ const CORE_TYPES: ReadonlySet<string> = new Set([
   "modified",
   "pages",
   "zoom",
+  "searchCurrent",
+  "replaced",
   "connected",
   "message",
   "ready",
@@ -77,6 +86,10 @@ export const reduceCore = <S extends CoreState>(state: S, event: CoreEvent): S =
       return withDocument(state, { pages: event.value });
     case "zoom":
       return withDocument(state, { zoom: event.value });
+    case "searchCurrent":
+      return { ...state, search: { current: event.current, total: event.total, replaced: null } };
+    case "replaced":
+      return { ...state, search: { current: -1, total: 0, replaced: event.count } };
     case "connected":
       return withDocument(state, { connected: event.value });
     case "message": {

@@ -14,6 +14,7 @@ export type WordMenuContext = {
   onInsertTable: () => void;
   commentsOpen: boolean;
   onToggleComments: () => void;
+  onFind: (mode: "find" | "replace") => void;
 };
 
 const KEYS: Record<ClipboardAction, string> = { copy: "Strg+C", cut: "Strg+X", paste: "Strg+V" };
@@ -77,6 +78,15 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
             shortcut: "Strg+A",
             disabled: off,
             onSelect: run((c) => c.selectAll()),
+          },
+        ],
+        [
+          { label: "Suchen", shortcut: "Strg+F", disabled: off, onSelect: () => context.onFind("find") },
+          {
+            label: "Suchen und ersetzen",
+            shortcut: "Strg+H",
+            disabled: off,
+            onSelect: () => context.onFind("replace"),
           },
         ],
       ],

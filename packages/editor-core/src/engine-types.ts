@@ -80,7 +80,27 @@ export type TextEventArgs = CommonEventArgs & {
   asc_onZoomChange: [percent: number, type: number];
   /** sync_ContextMenuCallback: a right click in the document. */
   asc_onContextMenu: [data: ContextMenuArgs];
+  /** sync_setSearchCurrent: which match is selected (from 0) and how many there are. */
+  asc_onSetSearchCurrent: [current: number, total: number];
+  /** sync_ReplaceAllCallback: how many matches there were and how many were replaced. */
+  asc_onReplaceAll: [total: number, replaced: number];
 };
+
+/** common/api/searchSettings.js `CSearchSettings` */
+export interface SearchSettings {
+  put_Text(text: string): void;
+  put_MatchCase(matchCase: boolean): void;
+  put_WholeWords(wholeWords: boolean): void;
+}
+
+/** Find and replace, named the same in the text and the presentation editor (word/api.js, slide/api.js). */
+export interface SearchApi {
+  /** Selects the next (or previous) match; returns how many there are. */
+  asc_findText(settings: SearchSettings, isNext: boolean): number;
+  /** Replaces the current match, or all; false when there was nothing to replace. */
+  asc_replaceText(settings: SearchSettings, replaceWith: string, isReplaceAll: boolean): boolean | undefined;
+  asc_endFindText(): void;
+}
 
 /** word/api.js `CContextMenuData` (slide/api.js has the same getters). */
 export interface ContextMenuArgs {
@@ -195,7 +215,7 @@ export interface CharacterApi {
 }
 
 /** word/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`) */
-export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterApi, ViewApi {
+export interface WordEngineApi extends EngineApiBase<WordEventArgs>, CharacterApi, ViewApi, SearchApi {
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   put_AddPageBreak(): void;
@@ -258,6 +278,7 @@ export interface EngineWindow extends Window {
     vertalign_Baseline: number;
     vertalign_SuperScript: number;
     vertalign_SubScript: number;
+    CSearchSettings: new () => SearchSettings;
   };
 }
 

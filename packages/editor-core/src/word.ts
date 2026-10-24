@@ -5,6 +5,7 @@ import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument
 import type { EngineWindow, WordEngineApi, WordEventArgs, WordWindow } from "./engine-types";
 import { stateEvents } from "./events";
 import { readListKind } from "./lists";
+import { createSearchCommands, type SearchCommands } from "./search";
 import {
   type EditorEvent,
   type EditorState,
@@ -27,6 +28,7 @@ export type WordEditor = OpenedDocument<EditorState> & {
   commands: TextCommands;
   comments: CommentCommands;
   view: ViewCommands;
+  search: SearchCommands;
   /** Someone right-clicked in the document; the listener shows the menu. Returns the unsubscribe. */
   onContextMenu: (listener: ContextMenuListener) => () => void;
 };
@@ -50,7 +52,7 @@ const wordBinding: EditorBinding<
   WordEngineApi,
   EditorState,
   WordEvent,
-  Pick<WordEditor, "commands" | "comments" | "view" | "onContextMenu">
+  Pick<WordEditor, "commands" | "comments" | "view" | "search" | "onContextMenu">
 > = {
   format: "docx",
   createApi: (win) => {
@@ -81,6 +83,11 @@ const wordBinding: EditorBinding<
     );
     return {
       view: createViewCommands(api),
+      search: createSearchCommands(
+        api,
+        () => new win.AscCommon.CSearchSettings(),
+        () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
+      ),
       onContextMenu: contextMenu.add,
       commands: withListRefresh(
         createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),

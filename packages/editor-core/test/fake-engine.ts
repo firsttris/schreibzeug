@@ -2,6 +2,7 @@ import type {
   EngineColor,
   EngineColorConstructor,
   EngineCommentData,
+  SearchSettings,
   WordEngineApi,
   WordEventArgs,
   WordEventName,
@@ -116,6 +117,25 @@ const record =
   };
 
 /** A stand-in for the engine frame's window with the same surface as engine-types.ts. */
+/** common/api/searchSettings.js CSearchSettings, recording what was put. */
+export type FakeSearchSettings = SearchSettings & { values: Record<string, unknown> };
+
+export const FakeSearchSettings = function FakeSearchSettings(): FakeSearchSettings {
+  const values: Record<string, unknown> = {};
+  return {
+    values,
+    put_Text: (text) => {
+      values.text = text;
+    },
+    put_MatchCase: (value) => {
+      values.matchCase = value;
+    },
+    put_WholeWords: (value) => {
+      values.wholeWords = value;
+    },
+  };
+} as unknown as new () => SearchSettings;
+
 export const createFakeEngine = (): FakeEngine => {
   let current: FakeApi | null = null;
   const events = new EventTarget();
@@ -184,6 +204,20 @@ export const createFakeEngine = (): FakeEngine => {
         put_TextPrBaseline: record(calls, "put_TextPrBaseline"),
         ClearFormating: record(calls, "ClearFormating"),
         put_AddPageBreak: record(calls, "put_AddPageBreak"),
+        asc_findText: (settings, isNext) => {
+          calls.push(["asc_findText", (settings as unknown as FakeSearchSettings).values, isNext]);
+          return 3;
+        },
+        asc_replaceText: (settings, replaceWith, isReplaceAll) => {
+          calls.push([
+            "asc_replaceText",
+            (settings as unknown as FakeSearchSettings).values,
+            replaceWith,
+            isReplaceAll,
+          ]);
+          return true;
+        },
+        asc_endFindText: record(calls, "asc_endFindText"),
         put_TextPrBold: record(calls, "put_TextPrBold"),
         put_TextPrItalic: record(calls, "put_TextPrItalic"),
         put_TextPrUnderline: record(calls, "put_TextPrUnderline"),
@@ -279,6 +313,8 @@ export const createFakeEngine = (): FakeEngine => {
   const window = {
     devicePixelRatio: 2,
     addEventListener: events.addEventListener.bind(events),
+    removeEventListener: events.removeEventListener.bind(events),
+    dispatchEvent: events.dispatchEvent.bind(events),
     document: { hasFocus: () => false, activeElement: null, body: null, getElementById: () => null },
     Asc: {
       asc_docs_api: FakeDocsApi,
@@ -302,6 +338,7 @@ export const createFakeEngine = (): FakeEngine => {
       vertalign_Baseline: 0,
       vertalign_SubScript: 1,
       vertalign_SuperScript: 2,
+      CSearchSettings: FakeSearchSettings,
     },
   } as unknown as WordWindow;
 

@@ -1,5 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import {
   collectErrors,
   createFile,
@@ -110,4 +111,79 @@ test("adds, renames and deletes sheets", async ({ page }, testInfo) => {
   const workbook = partXml(await storedDocx(page, fileId), "xl/workbook.xml");
   expect(workbook).toContain('name="Ausgaben"');
   expect(workbook).not.toContain('name="Tabelle1"');
+});
+
+test.describe("menus of the spreadsheet", () => {
+  /** Opens a menu of the menu bar and picks an entry. */
+  const pick = async (page: Page, menu: string, entry: string) => {
+    await page.getByRole("menubar").getByRole("button", { name: menu, exact: true }).click();
+    const list = page.getByRole("menu", { name: menu });
+    await list
+      .getByRole("menuitem", { name: entry })
+      .or(list.getByRole("menuitemcheckbox", { name: entry }))
+      .first()
+      .click();
+  };
+
+  const openPreise = async (page: Page, testInfo: TestInfo) => {
+    const errors = collectErrors(page);
+    await openOwnFolder(page, testInfo);
+    await upload(page, preise, "preise.xlsx");
+    await openDocument(page, "preise.xlsx", errors);
+    return openFileId(page);
+  };
+
+  test("formats the selected cell from the format menu", async ({ page }, testInfo) => {
+    const fileId = await openPreise(page, testInfo);
+    await goTo(page, "B2");
+    await pick(page, "Format", "Kursiv");
+    await expect(page.getByRole("button", { name: "Kursiv", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await pick(page, "Ansicht", "150 %");
+    await page.getByRole("menubar").getByRole("button", { name: "Ansicht" }).click();
+    await expect(page.getByRole("menuitemcheckbox", { name: "150 %" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await page.keyboard.press("Escape");
+    await save(page);
+    expect(await partXml(await storedDocx(page, fileId), "xl/styles.xml")).toContain("<i/>");
+  });
+
+  test("finds and replaces in the sheet", async ({ page }, testInfo) => {
+    const fileId = await openPreise(page, testInfo);
+    await page.getByRole("menubar").getByRole("button", { name: "Bearbeiten" }).click();
+    await page.getByRole("menuitem", { name: "Suchen und ersetzen" }).click();
+    const bar = page.getByRole("search", { name: "Suchen und ersetzen" });
+    await bar.getByLabel("Suchen", { exact: true }).fill("drucker");
+    await expect(bar.getByTestId("search-result")).toHaveText(/von/);
+    await bar.getByLabel("Ersetzen durch").fill("printer");
+    await bar.getByRole("button", { name: "Alle ersetzen" }).click();
+    await expect(bar.getByTestId("search-result")).toHaveText("1 ersetzt");
+    await save(page);
+    expect(await partXml(await storedDocx(page, fileId), "xl/sharedStrings.xml")).toContain(
+      "Etikettenprinter",
+    );
+  });
+
+  test("opens its own menu on a right click in the grid", async ({ page }, testInfo) => {
+    await openPreise(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 300, y: 200 }, button: "right" });
+    const menu = page.getByRole("menu", { name: "Kontextmenü" });
+    await expect(menu.getByRole("menuitem", { name: "Zeile einfügen" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  });
+
+  test("downloads the sheet as a PDF", async ({ page }, testInfo) => {
+    await openPreise(page, testInfo);
+    const download = page.waitForEvent("download");
+    await pick(page, "Datei", "Als PDF herunterladen");
+    const file = await download;
+    expect(file.suggestedFilename()).toBe("preise.pdf");
+    const bytes = await readFile((await file.path()) as string);
+    expect(bytes.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  });
 });

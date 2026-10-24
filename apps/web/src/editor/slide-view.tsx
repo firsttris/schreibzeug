@@ -1,13 +1,19 @@
 import { initialSlideState, openPresentation } from "@stapel/editor-core";
 import { useRef } from "react";
 import { SlideToolbar } from "../toolbar/slide-toolbar";
+import { ContextMenu } from "../ui/context-menu";
+import { clipboardHint } from "./common-menus";
+import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
+import { SLIDE_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { type SlideMenuContext, slideContextMenu, slideMenus } from "./slide-menus";
 import { useDocumentSave } from "./use-document-save";
+import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
 
-/** A presentation: the toolbar above, the engine's slide list and the slide below. */
+/** A presentation: title and menus, the toolbar above, the engine's slide list and the slide below. */
 export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
@@ -18,9 +24,18 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
     initialSlideState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
+  const chrome = useEditorChrome(editor, container, name, file.readOnly);
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "pptx"), MIME.pptx);
+  };
+
+  const context: SlideMenuContext = {
+    state,
+    commands: editor?.commands ?? null,
+    view: editor?.view ?? null,
+    onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
+    onFind: chrome.searchBar.open,
   };
 
   return (
@@ -36,11 +51,19 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
         file={fileActions}
         onRename={onRename}
         onDownload={download}
-        menus={[]}
-        shortcuts={[]}
+        pdf={chrome.pdf}
+        menus={file.readOnly ? [] : slideMenus(context)}
+        shortcuts={SLIDE_SHORTCUTS}
+        notice={chrome.notice}
         toolbar={<SlideToolbar state={state} commands={editor?.commands ?? null} />}
       />
-      <div ref={container} className="min-h-0 flex-1 bg-[var(--muted)]" />
+      <DocumentArea
+        container={container}
+        search={editor?.search ?? null}
+        searchState={state.search}
+        searchBar={chrome.searchBar}
+        readOnly={file.readOnly}
+      />
       <p
         data-testid="slide-position"
         className="m-0 border-t border-[var(--border)] px-4 py-1.5 text-xs text-[var(--muted-foreground)]"
@@ -48,6 +71,15 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
         Folie {Math.min(state.currentSlide + 1, Math.max(state.document.pages, 1))} von{" "}
         {Math.max(state.document.pages, 1)}
       </p>
+      {chrome.menuAt && (
+        <ContextMenu
+          x={chrome.menuAt.x}
+          y={chrome.menuAt.y}
+          label="Kontextmenü"
+          groups={slideContextMenu(context, chrome.menuAt.area)}
+          onClose={chrome.closeMenu}
+        />
+      )}
     </div>
   );
 };

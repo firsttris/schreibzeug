@@ -241,6 +241,17 @@ then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`).
 | rows, columns | `asc_insertCells(c_oAscInsertOptions.InsertRows \| InsertColumns)`, `asc_deleteCells(…)` |
 | undo, redo | `asc_Undo()`, `asc_Redo()`; state from `asc_onCanUndoChanged`, `asc_onCanRedoChanged` |
 | sheets | `asc_showWorksheet(i)`, `asc_addWorksheet(name)`, `asc_renameWorksheet(name)`, `asc_deleteWorksheet()` |
+| cut, copy, paste | `asc_Cut()`, `asc_Copy()`, `asc_Paste()` |
+| zoom | `asc_setZoom(factor)`, `asc_getZoom()`; `asc_onZoomChanged(factor)` |
+| find, replace | `asc_findText(asc_CFindOptions)` (the count), `asc_replaceText(options)`; `asc_onSetSearchCurrent`, `asc_onRenameCellTextEnd(found, replaced)` |
+| PDF | `wb.calcPagesPrint()`, `wb.printSheets(pages, null).DocumentRenderer.Memory.GetData()`, as `cell/api.js` `_downloadAs` |
+
+The menus and the context menu work as in the text editor (`apps/web/src/editor/sheet-menus.ts`).
+The spreadsheet's right click hands over the mouse event itself (`WorkbookView.js` `onContextMenu`),
+whose point is already in the frame's coordinates. Search follows web-apps
+(`spreadsheeteditor/main` `controller/Search.js`): values in the active sheet, "whole words" as
+"whole cell"; matches are marked with `asc_selectSearchingResults`, because the spreadsheet's
+`asc_endFindText` fails in this build (it calls a `_cleanFindResults` that `WorkbookView.js` lacks).
 
 The spreadsheet has no `SetUnchangedDocument`; its "modified" flag drops once the relay has the
 changes (`asc_isDocumentModified`, `History.Have_Changes`).
@@ -264,6 +275,12 @@ Character formatting is named and reported the same as in the text editor, so bo
 | duplicate, delete | `DublicateSlide()` (the engine's spelling), `DeleteSlide()` | `asc_onCountPages` |
 | bullets, numbering | `put_ListType(0 \| 1, 1)`, end: `put_ListType(…, -1)` (`CommonController.js` `fFillBullet`) | `asc_onListType` |
 | character formatting, alignment, undo | as in the text editor | as in the text editor |
+| clipboard, zoom, find and replace | as in the text editor (`Copy`, `zoom`, `asc_findText`, …) | as in the text editor |
+| PDF | `WordControl.m_oDrawingDocument.ToRendererPart(true, false)`: all slides, as `slide/api.js` `_downloadAs` | – |
+
+A right click sends `CContextMenuData` as in the text editor; its type tells the slide
+(`c_oAscContextMenuTypes.Main`) from the slide list (`Thumbnails`), and the context menu offers the
+slides first in the list (`apps/web/src/editor/slide-menus.ts`).
 
 New presentations come from `packages/ooxml` (`pptx.ts`): one master with the layouts
 "Titelfolie", "Titel und Inhalt", "Nur Titel" and "Leer", a theme with Office's default colours

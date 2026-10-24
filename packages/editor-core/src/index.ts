@@ -75,6 +75,7 @@ export { createStore, type Store } from "./store";
 export {
   type AppShortcut,
   type ClipboardAction,
+  type ContextMenuArea,
   type ContextMenuListener,
   type ContextMenuRequest,
   clampZoom,

@@ -1,0 +1,187 @@
+import type {
+  ClipboardAction,
+  ContextMenuArea,
+  SlideCommands,
+  SlideState,
+  ViewCommands,
+} from "@stapel/editor-core";
+import type { MenuItem } from "../ui/menu";
+import type { Menu } from "../ui/menu-bar";
+import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
+
+/** What the menus of the presentation work with; null while the document opens. */
+export type SlideMenuContext = {
+  state: SlideState;
+  commands: SlideCommands | null;
+  view: ViewCommands | null;
+  onClipboardRefused: (action: ClipboardAction) => void;
+  onFind: (mode: "find" | "replace") => void;
+};
+
+/** New, duplicate, delete: in "Folie" and in the context menu. */
+const slideItems = (
+  run: (action: (c: SlideCommands) => void) => () => void,
+  off: boolean,
+  slides: number,
+): MenuItem[] => [
+  { label: "Neue Folie", disabled: off, onSelect: run((c) => c.addSlide()) },
+  { label: "Folie duplizieren", disabled: off, onSelect: run((c) => c.duplicateSlide()) },
+  {
+    label: "Folie löschen",
+    danger: true,
+    disabled: off || slides <= 1,
+    onSelect: run((c) => c.deleteSlide()),
+  },
+];
+
+/**
+ * Bearbeiten, Ansicht, Folie and Format of the presentation, after the desktop presentation editor
+ * of web-apps (presentationeditor main Toolbar.js) as far as Stapel has the commands.
+ */
+export const slideMenus = (context: SlideMenuContext): Menu[] => {
+  const { state, commands, view } = context;
+  const off = !commands || state.status !== "ready";
+  const run = (action: (c: SlideCommands) => void) => () => commands && action(commands);
+  const { text, document } = state;
+
+  return [
+    {
+      label: "Bearbeiten",
+      groups: [
+        [
+          {
+            label: "Rückgängig",
+            shortcut: "Strg+Z",
+            disabled: off || !document.canUndo,
+            onSelect: run((c) => c.undo()),
+          },
+          {
+            label: "Wiederholen",
+            shortcut: "Strg+Y",
+            disabled: off || !document.canRedo,
+            onSelect: run((c) => c.redo()),
+          },
+        ],
+        clipboardItems(view, context.onClipboardRefused),
+        [
+          {
+            label: "Alles auswählen",
+            shortcut: "Strg+A",
+            disabled: off,
+            onSelect: run((c) => c.selectAll()),
+          },
+        ],
+        searchItems(context.onFind, off),
+      ],
+    },
+    { label: "Ansicht", groups: zoomGroups(view, document.zoom) },
+    {
+      label: "Folie",
+      groups: [
+        slideItems(run, off, document.pages),
+        state.layouts.map((layout) => ({
+          label: `Layout: ${layout.name}`,
+          disabled: off,
+          onSelect: run((c) => c.setLayout(layout.index)),
+        })),
+      ],
+    },
+    {
+      label: "Format",
+      groups: [
+        [
+          {
+            label: "Fett",
+            shortcut: "Strg+B",
+            checked: text.bold,
+            disabled: off,
+            onSelect: run((c) => c.toggleBold()),
+          },
+          {
+            label: "Kursiv",
+            shortcut: "Strg+I",
+            checked: text.italic,
+            disabled: off,
+            onSelect: run((c) => c.toggleItalic()),
+          },
+          {
+            label: "Unterstrichen",
+            shortcut: "Strg+U",
+            checked: text.underline,
+            disabled: off,
+            onSelect: run((c) => c.toggleUnderline()),
+          },
+          {
+            label: "Durchgestrichen",
+            checked: text.strikeout,
+            disabled: off,
+            onSelect: run((c) => c.toggleStrikeout()),
+          },
+          {
+            label: "Hochgestellt",
+            checked: text.baseline === "superscript",
+            disabled: off,
+            onSelect: run((c) => c.toggleBaseline("superscript")),
+          },
+          {
+            label: "Tiefgestellt",
+            checked: text.baseline === "subscript",
+            disabled: off,
+            onSelect: run((c) => c.toggleBaseline("subscript")),
+          },
+        ],
+        [
+          {
+            label: "Linksbündig",
+            checked: text.align === "left",
+            disabled: off,
+            onSelect: run((c) => c.setAlign("left")),
+          },
+          {
+            label: "Zentriert",
+            checked: text.align === "center",
+            disabled: off,
+            onSelect: run((c) => c.setAlign("center")),
+          },
+          {
+            label: "Rechtsbündig",
+            checked: text.align === "right",
+            disabled: off,
+            onSelect: run((c) => c.setAlign("right")),
+          },
+          {
+            label: "Blocksatz",
+            checked: text.align === "justify",
+            disabled: off,
+            onSelect: run((c) => c.setAlign("justify")),
+          },
+        ],
+        [
+          {
+            label: "Aufzählung",
+            checked: state.list === "bullet",
+            disabled: off,
+            onSelect: run((c) => c.toggleList("bullet")),
+          },
+          {
+            label: "Nummerierung",
+            checked: state.list === "number",
+            disabled: off,
+            onSelect: run((c) => c.toggleList("number")),
+          },
+        ],
+        [{ label: "Formatierung löschen", disabled: off, onSelect: run((c) => c.clearFormatting()) }],
+      ],
+    },
+  ];
+};
+
+/** The right-click menu: on the slide the clipboard first, in the slide list the slides first. */
+export const slideContextMenu = (context: SlideMenuContext, area: ContextMenuArea): MenuItem[][] => {
+  const { commands, state } = context;
+  const off = !commands || state.status !== "ready";
+  const run = (action: (c: SlideCommands) => void) => () => commands && action(commands);
+  const clipboard = clipboardItems(context.view, context.onClipboardRefused);
+  const slides = slideItems(run, off, state.document.pages);
+  return area === "thumbnails" ? [slides, clipboard] : [clipboard, slides];
+};

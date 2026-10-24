@@ -6,15 +6,31 @@ import {
 } from "./cell-commands";
 import { readCellFormat } from "./cell-format";
 import { initialSheetState, reduceSheetState, type SheetEvent, type SheetState } from "./cell-state";
+import {
+  cellPrintCommands,
+  createCellSearchCommands,
+  createCellViewCommands,
+  toCellContextMenuRequest,
+} from "./cell-view";
 import { createEngineColor } from "./colors";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
 import { uniqueSorted } from "./events";
+import type { SearchCommands } from "./search";
+import {
+  type ContextMenuListener,
+  type ContextMenuRequest,
+  createListeners,
+  type ViewCommands,
+} from "./view";
 import { fontRenderingMode } from "./word";
 
 export type SheetEditor = OpenedDocument<SheetState> & {
   commands: CellCommands;
   sheets: SheetCommands;
+  view: ViewCommands;
+  search: SearchCommands;
+  onContextMenu: (listener: ContextMenuListener) => () => void;
 };
 
 /** German regional format: decimal comma, "." between thousands, ";" between function arguments. */
@@ -71,7 +87,7 @@ const cellBinding: EditorBinding<
   CellEngineApi,
   SheetState,
   SheetEvent,
-  Pick<SheetEditor, "commands" | "sheets">
+  Pick<SheetEditor, "commands" | "sheets" | "view" | "search" | "onContextMenu">
 > = {
   format: "xlsx",
   createApi: (win) => {
@@ -96,6 +112,10 @@ const cellBinding: EditorBinding<
       type: "fonts",
       value: uniqueSorted(fonts.map((font) => font.asc_getFontName())),
     }),
+    asc_onZoomChanged: (zoom) =>
+      Number.isFinite(zoom) ? { type: "zoom", value: Math.round(zoom * 100) } : null,
+    asc_onSetSearchCurrent: (current, total) => ({ type: "searchCurrent", current, total }),
+    asc_onRenameCellTextEnd: (_found, replaced) => ({ type: "replaced", count: replaced }),
   }),
   setup: ({ win, api, store, dispatch }) => {
     const showReference = connectNameBox(win, api);
@@ -115,7 +135,17 @@ const cellBinding: EditorBinding<
         value: readCellFormat(api.asc_getCellInfo(), win.AscCommon, win.Asc.c_oAscMergeOptions),
       });
     });
+    const contextMenu = createListeners<ContextMenuRequest>();
+    api.asc_registerCallback("asc_onContextMenu", (event) => {
+      const request = toCellContextMenuRequest(event);
+      if (request) contextMenu.emit(request);
+    });
     return {
+      view: createCellViewCommands(api),
+      search: createCellSearchCommands(api, win, () =>
+        dispatch({ type: "searchCurrent", current: -1, total: 0 }),
+      ),
+      onContextMenu: contextMenu.add,
       commands: createCellCommands(
         api,
         store.get,
@@ -134,6 +164,7 @@ const cellBinding: EditorBinding<
   // The spreadsheet has no SetUnchangedDocument; in a shared session its "modified" flag drops once
   // the relay has the changes (cell/api.js asc_isDocumentModified, History.Have_Changes).
   markUnchanged: () => {},
+  printCommands: cellPrintCommands,
 };
 
 /** Opens an .xlsx in the spreadsheet engine of a frame mounted with kind "cell" (see document.ts). */

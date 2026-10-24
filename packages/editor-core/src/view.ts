@@ -15,8 +15,9 @@ export type ViewCommands = {
   zoomOut: () => void;
   /** Percent, clamped to what the toolbar offers. */
   setZoom: (percent: number) => void;
-  fitWidth: () => void;
-  fitPage: () => void;
+  /** Fits the page to the width or the whole page into view; null where there is no page (sheets). */
+  fitWidth: (() => void) | null;
+  fitPage: (() => void) | null;
 };
 
 export const MIN_ZOOM = 25;
@@ -42,7 +43,10 @@ export const createViewCommands = (api: ViewApi): ViewCommands => ({
 });
 
 /** Where someone right-clicked, in the coordinates of the engine frame's window. */
-export type ContextMenuRequest = { x: number; y: number; area: "body" | "headerFooter" };
+export type ContextMenuRequest = { x: number; y: number; area: ContextMenuArea };
+
+/** Where the click was: the document, a header or footer (text), the slide list (presentation). */
+export type ContextMenuArea = "body" | "headerFooter" | "thumbnails";
 
 export type ContextMenuListener = (request: ContextMenuRequest) => void;
 
@@ -55,14 +59,25 @@ export type ContextMenuListener = (request: ContextMenuRequest) => void;
 export const toContextMenuRequest = (
   data: ContextMenuArgs,
   view: { getBoundingClientRect(): { left: number; top: number } } | null,
-  headerFooterType: number,
+  areas: Partial<Record<Exclude<ContextMenuArea, "body">, number>>,
 ): ContextMenuRequest => {
   const origin = view?.getBoundingClientRect() ?? { left: 0, top: 0 };
-  return {
-    x: origin.left + data.get_X(),
-    y: origin.top + data.get_Y(),
-    area: data.get_Type() === headerFooterType ? "headerFooter" : "body",
-  };
+  const type = data.get_Type();
+  const area = (Object.keys(areas) as Array<keyof typeof areas>).find((name) => areas[name] === type);
+  return { x: origin.left + data.get_X(), y: origin.top + data.get_Y(), area: area ?? "body" };
+};
+
+/** The engine's right click as a request for our menu, for the editors that send CContextMenuData. */
+export const contextMenuSource = (
+  api: { asc_registerCallback(name: "asc_onContextMenu", callback: (data: ContextMenuArgs) => void): void },
+  view: () => { getBoundingClientRect(): { left: number; top: number } } | null,
+  areas: Partial<Record<Exclude<ContextMenuArea, "body">, number>>,
+) => {
+  const listeners = createListeners<ContextMenuRequest>();
+  api.asc_registerCallback("asc_onContextMenu", (data) =>
+    listeners.emit(toContextMenuRequest(data, view(), areas)),
+  );
+  return listeners.add;
 };
 
 /**

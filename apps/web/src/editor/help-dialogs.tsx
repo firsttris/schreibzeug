@@ -18,6 +18,36 @@ export const WORD_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+] / [", label: "Schrift größer, kleiner" },
   { keys: "Strg+L / E / R / J", label: "Links, zentriert, rechts, Blocksatz" },
   { keys: "Strg+Enter", label: "Seitenumbruch" },
+  { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
+  { keys: "Strg+P", label: "Drucken" },
+];
+
+/** Keys of the spreadsheet, as its engine handles them (cell/view/WorkbookView.js, CellEditor). */
+export const SHEET_SHORTCUTS: Shortcut[] = [
+  { keys: "Strg+Z", label: "Rückgängig" },
+  { keys: "Strg+Y", label: "Wiederholen" },
+  { keys: "Strg+X / C / V", label: "Ausschneiden, Kopieren, Einfügen" },
+  { keys: "Strg+B", label: "Fett" },
+  { keys: "Strg+I", label: "Kursiv" },
+  { keys: "Strg+U", label: "Unterstrichen" },
+  { keys: "F2", label: "Zelle bearbeiten" },
+  { keys: "Alt+Enter", label: "Zeilenumbruch in der Zelle" },
+  { keys: "Strg+F", label: "Suchen" },
+  { keys: "Strg+P", label: "Drucken" },
+];
+
+/** Keys of the presentation, as its engine handles them (slide/api.js, common shortcuts). */
+export const SLIDE_SHORTCUTS: Shortcut[] = [
+  { keys: "Strg+Z", label: "Rückgängig" },
+  { keys: "Strg+Y", label: "Wiederholen" },
+  { keys: "Strg+X / C / V", label: "Ausschneiden, Kopieren, Einfügen" },
+  { keys: "Strg+A", label: "Alles auswählen" },
+  { keys: "Strg+B", label: "Fett" },
+  { keys: "Strg+I", label: "Kursiv" },
+  { keys: "Strg+U", label: "Unterstrichen" },
+  { keys: "Strg+M", label: "Neue Folie" },
+  { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
+  { keys: "Strg+P", label: "Drucken" },
 ];
 
 export const ShortcutsDialog = ({

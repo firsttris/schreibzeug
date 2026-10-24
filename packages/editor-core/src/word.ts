@@ -13,14 +13,7 @@ import {
   reduceEditorState,
   type WordEvent,
 } from "./state";
-import {
-  type ContextMenuListener,
-  type ContextMenuRequest,
-  createListeners,
-  createViewCommands,
-  toContextMenuRequest,
-  type ViewCommands,
-} from "./view";
+import { type ContextMenuListener, contextMenuSource, createViewCommands, type ViewCommands } from "./view";
 
 export type OpenWordOptions = OpenOptions;
 
@@ -71,16 +64,9 @@ const wordBinding: EditorBinding<
       const table = win.Asc.c_oAscTypeSelectElement.Table;
       dispatch({ type: "inTable", value: objects.some((object) => object.asc_getObjectType() === table) });
     });
-    const contextMenu = createListeners<ContextMenuRequest>();
-    api.asc_registerCallback("asc_onContextMenu", (data) =>
-      contextMenu.emit(
-        toContextMenuRequest(
-          data,
-          win.document.getElementById("editor_sdk"),
-          win.Asc.c_oAscContextMenuTypes.ChangeHdrFtr,
-        ),
-      ),
-    );
+    const onContextMenu = contextMenuSource(api, () => win.document.getElementById("editor_sdk"), {
+      headerFooter: win.Asc.c_oAscContextMenuTypes.ChangeHdrFtr,
+    });
     return {
       view: createViewCommands(api),
       search: createSearchCommands(
@@ -88,7 +74,7 @@ const wordBinding: EditorBinding<
         () => new win.AscCommon.CSearchSettings(),
         () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
       ),
-      onContextMenu: contextMenu.add,
+      onContextMenu,
       commands: withListRefresh(
         createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),
         refreshList,

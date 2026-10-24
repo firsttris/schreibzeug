@@ -1,5 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import {
   collectErrors,
   createFile,
@@ -85,4 +86,56 @@ test("duplicates and deletes slides", async ({ page }, testInfo) => {
 
   const presentation = partXml(await storedDocx(page, fileId), "ppt/presentation.xml");
   expect(presentation.match(/<p:sldId /g)).toHaveLength(2);
+});
+
+test.describe("menus of the presentation", () => {
+  const openVortrag = async (page: Page, testInfo: TestInfo) => {
+    const errors = collectErrors(page);
+    await openOwnFolder(page, testInfo);
+    await upload(page, vortrag, "vortrag.pptx");
+    await openDocument(page, "vortrag.pptx", errors);
+    return openFileId(page);
+  };
+
+  const pick = async (page: Page, menu: string, entry: string) => {
+    await page.getByRole("menubar").getByRole("button", { name: menu, exact: true }).click();
+    const list = page.getByRole("menu", { name: menu });
+    await list
+      .getByRole("menuitem", { name: entry })
+      .or(list.getByRole("menuitemcheckbox", { name: entry }))
+      .first()
+      .click();
+  };
+
+  test("adds and duplicates slides from the slide menu", async ({ page }, testInfo) => {
+    await openVortrag(page, testInfo);
+    await expect(page.getByTestId("slide-position")).toHaveText("Folie 1 von 3");
+    await pick(page, "Folie", "Folie duplizieren");
+    await expect(page.getByTestId("slide-position")).toHaveText(/von 4$/);
+  });
+
+  test("opens its own menu on a right click in the slide list", async ({ page }, testInfo) => {
+    await openVortrag(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 100, y: 80 }, button: "right" });
+    const menu = page.getByRole("menu", { name: "Kontextmenü" });
+    await expect(menu.getByRole("menuitem").first()).toHaveText("Neue Folie");
+    await menu.getByRole("menuitem", { name: "Neue Folie" }).click();
+    await expect(page.getByTestId("slide-position")).toHaveText(/von 4$/);
+  });
+
+  test("finds text on the slides and downloads them as a PDF", async ({ page }, testInfo) => {
+    await openVortrag(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 100, y: 80 } });
+    await page.keyboard.press("Control+f");
+    const bar = page.getByRole("search", { name: "Suchen und ersetzen" });
+    await bar.getByLabel("Suchen", { exact: true }).fill("Lager");
+    await expect(bar.getByTestId("search-result")).toHaveText(/von/);
+    await bar.getByRole("button", { name: "Suche schließen" }).click();
+
+    const download = page.waitForEvent("download");
+    await pick(page, "Datei", "Als PDF herunterladen");
+    const file = await download;
+    expect(file.suggestedFilename()).toBe("vortrag.pdf");
+    expect((await readFile((await file.path()) as string)).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  });
 });

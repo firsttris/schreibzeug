@@ -4,8 +4,10 @@ import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument
 import { SLIDE_TEXTS } from "./engine-texts";
 import type { EngineWindow, SlideEngineApi, SlideEventArgs, SlideWindow } from "./engine-types";
 import { textEvents } from "./events";
+import { createSearchCommands, type SearchCommands } from "./search";
 import { initialSlideState, reduceSlideState, type SlideEvent, type SlideState } from "./slide-state";
 import type { ListKind } from "./state";
+import { type ContextMenuListener, contextMenuSource, createViewCommands, type ViewCommands } from "./view";
 import { fontRenderingMode } from "./word";
 
 export type SlideCommands = CharacterCommands & {
@@ -18,7 +20,13 @@ export type SlideCommands = CharacterCommands & {
   setLayout: (layoutIndex: number) => void;
 };
 
-export type PresentationEditor = OpenedDocument<SlideState> & { commands: SlideCommands };
+export type PresentationEditor = OpenedDocument<SlideState> & {
+  commands: SlideCommands;
+  view: ViewCommands;
+  search: SearchCommands;
+  /** A right click on the slide (area "body") or in the slide list ("thumbnails"). */
+  onContextMenu: (listener: ContextMenuListener) => () => void;
+};
 
 /** List types of slide/api.js put_ListType: bullets 0, numbering 1; subtype 1 is "•" and "1." */
 const LIST_TYPE: Record<ListKind, number> = { bullet: 0, number: 1 };
@@ -56,7 +64,7 @@ const slideBinding: EditorBinding<
   SlideEngineApi,
   SlideState,
   SlideEvent,
-  Pick<PresentationEditor, "commands">
+  Pick<PresentationEditor, "commands" | "view" | "search" | "onContextMenu">
 > = {
   format: "pptx",
   createApi: (win) => {
@@ -84,7 +92,16 @@ const slideBinding: EditorBinding<
       value: readListKind(list.get_ListType(), list.get_ListSubType()),
     }),
   }),
-  setup: ({ win, api, store }) => ({
+  setup: ({ win, api, store, dispatch }) => ({
+    view: createViewCommands(api),
+    search: createSearchCommands(
+      api,
+      () => new win.AscCommon.CSearchSettings(),
+      () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
+    ),
+    onContextMenu: contextMenuSource(api, () => win.document.getElementById("editor_sdk"), {
+      thumbnails: win.Asc.c_oAscContextMenuTypes.Thumbnails,
+    }),
     commands: createSlideCommands(
       api,
       store.get,
@@ -109,6 +126,8 @@ const slideBinding: EditorBinding<
     api.zoomFitToPage();
   },
   markUnchanged: (api) => api.SetUnchangedDocument(),
+  // As slide/api.js `_downloadAs` for a PDF: every slide, not only the selected ones.
+  printCommands: (api) => api.WordControl.m_oDrawingDocument.ToRendererPart(true, false),
 };
 
 /** Opens a .pptx in the presentation engine of a frame mounted with kind "slide" (see document.ts). */

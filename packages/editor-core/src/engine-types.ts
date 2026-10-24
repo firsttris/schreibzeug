@@ -334,6 +334,18 @@ export interface EngineCellInfo {
   asc_getMerge(): number;
 }
 
+/** cell/utils/utils.js `asc_CFindOptions` */
+export interface CellFindOptions {
+  asc_setFindWhat(text: string): void;
+  asc_setScanForward(forward: boolean): void;
+  asc_setIsMatchCase(matchCase: boolean): void;
+  asc_setIsWholeCell(wholeCell: boolean): void;
+  /** cell/apiDefines.js c_oAscFindLookIn */
+  asc_setLookIn(lookIn: number): void;
+  asc_setReplaceWith(text: string): void;
+  asc_setIsReplaceAll(all: boolean): void;
+}
+
 /** Events of the spreadsheet editor we subscribe to (cell/api.js `handlers.trigger`). */
 export type CellEventArgs = CommonEventArgs & {
   asc_onSelectionChanged: [info: EngineCellInfo];
@@ -343,6 +355,14 @@ export type CellEventArgs = CommonEventArgs & {
   asc_onActiveSheetChanged: [index: number];
   asc_onCanUndoChanged: [canUndo: boolean];
   asc_onCanRedoChanged: [canRedo: boolean];
+  /** cell/view/WorkbookView.js: the zoom as a factor, 1 for 100 %. */
+  asc_onZoomChanged: [zoom: number];
+  /** A right click in the grid, with the mouse event (cell/view/WorkbookView.js onContextMenu). */
+  asc_onContextMenu: [event: { clientX: number; clientY: number } | undefined, type?: number];
+  /** common/apiBase.js sync_setSearchCurrent, called by WorkbookView.js. */
+  asc_onSetSearchCurrent: [current: number, total: number];
+  /** How many cells were found and replaced (WorkbookView.js replaceCellText). */
+  asc_onRenameCellTextEnd: [found: number, replaced: number];
 };
 
 /** cell/api.js `spreadsheet_api` (with common/apiBase.js `baseEditorsApi`). */
@@ -384,6 +404,22 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs> {
   asc_deleteWorksheet(): boolean;
   /** Moves the selection to a reference, e.g. "C7" or "Tabelle2!A1". */
   asc_findCell(reference: string): void;
+  asc_Copy(): boolean | undefined;
+  asc_Cut(): boolean | undefined;
+  asc_Paste(): boolean | undefined;
+  /** The zoom as a factor, 1 for 100 %. */
+  asc_getZoom(): number;
+  asc_setZoom(zoom: number): void;
+  /** The number of matches; selects the next (or previous) one. */
+  asc_findText(options: CellFindOptions): number | null;
+  asc_replaceText(options: CellFindOptions): void;
+  /** common/apiBase.js: marks all matches, or takes the marks away. */
+  asc_selectSearchingResults(show: boolean): void;
+  /** cell/view/WorkbookView.js: the pages a print would have, and the PDF printer that draws them. */
+  wb: {
+    calcPagesPrint(): unknown;
+    printSheets(pages: unknown, renderer: null): { DocumentRenderer: { Memory: { GetData(): Uint8Array } } };
+  };
   /** Leaves the cell being typed into; `cancel` drops what was typed. */
   asc_closeCellEditor(cancel?: boolean): void;
 }
@@ -395,6 +431,8 @@ export interface CellWindow extends EngineWindow {
     c_oAscMergeOptions: { Disabled: number; None: number; Merge: number; MergeCenter: number };
     c_oAscInsertOptions: { InsertColumns: number; InsertRows: number };
     c_oAscDeleteOptions: { DeleteColumns: number; DeleteRows: number };
+    asc_CFindOptions: new () => CellFindOptions;
+    c_oAscFindLookIn: { Formulas: number; Value: number };
   };
 }
 
@@ -417,7 +455,7 @@ export type SlideEventArgs = TextEventArgs & {
 };
 
 /** slide/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`). */
-export interface SlideEngineApi extends EngineApiBase<SlideEventArgs>, CharacterApi {
+export interface SlideEngineApi extends EngineApiBase<SlideEventArgs>, CharacterApi, ViewApi, SearchApi {
   SetFontRenderingMode(mode: number): void;
   /** Holds back drawing while the document opens (web-apps presentationeditor/mobile Main.jsx). */
   SetDrawingFreeze(freeze: boolean): void;
@@ -436,11 +474,18 @@ export interface SlideEngineApi extends EngineApiBase<SlideEventArgs>, Character
   ChangeLayout(layoutIndex: number): void;
   /** Bullets (type 0) or numbering (1) with a subtype from 1; subtype -1 ends the list (CommonController.js fFillBullet). */
   put_ListType(type: number, subtype: number): void;
+  /**
+   * slide/Drawing/DrawingDocument.js ToRendererPart: every slide as drawing commands for a PDF,
+   * what slide/api.js `_downloadAs` sends (the second argument: only the selected slides).
+   */
+  WordControl: { m_oDrawingDocument: { ToRendererPart(noBase64: true, isSelection: boolean): Uint8Array } };
 }
 
 /** The presentation editor's frame (engine/frame/editor/slide/main). */
 export interface SlideWindow extends EngineWindow {
   Asc: EngineWindow["Asc"] & {
     asc_docs_api: new (config: Record<string, unknown>) => SlideEngineApi;
+    /** slide/apiDefines.js: in the slide, or in the slide list. */
+    c_oAscContextMenuTypes: { Main: number; Thumbnails: number };
   };
 }

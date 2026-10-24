@@ -2,6 +2,7 @@ import type { ClipboardAction, EditorState, TextCommands, ViewCommands } from "@
 import { tableActions } from "../toolbar/table-menu";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
+import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
 
 /** What the menus of the text editor work with; null while the document opens. */
 export type WordMenuContext = {
@@ -16,31 +17,6 @@ export type WordMenuContext = {
   onToggleComments: () => void;
   onFind: (mode: "find" | "replace") => void;
 };
-
-const KEYS: Record<ClipboardAction, string> = { copy: "Strg+C", cut: "Strg+X", paste: "Strg+V" };
-
-/** The hint web-apps gives too when the browser keeps the clipboard from a menu entry. */
-export const clipboardHint = (action: ClipboardAction): string =>
-  `Der Browser erlaubt das nur über die Tastatur: ${KEYS[action]}.`;
-
-const zoomSteps = [50, 75, 100, 125, 150, 200];
-
-/** Cut, copy, paste: in "Bearbeiten" and in the context menu. */
-export const clipboardItems = ({ view, onClipboardRefused }: WordMenuContext): MenuItem[] =>
-  (
-    [
-      ["cut", "Ausschneiden"],
-      ["copy", "Kopieren"],
-      ["paste", "Einfügen"],
-    ] as const
-  ).map(([action, label]) => ({
-    label,
-    shortcut: KEYS[action],
-    disabled: !view,
-    onSelect: () => {
-      if (view && !view.clipboard(action)) onClipboardRefused(action);
-    },
-  }));
 
 /**
  * Bearbeiten, Ansicht, Einfügen and Format of the text editor, following the menus of the desktop
@@ -71,7 +47,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
             onSelect: run((c) => c.redo()),
           },
         ],
-        clipboardItems(context),
+        clipboardItems(view, context.onClipboardRefused),
         [
           {
             label: "Alles auswählen",
@@ -80,34 +56,13 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
             onSelect: run((c) => c.selectAll()),
           },
         ],
-        [
-          { label: "Suchen", shortcut: "Strg+F", disabled: off, onSelect: () => context.onFind("find") },
-          {
-            label: "Suchen und ersetzen",
-            shortcut: "Strg+H",
-            disabled: off,
-            onSelect: () => context.onFind("replace"),
-          },
-        ],
+        searchItems(context.onFind, off),
       ],
     },
     {
       label: "Ansicht",
       groups: [
-        [
-          { label: "Vergrößern", disabled: !view, onSelect: () => view?.zoomIn() },
-          { label: "Verkleinern", disabled: !view, onSelect: () => view?.zoomOut() },
-        ],
-        zoomSteps.map((percent) => ({
-          label: `${percent} %`,
-          checked: document.zoom === percent,
-          disabled: !view,
-          onSelect: () => view?.setZoom(percent),
-        })),
-        [
-          { label: "Seitenbreite", disabled: !view, onSelect: () => view?.fitWidth() },
-          { label: "Ganze Seite", disabled: !view, onSelect: () => view?.fitPage() },
-        ],
+        ...zoomGroups(view, document.zoom),
         [{ label: "Kommentare", checked: context.commentsOpen, onSelect: context.onToggleComments }],
       ],
     },
@@ -236,10 +191,10 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
  * formatting, as web-apps offers for text (documenteditor main DocumentHolder textMenu, tableMenu).
  */
 export const wordContextMenu = (context: WordMenuContext): MenuItem[][] => {
-  const { state, commands } = context;
+  const { state, commands, view } = context;
   const run = (action: (commands: TextCommands) => void) => commands && action(commands);
   return [
-    clipboardItems(context),
+    clipboardItems(view, context.onClipboardRefused),
     [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
     ...(state.paragraph.inTable ? tableActions(run) : []),
     [

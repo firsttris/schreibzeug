@@ -32,11 +32,12 @@ describe("toContextMenuRequest", () => {
 
   it("places the menu in frame coordinates, from the point in the engine's view", () => {
     const view = { getBoundingClientRect: () => ({ left: 100, top: 20 }) };
-    expect(toContextMenuRequest(data(0), view, 1)).toEqual({ x: 130, y: 60, area: "body" });
+    expect(toContextMenuRequest(data(0), view, { headerFooter: 1 })).toEqual({ x: 130, y: 60, area: "body" });
   });
 
   it("tells a click in a header or footer apart", () => {
-    expect(toContextMenuRequest(data(1), null, 1).area).toBe("headerFooter");
+    expect(toContextMenuRequest(data(1), null, { headerFooter: 1 }).area).toBe("headerFooter");
+    expect(toContextMenuRequest(data(1), null, { thumbnails: 1 }).area).toBe("thumbnails");
   });
 });
 

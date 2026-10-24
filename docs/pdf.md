@@ -91,6 +91,31 @@ what was changed on them (`CPDFDoc.GetPagesBinary`, which `drawingfile.wasm` `Sp
 and stores it beside the file as "<Name> – Seiten 1–2.pdf" (in "Meine Dateien" when the folder
 belongs to someone else).
 
+## E-invoices (ZUGFeRD)
+
+A ZUGFeRD or Factur-X invoice is a PDF for people with the invoice for machines attached, as XML
+(CII; an XRechnung or a UBL invoice may come attached the same way). Opening such a PDF shows a card
+above it: the invoice's number and date, who sends it to whom, net, tax and total, what is due
+until when; "Details" adds the IBAN, the payment reference, the VAT ID, the period of service and
+the lines. "XML herunterladen" gives the attached XML as it is, for accounting software that
+wants it alone. The card says what the XML says, not what the page shows: changing the PDF does
+not change the invoice data, and the card says so.
+
+`packages/einvoice` is taken from Haben (github.com/firsttris/haben, `packages/einvoice`,
+AGPL-3.0-only, the same author), without Node and with failures as values:
+
+- `extractEmbeddedXml` looks through the `EmbeddedFiles` name tree, the catalog's `/AF` (PDF/A-3)
+  and, failing both, any file specification, and prefers `factur-x.xml`, `zugferd-invoice.xml`
+  and `xrechnung.xml` to other XML attachments. An attachment is unpacked to 32 MB at most.
+- `readInvoiceXml` reads CII (ZUGFeRD 1 and 2, Factur-X, XRechnung CII) and UBL (Invoice,
+  CreditNote) with fast-xml-parser, namespace prefixes removed; amounts in cents as integers,
+  credit notes negative. XML it cannot read gives the reason, and the card shows it beside the
+  download.
+
+Saving keeps the attachment: x2t writes the changes into the PDF itself (see "Opening and saving"), and
+`e2e/pdf-invoice.spec.ts` reads the invoice back from the stored file after turning a page.
+Making ZUGFeRD invoices from a text document is not part of this yet.
+
 ## Text recognition
 
 A scanned PDF is pictures of pages: its words can be neither searched nor copied. Opening one
@@ -163,7 +188,10 @@ connection someone who types very fast can lose a character in a shared form.
 `e2e/pdf-sign.spec.ts` signs through the app with a certificate made for the test (a wrong
 password first), checks the stored file and the warning after a change; `packages/pdf-sign/test`
 signs and checks below the app, also a changed byte and bytes added after signing.
-`e2e/pdf-ocr.spec.ts` uploads a scan made in the browser (text drawn into a PNG), recognises its
+`e2e/pdf-invoice.spec.ts` opens `test-files/rechnung.pdf` (a ZUGFeRD invoice written by
+`test-files/rechnung.ts`), checks the card and the XML download, and that saving keeps the invoice;
+`packages/einvoice/test` reads CII, ZUGFeRD 2 BASIC WL, UBL and a UBL credit note and finds the
+XML among other attachments. `e2e/pdf-ocr.spec.ts` uploads a scan made in the browser (text drawn into a PNG), recognises its
 text through the notice and checks the stored text layer and that a second run has nothing to do;
 `packages/pdf-ocr/test` checks which pages count as textless and where the words go, and
 `apps/web/src/editor/ocr.test.ts` the run over the pages. `e2e/pdf-a.spec.ts` downloads a text document and an edited PDF as PDF/A and checks the

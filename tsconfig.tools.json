@@ -6,5 +6,9 @@
     "tsBuildInfoFile": "node_modules/.tsc/tools.tsbuildinfo"
   },
   "include": ["engine/scripts", "test-files", "e2e", "vitest.config.ts"],
-  "references": [{ "path": "packages/pdf-ocr" }, { "path": "packages/pdf-sign" }]
+  "references": [
+    { "path": "packages/einvoice" },
+    { "path": "packages/pdf-ocr" },
+    { "path": "packages/pdf-sign" }
+  ]
 }

@@ -6,6 +6,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { docx, paragraphXml, pptx, type Run, xlsx } from "@schreibzeug/ooxml";
 import { pdf } from "./pdf";
+import { rechnungPdf } from "./rechnung";
 
 /** Run properties (ECMA-376 Part 1, 17.3.2); sizes are in half-points. */
 const bold = "<w:b/>";
@@ -117,6 +118,9 @@ const files: Record<string, Uint8Array> = {
   // A one-page PDF to append to another one.
   "anhang.pdf": pdf([{ lines: ["Anhang", "Lieferschein 2026-117"] }]),
 };
+
+// A ZUGFeRD invoice: the PDF with its Factur-X XML attached (rechnung.ts).
+files["rechnung.pdf"] = await rechnungPdf();
 
 for (const [name, bytes] of Object.entries(files)) {
   writeFileSync(join(import.meta.dir, name), bytes);

@@ -13,6 +13,7 @@ import {
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { PDF_SHORTCUTS } from "./help-dialogs";
+import { InvoiceCard, useEmbeddedInvoice } from "./invoice-card";
 import { ScanNotice } from "./ocr-dialog";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import { type PdfMenuContext, pagesLabel, pdfContextMenu, pdfMenus } from "./pdf-menus";
@@ -77,6 +78,7 @@ export const PdfView = ({
   const appendInput = useRef<HTMLInputElement>(null);
   const checks = useSignatureChecks(file.bytes);
   const [signingDigitally, setSigningDigitally] = useState(false);
+  const invoice = useEmbeddedInvoice(file.bytes);
   const ocr = useOcr({
     editor,
     bytes: file.bytes,
@@ -178,6 +180,7 @@ export const PdfView = ({
         }
       />
       <SignatureNotice checks={checks} modified={state.document.modified} />
+      {invoice && <InvoiceCard embedded={invoice} />}
       {ocr.scanned && <ScanNotice onRecognize={ocr.start} />}
       <div className="flex min-h-0 flex-1">
         <DocumentArea

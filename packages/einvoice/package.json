@@ -1,0 +1,15 @@
+{
+  "name": "@schreibzeug/einvoice",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "E-invoices in PDFs: finds the invoice XML a ZUGFeRD or Factur-X PDF carries and reads it (CII and UBL).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "fast-xml-parser": "5.11.2",
+    "pdf-lib": "1.17.1"
+  }
+}

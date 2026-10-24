@@ -12,6 +12,9 @@
       "path": "../../packages/editor-core"
     },
     {
+      "path": "../../packages/einvoice"
+    },
+    {
       "path": "../../packages/files-api"
     },
     {

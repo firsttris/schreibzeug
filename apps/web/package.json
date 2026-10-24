@@ -13,6 +13,7 @@
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
     "@schreibzeug/editor-core": "workspace:*",
+    "@schreibzeug/einvoice": "workspace:*",
     "@schreibzeug/files-api": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
     "@schreibzeug/pdf-ocr": "workspace:*",

@@ -96,8 +96,11 @@ test.describe("text document round trip without a document server", () => {
     await page.getByRole("button", { name: "Kursiv" }).click();
     await save(page);
 
+    // The editor may also have saved on its own (three seconds after the change) before the click.
     const versions = await (await page.request.get(`/api/files/${fileId}/versions`)).json();
-    expect(versions.map((version: { number: number }) => version.number)).toEqual([2, 1]);
+    const numbers: number[] = versions.map((version: { number: number }) => version.number);
+    expect(numbers.length).toBeGreaterThanOrEqual(2);
+    expect(numbers).toEqual(numbers.map((_, index) => numbers.length - index));
   });
 });
 

@@ -293,6 +293,13 @@ WebAssembly) and loads `<lang>/<lang>.aff` and `.dic` from `engine/dictionaries`
   `onlyoffice-spellchecker`) never answered in Chromium, while a dedicated worker does; spell.js
   already does without the shared one for WebKit's WKWebView, so the frame hides `SharedWorker`
   before the editor starts (`useDedicatedSpellWorker`).
+- **Started however fast it loads.** The worker (`common/spell/spell/spell.js`) sets
+  `Module.onRuntimeInitialized` only when the page's "init" message comes. Once the browser has the
+  WebAssembly cached it is ready before that, the callback never comes and the build's assertions
+  abort the module ("Attempt to set `Module.onRuntimeInitialized` after it has already been
+  processed"): no spell checking in that document. `engine/scripts/prepare.ts` (`patchSpellWorker`)
+  makes the worker call `self.onEngineInit()` at once when `Module.calledRun` is set; it stops with
+  an error should an engine update change that line.
 - **On or off** with `asc_setSpellCheck(on)` once the document is ready, and from "Überprüfen →
   Rechtschreibprüfung"; the choice is kept in this browser (`apps/web` `settings/spell-check.ts`,
   as web-apps keeps "settings-spellcheck"). Someone who may only look gets no underlines.

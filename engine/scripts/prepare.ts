@@ -12,6 +12,8 @@
  *   dist/dictionaries/<lang>/             Hunspell dictionaries for the spell checker, with their licenses
  *   dist/licenses/                        engine and font licenses
  *
+ * One fix is made to the built sdkjs: see patchSpellWorker.
+ *
  * Sources, both pinned in engine.json: the official Euro-Office Document Server release package
  * (built sdkjs, the open-source fonts in core-fonts, the allfontsgen tool) and CryptPad's x2t
  * WebAssembly build. Nothing is built from C++ here. allfontsgen is a Linux x86_64 binary: run this
@@ -189,6 +191,32 @@ const copyDictionaries = (spec: EngineSpec): void => {
   }
 };
 
+/**
+ * The spell checker's worker (common/spell/spell/spell.js) sets `Module.onRuntimeInitialized` in the
+ * Spellchecker constructor, which runs on the page's "init" message. When the WebAssembly is ready
+ * before that message comes (it is, once the browser has it cached), the runtime has already run:
+ * the callback never comes, and the build's assertions abort the module ("Attempt to set
+ * `Module.onRuntimeInitialized` after it has already been processed"). The spell checker is then
+ * dead and the abort is logged on the page. The worker already knows it is ready by then
+ * (`Module.calledRun`), so it calls `self.onEngineInit()` straight away instead; the "init" handler
+ * creates the engine right after (`Spellchecker.init` checks `self.engineInit`).
+ */
+const SPELL_WORKER = "sdkjs/common/spell/spell/spell.js";
+const LATE_INIT = "Module.onRuntimeInitialized=function(){self.onEngineInit()}";
+const SAFE_INIT = `if(Module["calledRun"])self.onEngineInit();else ${LATE_INIT}`;
+
+const patchSpellWorker = (source: string): string => {
+  if (source.split(LATE_INIT).length !== 2) {
+    throw new Error(`${SPELL_WORKER}: the spell checker's start changed; check the patch in prepare.ts.`);
+  }
+  return source.replace(LATE_INIT, SAFE_INIT);
+};
+
+const patchEngine = (): void => {
+  const file = join(distDir, SPELL_WORKER);
+  writeFileSync(file, patchSpellWorker(readFileSync(file, "utf8")));
+};
+
 const extractConverter = async (spec: ReleaseAsset): Promise<void> => {
   const out = join(distDir, "x2t");
   mkdirSync(out, { recursive: true });
@@ -268,6 +296,7 @@ const prepare = async (force: boolean): Promise<void> => {
     { label: "Download the Document Server package", run: (report) => download(spec, report) },
     { label: "Unpack the package", run: () => extract(spec) },
     { label: "Copy sdkjs and its libraries", run: () => copyEngine(spec) },
+    { label: "Let the spell checker start however fast it loads", run: patchEngine },
     { label: "Download the converter", run: (report) => download(spec.converter, report) },
     { label: "Unpack the converter", run: () => extractConverter(spec.converter) },
     { label: "Generate the fonts (allfontsgen)", run: generateFonts },

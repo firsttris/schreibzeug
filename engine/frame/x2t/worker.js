@@ -175,6 +175,9 @@ self.onmessage = async (event) => {
     const transfer = [result.bytes.buffer, ...Object.values(result.media).map((image) => image.buffer)];
     self.postMessage({ id, ...result }, transfer);
   } catch (error) {
-    self.postMessage({ id, error: error instanceof Error ? error.message : String(error) });
+    // A C++ exception in x2t arrives as a bare number (a pointer); what x2t wrote to stderr says more.
+    const message = error instanceof Error ? error.message : `x2t stopped (${String(error)})`;
+    const details = stderr.length > 0 && !message.includes(stderr[0]) ? `: ${stderr.join(" ").slice(0, 500)}` : "";
+    self.postMessage({ id, error: `${message}${details}` });
   }
 };

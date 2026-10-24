@@ -247,6 +247,38 @@ describe("openWordDocument", () => {
     });
   });
 
+  it("offers no image insertion without a place to keep images", async () => {
+    const { editor } = await openReady();
+    expect(editor.insertImage).toBeNull();
+  });
+
+  it("stores an inserted image, puts it in by its URL and saves it under its name", async () => {
+    const engine = createFakeEngine();
+    const converter = fakeConverter();
+    const uploads: Uint8Array[] = [];
+    const store = (name: string) => `https://stapel.example/api/files/f1/media/${name}`;
+    const images = {
+      upload: async (bytes: Uint8Array) => {
+        uploads.push(bytes);
+        return { name: "abc.png", url: store("abc.png") };
+      },
+    };
+    const opening = openWordDocument(engine.window, optionsWith(converter.convert, { images }));
+    await flush();
+    engine.api().emit("asc_onDocumentContentReady");
+    const editor = await opening;
+    const photo = new Uint8Array([137, 80, 78, 71, 9]);
+    engine.serve(store("abc.png"), photo);
+
+    await editor.insertImage?.(photo);
+    expect(uploads).toEqual([photo]);
+    expect(engine.api().calls).toContainEqual(["AddImageUrl", [store("abc.png")]]);
+    expect(engine.window.AscCommon.g_oDocumentUrls.getUrls()["media/abc.png"]).toBe(store("abc.png"));
+
+    await editor.save();
+    expect(converter.conversions.at(-1)?.media).toEqual({ "image1.png": logo, "abc.png": photo });
+  });
+
   it("is ready once the content is shown", async () => {
     const { editor } = await openReady();
     expect(editor.store.get().status).toBe("ready");

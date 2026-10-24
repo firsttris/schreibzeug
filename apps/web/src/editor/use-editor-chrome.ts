@@ -6,6 +6,7 @@ import type {
 } from "@stapel/editor-core";
 import { type RefObject, useEffect, useState } from "react";
 import { useNotice } from "../ui/use-notice";
+import { useInsertImage } from "./use-insert-image";
 import { usePdf } from "./use-pdf";
 import { useSearchBar } from "./use-search-bar";
 import { useShortcuts } from "./use-shortcuts";
@@ -15,6 +16,7 @@ export type ChromeSource = {
   exportPdf: (() => Promise<Uint8Array>) | null;
   onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void;
   onContextMenu: (listener: ContextMenuListener) => () => void;
+  insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
 };
 
 /** Where the engine's frame sits in the window: context menu points come in frame coordinates. */
@@ -25,7 +27,7 @@ const toWindow = (container: HTMLElement | null, request: ContextMenuRequest) =>
 
 /**
  * The parts every editor has around its document: short messages, the search bar, PDF and print,
- * the keys Strg+F/H/P, and where a right click asks for the context menu. Someone who may only
+ * inserting an image, the keys Strg+F/H/P, and where a right click asks for the context menu. Someone who may only
  * look gets no context menu and cannot replace.
  */
 export const useEditorChrome = (
@@ -37,6 +39,7 @@ export const useEditorChrome = (
   const [notice, notify] = useNotice();
   const searchBar = useSearchBar(!readOnly);
   const pdf = usePdf(editor, name, notify);
+  const insertImage = useInsertImage(editor, readOnly, notify);
   const [menuAt, setMenuAt] = useState<{ x: number; y: number; area: ContextMenuArea } | null>(null);
 
   useShortcuts(editor, {
@@ -50,5 +53,5 @@ export const useEditorChrome = (
     return editor.onContextMenu((request) => setMenuAt(toWindow(container.current, request)));
   }, [editor, readOnly, container]);
 
-  return { notice, notify, searchBar, pdf, menuAt, closeMenu: () => setMenuAt(null) };
+  return { notice, notify, searchBar, pdf, insertImage, menuAt, closeMenu: () => setMenuAt(null) };
 };

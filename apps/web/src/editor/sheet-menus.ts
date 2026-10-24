@@ -19,6 +19,8 @@ export type SheetMenuContext = {
   view: ViewCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
   onFind: (mode: "find" | "replace") => void;
+  /** Opens the file dialog for an image; null where none can be put in. */
+  onInsertImage: (() => void) | null;
 };
 
 /** Rows and columns: in "Einfügen" and in the context menu. */
@@ -74,6 +76,13 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
       groups: [
         ...rowsAndColumns(run, off),
         [{ label: "Tabellenblatt", disabled: !context.sheets, onSelect: () => context.sheets?.add() }],
+        [
+          {
+            label: "Bild …",
+            disabled: off || !context.onInsertImage,
+            onSelect: () => context.onInsertImage?.(),
+          },
+        ],
       ],
     },
     {

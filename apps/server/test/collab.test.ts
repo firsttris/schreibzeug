@@ -46,6 +46,26 @@ describe("collaboration session", () => {
     });
   });
 
+  it("tells an engine where the images it got by name in a change are", () => {
+    const { log } = run([
+      ["a", auth("anna")],
+      [
+        "a",
+        { type: "rpc", responseKey: 7, data: { type: "pathurls", data: ["media/abc.png", "theme1/x.png"] } },
+      ],
+    ]);
+    expect(log[1]?.out).toEqual([
+      {
+        to: "self",
+        message: {
+          type: "rpc",
+          responseKey: 7,
+          data: { type: "pathurls", status: "ok", data: [`/api/files/${FILE}/media/abc.png`, ""] },
+        },
+      },
+    ]);
+  });
+
   it("sends spreadsheet locks to a newcomer as a list", () => {
     const sheetAuth = (user: string) => ({ ...auth(user), editorType: 1 });
     const block = {

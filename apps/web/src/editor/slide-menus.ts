@@ -16,6 +16,8 @@ export type SlideMenuContext = {
   view: ViewCommands | null;
   onClipboardRefused: (action: ClipboardAction) => void;
   onFind: (mode: "find" | "replace") => void;
+  /** Opens the file dialog for an image; null where none can be put in. */
+  onInsertImage: (() => void) | null;
 };
 
 /** New, duplicate, delete: in "Folie" and in the context menu. */
@@ -75,6 +77,18 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
       ],
     },
     { label: "Ansicht", groups: zoomGroups(view, document.zoom) },
+    {
+      label: "Einfügen",
+      groups: [
+        [
+          {
+            label: "Bild …",
+            disabled: off || !context.onInsertImage,
+            onSelect: () => context.onInsertImage?.(),
+          },
+        ],
+      ],
+    },
     {
       label: "Folie",
       groups: [

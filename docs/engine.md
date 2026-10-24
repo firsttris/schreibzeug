@@ -209,6 +209,14 @@ itself never sees files; it looks every image up by its name in `AscCommon.g_oDo
 answers, and on saving or printing fetches every `media/` entry back into bytes (`collectMedia`),
 including images added while editing.
 
+"Einfügen → Bild …" puts an image from the computer in at the cursor (`insertImage`): the app
+stores it on the server, which answers its name, and the image goes into DocumentUrls under that
+name with its server URL; then `AddImageUrl([url])` (`common/apiBase.js`) finds the URL there and
+hands it to the editor's `_addImageUrl` (word/api.js, cell/api.js, slide/api.js), as after an upload
+to the Document Server (`UploadImageFiles`). Saving maps the URL back to the name
+(`Shapes/SerializeWriter.js` `getImageLocal`), so the image lands in the file's `media/`. How the
+others in a session get it is in [collaboration](collaboration.md#saving).
+
 ## Keyboard focus
 
 The engine takes keys through a hidden text area in its frame (`common/text_input2.js`, id

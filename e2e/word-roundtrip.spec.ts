@@ -3,15 +3,18 @@ import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import { unzipSync } from "fflate";
 import {
   collectErrors,
+  insertImageFromMenu,
   openDocument,
   openFileId,
   openOwnFolder,
   save,
   storedDocx,
+  storedMedia,
   storedXml,
   upload,
 } from "./app";
 import { paragraphTexts, runPropertiesOf } from "./docx";
+import { solidPng } from "./png";
 
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
@@ -119,4 +122,19 @@ test("shows the images of a document and keeps them when saving", async ({ page 
   await page.keyboard.type(" Text");
   await save(page);
   expect(images(await storedDocx(page, fileId))).toEqual(images(before));
+});
+
+test("puts an image from the computer into the document and saves it in the file", async ({
+  page,
+}, testInfo) => {
+  const fileId = await openHello(page, testInfo);
+  const logo = solidPng(120, 60, [200, 30, 40]);
+  await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+  await page.keyboard.press("Control+End");
+
+  await insertImageFromMenu(page, logo);
+  await save(page);
+
+  expect(await storedMedia(page, fileId)).toContainEqual(logo);
+  expect(await storedXml(page, fileId)).toContain("<pic:pic");
 });

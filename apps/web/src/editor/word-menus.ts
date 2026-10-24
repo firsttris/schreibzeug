@@ -13,6 +13,8 @@ export type WordMenuContext = {
   onClipboardRefused: (action: ClipboardAction) => void;
   onAddComment: () => void;
   onInsertTable: () => void;
+  /** Opens the file dialog for an image; null where none can be put in. */
+  onInsertImage: (() => void) | null;
   commentsOpen: boolean;
   onToggleComments: () => void;
   onFind: (mode: "find" | "replace") => void;
@@ -71,6 +73,11 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
       groups: [
         [
           { label: "Tabelle …", disabled: off, onSelect: context.onInsertTable },
+          {
+            label: "Bild …",
+            disabled: off || !context.onInsertImage,
+            onSelect: () => context.onInsertImage?.(),
+          },
           { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
         ],
         [

@@ -5,6 +5,7 @@ import {
   folderListingSchema,
   invitationSchema,
   inviteSchema,
+  mediaSchema,
   nodeSchema,
   type ShareRole,
   sharedNodeSchema,
@@ -122,6 +123,14 @@ export const fileCommands = (api: ApiClient) => ({
         { init: { body: bytes as BodyInit, headers: { "content-type": "application/octet-stream" } } },
       ),
       nodeSchema,
+    ),
+  addImage: (id: string, bytes: Uint8Array) =>
+    expectJson(
+      api.files[":id"].media.$post(
+        { param: { id } },
+        { init: { body: bytes as BodyInit, headers: { "content-type": "application/octet-stream" } } },
+      ),
+      mediaSchema,
     ),
 });
 

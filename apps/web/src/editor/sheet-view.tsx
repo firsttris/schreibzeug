@@ -38,6 +38,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onFind: chrome.searchBar.open,
+    onInsertImage: chrome.insertImage,
   };
 
   return (

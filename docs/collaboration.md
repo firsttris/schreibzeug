@@ -104,6 +104,14 @@ soon as the relay has a change. "Nicht gespeicherte Änderungen" and the warning
 tab therefore mean: the engine has changes it has not sent, or the log is ahead of the stored
 version.
 
+An image someone puts in is stored on the server first (`POST /api/files/:id/media`); the change
+carries only its name. An engine that meets a name it has no URL for asks the relay, as it would
+ask the Document Server (`common/CollaborativeEditingBase.js` `SendImagesUrlsFromChanges`:
+`{"type":"rpc","data":{"type":"pathurls","data":["media/<name>"]}}`, answered in DocsCoServer.js
+`startRPC` with storage URLs). The relay answers with the file's image route,
+`/api/files/<id>/media/<name>` (`answerRpc` in `src/collab/session.ts`), so every copy, also one
+that joins later and replays the log, can show the image and write it into the file it saves.
+
 When the log is ahead, the author of the newest change saves three seconds after it, everyone else
 after fifteen, in case that person has left. Every new change starts the wait again. A save asked
 for while one runs follows it. Each save is a version, so a session leaves several versions behind.

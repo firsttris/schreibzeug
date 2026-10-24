@@ -46,6 +46,7 @@ export {
 export type { DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
+export type { ImageStore } from "./media";
 export { createSearchCommands, type SearchCommands, type SearchQuery } from "./search";
 export {
   AUTOSAVE_DELAY,

@@ -5,14 +5,17 @@ import {
   collectErrors,
   createFile,
   expectEditorReady,
+  insertImageFromMenu,
   openDocument,
   openFileId,
   openOwnFolder,
   save,
   storedDocx,
+  storedMedia,
   upload,
 } from "./app";
 import { partXml } from "./docx";
+import { solidPng } from "./png";
 
 const vortrag = join(import.meta.dirname, "../test-files/vortrag.pptx");
 
@@ -138,4 +141,17 @@ test.describe("menus of the presentation", () => {
     expect(file.suggestedFilename()).toBe("vortrag.pdf");
     expect((await readFile((await file.path()) as string)).subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
+});
+
+test("puts an image on the slide and keeps it in the .pptx", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await createFile(page, "Präsentation", "Mit Logo");
+  await expectEditorReady(page, errors);
+  const fileId = openFileId(page);
+  const logo = solidPng(90, 45, [240, 180, 20]);
+  await insertImageFromMenu(page, logo);
+  await save(page);
+  expect(await storedMedia(page, fileId)).toContainEqual(logo);
+  expect(await slideXml(page, fileId, 1)).toContain("<p:pic>");
 });

@@ -85,6 +85,10 @@ export const invitationSchema = z.object({
   expiresAt: z.iso.datetime({ offset: true }),
 });
 
+/** An image stored for a document being edited; served under /api/files/:id/media/:name. */
+export const mediaSchema = z.object({ name: z.string().regex(/^[0-9a-f]{64}\.[a-z]+$/) });
+export type Media = z.infer<typeof mediaSchema>;
+
 export const folderListingSchema = z.object({
   folder: nodeSchema.nullable(),
   path: z.array(nodeSchema),

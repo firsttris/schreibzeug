@@ -5,6 +5,7 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  ImagePlus,
   Italic,
   List,
   ListOrdered,
@@ -46,10 +47,12 @@ export type ToolbarProps = {
   commands: TextCommands | null;
   /** Opens the comment field for the selection; comments live beside the document. */
   onAddComment: () => void;
+  /** Opens the file dialog for an image; null where none can be put in. */
+  onInsertImage: (() => void) | null;
 };
 
 /** The formatting row above the document: every control reads EditorState and calls a command. */
-export const Toolbar = ({ state, commands, onAddComment }: ToolbarProps) => {
+export const Toolbar = ({ state, commands, onAddComment, onInsertImage }: ToolbarProps) => {
   const disabled = !commands || state.status !== "ready";
   const { text, paragraph, catalog, document } = state;
   const fontSize = text.fontSize ?? 11;
@@ -156,6 +159,14 @@ export const Toolbar = ({ state, commands, onAddComment }: ToolbarProps) => {
         <ToggleButton key={toggle.label} {...toggle} disabled={disabled} />
       ))}
       <TableMenu inTable={paragraph.inTable} disabled={disabled} commands={commands} />
+      <Button
+        variant="ghost"
+        aria-label="Bild einfügen"
+        disabled={disabled || !onInsertImage}
+        onClick={() => onInsertImage?.()}
+      >
+        <ImagePlus size={16} />
+      </Button>
       <Button variant="ghost" aria-label="Kommentar hinzufügen" disabled={disabled} onClick={onAddComment}>
         <MessageSquarePlus size={16} />
       </Button>

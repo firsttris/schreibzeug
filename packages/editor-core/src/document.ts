@@ -1,11 +1,11 @@
 import type { CollabChannel } from "./collab";
-import type { Convert, Converted, OfficeFormat, RenderPdf } from "./converter";
+import type { Convert, Converted, MediaFiles, OfficeFormat, RenderPdf } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
-import type { CommonEventArgs, EngineApiBase, EngineWindow } from "./engine-types";
+import type { CommonEventArgs, DocumentUrls, EngineApiBase, EngineWindow } from "./engine-types";
 import { coreEvents, type Translators } from "./events";
 import { keepFocusOnClick } from "./frame";
 import { createFrameSocketIO } from "./frame-socket";
-import { collectMedia, provideMedia } from "./media";
+import { addImage, collectMedia, type ImageStore, provideMedia } from "./media";
 import { fontsForPdf } from "./print";
 import { createStore, type Store } from "./store";
 import { type AppShortcut, createListeners, shortcutOf } from "./view";
@@ -31,6 +31,8 @@ export type OpenOptions = {
    * participant uses for this document. `bytes` must be the session's base version.
    */
   collaboration?: { channel: CollabChannel; documentId: string };
+  /** Where inserted images are kept; without it the document offers no insertImage. */
+  images?: ImageStore;
 };
 
 /** An Office file made from the document, and how many of the session's changes it holds. */
@@ -55,6 +57,8 @@ export type OpenedDocument<S extends CoreState> = {
    * search panel or print preview); here they go to the listener instead of the browser.
    */
   onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void;
+  /** Puts an image (PNG, JPEG, GIF, BMP) in at the cursor; null without an image store. */
+  insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
 };
 
 /** What one editor's engine needs on top of the shared opening flow. */
@@ -143,16 +147,37 @@ const pdfExport = <Api extends { asc_nativeGetFile(): string }>(
   api: Api,
   printCommands: ((api: Api) => Uint8Array) | undefined,
   renderPdf: RenderPdf | undefined,
+  snapshot: () => Promise<Snapshot>,
 ): OpenedDocument<CoreState>["exportPdf"] => {
   if (!printCommands || !renderPdf) return null;
   return async () => {
-    const document = new TextEncoder().encode(api.asc_nativeGetFile());
+    const { binary, media } = await snapshot();
     const commands = printCommands(api);
     const fonts = await fontsForPdf(win.AscCommon.g_font_loader, win.location.href, fetchBytes(win));
-    const media = await collectMedia(win.AscCommon.g_oDocumentUrls, fetchBytes(win));
-    return renderPdf(document, commands, fonts, media);
+    return renderPdf(binary, commands, fonts, media);
   };
 };
+
+/** The document in the engine's binary format and the images it refers to. */
+type Snapshot = { binary: Uint8Array; media: MediaFiles };
+
+/**
+ * An image from the user's computer, put in at the cursor: stored first, so that everyone in the
+ * session can load it from its URL, then handed to the engine like an uploaded one
+ * (common/apiBase.js _uploadCallback → _addImageUrl).
+ */
+const insertImage = (
+  urls: DocumentUrls,
+  api: EngineApiBase<CommonEventArgs>,
+  images: ImageStore | undefined,
+): OpenedDocument<CoreState>["insertImage"] =>
+  images
+    ? async (bytes) => {
+        const { name, url } = await images.upload(bytes);
+        addImage(urls, name, url);
+        api.AddImageUrl([url]);
+      }
+    : null;
 
 /** Feeds the relay's messages into the session progress (session-progress.ts). */
 const followProgress = (channel: CollabChannel | undefined, dispatch: (event: CoreEvent) => void) =>
@@ -236,9 +261,14 @@ export const openDocument = <
 
     const start = ({ bytes: binary, media }: Converted) => {
       const api = binding.createApi(win);
-      provideMedia(win.AscCommon.g_oDocumentUrls, media, (image) =>
-        win.URL.createObjectURL(new win.Blob([image as BlobPart])),
-      );
+      const urls = win.AscCommon.g_oDocumentUrls;
+      provideMedia(urls, media, (image) => win.URL.createObjectURL(new win.Blob([image as BlobPart])));
+      // The document with the images it holds: those it came with and those added since, by
+      // anyone (others' images arrive by name, and the relay says where they are; collab.ts).
+      const snapshot = async (): Promise<Snapshot> => {
+        const binary = new TextEncoder().encode(api.asc_nativeGetFile());
+        return { binary, media: await collectMedia(urls, fetchBytes(win)) };
+      };
       const base = api as unknown as EngineApiBase<CommonEventArgs>;
       const stopProgress = followProgress(options.collaboration?.channel, dispatch);
       const url = connectEngine(win, base, binary, options.collaboration);
@@ -265,9 +295,8 @@ export const openDocument = <
         store,
         save: async () => {
           const seen = store.get().session.seen;
-          const binaryNow = new TextEncoder().encode(api.asc_nativeGetFile());
-          const media = await collectMedia(win.AscCommon.g_oDocumentUrls, fetchBytes(win));
-          const saved = await options.convert(binaryNow, "bin", binding.format, media);
+          const { binary: binaryNow, media: mediaNow } = await snapshot();
+          const saved = await options.convert(binaryNow, "bin", binding.format, mediaNow);
           return { bytes: saved.bytes, seen };
         },
         markSaved: ({ seen }) => {
@@ -276,7 +305,8 @@ export const openDocument = <
         },
         resize: () => binding.resize(api),
         onShortcut: shortcuts.add,
-        exportPdf: pdfExport(win, api, binding.printCommands, options.renderPdf),
+        exportPdf: pdfExport(win, api, binding.printCommands, options.renderPdf, snapshot),
+        insertImage: insertImage(urls, base, options.images),
         close: () => {
           win.removeEventListener("keydown", onKey, true);
           stopProgress();

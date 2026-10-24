@@ -1,9 +1,17 @@
-import { joinSession } from "@stapel/editor-core";
+import { type ImageStore, joinSession } from "@stapel/editor-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { messageOf } from "../api/client";
-import { useFiles } from "../api/context";
+import { type Files, useFiles } from "../api/context";
 import type { OpenedFile } from "./opened-file";
+
+/** The file's images on the server: stored on insertion, loaded by everyone from the same URL. */
+const imageStore = ({ commands, mediaUrl }: Files, fileId: string): ImageStore => ({
+  upload: async (bytes) => {
+    const { name } = await commands.addImage(fileId, bytes);
+    return { name, url: mediaUrl(fileId, name) };
+  },
+});
 
 export type SessionFile =
   | { status: "loading" }
@@ -16,7 +24,8 @@ export type SessionFile =
  * `generation` opens it anew, e.g. after a restored version.
  */
 export const useSessionFile = (fileId: string, generation: number): SessionFile => {
-  const { queries, commands, collabUrl } = useFiles();
+  const files = useFiles();
+  const { queries, commands, collabUrl } = files;
   const queryClient = useQueryClient();
   const [state, setState] = useState<SessionFile>({ status: "loading" });
 
@@ -44,6 +53,7 @@ export const useSessionFile = (fileId: string, generation: number): SessionFile 
           readOnly: node.role === "view",
           owned: node.role === "owner",
           collaboration: { channel, documentId: fileId },
+          images: imageStore(files, fileId),
         },
       });
     };

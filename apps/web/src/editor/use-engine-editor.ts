@@ -60,6 +60,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           renderPdf: converter.renderPdf,
           mode: file.readOnly ? "view" : "edit",
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
+          ...(file.images ? { images: file.images } : {}),
         });
         cleanup = () => {
           opened.close();

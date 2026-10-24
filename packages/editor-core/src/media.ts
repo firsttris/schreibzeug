@@ -20,6 +20,20 @@ export const provideMedia = (
 };
 
 /**
+ * Where images added while editing go: the server keeps them, and the engine loads them from a URL
+ * every participant can reach, as with the Document Server's upload (common/editorscommon.js
+ * UploadImageFiles: it answers `{"media/<name>": url}`, which goes into DocumentUrls).
+ */
+export type ImageStore = {
+  /** Stores the image and answers the name it gets in the file and the absolute URL it loads from. */
+  upload: (bytes: Uint8Array) => Promise<{ name: string; url: string }>;
+};
+
+/** Adds an image of the store to the document map, under the name it gets in the file. */
+export const addImage = (urls: DocumentUrls, name: string, url: string): void =>
+  urls.addUrls({ [`${MEDIA_PREFIX}${name}`]: url });
+
+/**
  * The images the document holds now, also ones added while editing, for the converter to put into
  * the Office file or the PDF.
  */

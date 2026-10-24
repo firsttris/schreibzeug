@@ -32,7 +32,7 @@ const active = isNull(nodes.trashedAt);
 const ownedBy = (user: UserId) => eq(nodes.ownerId, user);
 const asOwner = (node: NodeRow): Accessible => ({ node, role: "owner" });
 
-const requireFile = (
+export const requireFile = (
   db: Queryable,
   user: UserId,
   id: string,

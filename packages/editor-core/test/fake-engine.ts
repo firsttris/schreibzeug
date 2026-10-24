@@ -16,6 +16,8 @@ export type FakeEngine = {
   api: () => FakeApi;
   /** Presses the mouse in the frame; returns how often the engine's input was focused so far. */
   press: () => number;
+  /** Makes the frame's fetch answer the URL with the bytes, as a server would. */
+  serve: (url: string, bytes: Uint8Array) => void;
 };
 
 export type FakeApi = WordEngineApi & {
@@ -156,6 +158,9 @@ export const createFakeEngine = (): FakeEngine => {
         nativeFile: "DOCY;v5;4;AAAA",
         modified: false,
         numbering: null,
+        AddImageUrl: (urls) => {
+          calls.push(["AddImageUrl", urls]);
+        },
         emit: (name, ...args) => {
           for (const callback of callbacks[name] ?? []) (callback as (...a: unknown[]) => void)(...args);
         },
@@ -381,6 +386,9 @@ export const createFakeEngine = (): FakeEngine => {
 
   return {
     window,
+    serve: (url, bytes) => {
+      blobs.set(url, bytes);
+    },
     press: () => {
       events.dispatchEvent(new Event("pointerdown"));
       return focusCount;

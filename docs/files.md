@@ -22,7 +22,8 @@ is not interleaved with other requests, and a transaction must not await (`src/d
 
 The bytes are in the blob store (`src/blobs.ts`), under `data/blobs/ab/abcdef…` by their SHA-256:
 the same bytes are stored once, and a blob is written to a temporary name and renamed, so a crash
-never leaves half a blob under a real key.
+never leaves half a blob under a real key. Images put into a document while it is edited go there
+too, named after their hash (`src/files/media.ts`); once saved, the Office file holds them itself.
 
 Names are unique per folder (at the top level per owner), ignoring case, as on macOS and Windows (a partial unique index on
 `name_key` among nodes outside the trash; the server keeps `name_key` as the lowercased name, because
@@ -74,6 +75,8 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
 | `PUT /files/:id/content` | Save: the body becomes a new version |
 | `GET /files/:id/versions` | All versions, newest first |
+| `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
+| `GET /files/:id/media/:name` | That image, for everyone who may see the file |
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |

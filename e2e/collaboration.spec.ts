@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { type Browser, expect, type Page, type TestInfo, test, type WebSocketRoute } from "@playwright/test";
+import { unzipSync } from "fflate";
 import {
   collectErrors,
   createFile,
@@ -13,6 +14,7 @@ import {
   upload,
 } from "./app";
 import { paragraphTexts, partXml } from "./docx";
+import { solidPng } from "./png";
 
 const helloDocx = join(import.meta.dirname, "../test-files/hello.docx");
 
@@ -32,6 +34,20 @@ const openAs = async (
   await page.goto(url);
   await expectEditorReady(page, errors);
   return { page, errors };
+};
+
+/** The images in a page's engine (word/Editor/DocumentContentBase.js Get_AllImageUrls); tests only. */
+const imageUrls = async (page: Page): Promise<string[]> => {
+  const frame = await (await page.getByTestId("engine-frame").elementHandle())?.contentFrame();
+  if (!frame) throw new Error("No engine frame.");
+  return frame.evaluate(() => {
+    const engine = (
+      window as unknown as {
+        editor?: { WordControl: { m_oLogicDocument: { Get_AllImageUrls(): string[] } } };
+      }
+    ).editor;
+    return engine?.WordControl.m_oLogicDocument.Get_AllImageUrls() ?? [];
+  });
 };
 
 /**
@@ -234,4 +250,37 @@ test("two people edit different parts of one slide", async ({ page, browser }, t
     })
     .toMatch(/Annas Titel[\s\S]*Bens Untertitel/);
   expect([...errors, ...ben.errors].filter((line) => line.includes("[engine]"))).toEqual([]);
+});
+
+test("an image one person puts in is saved by the other", async ({ page, browser }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, helloDocx, "hello.docx");
+  await page.getByRole("link", { name: "hello.docx", exact: true }).click();
+  await expectEditorReady(page, errors);
+  const url = page.url();
+  const fileId = url.split("/").at(-1) as string;
+  const ben = await openAs(browser, url, testInfo);
+
+  // Ben puts the image in; it reaches Anna by name, and the relay tells her engine where it is.
+  const logo = solidPng(80, 40, [20, 90, 200]);
+  await typeAtStart(ben.page, "Logo: ");
+  const chooser = ben.page.waitForEvent("filechooser");
+  await ben.page.getByRole("button", { name: "Bild einfügen" }).click();
+  await (await chooser).setFiles({ name: "logo.png", mimeType: "image/png", buffer: Buffer.from(logo) });
+  await expect.poll(() => imageUrls(page), { timeout: 30_000 }).toHaveLength(1);
+
+  await expect
+    .poll(
+      async () => {
+        await save(page);
+        const files = unzipSync(await storedDocx(page, fileId));
+        return Object.entries(files).some(
+          ([name, bytes]) => name.startsWith("word/media/") && Buffer.from(bytes).equals(Buffer.from(logo)),
+        );
+      },
+      { timeout: 30_000, intervals: [1_000] },
+    )
+    .toBe(true);
+  expect(ben.errors).toEqual([]);
 });

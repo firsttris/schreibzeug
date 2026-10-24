@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { unzipSync } from "fflate";
 import { documentXml } from "./docx";
 
 /** The newest version on the server, as bytes. */
@@ -137,3 +138,18 @@ export const save = async (page: Page) => {
 /** The main document part of the newest version on the server. */
 export const storedXml = async (page: Page, fileId: string): Promise<string> =>
   documentXml(await storedDocx(page, fileId));
+
+/** Einfügen → Bild … in the menu bar, with the image given to the browser's file dialog. */
+export const insertImageFromMenu = async (page: Page, png: Uint8Array) => {
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menu", { name: "Einfügen" }).getByRole("menuitem", { name: "Bild …" }).click();
+  await (await chooser).setFiles({ name: "logo.png", mimeType: "image/png", buffer: Buffer.from(png) });
+  await expect(page.getByTestId("editor-status")).toHaveAttribute("data-modified", "true");
+};
+
+/** The images in the stored Office file (word/media, xl/media, ppt/media). */
+export const storedMedia = async (page: Page, fileId: string): Promise<Uint8Array[]> =>
+  Object.entries(unzipSync(await storedDocx(page, fileId)))
+    .filter(([name]) => /^(word|xl|ppt)\/media\//.test(name))
+    .map(([, bytes]) => bytes);

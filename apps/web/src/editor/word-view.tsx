@@ -54,6 +54,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     commentsOpen: comments !== "closed",
     onToggleComments: () => setComments(comments === "closed" ? "open" : "closed"),
     onFind: chrome.searchBar.open,
+    onInsertImage: chrome.insertImage,
   };
 
   return (
@@ -90,6 +91,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
             state={state}
             commands={editor?.commands ?? null}
             onAddComment={() => setComments("composing")}
+            onInsertImage={chrome.insertImage}
           />
         }
       />

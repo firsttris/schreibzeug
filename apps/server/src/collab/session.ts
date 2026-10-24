@@ -391,6 +391,27 @@ export const disconnect = (session: Session, connectionId: string, now: number):
   return { session: next, out };
 };
 
+const MEDIA_PREFIX = "media/";
+
+/**
+ * Where an engine loads an image that reached it by name inside someone's change
+ * (common/CollaborativeEditingBase.js SendImagesUrlsFromChanges: an rpc of type "pathurls" with
+ * "media/<name>" paths). The Document Server answers with signed storage URLs
+ * (DocsCoServer.js startRPC, canvasservice.js commandPathUrls); here the image route of the file
+ * serves them (apps/server src/files/routes.ts), relative to the engine's own origin.
+ */
+export const answerRpc = (session: Session, data: Incoming): Step => {
+  const request = data.data as { type?: unknown; data?: unknown } | undefined;
+  if (request?.type !== "pathurls" || !Array.isArray(request.data)) return { session, out: [] };
+  const urls = request.data.map((path) =>
+    typeof path === "string" && path.startsWith(MEDIA_PREFIX)
+      ? `/api/files/${session.fileId}/media/${encodeURIComponent(path.slice(MEDIA_PREFIX.length))}`
+      : "",
+  );
+  const answer = { type: "pathurls", status: "ok", data: urls };
+  return { session, out: [self({ type: "rpc", responseKey: data.responseKey, data: answer })] };
+};
+
 /** Every message from a client, by type; types the relay does not need are ignored. */
 export const receive = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
   switch (data.type) {
@@ -412,6 +433,8 @@ export const receive = (session: Session, connectionId: string, data: Incoming, 
       return { session, out: [self(SAVE_UNLOCKED)] };
     case "stapel:saved":
       return markSaved(session, data);
+    case "rpc":
+      return answerRpc(session, data);
     case "getMessages":
       return { session, out: [self({ type: "message" })] };
     default:

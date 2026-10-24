@@ -1,4 +1,4 @@
-import type { CollabChannel, OfficeFormat } from "@stapel/editor-core";
+import type { CollabChannel, ImageStore, OfficeFormat } from "@stapel/editor-core";
 
 export type OpenedFile = {
   name: string;
@@ -7,6 +7,8 @@ export type OpenedFile = {
   readOnly: boolean;
   /** The editing session the file belongs to; absent for a file edited alone. */
   collaboration?: { channel: CollabChannel; documentId: string };
+  /** Where images put into the document are kept (apps/server src/files/media.ts). */
+  images?: ImageStore;
 };
 
 export const MIME: Record<OfficeFormat, string> = {

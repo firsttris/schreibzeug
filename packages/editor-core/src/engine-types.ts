@@ -192,6 +192,11 @@ export interface EngineApiBase<Events extends CommonEventArgs> {
   asc_setAutoSaveGap(seconds: number): void;
   /** word/api.js, cell/api.js, slide/api.js: true makes the document read-only. */
   asc_setViewMode(isViewMode: boolean): void;
+  /**
+   * common/apiBase.js: inserts images by URL at the cursor. URLs already in DocumentUrls go
+   * straight to the editor's `_addImageUrl`; others would be sent to the Document Server first.
+   */
+  AddImageUrl(urls: string[]): void;
   asc_CloseFile?(): void;
 }
 

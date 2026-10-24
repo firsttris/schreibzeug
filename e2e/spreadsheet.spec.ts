@@ -5,14 +5,17 @@ import {
   collectErrors,
   createFile,
   expectEditorReady,
+  insertImageFromMenu,
   openDocument,
   openFileId,
   openOwnFolder,
   save,
   storedDocx,
+  storedMedia,
   upload,
 } from "./app";
 import { partXml } from "./docx";
+import { solidPng } from "./png";
 
 const preise = join(import.meta.dirname, "../test-files/preise.xlsx");
 
@@ -186,4 +189,16 @@ test.describe("menus of the spreadsheet", () => {
     const bytes = await readFile((await file.path()) as string);
     expect(bytes.subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
+});
+
+test("puts an image on the sheet and keeps it in the .xlsx", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await createFile(page, "Tabelle", "Mit Logo");
+  await expectEditorReady(page, errors);
+  const fileId = openFileId(page);
+  const logo = solidPng(90, 45, [30, 160, 60]);
+  await insertImageFromMenu(page, logo);
+  await save(page);
+  expect(await storedMedia(page, fileId)).toContainEqual(logo);
 });

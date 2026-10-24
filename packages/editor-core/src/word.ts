@@ -31,6 +31,7 @@ import {
   createViewCommands,
   type ViewCommands,
 } from "./view";
+import { createInsertCommands, type InsertCommands } from "./word-insert";
 
 export type OpenWordOptions = OpenOptions;
 
@@ -38,6 +39,8 @@ export type WordEditor = OpenedDocument<EditorState> & {
   commands: TextCommands;
   layout: LayoutCommands;
   headerFooter: HeaderFooterCommands;
+  /** Table of contents, notes, breaks and text boxes. */
+  insert: InsertCommands;
   links: LinkCommands;
   marking: MarkingCommands;
   /** Tracked changes. */
@@ -103,6 +106,7 @@ const wordBinding: EditorBinding<
     | "commands"
     | "layout"
     | "headerFooter"
+    | "insert"
     | "links"
     | "marking"
     | "review"
@@ -127,6 +131,10 @@ const wordBinding: EditorBinding<
   reduce: (state, event) => reduceEditorState(state, event as EditorEvent),
   events: (win) => stateEvents(win.AscCommon, win.Asc.c_oAscAsyncAction.Disconnect),
   setup: ({ win, api, store, dispatch, options }) => {
+    const focusEngine = () => {
+      win.focus();
+      api.getFocusElement().focus();
+    };
     const refreshList = () =>
       dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) });
     api.asc_registerCallback("asc_onFocusObject", (objects) => {
@@ -210,10 +218,8 @@ const wordBinding: EditorBinding<
       ),
       onLinkRequest: linkRequests.add,
       onLinkOpen: linkOpens.add,
-      headerFooter: createHeaderFooterCommands(api, () => {
-        win.focus();
-        api.getFocusElement().focus();
-      }),
+      headerFooter: createHeaderFooterCommands(api, focusEngine),
+      insert: createInsertCommands(api, win.Asc, () => new win.Asc.CTableOfContentsPr(), focusEngine),
       layout: createLayoutCommands(api, () => new win.Asc.CDocumentSectionProps(), layoutConstants),
       commands: withListRefresh(
         createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),

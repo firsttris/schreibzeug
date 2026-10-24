@@ -51,6 +51,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     commands: editor?.commands ?? null,
     layout: editor?.layout ?? null,
     headerFooter: editor?.headerFooter ?? null,
+    insert: editor?.insert ?? null,
     links: editor?.links ?? null,
     review: editor?.review ?? null,
     spelling: editor?.spelling ?? null,
@@ -64,6 +65,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     onToggleComments: comments.toggle,
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
+    onNotice: chrome.notify,
   };
 
   return (

@@ -5,6 +5,7 @@ import type { EngineHighlight, MarkingApi } from "./marking";
 import type { DisplayModes, RevisionTypes } from "./review";
 import type { SlideShowApi } from "./slide-show";
 import type { SpellLanguages } from "./spelling";
+import type { EngineTableOfContentsPr, InsertApi, InsertConstants } from "./word-insert";
 /**
  * The part of the sdkjs API that Schreibzeug uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
@@ -295,6 +296,7 @@ export interface WordEngineApi
     SearchApi,
     LayoutApi,
     HeaderFooterApi,
+    InsertApi,
     LinkApi,
     MarkingApi,
     CommentApi {
@@ -417,7 +419,9 @@ export interface WordWindow extends EngineWindow {
     /** common/commonDefines.js */
     c_oAscRevisionsChangeType: RevisionTypes;
     c_oAscDisplayModeInReview: DisplayModes;
-  };
+    /** word/apiCommon.js */
+    CTableOfContentsPr: new () => EngineTableOfContentsPr;
+  } & InsertConstants;
 }
 
 /** cell/model/WorkbookElems.js `CellXfs`: the formatting of the active cell. */

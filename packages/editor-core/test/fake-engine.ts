@@ -223,6 +223,14 @@ export const createFakeEngine = (): FakeEngine => {
         asc_RemoveFooter: record(calls, "asc_RemoveFooter"),
         asc_CancelHdrFtrEditing: record(calls, "asc_CancelHdrFtrEditing"),
         put_PageNum: record(calls, "put_PageNum"),
+        asc_GetTableOfContentsPr: () => null,
+        asc_AddTableOfContents: record(calls, "asc_AddTableOfContents"),
+        asc_UpdateTableOfContents: record(calls, "asc_UpdateTableOfContents"),
+        asc_AddFootnote: record(calls, "asc_AddFootnote"),
+        asc_AddEndnote: record(calls, "asc_AddEndnote"),
+        put_AddColumnBreak: record(calls, "put_AddColumnBreak"),
+        add_SectionBreak: record(calls, "add_SectionBreak"),
+        AddShapeOnCurrentPage: record(calls, "AddShapeOnCurrentPage"),
         asc_AddPageCount: record(calls, "asc_AddPageCount"),
         asc_resetAllShortcutTypes: record(calls, "asc_resetAllShortcutTypes"),
         SetMarkerFormat: record(calls, "SetMarkerFormat"),
@@ -398,6 +406,11 @@ export const createFakeEngine = (): FakeEngine => {
       CDocumentSectionProps: function FakeSectionProps() {
         return {};
       },
+      CTableOfContentsPr: function FakeTableOfContentsPr() {
+        return {};
+      },
+      c_oAscSectionBreakType: { NextPage: 0, OddPage: 1, EvenPage: 2, Continuous: 3, Column: 4 },
+      c_oAscTabLeader: { Dot: 0, None: 4 },
       c_oAscAsyncAction: { Disconnect: 20 },
       c_oAscCollaborativeMarksShowType: { All: 0, LastChanges: 1, None: 2 },
       c_oAscFileType: { DOCX: 0x41, XLSX: 0x101, PPTX: 0x81 },

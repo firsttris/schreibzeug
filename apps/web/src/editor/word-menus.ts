@@ -2,6 +2,7 @@ import type {
   ClipboardAction,
   EditorState,
   HeaderFooterCommands,
+  InsertCommands,
   LayoutCommands,
   LinkCommands,
   ReviewCommands,
@@ -14,6 +15,7 @@ import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
 import { headerFooterGroups } from "./header-footer-menus";
+import { insertGroups } from "./insert-menus";
 import { layoutMenu, paragraphSpacingGroups } from "./layout-menus";
 import { reviewMenu } from "./review-menus";
 import { spellCheckItem, suggestionGroups } from "./spelling-menus";
@@ -24,6 +26,7 @@ export type WordMenuContext = {
   commands: TextCommands | null;
   layout: LayoutCommands | null;
   headerFooter: HeaderFooterCommands | null;
+  insert: InsertCommands | null;
   links: LinkCommands | null;
   review: ReviewCommands | null;
   spelling: SpellingCommands | null;
@@ -41,6 +44,8 @@ export type WordMenuContext = {
   commentsOpen: boolean;
   onToggleComments: () => void;
   onFind: (mode: "find" | "replace") => void;
+  /** Says something in the editor's notice line. */
+  onNotice: (message: string) => void;
 };
 
 /**
@@ -102,16 +107,19 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
             disabled: off || !context.onInsertImage,
             onSelect: () => context.onInsertImage?.(),
           },
+          {
+            label: "Textfeld",
+            disabled: off || !context.insert,
+            onSelect: () => context.insert?.textBox(),
+          },
           { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
         ],
-        [
-          {
-            label: "Seitenumbruch",
-            shortcut: "Strg+Enter",
-            disabled: off,
-            onSelect: run((c) => c.insertPageBreak()),
-          },
-        ],
+        ...insertGroups(
+          context.insert,
+          run((c) => c.insertPageBreak()),
+          off,
+          context.onNotice,
+        ),
         ...headerFooterGroups(context.headerFooter, state.paragraph.inHeaderFooter, off),
       ],
     },

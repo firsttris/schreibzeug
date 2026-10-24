@@ -111,6 +111,40 @@ test.describe("menus of the text editor", () => {
     expect(await storedXml(page, fileId)).toContain("Hallo Schreibzeug");
   });
 
+  test("puts in a table of contents, a section break and a footnote", async ({ page }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.getByRole("combobox", { name: "Absatzvorlage" }).selectOption({ label: "Überschrift 1" });
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+Home");
+    await pick(page, "Einfügen", "Inhaltsverzeichnis");
+    await page.keyboard.press("Control+End");
+    await pick(page, "Einfügen", "Abschnittsumbruch (nächste Seite)");
+    await page.keyboard.type("Anhang");
+    await pick(page, "Einfügen", "Fußnote");
+    await page.keyboard.type("Quelle: Handbuch");
+    await save(page);
+
+    const files = unzipSync(await storedDocx(page, fileId));
+    const xml = strFromU8(files["word/document.xml"] as Uint8Array);
+    expect(xml).toContain("TOC \\o &quot;1-9&quot;");
+    expect(xml).toContain("<w:footnoteReference");
+    expect(xml.match(/<w:sectPr/g)?.length).toBeGreaterThanOrEqual(2);
+    // The break ends the section with the paragraph before it (its properties hold the section's);
+    // the new section holds "Anhang" and the note mark.
+    expect(xml).toMatch(/<w:sectPr>[\s\S]*Zweiter Absatz[\s\S]*Anhang[\s\S]*<w:footnoteReference/);
+    expect(strFromU8(files["word/footnotes.xml"] as Uint8Array)).toContain("Quelle: Handbuch");
+  });
+
+  test("puts a text box on the page and writes into it", async ({ page }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await pick(page, "Einfügen", "Textfeld");
+    await page.keyboard.type("Notiz am Rand");
+    await save(page);
+    expect(await storedXml(page, fileId)).toMatch(/<w:txbxContent>[\s\S]*Notiz am Rand/);
+  });
+
   test("links text with Strg+K, edits the link from the context menu and keeps it", async ({
     page,
   }, testInfo) => {

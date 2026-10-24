@@ -122,3 +122,4 @@ export {
   type ViewCommands,
 } from "./view";
 export { type OpenWordOptions, openWordDocument, type WordEditor } from "./word";
+export type { InsertCommands, SectionBreak } from "./word-insert";

@@ -205,6 +205,31 @@ cursor; `asc_AddPageCount` adds the number of pages (`src/header-footer.ts`). Th
 the frame, so going into the header or back out hands the keys to the engine again. Whether the
 cursor is in a header or footer comes from `asc_onFocusObject` (a `Header` element).
 
+## Table of contents, notes, breaks and text boxes
+
+"Einfügen" puts in what web-apps' "Verweise" tab and toolbar offer (`src/word-insert.ts`, after
+`documenteditor/mobile` `controller/add/AddTableContents.jsx`, `controller/add/AddOther.jsx`,
+`controller/add/AddShape.jsx`):
+
+- **Table of contents**: `asc_GetTableOfContentsPr()` for the one the document has, or a new
+  `Asc.CTableOfContentsPr`, set to headings 1 to 9 (`put_OutlineRange(1, 9)`), linked entries,
+  page numbers right-aligned behind dots (`c_oAscTabLeader.Dot`), then
+  `asc_AddTableOfContents(null, props)`; with one there already that changes it instead of adding
+  a second. "Inhaltsverzeichnis aktualisieren" is `asc_UpdateTableOfContents(false)` (entries and
+  page numbers); without a table of contents the editor says so rather than letting the engine
+  report `ComplexFieldNoTOC`.
+- **Notes**: `asc_AddFootnote()` and `asc_AddEndnote()` put the mark at the cursor and the cursor
+  into the note. Strg+Alt+F is the engine's own shortcut (`InsertFootnoteNow`).
+- **Breaks**: `put_AddPageBreak()` (Strg+Enter), `put_AddColumnBreak()`, and
+  `add_SectionBreak(c_oAscSectionBreakType.NextPage | Continuous)`, which starts a section with
+  its own page setup.
+- **Text box**: `AddShapeOnCurrentPage("textRect")` draws a rectangle that holds text in the middle
+  of the page shown (`GraphicObjects.addShapeOnPage`), selected so the next keys go into it. It is
+  saved as `wps:txbx`.
+
+The menu is outside the frame, so after each of these the keys go back to the engine, as for the
+header and footer: the next thing typed lands in the note, the text box or the page.
+
 ## Links
 
 "Link …" (Strg+K, the toolbar, the context menu) works as web-apps' link dialog

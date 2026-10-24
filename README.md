@@ -13,7 +13,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
 > password, a file browser (folders,
-> upload, new document, spreadsheet or presentation, templates (letter, offer, invoice, calculation, project plan, presentation, and your own), rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with a menu bar, context menu, find and replace, PDF export and printing, styles, fonts, colours, highlighting, format painter, lists, tables, images, links, headers and footers with page numbers, page layout, line spacing,
+> upload, new document, spreadsheet or presentation, templates (letter, offer, invoice, calculation, project plan, presentation, and your own), rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with a menu bar, context menu, find and replace, PDF export and printing, styles, fonts, colours, highlighting, format painter, lists, tables, images, links, headers and footers with page numbers, table of contents, footnotes, page and section breaks, text boxes, page layout, line spacing,
 > comments, tracked changes and spell checking (German and English, without a server), a spreadsheet editor with formulas, formatting, number formats, sheets, sorting, filters, frozen rows and columns, merged cells, charts, dropdown lists, conditional formats, CSV files, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, text formatting, lists, images, menus and PDF. All three save on their own, every save a new version, and several people can edit the
 > same file at once. All without a document server. A desktop app for Windows, macOS and Linux
@@ -65,7 +65,7 @@ Word and PowerPoint files. Schreibzeug puts a new, clean interface on top of a p
 
 ### 📝 Editors
 
-- **Documents (.docx)**: styles, tables, images, comments, tracked changes (done).
+- **Documents (.docx)**: styles, tables, images, comments, tracked changes, table of contents, footnotes, breaks, text boxes (done).
 - **Spreadsheets (.xlsx)**: formulas, number formats, sheets, sorting, filters, charts, dropdown lists, conditional formats and CSV (done); pivot tables.
 - **Presentations (.pptx)**: slide layouts, shapes, themes, speaker notes, presenting.
 

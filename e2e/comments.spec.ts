@@ -64,3 +64,33 @@ test("comments on a slide and keeps the comment in the .pptx", async ({ page }, 
     .map(([, bytes]) => strFromU8(bytes));
   expect(parts.join("")).toContain("Titel kürzer?");
 });
+
+test("comments on a cell, answers it and keeps it in the .xlsx", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, join(import.meta.dirname, "../test-files/preise.xlsx"), "preise.xlsx");
+  await openDocument(page, "preise.xlsx", errors);
+  const fileId = openFileId(page);
+  const nameBox = page.frameLocator('[data-testid="engine-frame"]').locator("#name-box");
+  await nameBox.fill("B2");
+  await nameBox.press("Enter");
+
+  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menu", { name: "Einfügen" }).getByRole("menuitem", { name: "Kommentar" }).click();
+  await page.getByRole("textbox", { name: "Kommentar zur Zelle" }).fill("Preis von 2025?");
+  await page.getByRole("button", { name: "Kommentieren", exact: true }).click();
+  const card = page.getByRole("article", { name: "Kommentar von Anna Berger" });
+  await expect(card).toContainText("Preis von 2025?");
+  await expect(card).toContainText("B2");
+  await card.getByRole("textbox", { name: "Antworten" }).fill("Ja, noch alt");
+  await card.getByRole("button", { name: "Antworten", exact: true }).click();
+  await expect(card).toContainText("Ja, noch alt");
+
+  await save(page);
+  const parts = Object.entries(unzipSync(await storedDocx(page, fileId)))
+    .filter(([name]) => /^xl\/(comments|threadedComments)/.test(name))
+    .map(([, bytes]) => strFromU8(bytes))
+    .join("");
+  expect(parts).toContain("Preis von 2025?");
+  expect(parts).toContain("Ja, noch alt");
+});

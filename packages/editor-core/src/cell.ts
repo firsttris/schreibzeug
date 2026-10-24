@@ -13,6 +13,8 @@ import {
   toCellContextMenuRequest,
 } from "./cell-view";
 import { createEngineColor } from "./colors";
+import { cellCommentEvents, commentEvents } from "./comment-state";
+import { type CommentCommands, createCommentCommands } from "./comments";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
 import { uniqueSorted } from "./events";
@@ -27,6 +29,8 @@ import { fontRenderingMode } from "./word";
 
 export type SheetEditor = OpenedDocument<SheetState> & {
   commands: CellCommands;
+  /** Comments on cells; a new one goes on the active cell. */
+  comments: CommentCommands;
   sheets: SheetCommands;
   view: ViewCommands;
   search: SearchCommands;
@@ -43,6 +47,7 @@ const NAME_BOX_ID = "name-box";
 const readSheets = (api: CellEngineApi): SheetEvent => {
   const count = api.asc_getWorksheetsCount();
   const sheets = Array.from({ length: count }, (_, index) => ({
+    id: api.asc_getWorksheetId(index),
     name: api.asc_getWorksheetName(index),
     hidden: api.asc_isWorksheetHidden(index),
   }));
@@ -87,7 +92,7 @@ const cellBinding: EditorBinding<
   CellEngineApi,
   SheetState,
   SheetEvent,
-  Pick<SheetEditor, "commands" | "sheets" | "view" | "search" | "onContextMenu">
+  Pick<SheetEditor, "commands" | "comments" | "sheets" | "view" | "search" | "onContextMenu">
 > = {
   format: "xlsx",
   createApi: (win) => {
@@ -102,6 +107,8 @@ const cellBinding: EditorBinding<
   initialState: initialSheetState,
   reduce: reduceSheetState,
   events: (win) => ({
+    ...commentEvents(),
+    ...cellCommentEvents(),
     asc_onSelectionChanged: (info) => ({
       type: "cell",
       value: readCellFormat(info, win.AscCommon, win.Asc.c_oAscMergeOptions),
@@ -117,7 +124,7 @@ const cellBinding: EditorBinding<
     asc_onSetSearchCurrent: (current, total) => ({ type: "searchCurrent", current, total }),
     asc_onRenameCellTextEnd: (_found, replaced) => ({ type: "replaced", count: replaced }),
   }),
-  setup: ({ win, api, store, dispatch }) => {
+  setup: ({ win, api, store, dispatch, options }) => {
     const showReference = connectNameBox(win, api);
     api.asc_registerCallback("asc_onSelectionNameChanged", (name) => {
       const reference = typeof name === "string" ? name : name.asc_getName();
@@ -153,11 +160,24 @@ const cellBinding: EditorBinding<
         createEngineColor(win.Asc.asc_CColor),
       ),
       sheets: createSheetCommands(api, store.get),
+      comments: createCommentCommands(
+        api,
+        () => store.get().comments,
+        options.user,
+        () => {
+          // On the active cell: the engine's comment is on the whole workbook unless told otherwise.
+          const data = new win.Asc.asc_CCommentData();
+          data.asc_putDocumentFlag(false);
+          return data;
+        },
+      ),
     };
   },
   // web-apps shows the active sheet and resizes once the document is ready (Main.jsx onDocumentContentReady).
   contentReady: (api) => {
     api.asc_showWorksheet(api.asc_getActiveWorksheetIndex());
+    // The red corner of commented cells, as web-apps shows them (common/mobile Comments.jsx).
+    api.asc_showComments(false);
     api.asc_Resize();
   },
   resize: (api) => api.asc_Resize(),

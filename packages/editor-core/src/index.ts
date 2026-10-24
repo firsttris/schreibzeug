@@ -24,6 +24,7 @@ export {
   MIN_FONT_SIZE,
   type TextCommands,
 } from "./commands";
+export { isOnSheet } from "./comment-state";
 export type { CommentAuthor, CommentCommands } from "./comments";
 export {
   type Convert,

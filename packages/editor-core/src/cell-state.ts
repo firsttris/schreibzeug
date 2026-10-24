@@ -1,4 +1,11 @@
 import type { TextColor } from "./colors";
+import {
+  type CommentEvent,
+  type CommentsState,
+  initialCommentsState,
+  isCommentEvent,
+  reduceComments,
+} from "./comment-state";
 import { type CoreState, initialCoreState } from "./core-state";
 import type { Align } from "./state";
 
@@ -26,24 +33,27 @@ export type CellFormat = {
   mergeable: boolean;
 };
 
-export type SheetTab = { name: string; hidden: boolean };
+/** `id` is the engine's own (asc_getWorksheetId), which stays when a sheet is renamed or moved. */
+export type SheetTab = { id: string; name: string; hidden: boolean };
 
 /** The spreadsheet editor's state: what every document has, the active cell and the sheets. */
-export type SheetState = CoreState & {
-  cell: CellFormat;
-  /** The reference of the selection, e.g. "A1" or "B2:C4". */
-  reference: string;
-  sheets: SheetTab[];
-  /** Index into `sheets`. */
-  activeSheet: number;
-  fonts: string[];
-};
+export type SheetState = CoreState &
+  CommentsState & {
+    cell: CellFormat;
+    /** The reference of the selection, e.g. "A1" or "B2:C4". */
+    reference: string;
+    sheets: SheetTab[];
+    /** Index into `sheets`. */
+    activeSheet: number;
+    fonts: string[];
+  };
 
 export type SheetEvent =
   | { type: "cell"; value: CellFormat }
   | { type: "reference"; value: string }
   | { type: "sheets"; sheets: SheetTab[]; active: number }
-  | { type: "fonts"; value: string[] };
+  | { type: "fonts"; value: string[] }
+  | CommentEvent;
 
 export const initialCellFormat: CellFormat = {
   bold: false,
@@ -68,9 +78,11 @@ export const initialSheetState: SheetState = {
   sheets: [],
   activeSheet: 0,
   fonts: [],
+  ...initialCommentsState,
 };
 
 export const reduceSheetState = (state: SheetState, event: SheetEvent): SheetState => {
+  if (isCommentEvent(event)) return reduceComments(state, event);
   switch (event.type) {
     case "cell":
       return { ...state, cell: event.value };

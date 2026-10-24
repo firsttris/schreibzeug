@@ -119,14 +119,20 @@ const CommentCard = ({
   </article>
 );
 
+const COMPOSE_LABELS = {
+  selection: "Kommentar zur Auswahl",
+  slide: "Kommentar zur Folie",
+  cell: "Kommentar zur Zelle",
+} as const;
+
 export type CommentsPanelProps = {
   comments: Comment[];
   active: string[];
   commands: CommentCommands | null;
   /** Show the field for a new comment on the selection, focused. */
   composing: boolean;
-  /** What a new comment is on: the selected text, or the current slide. */
-  target?: "selection" | "slide";
+  /** What a new comment is on: the selected text, the current slide, or the active cell. */
+  target?: "selection" | "slide" | "cell";
   onComposed: () => void;
   onClose: () => void;
 };
@@ -159,7 +165,7 @@ export const CommentsPanel = ({
       {composing && commands && (
         <div className="rounded-lg border border-[var(--docx)] p-3">
           <Composer
-            label={target === "slide" ? "Kommentar zur Folie" : "Kommentar zur Auswahl"}
+            label={COMPOSE_LABELS[target]}
             submit="Kommentieren"
             autoFocus
             onSubmit={(text) => {

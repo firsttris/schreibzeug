@@ -131,9 +131,20 @@ the name of the account that wrote it.
 
 The presentation engine speaks the same calls and events (`slide/api.js`, `asc_CCommentDataSlide`,
 exported as `Asc.asc_CCommentData`); a new comment belongs to the current slide, and
-`asc_showComments()` on content ready shows the comment marks on the slides. Both editors share
-the commands (`src/comments.ts`), the state (`src/comment-state.ts`) and the panel
-(`apps/web/src/editor/use-comments-panel.tsx`).
+`asc_showComments()` on content ready shows the comment marks on the slides.
+
+The spreadsheet engine has the same comment fields (`cell/model/CellComment.js`
+`asc_CCommentData`) but puts a new comment on the whole workbook unless its document flag is false,
+so the editor sets it false and the comment goes on the active cell, whose reference the comment
+reports as its quote. `asc_addComment` returns nothing there; the id comes with
+`asc_onAddComment`. Besides the single events it reports lists: a sheet's comments on open and
+when it is shown (`asc_onAddComments`), moved ones (`asc_onChangeComments`) and removed ones
+(`asc_onRemoveComments`). A comment's id starts with `sheet<id>_` for its sheet
+(`asc_getWorksheetId`), and the panel shows the comments of the sheet shown, as web-apps filters
+them. `asc_showComments(false)` marks commented cells.
+
+All three editors share the commands (`src/comments.ts`), the state (`src/comment-state.ts`) and
+the panel (`apps/web/src/editor/use-comments-panel.tsx`).
 
 `asc_onDocumentModifiedChanged` carries no value (`word/api.js` `SetDocumentModified` sends it
 bare); like web-apps (`documenteditor/mobile` `Main.jsx`), `editor-core` reads

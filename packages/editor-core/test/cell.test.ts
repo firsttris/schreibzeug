@@ -152,7 +152,7 @@ describe("createCellCommands", () => {
 
 describe("sheets", () => {
   const sheets = (names: string[], hidden: string[] = []) =>
-    names.map((name) => ({ name, hidden: hidden.includes(name) }));
+    names.map((name, index) => ({ id: String(index), name, hidden: hidden.includes(name) }));
 
   it("names a new sheet with the first free number", () => {
     expect(nextSheetName([])).toBe("Tabelle1");
@@ -186,7 +186,7 @@ describe("sheets", () => {
 
 describe("reduceSheetState", () => {
   it("keeps the sheets, the active one and the reference", () => {
-    const tabs = [{ name: "A", hidden: false }];
+    const tabs = [{ id: "1", name: "A", hidden: false }];
     const state = reduceSheetState(
       reduceSheetState(initialSheetState, { type: "sheets", sheets: tabs, active: 0 }),
       {

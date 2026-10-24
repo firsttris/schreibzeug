@@ -98,7 +98,7 @@ export const createCommentCommands = (
     add: (text) =>
       api.asc_addComment(
         writeComment(create, { ...entry(text), quote: null, resolved: false, guid: "", replies: [] }),
-      ),
+      ) ?? null,
     reply: (id, text) =>
       change(id, (comment) => ({ ...comment, replies: [...comment.replies, entry(text)] })),
     setResolved: (id, resolved) => change(id, (comment) => ({ ...comment, resolved })),

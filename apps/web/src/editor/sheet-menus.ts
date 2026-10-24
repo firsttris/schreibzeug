@@ -21,6 +21,8 @@ export type SheetMenuContext = {
   onFind: (mode: "find" | "replace") => void;
   /** Opens the file dialog for an image; null where none can be put in. */
   onInsertImage: (() => void) | null;
+  /** Opens the comments with the field for a new one on the active cell. */
+  onAddComment: () => void;
 };
 
 /** Rows and columns: in "Einfügen" and in the context menu. */
@@ -82,6 +84,7 @@ export const sheetMenus = (context: SheetMenuContext): Menu[] => {
             disabled: off || !context.onInsertImage,
             onSelect: () => context.onInsertImage?.(),
           },
+          { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
         ],
       ],
     },
@@ -161,5 +164,9 @@ export const sheetContextMenu = (context: SheetMenuContext): MenuItem[][] => {
   const { commands, state } = context;
   const off = !commands || state.status !== "ready";
   const run = (action: (c: CellCommands) => void) => () => commands && action(commands);
-  return [clipboardItems(context.view, context.onClipboardRefused), ...rowsAndColumns(run, off)];
+  return [
+    clipboardItems(context.view, context.onClipboardRefused),
+    [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
+    ...rowsAndColumns(run, off),
+  ];
 };

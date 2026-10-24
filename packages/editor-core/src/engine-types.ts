@@ -166,8 +166,8 @@ export type CommentEventArgs = {
 
 /** The comment calls, the same in word/api.js and slide/api.js. */
 export interface CommentApi {
-  /** Returns the new comment's id, or null when it could not be added. */
-  asc_addComment(data: EngineCommentData): string | null;
+  /** Returns the new comment's id (the spreadsheet engine reports it only with asc_onAddComment). */
+  asc_addComment(data: EngineCommentData): string | null | undefined;
   asc_changeComment(id: string, data: EngineCommentData): void;
   asc_removeComment(id: string): void;
   asc_selectComment(id: string): void;
@@ -421,10 +421,26 @@ export type CellEventArgs = CommonEventArgs & {
   asc_onSetSearchCurrent: [current: number, total: number];
   /** How many cells were found and replaced (WorkbookView.js replaceCellText). */
   asc_onRenameCellTextEnd: [found: number, replaced: number];
-};
+  /** The comments of a sheet, on open and when it is shown (WorkbookView.js, WorksheetView.js). */
+  asc_onAddComments: [comments: CellCommentData[]];
+  /** Comments that moved with their cells, or went with them (CellComment.js updateCommentsList). */
+  asc_onChangeComments: [changes: Array<{ Id: string; Comment: CellCommentData }>];
+  asc_onRemoveComments: [ids: string[]];
+} & CommentEventArgs;
+
+/** cell/model/CellComment.js asc_CCommentData: the fields of a comment, its id and its cell. */
+export interface CellCommentData extends EngineCommentData {
+  asc_getId(): string;
+  /** false puts it on the active cell, true on the whole workbook (the engine's default). */
+  asc_putDocumentFlag(onDocument: boolean): void;
+}
 
 /** cell/api.js `spreadsheet_api` (with common/apiBase.js `baseEditorsApi`). */
-export interface CellEngineApi extends EngineApiBase<CellEventArgs> {
+export interface CellEngineApi extends EngineApiBase<CellEventArgs>, CommentApi {
+  /** cell/api.js: draws the comment marks in the cells; `showResolved` includes resolved ones. */
+  asc_showComments(showResolved: boolean): void;
+  /** The sheet's id, which the ids of its comments carry ("sheet<id>_…", CellComment.js). */
+  asc_getWorksheetId(index: number): string;
   asc_setFontRenderingMode(mode: number): void;
   /** cell/api.js: the regional format (LCID), e.g. 0x0407 for German: decimal comma, ";" between arguments. */
   asc_setLocale(lcid: number): void;
@@ -486,6 +502,7 @@ export interface CellEngineApi extends EngineApiBase<CellEventArgs> {
 export interface CellWindow extends EngineWindow {
   Asc: EngineWindow["Asc"] & {
     spreadsheet_api: new (config: Record<string, unknown>) => CellEngineApi;
+    asc_CCommentData: new () => CellCommentData;
     c_oAscMergeOptions: { Disabled: number; None: number; Merge: number; MergeCenter: number };
     c_oAscInsertOptions: { InsertColumns: number; InsertRows: number };
     c_oAscDeleteOptions: { DeleteColumns: number; DeleteRows: number };

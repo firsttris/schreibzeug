@@ -17,7 +17,7 @@ export const useCommentsPanel = (
   editor: CommentsSource | null,
   state: CommentsView,
   readOnly: boolean,
-  target: "selection" | "slide" = "selection",
+  target: "selection" | "slide" | "cell" = "selection",
 ) => {
   const [mode, setMode] = useState<"closed" | "open" | "composing">("closed");
   const open = state.comments.filter((comment) => !comment.resolved).length;

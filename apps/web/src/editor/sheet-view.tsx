@@ -1,4 +1,4 @@
-import { initialSheetState, openSheetDocument } from "@stapel/editor-core";
+import { initialSheetState, isOnSheet, openSheetDocument } from "@stapel/editor-core";
 import { useRef } from "react";
 import { SheetTabs } from "../sheets/sheet-tabs";
 import { SheetToolbar } from "../toolbar/sheet-toolbar";
@@ -10,6 +10,7 @@ import { SHEET_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { type SheetMenuContext, sheetContextMenu, sheetMenus } from "./sheet-menus";
+import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
@@ -26,6 +27,13 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
+  // The comments of the sheet shown, as web-apps filters them (common/mobile Comments.jsx onFilterChange).
+  const sheetId = state.sheets[state.activeSheet]?.id;
+  const sheetComments = {
+    comments: state.comments.filter((comment) => sheetId !== undefined && isOnSheet(comment, sheetId)),
+    activeComments: state.activeComments,
+  };
+  const comments = useCommentsPanel(editor, sheetComments, file.readOnly, "cell");
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "xlsx"), MIME.xlsx);
@@ -39,6 +47,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
+    onAddComment: comments.compose,
   };
 
   return (
@@ -58,15 +67,19 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         menus={file.readOnly ? [] : sheetMenus(context)}
         shortcuts={SHEET_SHORTCUTS}
         notice={chrome.notice}
+        actions={comments.button}
         toolbar={<SheetToolbar state={state} commands={editor?.commands ?? null} />}
       />
-      <DocumentArea
-        container={container}
-        search={editor?.search ?? null}
-        searchState={state.search}
-        searchBar={chrome.searchBar}
-        readOnly={file.readOnly}
-      />
+      <div className="flex min-h-0 flex-1">
+        <DocumentArea
+          container={container}
+          search={editor?.search ?? null}
+          searchState={state.search}
+          searchBar={chrome.searchBar}
+          readOnly={file.readOnly}
+        />
+        {comments.panel}
+      </div>
       <SheetTabs
         sheets={state.sheets}
         active={state.activeSheet}

@@ -78,14 +78,24 @@ second key of someone typing fast went missing. When a PDF opens, `preloadTyping
 font picker collect the fonts for the characters of German and English text and loads them, as the
 first key would. Tab moves to the next field.
 
-## Alone for now
+## Together
 
-A PDF is edited by one person at a time: the PDF view opens it outside the file's editing session,
-so its changes are neither sent to others nor followed. Editing together is planned.
+Several people edit a PDF at once, as an Office file: the PDF view opens in the file's editing
+session ([collaboration](collaboration.md)), the PDF editor sends its changes through the relay
+and replays the others' (pdf/src/CollaborativeEditing.js), and any save writes everyone's changes
+into the PDF the session started from. Notes, markings, form values and page operations of one
+show up for the others.
+
+Typing into a form field takes the field's lock from the relay for every key: the PDF editor
+checks the lock without the fast-mode exception the text editor uses (`CPDFDoc.Document_Is_
+SelectionLocked` → `CollaborativeEditing.Get_GlobalLock`), and keys that come while a request is
+on its way are dropped. At a person's pace on a nearby server that does not happen; on a slow
+connection someone who types very fast can lose a character in a shared form.
 
 ## Tests
 
-`e2e/pdf-engine.spec.ts` checks the engine below the app. `e2e/pdf.spec.ts` works through the app
+`e2e/pdf-engine.spec.ts` checks the engine below the app; `e2e/pdf-together.spec.ts` has two
+people fill in and comment the same PDF. `e2e/pdf.spec.ts` works through the app
 with `test-files/formular.pdf`: turn a page and add one, fill in both fields (typed at once, Tab to
 the next), remove a page and not the last, add a note and a drawing, highlight, black out a
 heading, sign with a drawn signature, append `test-files/anhang.pdf`, save a page as a PDF of its

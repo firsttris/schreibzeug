@@ -17,7 +17,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > comments, tracked changes and spell checking (German and English, without a server), a spreadsheet editor with formulas, formatting, number formats, sheets, sorting, filters, frozen rows and columns, merged cells, charts, pivot tables, dropdown lists, conditional formats, CSV files, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, shapes and text boxes, designs, transitions, speaker notes, text formatting, lists, images, menus and PDF, and PDFs: fill in forms, notes, text boxes, highlight, underline and strike out,
 > drawing, shapes, signing, blacking out, turning, adding and removing pages, appending another PDF and saving pages apart, saved as PDF again. All four save on their own, every save a new version, and several people can edit the
-> same Office file at once. All without a document server. A desktop app for Windows, macOS and Linux
+> same file at once, PDFs included. All without a document server. A desktop app for Windows, macOS and Linux
 > works on the files in the computer's documents folder (or another folder) without any server, or
 > opens a Schreibzeug server in a window of its own (builds not signed yet).
 

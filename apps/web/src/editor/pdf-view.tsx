@@ -1,12 +1,12 @@
 import { initialPdfState, openPdfDocument } from "@schreibzeug/editor-core";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { PdfToolbar } from "../toolbar/pdf-toolbar";
 import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { PDF_SHORTCUTS } from "./help-dialogs";
-import { downloadBytes, fileNameFor, MIME, type OpenedFile } from "./opened-file";
+import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import { type PdfMenuContext, pagesLabel, pdfContextMenu, pdfMenus } from "./pdf-menus";
 import type { EditorViewProps } from "./props";
 import { SignatureDialog } from "./signature-dialog";
@@ -14,12 +14,6 @@ import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
-
-/**
- * A PDF is edited by one person at a time for now: it opens outside the editing session, so the
- * engine neither sends nor follows changes (docs/pdf.md).
- */
-const editedAlone = ({ collaboration: _shared, ...file }: OpenedFile): OpenedFile => file;
 
 /** A PDF: title and menus, the tools above, the engine's page thumbnails and the pages below. */
 /** "%PDF" at the start: what PDF readers check before they read a file. */
@@ -30,10 +24,9 @@ const baseName = (name: string) => name.replace(/\.pdf$/i, "");
 
 export const PdfView = ({ file, name, onSave, fileActions, onRename, onCreateFile }: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
-  const alone = useMemo(() => editedAlone(file), [file]);
   const { editor, state, failure } = useEngineEditor(
     container,
-    alone,
+    file,
     "pdf",
     openPdfDocument,
     initialPdfState,

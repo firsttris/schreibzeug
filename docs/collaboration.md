@@ -25,7 +25,7 @@ the name others see is the signed-in user's ([accounts](accounts.md)).
    starts the engine in online mode. The engine then authenticates and gets all changes made since
    the session started (`authChanges`), and replays them on top.
 
-Everyone opens the same bytes and applies the same changes in the same order, so all copies agree.
+Everyone opens the same bytes and applies the same changes in the same order, so all copies agree. A PDF takes the same way, without the conversion: the engine opens the PDF itself, and saving writes the changes into it ([PDFs](pdf.md#together)).
 
 ## The engine side
 

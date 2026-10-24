@@ -1,4 +1,4 @@
-import type { CollabChannel, ImageStore, OfficeFormat } from "@schreibzeug/editor-core";
+import type { CollabChannel, DocumentFormat, ImageStore } from "@schreibzeug/editor-core";
 
 export type OpenedFile = {
   name: string;
@@ -11,15 +11,16 @@ export type OpenedFile = {
   images?: ImageStore;
 };
 
-export const MIME: Record<OfficeFormat | "csv", string> = {
+export const MIME: Record<DocumentFormat | "csv", string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   csv: "text/csv",
+  pdf: "application/pdf",
 };
 
 /** Keeps the name the user knows and makes sure it ends in the format's extension. */
-export const fileNameFor = (name: string, format: OfficeFormat | "csv"): string =>
+export const fileNameFor = (name: string, format: DocumentFormat | "csv"): string =>
   new RegExp(`\\.${format}$`, "i").test(name) ? name : `${name.replace(/\.[^.]*$/, "")}.${format}`;
 
 export const downloadBytes = (bytes: Uint8Array, name: string, mime: string): void => {

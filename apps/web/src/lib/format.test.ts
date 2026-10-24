@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extensionOf, formatChanged, formatSize, isEditable, kindOf } from "./format";
+import { extensionOf, formatChanged, formatSize, isEditable, isOfficeFile, kindOf } from "./format";
 
 describe("formatSize", () => {
   it.each([
@@ -38,11 +38,17 @@ describe("kinds", () => {
     expect(kindOf({ kind: "folder", name: "a.docx" })).toBe("folder");
   });
 
-  it("opens only Word documents for now", () => {
+  it("opens Office files and PDFs in an editor", () => {
     expect(isEditable({ kind: "file", name: "a.docx" })).toBe(true);
     expect(isEditable({ kind: "file", name: "a.xlsx" })).toBe(true);
     expect(isEditable({ kind: "file", name: "a.pptx" })).toBe(true);
-    expect(isEditable({ kind: "file", name: "a.pdf" })).toBe(false);
+    expect(isEditable({ kind: "file", name: "a.pdf" })).toBe(true);
+    expect(isEditable({ kind: "file", name: "a.zip" })).toBe(false);
     expect(isEditable({ kind: "folder", name: "a.docx" })).toBe(false);
+  });
+
+  it("tells Office files from PDFs, which make no template", () => {
+    expect(isOfficeFile({ kind: "file", name: "a.csv" })).toBe(true);
+    expect(isOfficeFile({ kind: "file", name: "a.pdf" })).toBe(false);
   });
 });

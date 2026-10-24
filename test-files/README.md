@@ -10,7 +10,8 @@ belong here; note each file's source below.
 | `preise.xlsx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/spreadsheet.spec.ts`, `e2e/screenshots.shot.ts` |
 | `umsatz.xlsx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pivot.spec.ts` |
 | `vortrag.pptx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/presentation.spec.ts`, `e2e/screenshots.shot.ts` |
-| `formular.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf-engine.spec.ts` |
+| `formular.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf-engine.spec.ts`, `e2e/pdf.spec.ts` |
+| `anhang.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf.spec.ts` |
 
 `fidelity/` holds documents for the format-fidelity test (`e2e/formats.fidelity.ts`), each with its
 reference picture in `fidelity/screenshots/`. They come unchanged from LibreOffice

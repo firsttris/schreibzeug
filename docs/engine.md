@@ -642,3 +642,5 @@ Unlike the Office editors, a PDF needs no conversion to open and keeps its forma
 `e2e/pdf-engine.spec.ts` checks this contract below the app: it opens `test-files/formular.pdf` in
 the host page, rotates a page, removes one, fills a field, saves through the worker, opens the
 result again and reads the file back with pdf-lib.
+
+The PDF view and its tools build on this; see [PDFs](pdf.md).

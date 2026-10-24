@@ -119,11 +119,15 @@ const CommentCard = ({
   </article>
 );
 
-const COMPOSE_LABELS = {
+/** What a new comment is on (CommentsPanelProps.target). */
+export type CommentTarget = "selection" | "slide" | "cell" | "page";
+
+const COMPOSE_LABELS: Record<CommentTarget, string> = {
   selection: "Kommentar zur Auswahl",
   slide: "Kommentar zur Folie",
   cell: "Kommentar zur Zelle",
-} as const;
+  page: "Notiz zur Seite",
+};
 
 export type CommentsPanelProps = {
   comments: Comment[];
@@ -131,8 +135,8 @@ export type CommentsPanelProps = {
   commands: CommentCommands | null;
   /** Show the field for a new comment on the selection, focused. */
   composing: boolean;
-  /** What a new comment is on: the selected text, the current slide, or the active cell. */
-  target?: "selection" | "slide" | "cell";
+  /** What a new comment is on: the selected text, the current slide, the active cell, or the page in view. */
+  target?: CommentTarget;
   onComposed: () => void;
   onClose: () => void;
 };

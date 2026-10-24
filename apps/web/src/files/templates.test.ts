@@ -25,7 +25,12 @@ describe("own templates", () => {
   });
 
   it("are the documents, spreadsheets and presentations in it", () => {
-    const choices = ownTemplates([node("Briefbogen.docx"), node("Logo.png"), node("Preise.xlsx")]);
+    const choices = ownTemplates([
+      node("Briefbogen.docx"),
+      node("Logo.png"),
+      node("Formular.pdf"),
+      node("Preise.xlsx"),
+    ]);
     expect(choices.map((choice) => [choiceName(choice), formatOf(choice)])).toEqual([
       ["Briefbogen", "docx"],
       ["Preise", "xlsx"],

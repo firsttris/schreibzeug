@@ -1,6 +1,6 @@
 import type { FileNode } from "@schreibzeug/files-api";
 import type { Template, TemplateFormat } from "@schreibzeug/ooxml";
-import { isEditable, kindOf } from "../lib/format";
+import { isOfficeFile, kindOf } from "../lib/format";
 
 /**
  * Where people keep their own templates: a folder of this name at the top of their files. Every
@@ -20,7 +20,9 @@ export const templateFolderOf = (topLevel: FileNode[]): FileNode | null =>
   ) ?? null;
 
 export const ownTemplates = (inFolder: FileNode[]): TemplateChoice[] =>
-  inFolder.filter(isEditable).map((node) => ({ kind: "own", node, format: kindOf(node) as TemplateFormat }));
+  inFolder
+    .filter(isOfficeFile)
+    .map((node) => ({ kind: "own", node, format: kindOf(node) as TemplateFormat }));
 
 const baseName = (name: string) => {
   const dot = name.lastIndexOf(".");

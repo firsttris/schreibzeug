@@ -1,4 +1,4 @@
-import type { CoreState, OfficeFormat } from "@schreibzeug/editor-core";
+import type { CoreState, DocumentFormat } from "@schreibzeug/editor-core";
 import { ArrowLeft, Download, History, Save, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { FileBadge } from "../files/file-badge";
@@ -14,7 +14,7 @@ import type { DocumentSave } from "./use-document-save";
 
 export type EditorHeaderProps = {
   name: string;
-  format: OfficeFormat;
+  format: DocumentFormat;
   state: CoreState;
   /** Why the editor could not open, if it could not. */
   failure: string | null;

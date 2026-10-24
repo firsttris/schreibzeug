@@ -114,6 +114,8 @@ const files: Record<string, Uint8Array> = {
     },
     { lines: ["Seite zwei", "Allgemeine Bedingungen"] },
   ]),
+  // A one-page PDF to append to another one.
+  "anhang.pdf": pdf([{ lines: ["Anhang", "Lieferschein 2026-117"] }]),
 };
 
 for (const [name, bytes] of Object.entries(files)) {

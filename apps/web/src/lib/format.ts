@@ -51,8 +51,12 @@ export const kindOf = (node: { kind: "folder" | "file"; name: string }): FileKin
     : "other";
 };
 
-/** The kinds Schreibzeug can open in an editor today; a CSV opens in the spreadsheet. */
-export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean => {
+/** Office files: documents, spreadsheets (a CSV opens in the spreadsheet) and presentations. */
+export const isOfficeFile = (node: { kind: "folder" | "file"; name: string }): boolean => {
   const kind = kindOf(node);
   return kind === "docx" || kind === "xlsx" || kind === "pptx" || kind === "csv";
 };
+
+/** The kinds Schreibzeug can open in an editor today: the Office files and PDFs. */
+export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean =>
+  isOfficeFile(node) || kindOf(node) === "pdf";

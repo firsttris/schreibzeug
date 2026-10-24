@@ -54,6 +54,15 @@ export const SLIDE_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+S", label: "Speichern" },
 ];
 
+export const PDF_SHORTCUTS: Shortcut[] = [
+  { keys: "Strg+Z", label: "Rückgängig" },
+  { keys: "Strg+Y", label: "Wiederholen" },
+  { keys: "Strg+C", label: "Kopieren" },
+  { keys: "Entf", label: "Markierte Anmerkung löschen" },
+  { keys: "Strg+P", label: "Drucken" },
+  { keys: "Strg+S", label: "Speichern" },
+];
+
 export const ShortcutsDialog = ({
   open,
   shortcuts,

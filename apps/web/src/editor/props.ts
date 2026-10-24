@@ -14,4 +14,9 @@ export type EditorViewProps = {
   /** What the "Datei" menu does with the file on the server (use-file-actions.tsx). */
   fileActions: FileActions;
   onRename?: ((name: string) => Promise<unknown>) | undefined;
+  /**
+   * Stores a new file beside the open one (in "Meine Dateien" when the folder is someone else's)
+   * and resolves with the name it got, e.g. pages taken out of a PDF.
+   */
+  onCreateFile?: ((name: string, bytes: Uint8Array, type: string) => Promise<string>) | undefined;
 };

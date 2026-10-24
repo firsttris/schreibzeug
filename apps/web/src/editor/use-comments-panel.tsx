@@ -1,7 +1,7 @@
 import type { Comment, CommentCommands } from "@schreibzeug/editor-core";
 import { MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CommentsPanel } from "../comments/comments-panel";
+import { CommentsPanel, type CommentTarget } from "../comments/comments-panel";
 import { Button } from "../ui/button";
 
 type CommentsSource = { comments: CommentCommands; resize: () => void };
@@ -17,7 +17,7 @@ export const useCommentsPanel = (
   editor: CommentsSource | null,
   state: CommentsView,
   readOnly: boolean,
-  target: "selection" | "slide" | "cell" = "selection",
+  target: CommentTarget = "selection",
 ) => {
   const [mode, setMode] = useState<"closed" | "open" | "composing">("closed");
   const open = state.comments.filter((comment) => !comment.resolved).length;

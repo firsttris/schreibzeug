@@ -22,8 +22,11 @@ const NEW_ITEMS: Array<{ format: OfficeFormat; label: string }> = [
   { format: "pptx", label: "Neue Präsentation" },
 ];
 
-/** What the open document offers besides the file itself: a PDF to download or print. */
-export type PdfActions = { download: () => void; print: () => void } | null;
+/**
+ * What the open document offers besides the file itself: a PDF to download or print. A PDF needs
+ * no second PDF to download, only printing.
+ */
+export type PdfActions = { download?: () => void; print: () => void } | null;
 
 /**
  * The "Datei" menu, the same in every editor; `download` saves the open state as a file, `pdf`
@@ -44,12 +47,10 @@ export const fileMenu = (
       { label: "Kopie erstellen", onSelect: actions.onCopy },
       { label: "Herunterladen", onSelect: download, disabled: !ready },
       ...downloads.map((item) => ({ ...item, disabled: item.disabled || !ready })),
-      ...(pdf
-        ? [
-            { label: "Als PDF herunterladen", onSelect: pdf.download, disabled: !ready },
-            { label: "Drucken", shortcut: "Strg+P", onSelect: pdf.print, disabled: !ready },
-          ]
+      ...(pdf?.download
+        ? [{ label: "Als PDF herunterladen", onSelect: pdf.download, disabled: !ready }]
         : []),
+      ...(pdf ? [{ label: "Drucken", shortcut: "Strg+P", onSelect: pdf.print, disabled: !ready }] : []),
     ],
     [
       ...(actions.onShare ? [{ label: "Teilen …", onSelect: actions.onShare }] : []),

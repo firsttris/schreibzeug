@@ -60,6 +60,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           user: { id: userId, name: userName },
           convert: converter.convert,
           renderPdf: converter.renderPdf,
+          applyPdfChanges: converter.applyPdfChanges,
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
           csv: kindOf({ kind: "file", name: file.name }) === "csv",

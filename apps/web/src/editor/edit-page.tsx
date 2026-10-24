@@ -6,6 +6,7 @@ import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
 import { kindOf } from "../lib/format";
 import type { OpenedFile } from "./opened-file";
+import { PdfView } from "./pdf-view";
 import type { EditorViewProps } from "./props";
 import { SheetView } from "./sheet-view";
 import { SlideView } from "./slide-view";
@@ -19,6 +20,7 @@ const VIEWS: Partial<Record<ReturnType<typeof kindOf>, ComponentType<EditorViewP
   xlsx: SheetView,
   csv: SheetView,
   pptx: SlideView,
+  pdf: PdfView,
 };
 
 const Failure = ({ message }: { message: string }) => (
@@ -84,6 +86,14 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
       : navigate({ to: "/shared" });
   };
   const { actions, onRename, dialogs } = useFileActions({ node, onClose: () => void close(), onRestored });
+  const createFile = async (name: string, bytes: Uint8Array, type: string) => {
+    const created = await commands.upload(
+      file.owned ? file.parentId : null,
+      new File([bytes as BlobPart], name, { type }),
+    );
+    await refreshFiles(queryClient);
+    return created.name;
+  };
 
   const View = VIEWS[kindOf({ kind: "file", name: file.name })];
   if (!View) return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
@@ -95,6 +105,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
         onSave={store}
         fileActions={actions}
         onRename={onRename}
+        onCreateFile={createFile}
       />
       {dialogs}
     </>

@@ -14,7 +14,7 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 
 | Workspace | What it does |
 |---|---|
-| `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store, for the text, spreadsheet and presentation editors. Framework-free. See [the engine](engine.md). |
+| `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store, for the text, spreadsheet, presentation and PDF editors. Framework-free. See [the engine](engine.md) and [PDFs](pdf.md). |
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
 | `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests. |
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
@@ -40,7 +40,7 @@ Hono's WebSocket upgrade, so access checks for files and editing sessions live i
 Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an account; every
 other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
 `/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views, `/edit/:id` opens a file in its editor with the whole window
-(`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, sharing
+(`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, sharing
 the header with the editable name, the menu bar, status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under
 `files`. The editor page joins the file's editing session first (`src/use-session-file.ts`) and

@@ -8,6 +8,7 @@
  *              from a CSV file (to "xlsx") also { csvDelimiter: number } (common/commonDefines.js c_oAscCsvDelimiter)
  *              or, for a PDF, { id, bytes, from: "bin", to: "pdf", media, commands: Uint8Array, fonts: [{ name, bytes }] }
  *              or, for an edited PDF, { id, bytes: the original PDF, from: "pdf", to: "pdf", media, changes: Uint8Array }
+ *              and, for PDF/A, pdfa: true with either (and with from "pdf" and no changes: a PDF drawn anew as PDF/A)
  * Message out: { id, bytes: Uint8Array, media: { name: bytes } } or { id, error: string }
  *
  * The images of a document travel beside it: x2t writes them to "media/" next to the binary it
@@ -95,13 +96,17 @@ const csvXml = (from, to, delimiter) =>
 // the PDF, without the document renderer). 513 is AVS_OFFICESTUDIO_FILE_CROSSPLATFORM_PDF
 // (Common/OfficeFileFormats.h).
 const PDF_FORMAT_ID = 513;
+// PDF/A: x2t writes the PDF as PDF/A (core X2tConverter/src/cextracttools.h m_bIsPDFA →
+// PdfFile CreatePdf(isPDFA)); a PDF is drawn anew into one instead of being copied
+// (pdf_image.h fromCrossPlatform: nFormatFrom == nFormatTo && !getIsPDFA()).
+const pdfaXml = (pdfa) => (pdfa ? "<m_bIsPDFA>true</m_bIsPDFA>" : "");
+
+const pdfFormatsXml = (tempDir) =>
+  `<m_nFormatFrom>${PDF_FORMAT_ID}</m_nFormatFrom>` +
+  `<m_nFormatTo>${PDF_FORMAT_ID}</m_nFormatTo>` +
+  `<m_sTempDir>${tempDir}</m_sTempDir>`;
 const pdfChangesXml = (changes, tempDir) =>
-  changes
-    ? `<m_nFormatFrom>${PDF_FORMAT_ID}</m_nFormatFrom>` +
-      `<m_nFormatTo>${PDF_FORMAT_ID}</m_nFormatTo>` +
-      "<m_bFromChanges>true</m_bFromChanges>" +
-      `<m_sTempDir>${tempDir}</m_sTempDir>`
-    : "";
+  changes ? `${pdfFormatsXml(tempDir)}<m_bFromChanges>true</m_bFromChanges>` : "";
 
 const taskXml = (from, to, fontDir, extra) =>
   '<?xml version="1.0" encoding="utf-8"?>' +
@@ -132,7 +137,7 @@ const readMedia = (fs, dir) => {
   return media;
 };
 
-const convert = (x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter, changes) => {
+const convert = (x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter, changes, pdfa) => {
   const dir = `/job-${id}`;
   const input = `${dir}/input.${from}`;
   const output = `${dir}/output.${to}`;
@@ -147,13 +152,17 @@ const convert = (x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter,
     if (commands) x2t.FS.writeFile(`${dir}/pdf.bin`, commands);
     x2t.FS.mkdir(`${dir}/media`);
     for (const [name, image] of Object.entries(media ?? {})) x2t.FS.writeFile(`${dir}/media/${name}`, image);
+    if (changes || (pdfa && from === "pdf")) x2t.FS.mkdir(`${dir}/temp`);
     if (changes) {
       x2t.FS.mkdir(`${dir}/changes`);
       x2t.FS.writeFile(`${dir}/changes/changes0.bin`, changes);
-      x2t.FS.mkdir(`${dir}/temp`);
     }
     x2t.FS.writeFile(input, bytes);
-    const extra = csvXml(from, to, csvDelimiter) + pdfChangesXml(changes, `${dir}/temp`);
+    const extra =
+      csvXml(from, to, csvDelimiter) +
+      pdfChangesXml(changes, `${dir}/temp`) +
+      pdfaXml(pdfa) +
+      (pdfa && from === "pdf" && !changes ? pdfFormatsXml(`${dir}/temp`) : "");
     x2t.FS.writeFile(task, taskXml(input, output, fontDir, extra));
     stderr = [];
     const code = x2t.ccall("main1", "number", ["string"], [task]);
@@ -168,10 +177,10 @@ const convert = (x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter,
 };
 
 self.onmessage = async (event) => {
-  const { id, bytes, from, to, media, commands, fonts, csvDelimiter, changes } = event.data;
+  const { id, bytes, from, to, media, commands, fonts, csvDelimiter, changes, pdfa } = event.data;
   try {
     const x2t = await loadX2t();
-    const result = convert(x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter, changes);
+    const result = convert(x2t, id, bytes, from, to, media, commands, fonts, csvDelimiter, changes, pdfa);
     const transfer = [result.bytes.buffer, ...Object.values(result.media).map((image) => image.buffer)];
     self.postMessage({ id, ...result }, transfer);
   } catch (error) {

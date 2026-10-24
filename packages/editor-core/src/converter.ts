@@ -31,6 +31,19 @@ export type RenderPdf = (
   commands: Uint8Array,
   fonts: FontFile[],
   media?: MediaFiles,
+  /** A PDF/A file (ISO 19005-2) for archiving, instead of a plain PDF. */
+  pdfa?: boolean,
+) => Promise<Uint8Array>;
+
+/**
+ * A PDF drawn anew as PDF/A, with the editor's changes written in first if there are any, and the
+ * fonts to embed: x2t needs them, or its text comes out as outlines nobody can search.
+ */
+export type WritePdfA = (
+  pdf: Uint8Array,
+  changes: Uint8Array | null,
+  fonts: FontFile[],
+  media?: MediaFiles,
 ) => Promise<Uint8Array>;
 
 /**
@@ -47,6 +60,7 @@ export type Converter = {
   convert: Convert;
   renderPdf: RenderPdf;
   applyPdfChanges: ApplyPdfChanges;
+  writePdfA: WritePdfA;
   terminate: () => void;
 };
 
@@ -114,8 +128,21 @@ export const createConverter = (
   return {
     convert: (bytes, from, to, media = {}, csvDelimiter) =>
       request(bytes, { from, to, media, ...(csvDelimiter === undefined ? {} : { csvDelimiter }) }),
-    renderPdf: async (document, commands, fonts, media = {}) =>
-      (await request(document, { from: "bin", to: "pdf", commands, fonts, media })).bytes,
+    renderPdf: async (document, commands, fonts, media = {}, pdfa = false) =>
+      (await request(document, { from: "bin", to: "pdf", commands, fonts, media, ...(pdfa ? { pdfa } : {}) }))
+        .bytes,
+    writePdfA: async (pdf, changes, fonts, media = {}) => {
+      const copy = changes?.slice();
+      const message = {
+        from: "pdf",
+        to: "pdf",
+        pdfa: true,
+        fonts,
+        media,
+        ...(copy ? { changes: copy } : {}),
+      };
+      return (await request(pdf, message, copy ? [copy.buffer] : [])).bytes;
+    },
     applyPdfChanges: async (original, changes, media = {}) => {
       const copy = changes.slice();
       return (await request(original, { from: "pdf", to: "pdf", changes: copy, media }, [copy.buffer])).bytes;

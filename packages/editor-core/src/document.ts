@@ -1,5 +1,14 @@
 import type { CollabChannel } from "./collab";
-import type { ApplyPdfChanges, Convert, Converted, MediaFiles, OfficeFormat, RenderPdf } from "./converter";
+import type {
+  ApplyPdfChanges,
+  Convert,
+  Converted,
+  FontFile,
+  MediaFiles,
+  OfficeFormat,
+  RenderPdf,
+  WritePdfA,
+} from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
 import { CSV_DELIMITER_CODES, type CsvDelimiter, detectDelimiter, encodeCsv } from "./csv";
 import type { CommonEventArgs, DocumentUrls, EngineApiBase, EngineWindow } from "./engine-types";
@@ -24,6 +33,8 @@ export type OpenOptions = {
   renderPdf?: RenderPdf;
   /** Writes the PDF editor's changes into the PDF (converter.ts); needed to save a PDF. */
   applyPdfChanges?: ApplyPdfChanges;
+  /** Draws a PDF anew as PDF/A (converter.ts); a PDF has no PDF/A without it. */
+  writePdfA?: WritePdfA;
   lang?: string;
   /** The file is a CSV, not an .xlsx: it is read and saved as one (csv.ts). Spreadsheets only. */
   csv?: boolean;
@@ -62,8 +73,11 @@ export type OpenedDocument<S extends CoreState> = {
    * as German Excel writes them).
    */
   exportAs: (format: "csv") => Promise<Uint8Array>;
-  /** The document as a PDF, as it would print; null where the editor cannot make one. */
-  exportPdf: (() => Promise<Uint8Array>) | null;
+  /**
+   * The document as a PDF, as it would print, or as PDF/A for archiving; null where the editor
+   * cannot make one.
+   */
+  exportPdf: ((pdfa?: boolean) => Promise<Uint8Array>) | null;
   /**
    * Strg+F, Strg+H or Strg+P in the document. The engine leaves them to its UI (web-apps opens its
    * search panel or print preview); here they go to the listener instead of the browser.
@@ -135,6 +149,8 @@ export type EditorBinding<
    * into the original (pdf.ts). Without it the binary goes back through x2t.
    */
   saveFile?: (api: Api, options: OpenOptions, media: () => Promise<MediaFiles>) => Promise<Uint8Array>;
+  /** The file as PDF/A with these fonts, where it is a PDF itself (pdf.ts). */
+  pdfA?: (api: Api, options: OpenOptions, fonts: FontFile[], media: MediaFiles) => Promise<Uint8Array>;
 };
 
 export type KindContext<W, Api, S, E> = {
@@ -197,13 +213,37 @@ const pdfExport = <Api extends { asc_nativeGetFile(): string }>(
   snapshot: () => Promise<Snapshot>,
 ): OpenedDocument<CoreState>["exportPdf"] => {
   if (!printCommands || !renderPdf) return null;
-  return async () => {
+  return async (pdfa = false) => {
     const { binary, media } = await snapshot();
     const commands = printCommands(api);
-    const fonts = await fontsForPdf(win.AscCommon.g_font_loader, win.location.href, fetchBytes(win));
-    return renderPdf(binary, commands, fonts, media);
+    return renderPdf(binary, commands, await engineFonts(win), media, pdfa);
   };
 };
+
+/** The fonts the engine has drawn with, as x2t embeds them (print.ts). */
+const engineFonts = (win: EngineWindow) =>
+  fontsForPdf(win.AscCommon.g_font_loader, win.location.href, fetchBytes(win));
+
+/**
+ * A PDF's own export: the PDF as saved, or drawn anew as PDF/A with the fonts the engine drew it
+ * with (pdf.ts pdfA).
+ */
+const fileExport =
+  <Api>(
+    api: Api,
+    options: OpenOptions,
+    win: EngineWindow,
+    media: () => Promise<MediaFiles>,
+    saveFile: (api: Api, options: OpenOptions, media: () => Promise<MediaFiles>) => Promise<Uint8Array>,
+    pdfA:
+      | ((api: Api, options: OpenOptions, fonts: FontFile[], media: MediaFiles) => Promise<Uint8Array>)
+      | undefined,
+  ): NonNullable<OpenedDocument<CoreState>["exportPdf"]> =>
+  async (pdfa = false) => {
+    if (!pdfa) return saveFile(api, options, media);
+    if (!pdfA) throw new Error("This editor makes no PDF/A of a PDF.");
+    return pdfA(api, options, await engineFonts(win), await media());
+  };
 
 /** The document in the engine's binary format and the images it refers to. */
 type Snapshot = { binary: Uint8Array; media: MediaFiles };
@@ -361,10 +401,10 @@ export const openDocument = <
         },
         resize: () => binding.resize(api),
         onShortcut: shortcuts.add,
-        // A PDF is its own PDF: exporting it is saving it.
+        // A PDF is its own PDF: exporting it is saving it, or drawing it anew as PDF/A.
         exportPdf:
           saveFile && file.format === "pdf"
-            ? () => saveFile(api, options, documentMedia)
+            ? fileExport(api, options, win, documentMedia, saveFile, binding.pdfA)
             : pdfExport(win, api, binding.printCommands, options.renderPdf, snapshot),
         insertImage: insertImage(urls, base, options.images),
         close: () => {

@@ -344,6 +344,10 @@ the converter three things, the way CryptPad does (`www/common/outer/x2t.js`
   them cached) and with the obfuscation of their first 32 bytes undone, as the engine does when it
   loads them (`common/Drawings/Externals.js`, `guidOdttf`); `src/print.ts`.
 
+"Als PDF/A herunterladen" asks x2t for the same PDF as PDF/A-2 (`m_bIsPDFA` in the task;
+`X2tConverter/src/cextracttools.h` → `PdfFile.cpp` `CreatePdf(isPDFA)`): XMP metadata with
+`pdfaid:part` 2, an sRGB output intent, every font embedded. For a PDF itself see `docs/pdf.md`.
+
 "Drucken" prints that PDF through the browser's dialog from a hidden frame (`apps/web/src/editor/pdf.ts`).
 Strg+P is another key the engine leaves to its UI; it goes to the same place as Strg+F
 (`onShortcut`), and so does Strg+S, which saves through the app (the engine's own `asc_Save` would

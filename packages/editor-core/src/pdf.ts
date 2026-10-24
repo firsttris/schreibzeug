@@ -263,6 +263,11 @@ const pdfBinding: EditorBinding<PdfWindow, PdfEventArgs, PdfEngineApi, PdfState,
   resize: (api) => api.Resize(),
   markUnchanged: (api) => api.SetUnchangedDocument(),
   saveFile: savePdf,
+  // The PDF with the changes made, drawn anew by x2t as PDF/A with the fonts the engine drew it with.
+  pdfA: async (api, options, fonts, media) => {
+    if (!options.writePdfA) throw new Error("A PDF/A needs writePdfA.");
+    return options.writePdfA(options.bytes, api.getDocumentRenderer().Save(), fonts, media);
+  },
 };
 
 /** Opens a PDF in the PDF editor of a frame mounted with kind "pdf" (see document.ts). */

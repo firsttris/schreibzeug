@@ -21,7 +21,11 @@ export const decodeWebFont = (bytes: Uint8Array): Uint8Array => {
  * Externals.js CFontFileLoader, Status 0 or 1 = loaded). Exactly these end up in a PDF of it.
  */
 export const loadedFontFiles = (loader: FontLoader): string[] =>
-  loader.fontFiles.filter((file) => file.Status === 0 || file.Status === 1).map((file) => file.Id);
+  loader.fontFiles
+    .filter((file) => file.Status === 0 || file.Status === 1)
+    .map((file) => file.Id)
+    // The PDF editor lists the fonts a PDF embeds too ("Embedded: Helvetica"); they have no file.
+    .filter((id) => !id.includes(":"));
 
 /**
  * Fetches the loaded fonts from where the engine got them (common/GlobalLoaders.js

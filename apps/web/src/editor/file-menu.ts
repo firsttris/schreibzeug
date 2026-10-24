@@ -23,10 +23,10 @@ const NEW_ITEMS: Array<{ format: OfficeFormat; label: string }> = [
 ];
 
 /**
- * What the open document offers besides the file itself: a PDF to download or print. A PDF needs
- * no second PDF to download, only printing.
+ * What the open document offers besides the file itself: a PDF to download or print, and a PDF/A
+ * for archiving. A PDF needs no second PDF to download.
  */
-export type PdfActions = { download?: () => void; print: () => void } | null;
+export type PdfActions = { download?: () => void; downloadPdfA: () => void; print: () => void } | null;
 
 /**
  * The "Datei" menu, the same in every editor; `download` saves the open state as a file, `pdf`
@@ -50,6 +50,7 @@ export const fileMenu = (
       ...(pdf?.download
         ? [{ label: "Als PDF herunterladen", onSelect: pdf.download, disabled: !ready }]
         : []),
+      ...(pdf ? [{ label: "Als PDF/A herunterladen", onSelect: pdf.downloadPdfA, disabled: !ready }] : []),
       ...(pdf ? [{ label: "Drucken", shortcut: "Strg+P", onSelect: pdf.print, disabled: !ready }] : []),
     ],
     [

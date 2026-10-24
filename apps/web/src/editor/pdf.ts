@@ -3,8 +3,11 @@ import { downloadBytes } from "./opened-file";
 /** "Angebot.docx" → "Angebot.pdf". */
 export const pdfNameFor = (name: string): string => `${name.replace(/\.[^.]*$/, "")}.pdf`;
 
+/** "Angebot.docx" → "Angebot (PDF-A).pdf": beside the plain PDF of the same name. */
+export const pdfaNameFor = (name: string): string => `${name.replace(/\.[^.]*$/, "")} (PDF-A).pdf`;
+
 export const downloadPdf = (bytes: Uint8Array, name: string): void =>
-  downloadBytes(bytes, pdfNameFor(name), "application/pdf");
+  downloadBytes(bytes, /\.pdf$/i.test(name) ? name : pdfNameFor(name), "application/pdf");
 
 /**
  * Prints a PDF with the browser's print dialog: the PDF goes into a hidden frame, which prints once

@@ -91,6 +91,20 @@ what was changed on them (`CPDFDoc.GetPagesBinary`, which `drawingfile.wasm` `Sp
 and stores it beside the file as "<Name> – Seiten 1–2.pdf" (in "Meine Dateien" when the folder
 belongs to someone else).
 
+## PDF/A
+
+"Datei → Als PDF/A herunterladen" gives the PDF with the changes made as PDF/A-2 for archiving,
+as "<Name> (PDF-A).pdf"; the stored file stays as it is. x2t draws the PDF anew into a PDF/A
+(`X2tConverter/src/lib/pdf_image.h`: with `m_bIsPDFA` a PDF is not copied to a PDF), with the
+change file applied first, as when saving, and the fonts the engine drew it with in `m_sFontDir`
+(`print.ts`). Text documents, spreadsheets and presentations have the same menu item (`docs/engine.md`).
+
+The PDF/A embeds every font, as it has to. One limit: a PDF that leaves out one of the 14 standard
+fonts (Helvetica, Times, Courier and their styles, which a reader brings along) is drawn with the
+converter's own copies of them, which are Type 1 fonts, and x2t embeds only TrueType, OpenType and
+CFF fonts (`PdfFile/PdfWriter.cpp` `GetFont`); the text in those fonts becomes outlines: it looks
+the same but cannot be searched or copied. Text in fonts the PDF embeds stays text.
+
 ## Pens
 
 Pens are `asc_CStroke` objects as web-apps builds them (`Toolbar.js` `onInsertShapeComment`): a
@@ -124,7 +138,9 @@ connection someone who types very fast can lose a character in a shared form.
 `e2e/pdf-sign.spec.ts` signs through the app with a certificate made for the test (a wrong
 password first), checks the stored file and the warning after a change; `packages/pdf-sign/test`
 signs and checks below the app, also a changed byte and bytes added after signing.
-`e2e/pdf-engine.spec.ts` checks the engine below the app; `e2e/pdf-together.spec.ts` has two
+`e2e/pdf-a.spec.ts` downloads a text document and an edited PDF as PDF/A and checks the
+conformance in the XMP metadata, the output intent, and that every font is embedded with a
+ToUnicode map. `e2e/pdf-engine.spec.ts` checks the engine below the app; `e2e/pdf-together.spec.ts` has two
 people fill in and comment the same PDF. `e2e/pdf.spec.ts` works through the app
 with `test-files/formular.pdf`: turn a page and add one, fill in both fields (typed at once, Tab to
 the next), remove a page and not the last, add a note and a drawing, highlight, black out a

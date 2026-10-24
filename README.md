@@ -37,6 +37,11 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 </picture>
 
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/pdf-dark.png">
+  <img src="docs/screenshots/pdf-light.png" alt="The Schreibzeug PDF view: toolbar with select, hand, highlight, underline, strike out, freehand, shapes, note, text box, signature, page and redaction tools, the page thumbnails on the left and a filled-in order form">
+</picture>
+
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/files-dark.png">
   <img src="docs/screenshots/files-light.png" alt="The Schreibzeug file browser: folders, Word documents, a spreadsheet and a presentation with their last change and size, and buttons for a new folder, a new file and upload">
 </picture>

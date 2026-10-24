@@ -16,6 +16,7 @@ const testFile = (name: string) => readFile(join(import.meta.dirname, "../test-f
 const LETTER = "Angebot Lagerverwaltung.docx";
 const PRICES = "Preisliste Hardware.xlsx";
 const TALK = "Projektstart Lagerverwaltung.pptx";
+const FORM = "Auftragsformular.pdf";
 
 /** What "Meine Dateien" holds, with how long before NOW each was last changed. */
 const FOLDERS = [
@@ -29,6 +30,7 @@ const DOCUMENTS = [
   { name: "Wartungsvertrag Entwurf.docx", file: "hello.docx", ago: { days: 3 } },
   { name: PRICES, file: "preise.xlsx", ago: { hours: 1, minutes: 5 } },
   { name: TALK, file: "vortrag.pptx", ago: { days: 1, hours: 6 } },
+  { name: FORM, file: "formular.pdf", ago: { days: 2, hours: 2 } },
 ];
 
 type Ago = { days?: number; hours?: number; minutes?: number };
@@ -46,6 +48,7 @@ const seed = async (api: APIRequestContext) => {
         docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".pdf": "application/pdf",
       }[name.slice(-4)] ?? "application/octet-stream";
     expect((await api.post("/api/files", { multipart: { file: { name, mimeType, buffer } } })).ok()).toBe(
       true,
@@ -213,6 +216,25 @@ for (const scheme of schemes) {
       await expectEditorReady(page, errors);
       await page.waitForTimeout(2_000);
       await shoot(page, "presentation", scheme);
+    });
+
+    test("pdf", async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto("/");
+      await page.getByRole("link", { name: FORM, exact: true }).click();
+      await expectEditorReady(page, errors);
+      await page.waitForTimeout(2_000);
+      // The form filled in: the name field, as e2e/pdf.spec.ts finds it on the fitted page.
+      const box = await page.getByTestId("engine-frame").boundingBox();
+      if (!box) throw new Error("The engine frame is not visible.");
+      const scale = (box.width - 180 - 40 - 14) / 595;
+      await page.mouse.click(box.x + 200 + 240 * scale, box.y + 20 + (842 - 716) * scale);
+      await page.keyboard.type("Anna Berger");
+      await page.keyboard.press("Tab");
+      await page.keyboard.type("Bühl");
+      await page.mouse.click(box.x + 200 + 300 * scale, box.y + 20 + 400 * scale);
+      await page.waitForTimeout(1_000);
+      await shoot(page, "pdf", scheme);
     });
 
     test("comments", async ({ page }) => {

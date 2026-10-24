@@ -58,7 +58,7 @@ Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e
 `docs/screenshots` holds the pictures for the README and the docs, light and dark. They are taken
 by `e2e/screenshots.shot.ts` (`bun run screenshots`), in CI by hand with **Actions → Update
 screenshots**, which commits the pictures that changed. The run seeds the server with the same
-folders and the letter from `test-files/angebot.docx`, pins their dates in the database and the
+folders, the letter from `test-files/angebot.docx` and the form from `test-files/formular.pdf`, pins their dates in the database and the
 browser's clock, and ships Geist as the interface font, so an unchanged page gives an unchanged
 picture.
 

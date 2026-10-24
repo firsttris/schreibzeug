@@ -1,5 +1,5 @@
 import { toTextColor } from "./colors";
-import { readComment } from "./comments";
+import { commentEvents } from "./comment-state";
 import type { CoreEvent } from "./core-state";
 import type { CommonEventArgs, TextEventArgs, WordEventArgs } from "./engine-types";
 import type { Align, Baseline, EditorEvent, TextEvent } from "./state";
@@ -109,11 +109,7 @@ export const stateEvents = (
 ): EventTranslators => ({
   ...coreEvents(disconnectAction),
   ...textEvents(constants),
-  asc_onAddComment: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
-  asc_onChangeCommentData: (id, data) => ({ type: "commentSet", comment: readComment(id, data) }),
-  asc_onRemoveComment: (id) => ({ type: "commentRemoved", id }),
-  asc_onShowComment: (ids) => ({ type: "activeComments", ids: [...ids] }),
-  asc_onHideComment: () => ({ type: "activeComments", ids: [] }),
+  ...commentEvents(),
   asc_onParaStyleName: (name) => ({ type: "style", value: name || null }),
   asc_onInitEditorStyles: (styles) => ({
     type: "styles",

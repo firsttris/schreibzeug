@@ -126,8 +126,14 @@ in milliseconds and writes both.
 | go to | `asc_selectComment(id)` | – |
 | – | `asc_showComments(false)` on content ready marks commented text | `asc_onShowComment(ids)`, `asc_onHideComment` |
 
-On open, the engine reports every comment of the file with `asc_onAddComment`. Until there are
-user accounts, comments are written as "Ich".
+On open, the engine reports every comment of the file with `asc_onAddComment`; a comment carries
+the name of the account that wrote it.
+
+The presentation engine speaks the same calls and events (`slide/api.js`, `asc_CCommentDataSlide`,
+exported as `Asc.asc_CCommentData`); a new comment belongs to the current slide, and
+`asc_showComments()` on content ready shows the comment marks on the slides. Both editors share
+the commands (`src/comments.ts`), the state (`src/comment-state.ts`) and the panel
+(`apps/web/src/editor/use-comments-panel.tsx`).
 
 `asc_onDocumentModifiedChanged` carries no value (`word/api.js` `SetDocumentModified` sends it
 bare); like web-apps (`documenteditor/mobile` `Main.jsx`), `editor-core` reads

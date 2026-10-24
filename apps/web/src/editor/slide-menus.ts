@@ -18,6 +18,8 @@ export type SlideMenuContext = {
   onFind: (mode: "find" | "replace") => void;
   /** Starts the slide show full screen; null while the presentation opens. */
   onPresent: ((from: "current" | "beginning") => void) | null;
+  /** Opens the comments with the field for a new one on the current slide. */
+  onAddComment: () => void;
   /** Opens the file dialog for an image; null where none can be put in. */
   onInsertImage: (() => void) | null;
 };
@@ -88,6 +90,7 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
             disabled: off || !context.onInsertImage,
             onSelect: () => context.onInsertImage?.(),
           },
+          { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
         ],
       ],
     },
@@ -216,5 +219,6 @@ export const slideContextMenu = (context: SlideMenuContext, area: ContextMenuAre
   const run = (action: (c: SlideCommands) => void) => () => commands && action(commands);
   const clipboard = clipboardItems(context.view, context.onClipboardRefused);
   const slides = slideItems(run, off, state.document.pages);
-  return area === "thumbnails" ? [slides, clipboard] : [clipboard, slides];
+  const comment = [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }];
+  return area === "thumbnails" ? [slides, clipboard] : [clipboard, comment, slides];
 };

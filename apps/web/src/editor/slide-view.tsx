@@ -11,6 +11,7 @@ import { SLIDE_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { type SlideMenuContext, slideContextMenu, slideMenus } from "./slide-menus";
+import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
@@ -29,6 +30,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
   const present = useSlideShow(editor, container, state.show.running);
+  const comments = useCommentsPanel(editor, state, file.readOnly, "slide");
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "pptx"), MIME.pptx);
@@ -42,6 +44,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
     onPresent: present,
+    onAddComment: comments.compose,
   };
 
   return (
@@ -62,20 +65,26 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
         shortcuts={SLIDE_SHORTCUTS}
         notice={chrome.notice}
         actions={
-          <Button variant="outline" disabled={!present} onClick={() => void present?.("beginning")}>
-            <Presentation size={16} />
-            Präsentieren
-          </Button>
+          <>
+            {comments.button}
+            <Button variant="outline" disabled={!present} onClick={() => void present?.("beginning")}>
+              <Presentation size={16} />
+              Präsentieren
+            </Button>
+          </>
         }
         toolbar={<SlideToolbar state={state} commands={editor?.commands ?? null} />}
       />
-      <DocumentArea
-        container={container}
-        search={editor?.search ?? null}
-        searchState={state.search}
-        searchBar={chrome.searchBar}
-        readOnly={file.readOnly}
-      />
+      <div className="flex min-h-0 flex-1">
+        <DocumentArea
+          container={container}
+          search={editor?.search ?? null}
+          searchState={state.search}
+          searchBar={chrome.searchBar}
+          readOnly={file.readOnly}
+        />
+        {comments.panel}
+      </div>
       <p
         data-testid="slide-position"
         className="m-0 border-t border-[var(--border)] px-4 py-1.5 text-xs text-[var(--muted-foreground)]"

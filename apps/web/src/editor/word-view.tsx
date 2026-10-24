@@ -1,10 +1,7 @@
 import { initialEditorState, openWordDocument } from "@stapel/editor-core";
-import { MessageSquare } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { CommentsPanel } from "../comments/comments-panel";
+import { useRef, useState } from "react";
 import { SizeGrid } from "../toolbar/table-menu";
 import { Toolbar } from "../toolbar/toolbar";
-import { Button } from "../ui/button";
 import { ContextMenu } from "../ui/context-menu";
 import { Dialog } from "../ui/dialog";
 import { clipboardHint } from "./common-menus";
@@ -14,6 +11,7 @@ import { WORD_SHORTCUTS } from "./help-dialogs";
 import { LinkDialog } from "./link-dialog";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
@@ -32,16 +30,9 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
-  const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
+  const comments = useCommentsPanel(editor, state, file.readOnly);
   const [tableDialog, setTableDialog] = useState(false);
   const links = useLinks(editor, file.readOnly, chrome.notify);
-  const openComments = state.comments.filter((comment) => !comment.resolved).length;
-
-  // The engine measures its frame only on resize; the panel takes width from it.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the panel opens or closes
-  useEffect(() => {
-    editor?.resize();
-  }, [editor, comments === "closed"]);
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "docx"), MIME.docx);
@@ -57,10 +48,10 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     onOpenLink: openLink,
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
-    onAddComment: () => setComments("composing"),
+    onAddComment: comments.compose,
     onInsertTable: () => setTableDialog(true),
-    commentsOpen: comments !== "closed",
-    onToggleComments: () => setComments(comments === "closed" ? "open" : "closed"),
+    commentsOpen: comments.isOpen,
+    onToggleComments: comments.toggle,
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
   };
@@ -82,25 +73,14 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         menus={file.readOnly ? [] : wordMenus(context)}
         shortcuts={WORD_SHORTCUTS}
         notice={chrome.notice}
-        actions={
-          <Button
-            variant="toggle"
-            aria-label="Kommentare"
-            aria-pressed={comments !== "closed"}
-            disabled={!editor}
-            onClick={context.onToggleComments}
-          >
-            <MessageSquare size={16} />
-            {openComments > 0 && <span className="text-xs tabular-nums">{openComments}</span>}
-          </Button>
-        }
+        actions={comments.button}
         toolbar={
           <Toolbar
             state={state}
             commands={editor?.commands ?? null}
             layout={editor?.layout ?? null}
             marking={editor?.marking ?? null}
-            onAddComment={() => setComments("composing")}
+            onAddComment={comments.compose}
             onInsertImage={chrome.insertImage}
             onInsertLink={links.request}
           />
@@ -114,16 +94,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
           searchBar={chrome.searchBar}
           readOnly={file.readOnly}
         />
-        {comments !== "closed" && (
-          <CommentsPanel
-            comments={state.comments}
-            active={state.activeComments}
-            commands={file.readOnly ? null : (editor?.comments ?? null)}
-            composing={comments === "composing"}
-            onComposed={() => setComments("open")}
-            onClose={() => setComments("closed")}
-          />
-        )}
+        {comments.panel}
       </div>
       {chrome.menuAt && (
         <ContextMenu

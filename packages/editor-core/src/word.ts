@@ -167,7 +167,7 @@ const wordBinding: EditorBinding<
       ),
       comments: createCommentCommands(
         api,
-        store.get,
+        () => store.get().comments,
         options.user,
         () => new win.Asc.asc_CCommentDataWord(null),
       ),

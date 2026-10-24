@@ -125,6 +125,8 @@ export type CommentsPanelProps = {
   commands: CommentCommands | null;
   /** Show the field for a new comment on the selection, focused. */
   composing: boolean;
+  /** What a new comment is on: the selected text, or the current slide. */
+  target?: "selection" | "slide";
   onComposed: () => void;
   onClose: () => void;
 };
@@ -135,6 +137,7 @@ export const CommentsPanel = ({
   active,
   commands,
   composing,
+  target = "selection",
   onComposed,
   onClose,
 }: CommentsPanelProps) => {
@@ -156,7 +159,7 @@ export const CommentsPanel = ({
       {composing && commands && (
         <div className="rounded-lg border border-[var(--docx)] p-3">
           <Composer
-            label="Kommentar zur Auswahl"
+            label={target === "slide" ? "Kommentar zur Folie" : "Kommentar zur Auswahl"}
             submit="Kommentieren"
             autoFocus
             onSubmit={(text) => {

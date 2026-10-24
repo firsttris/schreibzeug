@@ -1,3 +1,4 @@
+import { type CommentEvent, type CommentsState, isCommentEvent, reduceComments } from "./comment-state";
 import { type CoreEvent, type CoreState, initialCoreState, isCoreEvent, reduceCore } from "./core-state";
 import type { PageLayout } from "./layout";
 import type { Link } from "./links";
@@ -61,19 +62,16 @@ export type Comment = CommentEntry & {
 };
 
 /** The text editor's state: what every document has, and the formatting at the cursor. */
-export type EditorState = CoreState & {
-  text: TextState;
-  paragraph: ParagraphState;
-  /** The highlight at the cursor ("#rrggbb"), and whether formatting is being copied. */
-  marks: { highlight: string | null; painting: boolean };
-  /** The page of the section at the cursor; null until the engine reported it. */
-  page: PageLayout | null;
-  catalog: CatalogState;
-  /** In the order the engine reported them, which is their order in the file. */
-  comments: Comment[];
-  /** The comments on the text at the cursor. */
-  activeComments: string[];
-};
+export type EditorState = CoreState &
+  CommentsState & {
+    text: TextState;
+    paragraph: ParagraphState;
+    /** The highlight at the cursor ("#rrggbb"), and whether formatting is being copied. */
+    marks: { highlight: string | null; painting: boolean };
+    /** The page of the section at the cursor; null until the engine reported it. */
+    page: PageLayout | null;
+    catalog: CatalogState;
+  };
 
 /** Character formatting at the cursor and the fonts, from the text or the presentation engine. */
 export type TextEvent =
@@ -101,9 +99,7 @@ export type WordEvent =
   | { type: "highlight"; value: string | null }
   | { type: "painting"; value: boolean }
   | { type: "styles"; value: string[] }
-  | { type: "commentSet"; comment: Comment }
-  | { type: "commentRemoved"; id: string }
-  | { type: "activeComments"; ids: string[] };
+  | CommentEvent;
 
 export type EditorEvent = WordEvent | CoreEvent;
 
@@ -171,15 +167,10 @@ const withCatalog = (state: EditorState, catalog: Partial<CatalogState>): Editor
   catalog: { ...state.catalog, ...catalog },
 });
 
-/** Replaces the comment with the same id in place, or adds it at the end. */
-const setComment = (comments: Comment[], comment: Comment): Comment[] =>
-  comments.some((existing) => existing.id === comment.id)
-    ? comments.map((existing) => (existing.id === comment.id ? comment : existing))
-    : [...comments, comment];
-
 export const reduceEditorState = (state: EditorState, event: EditorEvent): EditorState => {
   if (isCoreEvent(event)) return reduceCore(state, event);
   if (isTextEvent(event)) return reduceTextEvent(state, event);
+  if (isCommentEvent(event)) return reduceComments(state, event);
   switch (event.type) {
     case "style":
       return withParagraph(state, { style: event.value });
@@ -201,15 +192,5 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return { ...state, page: event.value };
     case "styles":
       return withCatalog(state, { styles: event.value });
-    case "commentSet":
-      return { ...state, comments: setComment(state.comments, event.comment) };
-    case "commentRemoved":
-      return {
-        ...state,
-        comments: state.comments.filter((comment) => comment.id !== event.id),
-        activeComments: state.activeComments.filter((id) => id !== event.id),
-      };
-    case "activeComments":
-      return { ...state, activeComments: event.ids };
   }
 };

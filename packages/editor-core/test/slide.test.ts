@@ -82,3 +82,31 @@ describe("reduceSlideState", () => {
     });
   });
 });
+
+describe("slide comments in the state", () => {
+  it("keeps the comments the engine reports and the one that is open", () => {
+    const comment = {
+      id: "c1",
+      authorId: "u1",
+      author: "Tristan",
+      text: "Folie kürzen",
+      time: 1,
+      quote: null,
+      resolved: false,
+      guid: "g1",
+      replies: [],
+    };
+    const events: SlideEvent[] = [
+      { type: "commentSet", comment },
+      { type: "activeComments", ids: ["c1"] },
+      { type: "commentSet", comment: { ...comment, resolved: true } },
+    ];
+    const state = events.reduce(reduceSlideState, initialSlideState);
+    expect(state.comments).toEqual([{ ...comment, resolved: true }]);
+    expect(state.activeComments).toEqual(["c1"]);
+    expect(reduceSlideState(state, { type: "commentRemoved", id: "c1" })).toMatchObject({
+      comments: [],
+      activeComments: [],
+    });
+  });
+});

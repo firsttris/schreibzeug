@@ -14,7 +14,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
 > password, a file browser (folders,
 > upload, new document, spreadsheet or presentation, rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with a menu bar, context menu, find and replace, PDF export and printing, styles, fonts, colours, highlighting, format painter, lists, tables, images, links, headers and footers with page numbers, page layout, line spacing and
-> comments, a spreadsheet editor with formulas, formatting, number formats, sheets, images, menus, find and replace and PDF, and a presentation editor with slides, a full-screen slide show,
+> comments, a spreadsheet editor with formulas, formatting, number formats, sheets, images, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, text formatting, lists, images, menus and PDF. All three save on their own, every save a new version, and several people can edit the
 > same file at once. All without a document server.
 

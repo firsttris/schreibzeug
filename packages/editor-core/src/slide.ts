@@ -1,5 +1,7 @@
 import { createEngineColor } from "./colors";
 import { type CharacterCommands, createCharacterCommands } from "./commands";
+import { commentEvents } from "./comment-state";
+import { type CommentCommands, createCommentCommands } from "./comments";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
 import { SLIDE_TEXTS } from "./engine-texts";
 import type { EngineWindow, SlideEngineApi, SlideEventArgs, SlideWindow } from "./engine-types";
@@ -27,6 +29,8 @@ export type PresentationEditor = OpenedDocument<SlideState> & {
   search: SearchCommands;
   /** Full screen presentation; the app makes the frame full screen first. */
   slideShow: SlideShow;
+  /** Comments on slides; the engine anchors a new one to the current slide. */
+  comments: CommentCommands;
   /** A right click on the slide (area "body") or in the slide list ("thumbnails"). */
   onContextMenu: (listener: ContextMenuListener) => () => void;
 };
@@ -67,7 +71,7 @@ const slideBinding: EditorBinding<
   SlideEngineApi,
   SlideState,
   SlideEvent,
-  Pick<PresentationEditor, "commands" | "view" | "search" | "slideShow" | "onContextMenu">
+  Pick<PresentationEditor, "commands" | "view" | "search" | "slideShow" | "comments" | "onContextMenu">
 > = {
   format: "pptx",
   createApi: (win) => {
@@ -81,6 +85,7 @@ const slideBinding: EditorBinding<
   reduce: reduceSlideState,
   events: (win) => ({
     ...textEvents(win.AscCommon),
+    ...commentEvents(),
     asc_onCurrentPage: (index) => ({ type: "currentSlide", value: index }),
     asc_onUpdateLayout: (layouts) => ({
       type: "layouts",
@@ -97,7 +102,7 @@ const slideBinding: EditorBinding<
       value: readListKind(list.get_ListType(), list.get_ListSubType()),
     }),
   }),
-  setup: ({ win, api, store, dispatch }) => {
+  setup: ({ win, api, store, dispatch, options }) => {
     const showPage = {
       element: () => win.document.getElementById(SLIDE_SHOW_ELEMENT),
       activeElement: () => win.document.activeElement,
@@ -109,6 +114,12 @@ const slideBinding: EditorBinding<
     });
     return {
       slideShow: createSlideShow(api, showPage),
+      comments: createCommentCommands(
+        api,
+        () => store.get().comments,
+        options.user,
+        () => new win.Asc.asc_CCommentData(null),
+      ),
       view: createViewCommands(api),
       search: createSearchCommands(
         api,
@@ -135,6 +146,8 @@ const slideBinding: EditorBinding<
   contentReady: (api) => {
     api.SetDrawingFreeze(false);
     api.asc_setSpellCheck(false);
+    // The comment marks on the slides, as web-apps shows them (presentationeditor main Main.js).
+    api.asc_showComments();
     api.Resize();
     api.zoomFitToPage();
   },

@@ -151,14 +151,27 @@ export type WordEventArgs = TextEventArgs & {
   asc_onSectionProps: [props: SectionProps];
   /** word/api.js sync_ParaSpacingLine: the spacing of the paragraph at the cursor. */
   asc_onParaSpacingLine: [spacing: ParagraphSpacing];
-  /** word/api.js sync_AddComment: on open for each comment in the file, and for each new one. */
+} & CommentEventArgs;
+
+/** The comment events, named the same in the text and the presentation editor. */
+export type CommentEventArgs = {
+  /** sync_AddComment (word/api.js, slide/api.js): on open for each comment in the file, and for each new one. */
   asc_onAddComment: [id: string, data: EngineCommentData];
   asc_onChangeCommentData: [id: string, data: EngineCommentData];
   asc_onRemoveComment: [id: string];
-  /** The cursor is on commented text (word/api.js sync_ShowComment). */
+  /** The cursor is on commented text, or on a slide's comment (sync_ShowComment). */
   asc_onShowComment: [ids: string[], x?: number, y?: number];
   asc_onHideComment: [];
 };
+
+/** The comment calls, the same in word/api.js and slide/api.js. */
+export interface CommentApi {
+  /** Returns the new comment's id, or null when it could not be added. */
+  asc_addComment(data: EngineCommentData): string | null;
+  asc_changeComment(id: string, data: EngineCommentData): void;
+  asc_removeComment(id: string): void;
+  asc_selectComment(id: string): void;
+}
 
 export type WordEventName = keyof WordEventArgs;
 
@@ -247,7 +260,8 @@ export interface WordEngineApi
     LayoutApi,
     HeaderFooterApi,
     LinkApi,
-    MarkingApi {
+    MarkingApi,
+    CommentApi {
   /** word/api.js: the paragraph and character properties at the cursor. */
   get_TextProps(): { get_TextPr(): { get_HighLight(): EngineHighlight } | null };
   SetFontRenderingMode(mode: number): void;
@@ -274,11 +288,6 @@ export interface WordEngineApi
   remRow(): void;
   remColumn(): void;
   remTable(): void;
-  /** word/api.js: returns the new comment's id, or null when it could not be added. */
-  asc_addComment(data: EngineCommentData): string | null;
-  asc_changeComment(id: string, data: EngineCommentData): void;
-  asc_removeComment(id: string): void;
-  asc_selectComment(id: string): void;
   /** Marks commented text in the document; `showResolved` includes resolved comments. */
   asc_showComments(showResolved: boolean): void;
   asc_GetCurrentNumberingId(): string | null;
@@ -505,7 +514,7 @@ export type SlideEventArgs = TextEventArgs & {
   asc_onStartDemonstration: [];
   asc_onEndDemonstration: [];
   asc_onDemonstrationSlideChanged: [index: number];
-};
+} & CommentEventArgs;
 
 /** slide/api.js `asc_docs_api` (with common/apiBase.js `baseEditorsApi`). */
 export interface SlideEngineApi
@@ -513,7 +522,8 @@ export interface SlideEngineApi
     CharacterApi,
     ViewApi,
     SearchApi,
-    SlideShowApi {
+    SlideShowApi,
+    CommentApi {
   SetFontRenderingMode(mode: number): void;
   /** Holds back drawing while the document opens (web-apps presentationeditor/mobile Main.jsx). */
   SetDrawingFreeze(freeze: boolean): void;
@@ -521,6 +531,8 @@ export interface SlideEngineApi
   SetThemesPath(path: string): void;
   Resize(): void;
   zoomFitToPage(): void;
+  /** slide/api.js: shows the comment marks on the slides. */
+  asc_showComments(): void;
   asc_setSpellCheck(isOn: boolean): void;
   SetUnchangedDocument(): void;
   /** A new slide after the current one, with the layout at that index of the master. */
@@ -545,5 +557,9 @@ export interface SlideWindow extends EngineWindow {
     asc_docs_api: new (config: Record<string, unknown>) => SlideEngineApi;
     /** slide/apiDefines.js: in the slide, or in the slide list. */
     c_oAscContextMenuTypes: { Main: number; Thumbnails: number };
+    /** slide/api.js asc_CCommentDataSlide, a comment on a slide or a reply. */
+    asc_CCommentData: new (
+      data: null,
+    ) => EngineCommentData;
   };
 }

@@ -1,9 +1,9 @@
-import type { EngineCommentData, WordEngineApi } from "./engine-types";
-import type { Comment, CommentEntry, EditorState } from "./state";
+import type { CommentApi, EngineCommentData } from "./engine-types";
+import type { Comment, CommentEntry } from "./state";
 
 /**
- * Comments as data, and the commands on them. The engine keeps a comment as asc_CCommentDataWord
- * (word/api.js) with two times: `Time`, local time written as if it were UTC, and `OOTime`, real
+ * Comments as data, and the commands on them. The engines keep a comment as asc_CCommentDataWord
+ * (word/api.js) or asc_CCommentDataSlide (slide/api.js, the same fields) with two times: `Time`, local time written as if it were UTC, and `OOTime`, real
  * milliseconds since 1970. Reading and writing follows web-apps
  * (common/mobile/lib/controller/collaboration/Comments.jsx readSDKComment, onChangeComment).
  */
@@ -77,8 +77,8 @@ export type CommentCommands = {
 };
 
 export const createCommentCommands = (
-  api: WordEngineApi,
-  getState: () => EditorState,
+  api: CommentApi,
+  getComments: () => Comment[],
   author: CommentAuthor,
   create: CommentDataFactory,
   now: () => number = Date.now,
@@ -90,7 +90,7 @@ export const createCommentCommands = (
     time: now(),
   });
   const change = (id: string, update: (comment: Comment) => Comment) => {
-    const comment = getState().comments.find((candidate) => candidate.id === id);
+    const comment = getComments().find((candidate) => candidate.id === id);
     if (comment) api.asc_changeComment(id, writeComment(create, update(comment)));
   };
 

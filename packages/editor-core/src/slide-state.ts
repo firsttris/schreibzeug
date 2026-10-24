@@ -1,3 +1,10 @@
+import {
+  type CommentEvent,
+  type CommentsState,
+  initialCommentsState,
+  isCommentEvent,
+  reduceComments,
+} from "./comment-state";
 import { type CoreState, initialCoreState } from "./core-state";
 import {
   type CatalogState,
@@ -12,16 +19,17 @@ import {
 export type LayoutInfo = { index: number; name: string; image: string };
 
 /** The presentation editor's state; the number of slides is `document.pages`. */
-export type SlideState = CoreState & {
-  text: TextState;
-  catalog: CatalogState;
-  list: ListKind | null;
-  /** The slide shown, from 0. */
-  currentSlide: number;
-  layouts: LayoutInfo[];
-  /** The slide show: whether it runs, and the slide it shows, from 0. */
-  show: { running: boolean; slide: number };
-};
+export type SlideState = CoreState &
+  CommentsState & {
+    text: TextState;
+    catalog: CatalogState;
+    list: ListKind | null;
+    /** The slide shown, from 0. */
+    currentSlide: number;
+    layouts: LayoutInfo[];
+    /** The slide show: whether it runs, and the slide it shows, from 0. */
+    show: { running: boolean; slide: number };
+  };
 
 export type SlideEvent =
   | TextEvent
@@ -29,7 +37,8 @@ export type SlideEvent =
   | { type: "currentSlide"; value: number }
   | { type: "layouts"; value: LayoutInfo[] }
   | { type: "showRunning"; value: boolean }
-  | { type: "showSlide"; value: number };
+  | { type: "showSlide"; value: number }
+  | CommentEvent;
 
 export const initialSlideState: SlideState = {
   ...initialCoreState,
@@ -39,9 +48,11 @@ export const initialSlideState: SlideState = {
   currentSlide: 0,
   layouts: [],
   show: { running: false, slide: 0 },
+  ...initialCommentsState,
 };
 
 export const reduceSlideState = (state: SlideState, event: SlideEvent): SlideState => {
+  if (isCommentEvent(event)) return reduceComments(state, event);
   switch (event.type) {
     case "list":
       return { ...state, list: event.value };

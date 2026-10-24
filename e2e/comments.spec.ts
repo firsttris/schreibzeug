@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { strFromU8, unzipSync } from "fflate";
 import { collectErrors, openDocument, openFileId, openOwnFolder, save, storedDocx, upload } from "./app";
 import { documentXml, partXml } from "./docx";
 
@@ -40,4 +41,26 @@ test("comments on a selection, answers, resolves and deletes it", async ({ page 
   await expect(page.getByRole("article")).toHaveCount(0);
   await save(page);
   expect(documentXml(await storedDocx(page, fileId))).not.toContain("<w:commentRangeStart");
+});
+
+test("comments on a slide and keeps the comment in the .pptx", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await openOwnFolder(page, testInfo);
+  await upload(page, join(import.meta.dirname, "../test-files/vortrag.pptx"), "vortrag.pptx");
+  await openDocument(page, "vortrag.pptx", errors);
+  const fileId = openFileId(page);
+
+  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menu", { name: "Einfügen" }).getByRole("menuitem", { name: "Kommentar" }).click();
+  await page.getByRole("textbox", { name: "Kommentar zur Folie" }).fill("Titel kürzer?");
+  await page.getByRole("button", { name: "Kommentieren", exact: true }).click();
+  const card = page.getByRole("article", { name: "Kommentar von Anna Berger" });
+  await expect(card).toContainText("Titel kürzer?");
+  await expect(page.getByRole("button", { name: "Kommentare", exact: true })).toContainText("1");
+
+  await save(page);
+  const parts = Object.entries(unzipSync(await storedDocx(page, fileId)))
+    .filter(([name]) => name.startsWith("ppt/comments/"))
+    .map(([, bytes]) => strFromU8(bytes));
+  expect(parts.join("")).toContain("Titel kürzer?");
 });

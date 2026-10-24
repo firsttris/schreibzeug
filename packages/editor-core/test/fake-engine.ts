@@ -16,6 +16,8 @@ export type FakeEngine = {
   api: () => FakeApi;
   /** Presses the mouse in the frame; returns how often the engine's input was focused so far. */
   press: () => number;
+  /** How often the engine's input was focused so far. */
+  focused: () => number;
   /** Makes the frame's fetch answer the URL with the bytes, as a server would. */
   serve: (url: string, bytes: Uint8Array) => void;
 };
@@ -214,6 +216,14 @@ export const createFakeEngine = (): FakeEngine => {
         asc_SetSectionProps: record(calls, "asc_SetSectionProps"),
         put_PrLineSpacing: record(calls, "put_PrLineSpacing"),
         IncreaseIndent: record(calls, "IncreaseIndent"),
+        getCurrentPage: () => 0,
+        GoToHeader: record(calls, "GoToHeader"),
+        GoToFooter: record(calls, "GoToFooter"),
+        asc_RemoveHeader: record(calls, "asc_RemoveHeader"),
+        asc_RemoveFooter: record(calls, "asc_RemoveFooter"),
+        asc_CancelHdrFtrEditing: record(calls, "asc_CancelHdrFtrEditing"),
+        put_PageNum: record(calls, "put_PageNum"),
+        asc_AddPageCount: record(calls, "asc_AddPageCount"),
         DecreaseIndent: record(calls, "DecreaseIndent"),
         asc_findText: (settings, isNext) => {
           calls.push(["asc_findText", (settings as unknown as FakeSearchSettings).values, isNext]);
@@ -334,6 +344,7 @@ export const createFakeEngine = (): FakeEngine => {
   const documentUrls: Record<string, string> = {};
   const window = {
     devicePixelRatio: 2,
+    focus: () => {},
     URL: {
       createObjectURL: (blob: { bytes: Uint8Array }) => {
         const url = `blob:frame/${blobs.size}`;
@@ -358,7 +369,7 @@ export const createFakeEngine = (): FakeEngine => {
       asc_CColor: FakeColor,
       asc_CCommentDataWord: FakeCommentData,
       c_oAscNumberingFormat: NUMBERING_FORMATS,
-      c_oAscTypeSelectElement: { Paragraph: 0, Table: 1 },
+      c_oAscTypeSelectElement: { Paragraph: 0, Table: 1, Header: 2 },
       c_oAscContextMenuTypes: { Common: 0, ChangeHdrFtr: 1 },
       c_oAscPageOrientation: { PagePortrait: 0 },
       linerule_Auto: 1,
@@ -397,6 +408,7 @@ export const createFakeEngine = (): FakeEngine => {
 
   return {
     window,
+    focused: () => focusCount,
     serve: (url, bytes) => {
       blobs.set(url, bytes);
     },

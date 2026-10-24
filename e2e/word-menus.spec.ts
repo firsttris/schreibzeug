@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { strFromU8, unzipSync } from "fflate";
 import {
   collectErrors,
   expectEditorReady,
@@ -9,6 +10,7 @@ import {
   openOwnFolder,
   row,
   save,
+  storedDocx,
   storedXml,
   upload,
 } from "./app";
@@ -86,6 +88,27 @@ test.describe("menus of the text editor", () => {
     expect(size).toContain('w:orient="landscape"');
     expect(xml).toMatch(/<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/);
     expect(xml).toMatch(/<w:spacing [^>]*w:line="360" w:lineRule="auto"/);
+  });
+
+  test("writes a header and puts page numbers in the footer", async ({ page }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await pick(page, "Einfügen", "Kopfzeile bearbeiten");
+    await page.keyboard.type("Muster GmbH");
+    await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: "Kopf- und Fußzeile schließen" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await pick(page, "Einfügen", "Kopf- und Fußzeile schließen");
+    await pick(page, "Einfügen", "Seitenzahl unten mittig");
+    await save(page);
+
+    // The header and footer parts the document now has, by what they hold.
+    const parts = Object.entries(unzipSync(await storedDocx(page, fileId)))
+      .filter(([name]) => /^word\/(header|footer)\d+\.xml$/.test(name))
+      .map(([, bytes]) => strFromU8(bytes));
+    expect(parts.some((xml) => xml.includes("Muster GmbH"))).toBe(true);
+    expect(parts.some((xml) => /<w:ftr[\s\S]*PAGE/.test(xml))).toBe(true);
+    expect(await storedXml(page, fileId)).toContain("Hallo Stapel");
   });
 
   test("zooms from the view menu", async ({ page }, testInfo) => {

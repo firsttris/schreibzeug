@@ -177,6 +177,17 @@ what is undefined alone), `put_PrLineSpacing(Asc.linerule_Auto, multiple)`, and
 `asc_onSectionProps` (`CDocument.UpdateInterface`) and `asc_onParaSpacingLine`; a preset is
 checked when every value is within a tenth of a millimetre, as web-apps checks it.
 
+## Headers, footers and page numbers
+
+"Einfügen" opens the header or footer of the current page (`GoToHeader(page)`,
+`GoToFooter(page)` with `getCurrentPage()`, as web-apps' `HeaderFooterTab.js`) and, inside one,
+closes it (`asc_CancelHdrFtrEditing`) or removes it (`asc_RemoveHeader`, `asc_RemoveFooter`).
+Page numbers go in with `put_PageNum(part, align)`, the numbers of web-apps' `c_pageNumPosition`
+(`DocumentHolder.js`: top 1, bottom 2; right 0, left 1, center 2), or `put_PageNum(-1)` at the
+cursor; `asc_AddPageCount` adds the number of pages (`src/header-footer.ts`). The menu is outside
+the frame, so going into the header or back out hands the keys to the engine again. Whether the
+cursor is in a header or footer comes from `asc_onFocusObject` (a `Header` element).
+
 ## Find and replace
 
 `src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,

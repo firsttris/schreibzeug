@@ -27,6 +27,8 @@ export type ParagraphState = {
   list: ListKind | null;
   /** The cursor is in a table, so the table commands apply. */
   inTable: boolean;
+  /** The cursor is in a header or footer. */
+  inHeaderFooter: boolean;
   /** As a multiple of a single line; null for an exact height or a mixed selection. */
   lineSpacing: number | null;
 };
@@ -87,6 +89,7 @@ export type WordEvent =
   | { type: "style"; value: string | null }
   | { type: "list"; value: ListKind | null }
   | { type: "inTable"; value: boolean }
+  | { type: "inHeaderFooter"; value: boolean }
   | { type: "lineSpacing"; value: number | null }
   | { type: "page"; value: PageLayout }
   | { type: "styles"; value: string[] }
@@ -135,7 +138,7 @@ export const reduceTextEvent = <S extends { text: TextState; catalog: CatalogSta
 export const initialEditorState: EditorState = {
   ...initialCoreState,
   text: initialTextState,
-  paragraph: { style: null, list: null, inTable: false, lineSpacing: null },
+  paragraph: { style: null, list: null, inTable: false, inHeaderFooter: false, lineSpacing: null },
   page: null,
   catalog: { fonts: [], styles: [] },
   comments: [],
@@ -168,6 +171,8 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withParagraph(state, { list: event.value });
     case "inTable":
       return withParagraph(state, { inTable: event.value });
+    case "inHeaderFooter":
+      return withParagraph(state, { inHeaderFooter: event.value });
     case "lineSpacing":
       return withParagraph(state, { lineSpacing: event.value });
     case "page":

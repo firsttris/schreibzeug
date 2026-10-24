@@ -1,3 +1,4 @@
+import type { HeaderFooterApi } from "./header-footer";
 import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
 /**
  * The part of the sdkjs API that Stapel uses, typed by hand. sdkjs has no type definitions; every
@@ -230,7 +231,8 @@ export interface WordEngineApi
     CharacterApi,
     ViewApi,
     SearchApi,
-    LayoutApi {
+    LayoutApi,
+    HeaderFooterApi {
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   put_AddPageBreak(): void;
@@ -328,7 +330,7 @@ export interface WordWindow extends EngineWindow {
     /** common/commonDefines.js */
     c_oAscCollaborativeMarksShowType: { None: number };
     /** common/commonDefines.js: what a selected object is. */
-    c_oAscTypeSelectElement: { Table: number };
+    c_oAscTypeSelectElement: { Table: number; Header: number };
     /** word/apiDefines.js */
     c_oAscContextMenuTypes: { Common: number; ChangeHdrFtr: number };
     /** word/Editor/api/document-section-props.js */

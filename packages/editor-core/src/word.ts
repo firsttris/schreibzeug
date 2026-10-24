@@ -4,6 +4,7 @@ import { type CommentCommands, createCommentCommands } from "./comments";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
 import type { EngineWindow, WordEngineApi, WordEventArgs, WordWindow } from "./engine-types";
 import { stateEvents } from "./events";
+import { createHeaderFooterCommands, type HeaderFooterCommands } from "./header-footer";
 import { createLayoutCommands, type LayoutCommands, readLineSpacing, readSection } from "./layout";
 import { readListKind } from "./lists";
 import { createSearchCommands, type SearchCommands } from "./search";
@@ -21,6 +22,7 @@ export type OpenWordOptions = OpenOptions;
 export type WordEditor = OpenedDocument<EditorState> & {
   commands: TextCommands;
   layout: LayoutCommands;
+  headerFooter: HeaderFooterCommands;
   comments: CommentCommands;
   view: ViewCommands;
   search: SearchCommands;
@@ -47,7 +49,7 @@ const wordBinding: EditorBinding<
   WordEngineApi,
   EditorState,
   WordEvent,
-  Pick<WordEditor, "commands" | "layout" | "comments" | "view" | "search" | "onContextMenu">
+  Pick<WordEditor, "commands" | "layout" | "headerFooter" | "comments" | "view" | "search" | "onContextMenu">
 > = {
   format: "docx",
   createApi: (win) => {
@@ -63,8 +65,11 @@ const wordBinding: EditorBinding<
       dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) });
     api.asc_registerCallback("asc_onFocusObject", (objects) => {
       refreshList();
-      const table = win.Asc.c_oAscTypeSelectElement.Table;
-      dispatch({ type: "inTable", value: objects.some((object) => object.asc_getObjectType() === table) });
+      const { Table, Header } = win.Asc.c_oAscTypeSelectElement;
+      const has = (type: number) => objects.some((object) => object.asc_getObjectType() === type);
+      dispatch({ type: "inTable", value: has(Table) });
+      // word/api.js sync_HeadersAndFootersPropCallback: a header or footer is being edited.
+      dispatch({ type: "inHeaderFooter", value: has(Header) });
     });
     const layoutConstants = {
       portrait: win.Asc.c_oAscPageOrientation.PagePortrait,
@@ -87,6 +92,10 @@ const wordBinding: EditorBinding<
         () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
       ),
       onContextMenu,
+      headerFooter: createHeaderFooterCommands(api, () => {
+        win.focus();
+        api.getFocusElement().focus();
+      }),
       layout: createLayoutCommands(api, () => new win.Asc.CDocumentSectionProps(), layoutConstants),
       commands: withListRefresh(
         createTextCommands(api, store.get, win.AscCommon, createEngineColor(win.Asc.asc_CColor)),

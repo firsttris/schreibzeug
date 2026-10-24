@@ -387,6 +387,19 @@ describe("openWordDocument", () => {
     expect(editor.store.get().paragraph.inTable).toBe(false);
   });
 
+  it("knows when the cursor is in a header or footer, and goes there", async () => {
+    const { engine, editor } = await openReady();
+    engine.api().emit("asc_onFocusObject", [selected(2), selected(0)]);
+    expect(editor.store.get().paragraph.inHeaderFooter).toBe(true);
+    engine.api().emit("asc_onFocusObject", [selected(0)]);
+    expect(editor.store.get().paragraph.inHeaderFooter).toBe(false);
+    const focused = engine.focused();
+    editor.headerFooter.edit("footer");
+    expect(engine.api().calls).toContainEqual(["GoToFooter", 0]);
+    // The keys go back to the engine, so typing lands in the footer.
+    expect(engine.focused()).toBe(focused + 1);
+  });
+
   it("adds, answers, resolves and removes comments through the engine", async () => {
     const { engine, editor } = await openReady();
     const id = editor.comments.add("  Bitte prüfen ");

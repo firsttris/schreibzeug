@@ -48,6 +48,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     state,
     commands: editor?.commands ?? null,
     layout: editor?.layout ?? null,
+    headerFooter: editor?.headerFooter ?? null,
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onAddComment: () => setComments("composing"),

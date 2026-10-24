@@ -1,6 +1,7 @@
 import type {
   ClipboardAction,
   EditorState,
+  HeaderFooterCommands,
   LayoutCommands,
   TextCommands,
   ViewCommands,
@@ -9,6 +10,7 @@ import { tableActions } from "../toolbar/table-menu";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
+import { headerFooterGroups } from "./header-footer-menus";
 import { layoutMenu, paragraphSpacingGroups } from "./layout-menus";
 
 /** What the menus of the text editor work with; null while the document opens. */
@@ -16,6 +18,7 @@ export type WordMenuContext = {
   state: EditorState;
   commands: TextCommands | null;
   layout: LayoutCommands | null;
+  headerFooter: HeaderFooterCommands | null;
   view: ViewCommands | null;
   /** The browser refused the clipboard: say which keys to use instead. */
   onClipboardRefused: (action: ClipboardAction) => void;
@@ -96,6 +99,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
             onSelect: run((c) => c.insertPageBreak()),
           },
         ],
+        ...headerFooterGroups(context.headerFooter, state.paragraph.inHeaderFooter, off),
       ],
     },
     layoutMenu(state.page, context.layout, off),
@@ -212,7 +216,9 @@ export const wordContextMenu = (context: WordMenuContext): MenuItem[][] => {
   const run = (action: (commands: TextCommands) => void) => commands && action(commands);
   return [
     clipboardItems(view, context.onClipboardRefused),
-    [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
+    state.paragraph.inHeaderFooter
+      ? [{ label: "Kopf- und Fußzeile schließen", onSelect: () => context.headerFooter?.close() }]
+      : [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
     ...(state.paragraph.inTable ? tableActions(run) : []),
     [
       { label: "Formatierung löschen", onSelect: () => run((c) => c.clearFormatting()) },

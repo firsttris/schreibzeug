@@ -46,6 +46,7 @@ export {
 export type { DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
+export type { HeaderFooterCommands, PageNumberPlace } from "./header-footer";
 export {
   type LayoutCommands,
   LINE_SPACINGS,

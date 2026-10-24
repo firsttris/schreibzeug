@@ -122,6 +122,32 @@ export const shares = sqliteTable(
   ],
 );
 
+/**
+ * Links that share a node with whoever opens them and has, or creates, an account: accepting one
+ * adds a share with its role. A link holds until it expires or its owner deletes it; it also lets
+ * someone create an account when sign-up is otherwise closed.
+ */
+export const invites = sqliteTable(
+  "invites",
+  {
+    token: text("token").primaryKey(),
+    nodeId: text("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    role: text("role", { enum: SHARE_ROLES }).notNull(),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at").notNull(),
+  },
+  (table) => [
+    index("invites_node").on(table.nodeId),
+    check("invites_role", sql`${table.role} in ('edit', 'view')`),
+  ],
+);
+
 export type NodeRow = typeof nodes.$inferSelect;
+export type InviteRow = typeof invites.$inferSelect;
 export type ShareRow = typeof shares.$inferSelect;
 export type VersionRow = typeof versions.$inferSelect;

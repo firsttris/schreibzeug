@@ -120,3 +120,39 @@ test("someone a folder is shared with to edit changes a document in it", async (
   // Anna reads her own file, which now holds Ben's text.
   expect(paragraphTexts(await storedXml(page, fileId)).join("|")).toContain("Ben war hier.");
 });
+
+test("someone without an account follows a link, signs up and gets the folder", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const folder = await openOwnFolder(page, testInfo);
+  await upload(page, helloDocx, "hello.docx");
+  await page.getByRole("link", { name: "Meine Dateien" }).first().click();
+  await page.getByRole("button", { name: `${folder} teilen` }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Recht des Links").selectOption({ label: "Darf bearbeiten" });
+  await dialog.getByRole("button", { name: "Link erstellen" }).click();
+  const url = await dialog.getByLabel("Link", { exact: true }).inputValue();
+  expect(url).toMatch(/\/invite\/[\w-]{32}$/);
+
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const ben = await context.newPage();
+  await ben.goto(url);
+  await expect(ben.getByTestId("invitation")).toHaveText(
+    `Anna Berger teilt den Ordner „${folder}“ mit dir. Du darfst bearbeiten.`,
+  );
+  await ben.getByRole("link", { name: "Konto anlegen" }).click();
+  const email = credentialsFor(testInfo).email.replace("@", "-link@");
+  await ben.getByLabel("Name").fill("Ben Krämer");
+  await ben.getByLabel("E-Mail").fill(email);
+  await ben.getByLabel("Passwort").fill("geheim-genug");
+  await ben.getByRole("button", { name: "Konto anlegen" }).click();
+  await ben.getByRole("button", { name: "Einladung annehmen" }).click();
+  await expect(ben.getByRole("heading", { level: 1 })).toHaveText(folder);
+  await expect(row(ben, "hello.docx")).toBeVisible();
+
+  // The owner sees Ben among the people the folder is shared with.
+  await page.reload();
+  await page.getByRole("button", { name: `${folder} teilen` }).click();
+  await expect(page.getByRole("dialog").locator(`[data-share="${email}"]`)).toContainText("Ben Krämer");
+});

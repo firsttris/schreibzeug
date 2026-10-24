@@ -13,7 +13,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
 > password, a file browser (folders,
-> upload, new document, spreadsheet or presentation, rename, move, versions, trash), sharing with other accounts (edit or view), a Word editor with styles, fonts, colours, lists, tables and
+> upload, new document, spreadsheet or presentation, rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with styles, fonts, colours, lists, tables and
 > comments, a spreadsheet editor with formulas, formatting, number formats and sheets, and a presentation editor with slides,
 > layouts, text formatting and lists. All three save on their own, every save a new version, and several people can edit the
 > same file at once. All without a document server.
@@ -57,8 +57,8 @@ Word and PowerPoint files. Stapel puts a new, clean interface on top of a proven
 ### 📁 Files
 
 - **File browser**: folders, upload by drag and drop, recent files, starred, trash.
-- **Sharing**: share with other accounts to edit or to view (done); a comment role, invitations
-  and links with an expiry date.
+- **Sharing**: share with other accounts or by a link with an expiry date, to edit or to view
+  (done); a comment role.
 - **Versions**: every save is kept, any version can be restored.
 
 ### 📝 Editors

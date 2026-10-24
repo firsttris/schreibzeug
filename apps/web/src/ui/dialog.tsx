@@ -1,12 +1,19 @@
 import { type ReactNode, useEffect, useRef } from "react";
 
-export type DialogProps = { open: boolean; title: string; onClose: () => void; children: ReactNode };
+export type DialogProps = {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  /** Room for a row of controls, e.g. the share dialog. */
+  wide?: boolean;
+  children: ReactNode;
+};
 
 /**
  * A modal on the native <dialog>: focus trap, Escape and the backdrop come from the browser, so the
  * dialog stays accessible without a library.
  */
-export const Dialog = ({ open, title, onClose, children }: DialogProps) => {
+export const Dialog = ({ open, title, onClose, wide = false, children }: DialogProps) => {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -25,7 +32,7 @@ export const Dialog = ({ open, title, onClose, children }: DialogProps) => {
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
-      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-xl border border-[var(--border)] bg-[var(--background)] p-0 text-[var(--foreground)] shadow-xl backdrop:bg-black/40"
+      className={`m-auto ${wide ? "w-[min(32rem,calc(100%-2rem))]" : "w-[min(26rem,calc(100%-2rem))]"} rounded-xl border border-[var(--border)] bg-[var(--background)] p-0 text-[var(--foreground)] shadow-xl backdrop:bg-black/40`}
     >
       {open && (
         <div className="flex flex-col gap-4 p-5">

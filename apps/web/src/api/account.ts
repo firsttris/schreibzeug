@@ -52,8 +52,11 @@ export const createAccount = (baseUrl: string) => {
       const { error } = await client.signIn.email(input);
       if (error) fail(error);
     },
-    signUp: async (input: { name: string; email: string; password: string }) => {
-      const { error } = await client.signUp.email(input);
+    /** `invite`: the token of a link, which lets someone in when sign-up is otherwise closed. */
+    signUp: async (input: { name: string; email: string; password: string }, invite?: string) => {
+      // apps/server src/auth/auth.ts INVITE_HEADER
+      const headers = invite ? { "x-stapel-invite": invite } : undefined;
+      const { error } = await client.signUp.email(input, headers ? { headers } : {});
       if (error) fail(error);
     },
     signOut: async () => {

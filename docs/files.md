@@ -18,6 +18,7 @@ is not interleaved with other requests, and a transaction must not await (`src/d
 | `nodes` | Folders and files in one tree (`parent_id`, `null` is the root of the owner's files, `owner_id` whose they are; see [accounts](accounts.md)). A file has `mime`, `size` and its newest `version`. |
 | `versions` | Every saved state of a file: number, size and the SHA-256 of its bytes. |
 | `shares` | Who else may open a node, with `edit` or `view`; see [accounts](accounts.md#sharing). |
+| `invites` | Links that share a node: a random token, the role, when it expires. |
 
 The bytes are in the blob store (`src/blobs.ts`), under `data/blobs/ab/abcdef…` by their SHA-256:
 the same bytes are stored once, and a blob is written to a temporary name and renamed, so a crash
@@ -62,6 +63,11 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `PUT /nodes/:id/shares` | Share with the account behind `email`, or change its `role` (`edit`, `view`) |
 | `DELETE /nodes/:id/shares/:userId` | Take a share back |
 | `GET /shared` | What others shared with the user, with `ownerName` |
+| `GET /nodes/:id/invites` | The node's links that still hold (owner only) |
+| `POST /nodes/:id/invites` | A new link (`role`, `days`: 1, 7 or 30) |
+| `DELETE /nodes/:id/invites/:token` | Delete a link |
+| `GET /invites/:token` | What a link shares (`nodeName`, `kind`, `ownerName`, `role`, `expiresAt`); **no session needed** |
+| `POST /invites/:token/accept` | Accept a link: a share with its role, never weaker than one the user has |
 | `POST /folders` | New folder (`parentId`, `name`) |
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
 | `POST /files/blank` | New empty file (`parentId`, `name`, `format`: `docx`, `xlsx` or `pptx`) |

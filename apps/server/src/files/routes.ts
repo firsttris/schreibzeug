@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import {
   createBlankFileSchema,
   createFolderSchema,
+  createInviteSchema,
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
@@ -15,9 +16,17 @@ import type { AuthEnv } from "../auth/middleware";
 import type { BlobStore } from "../blobs";
 import type { Database } from "../db/database";
 import { fail, ok, type Result, statusOf } from "../result";
+import * as invites from "./invites";
 import { mimeOf } from "./mime";
 import * as repository from "./repository";
-import { contentDisposition, toFileNode, toFileVersion, toSharedNode } from "./serialize";
+import {
+  contentDisposition,
+  toFileNode,
+  toFileVersion,
+  toInvitation,
+  toInvite,
+  toSharedNode,
+} from "./serialize";
 import * as shares from "./shares";
 
 export type FilesDeps = { db: Database; blobs: BlobStore; maxUploadBytes: number };
@@ -40,6 +49,7 @@ const respond = <T, R>(c: Context, result: Result<T>, map: (value: T) => R, stat
     : c.json({ error: result.error }, statusOf(result.error.kind));
 
 const idParam = z.object({ id: nodeIdSchema });
+const tokenParam = z.object({ token: z.string().min(1).max(100) });
 const parentQuery = z.object({ parent: z.union([z.literal("root"), nodeIdSchema]).default("root") });
 const versionQuery = z.object({ version: z.coerce.number().int().positive().optional() });
 const uploadForm = z.object({
@@ -56,6 +66,15 @@ const BLANK_FILES = {
 /** Adds the extension the format needs, unless the name already has it. */
 const withExtension = (name: string, extension: string) =>
   name.toLowerCase().endsWith(extension) ? name : `${name}${extension}`;
+
+/**
+ * What a link shares, for someone who opened it and may not be signed in yet: the page asks them
+ * to sign in or create an account first. Mounted before the session check (app.ts).
+ */
+export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
+  new Hono().get("/invites/:token", validate("param", tokenParam), (c) =>
+    respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
+  );
 
 export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
   const limit = bodyLimit({
@@ -188,6 +207,28 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
         const { id, userId } = c.req.valid("param");
         return respond(c, shares.removeShare(db, userOf(c), id, userId), (list) => list);
       },
+    )
+    .get("/nodes/:id/invites", validate("param", idParam), (c) =>
+      respond(c, invites.listInvites(db, userOf(c), c.req.valid("param").id), (list) => list.map(toInvite)),
+    )
+    .post("/nodes/:id/invites", validate("param", idParam), validate("json", createInviteSchema), (c) =>
+      respond(
+        c,
+        invites.createInvite(db, userOf(c), c.req.valid("param").id, c.req.valid("json")),
+        toInvite,
+        201,
+      ),
+    )
+    .delete(
+      "/nodes/:id/invites/:token",
+      validate("param", z.object({ id: nodeIdSchema, token: z.string().min(1) })),
+      (c) => {
+        const { id, token } = c.req.valid("param");
+        return respond(c, invites.removeInvite(db, userOf(c), id, token), () => null);
+      },
+    )
+    .post("/invites/:token/accept", validate("param", tokenParam), (c) =>
+      respond(c, invites.acceptInvite(db, userOf(c), c.req.valid("param").token), toFileNode),
     )
     .get("/shared", async (c) => c.json(shares.listSharedWithMe(db, userOf(c)).map(toSharedNode)))
     .get("/files/:id/versions", validate("param", idParam), async (c) =>

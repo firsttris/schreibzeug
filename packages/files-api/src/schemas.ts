@@ -60,6 +60,31 @@ export const putShareSchema = z.object({
   role: shareRoleSchema,
 });
 
+/** A link that shares a node (only its owner sees these). */
+export const inviteSchema = z.object({
+  token: z.string(),
+  role: shareRoleSchema,
+  createdAt: z.iso.datetime({ offset: true }),
+  expiresAt: z.iso.datetime({ offset: true }),
+});
+
+/** How long a new link holds, in days. */
+export const INVITE_DAYS = [1, 7, 30] as const;
+
+export const createInviteSchema = z.object({
+  role: shareRoleSchema,
+  days: z.union([z.literal(1), z.literal(7), z.literal(30)]).default(7),
+});
+
+/** What someone who opens a link learns before accepting it. */
+export const invitationSchema = z.object({
+  nodeName: z.string(),
+  kind: nodeKindSchema,
+  ownerName: z.string(),
+  role: shareRoleSchema,
+  expiresAt: z.iso.datetime({ offset: true }),
+});
+
 export const folderListingSchema = z.object({
   folder: nodeSchema.nullable(),
   path: z.array(nodeSchema),
@@ -117,6 +142,9 @@ export type ShareRole = z.infer<typeof shareRoleSchema>;
 export type SharedNode = z.infer<typeof sharedNodeSchema>;
 export type Share = z.infer<typeof shareSchema>;
 export type PutShare = z.infer<typeof putShareSchema>;
+export type Invite = z.infer<typeof inviteSchema>;
+export type CreateInvite = z.infer<typeof createInviteSchema>;
+export type Invitation = z.infer<typeof invitationSchema>;
 export type FolderListing = z.infer<typeof folderListingSchema>;
 export type FileVersion = z.infer<typeof versionSchema>;
 export type CreateFolder = z.infer<typeof createFolderSchema>;

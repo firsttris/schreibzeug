@@ -45,6 +45,12 @@ export const expectJson = async <S extends z.ZodType>(
   return schema.parse(await response.json());
 };
 
+/** A reply whose body does not matter; a failed one becomes an `ApiFailure`. */
+export const expectOk = async (reply: Promise<Reply>): Promise<void> => {
+  const response = await reply;
+  if (!response.ok) throw await failure(response);
+};
+
 export const expectBytes = async (reply: Promise<Reply>): Promise<Uint8Array> => {
   const response = await reply;
   if (!response.ok) throw await failure(response);

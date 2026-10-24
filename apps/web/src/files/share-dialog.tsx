@@ -8,40 +8,14 @@ import { useFiles } from "../api/context";
 import { fileKeys } from "../api/files";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
+import { InviteLinks } from "./invite-links";
+import { RoleSelect } from "./role-select";
 
 export type ShareDialogProps = { node: FileNode; open: boolean; onClose: () => void };
 
-const ROLES: Record<ShareRole, string> = { edit: "Darf bearbeiten", view: "Darf ansehen" };
-
-const selectClass =
-  "h-9 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-sm outline-none focus:border-[var(--foreground)]";
-
-const RoleSelect = ({
-  value,
-  label,
-  onChange,
-}: {
-  value: ShareRole;
-  label: string;
-  onChange: (role: ShareRole) => void;
-}) => (
-  <select
-    aria-label={label}
-    value={value}
-    onChange={(event) => onChange(event.target.value as ShareRole)}
-    className={selectClass}
-  >
-    {(Object.keys(ROLES) as ShareRole[]).map((role) => (
-      <option key={role} value={role}>
-        {ROLES[role]}
-      </option>
-    ))}
-  </select>
-);
-
 /** Who else may open a node and how; the owner adds people by the e-mail of their account. */
 export const ShareDialog = ({ node, open, onClose }: ShareDialogProps) => (
-  <Dialog open={open} title={`${node.name} teilen`} onClose={onClose}>
+  <Dialog open={open} title={`${node.name} teilen`} onClose={onClose} wide>
     {open && <ShareForm node={node} onClose={onClose} />}
   </Dialog>
 );
@@ -162,6 +136,8 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
           ))}
         </ul>
       )}
+
+      <InviteLinks node={node} />
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={onClose}>

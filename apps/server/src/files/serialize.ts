@@ -1,6 +1,13 @@
-import type { FileNode, FileVersion, SharedNode } from "@stapel/files-api";
-import type { VersionRow } from "../db/schema";
+import type {
+  FileNode,
+  FileVersion,
+  Invitation as InvitationDto,
+  Invite,
+  SharedNode,
+} from "@stapel/files-api";
+import type { InviteRow, VersionRow } from "../db/schema";
 import type { Accessible } from "./access";
+import type { Invitation } from "./invites";
 import type { SharedWithMe } from "./shares";
 
 /** Rows as the API sends them: the shapes in @stapel/files-api, dates as ISO strings. */
@@ -21,6 +28,21 @@ export const toFileNode = ({ node: row, role }: Accessible): FileNode => ({
 export const toSharedNode = ({ node, role, ownerName }: SharedWithMe): SharedNode => ({
   ...toFileNode({ node, role }),
   ownerName,
+});
+
+export const toInvite = (row: InviteRow): Invite => ({
+  token: row.token,
+  role: row.role,
+  createdAt: row.createdAt.toISOString(),
+  expiresAt: row.expiresAt.toISOString(),
+});
+
+export const toInvitation = ({ invite, node, ownerName }: Invitation): InvitationDto => ({
+  nodeName: node.name,
+  kind: node.kind,
+  ownerName,
+  role: invite.role,
+  expiresAt: invite.expiresAt.toISOString(),
 });
 
 export const toFileVersion = (row: VersionRow): FileVersion => ({

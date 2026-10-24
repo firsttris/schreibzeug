@@ -45,6 +45,18 @@ owner, and moving only happens within the owner's own folders. A weaker role tha
 (`GET /api/shared`) lists what was shared with them, and the path of a shared folder starts at the
 folder that was shared.
 
+### Links
+
+Instead of an address, the owner can create a link (`src/files/invites.ts`, table `invites`): a
+random 24-byte token, a role and an expiry of 1, 7 or 30 days. It holds for everyone who opens
+it until it expires or the owner deletes it, and stops when the node goes to the trash.
+
+The link opens `/invite/<token>` in the web app, which shows who shares what (`GET
+/api/invites/:token` needs no session). Someone without a session signs in or creates an account
+and comes back; "Einladung annehmen" adds a share with the link's role, or keeps a stronger one the
+user already has. A link that holds also opens a closed sign-up: the page sends its token in the
+`x-stapel-invite` header, and the sign-up hook in `src/auth/auth.ts` lets that one account in.
+
 In the editor the relay takes the role from the database for every connection. A viewer joins
 with `mode: "view"` whatever the client says, and the relay drops what would change the document
 (`getLock`, `saveChanges`, `isSaveLock`, the save messages; DocsCoServer refuses the first three
@@ -79,4 +91,7 @@ their harness. In the E2E run (`STAPEL_OPEN_SIGNUP=true`) every test signs up an
 through the API (`e2e/app.ts`); `e2e/accounts.spec.ts` goes through the form, signs out and back in,
 and checks that someone else's folder is not found. `apps/server/test/shares.test.ts` covers the
 roles, shares on folders, taking a share back and the trash; `e2e/sharing.spec.ts` shares a
-folder between two accounts: read-only with live changes, and editing.
+folder between two accounts: read-only with live changes, and editing; and someone without an
+account follows a link, signs up and accepts it. `apps/server/test/invites.test.ts` covers links:
+reading one without a session, accepting, roles that never get weaker, deleting, expiry, the trash,
+and a closed sign-up opened only by a link that holds.

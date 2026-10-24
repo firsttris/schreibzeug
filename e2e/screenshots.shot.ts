@@ -68,6 +68,7 @@ const ACCOUNT = { name: "Anna Berger", email: "anna.berger@example.org", passwor
 /** Someone Anna shares a folder with. */
 const COLLEAGUE = { name: "Ben Krämer", email: "ben.kraemer@example.org", password: "geheim-genug" };
 const SHARED = "Projekte";
+const INVITE_TOKEN = "k7Rf2mQ9vXcL4tYh8NpZ3sBw6dGj1aEu";
 
 /** Shares SHARED with the colleague, who gets an account of their own first. */
 const shareWithColleague = async (api: APIRequestContext, newContext: () => Promise<APIRequestContext>) => {
@@ -83,6 +84,16 @@ const shareWithColleague = async (api: APIRequestContext, newContext: () => Prom
     data: { email: COLLEAGUE.email, role: "edit" },
   });
   expect(shared.ok()).toBe(true);
+  // A link to the same folder, with a token and dates that are the same every run.
+  const invite = await api.post(`/api/nodes/${folder.id}/invites`, { data: { role: "view", days: 7 } });
+  expect(invite.ok()).toBe(true);
+  const created = before({ hours: 2 }).getTime();
+  runSql([
+    {
+      sql: "update invites set token = ?, created_at = ?, expires_at = ?",
+      params: [INVITE_TOKEN, created, created + 7 * 24 * 60 * 60 * 1000],
+    },
+  ]);
 };
 
 test.beforeAll(async ({ playwright }, testInfo) => {
@@ -97,7 +108,8 @@ test.beforeAll(async ({ playwright }, testInfo) => {
 
 // Every picture but the sign-in page shows Anna's files.
 test.beforeEach(async ({ page }, testInfo) => {
-  if (testInfo.title === "login") return;
+  // The sign-in and the invitation are what someone without a session sees.
+  if (testInfo.title === "login" || testInfo.title === "invitation") return;
   const { email, password } = ACCOUNT;
   expect((await page.request.post("/api/auth/sign-in/email", { data: { email, password } })).ok()).toBe(true);
 });
@@ -155,9 +167,18 @@ for (const scheme of schemes) {
       await page.goto("/");
       await page.getByRole("button", { name: `${SHARED} teilen` }).click();
       await expect(page.getByRole("dialog").locator(`[data-share="${COLLEAGUE.email}"]`)).toBeVisible();
+      await expect(page.getByRole("dialog").locator(`[data-invite="${INVITE_TOKEN}"]`)).toBeVisible();
       await page.getByRole("dialog").getByLabel("E-Mail des Kontos").blur();
       await page.evaluate(() => document.fonts.ready);
       await shoot(page, "share", scheme);
+    });
+
+    test("invitation", async ({ page }) => {
+      await page.clock.setFixedTime(NOW);
+      await page.goto(`/invite/${INVITE_TOKEN}`);
+      await expect(page.getByTestId("invitation")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      await shoot(page, "invitation", scheme);
     });
 
     test("editor", async ({ page }) => {

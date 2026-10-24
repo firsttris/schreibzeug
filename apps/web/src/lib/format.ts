@@ -26,6 +26,12 @@ export const formatChanged = (iso: string, now: Date = new Date()): string => {
   return (date.getFullYear() === now.getFullYear() ? dayThisYear : dayOtherYear).format(date);
 };
 
+/** "31. Okt.", or with the year when it is another one. */
+export const formatDay = (iso: string, now: Date = new Date()): string => {
+  const date = new Date(iso);
+  return (date.getFullYear() === now.getFullYear() ? dayThisYear : dayOtherYear).format(date);
+};
+
 export type FileKind = "docx" | "xlsx" | "pptx" | "pdf" | "folder" | "other";
 
 export const extensionOf = (name: string): string => {

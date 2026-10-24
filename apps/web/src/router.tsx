@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { z } from "zod";
 import { UserProvider } from "./account/context";
+import { InvitePage } from "./account/invite-page";
 import { LoginPage } from "./account/login-page";
 import type { Account } from "./api/account";
 import { EditPage } from "./editor/edit-page";
@@ -56,11 +57,25 @@ const signedInRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  validateSearch: z.object({ redirect: z.string().optional() }),
+  validateSearch: z.object({
+    redirect: z.string().optional(),
+    invite: z.string().optional(),
+    mode: z.enum(["signIn", "signUp"]).optional(),
+  }),
   beforeLoad: async ({ context }) => {
     if (await context.queryClient.ensureQueryData(context.account.session)) throw redirect({ to: "/" });
   },
-  component: () => <LoginPage redirect={loginRoute.useSearch().redirect} />,
+  component: () => {
+    const { redirect, invite, mode } = loginRoute.useSearch();
+    return <LoginPage redirect={redirect} invite={invite} mode={mode} />;
+  },
+});
+
+/** A link someone shared: readable before signing in, accepted after (account/invite-page.tsx). */
+const inviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/invite/$token",
+  component: () => <InvitePage token={inviteRoute.useParams().token} />,
 });
 
 const shellRoute = createRoute({ getParentRoute: () => signedInRoute, id: "shell", component: Shell });
@@ -97,6 +112,7 @@ const editRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  inviteRoute,
   signedInRoute.addChildren([
     shellRoute.addChildren([homeRoute, folderRoute, recentRoute, sharedRoute, trashRoute]),
     editRoute,

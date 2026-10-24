@@ -4,6 +4,7 @@ import { APIError } from "better-auth/api";
 import { count } from "drizzle-orm";
 import type { Database } from "../db/database";
 import * as schema from "../db/schema";
+import { findInvitation } from "../files/invites";
 import { adoptOwnerless } from "../files/repository";
 
 export type AuthDeps = {
@@ -15,6 +16,9 @@ export type AuthDeps = {
   /** Origins besides the server's own that may sign in, e.g. the desktop app. */
   trustedOrigins?: string[];
 };
+
+/** The header that carries an invitation's token with a sign-up (web: api/account.ts). */
+export const INVITE_HEADER = "x-stapel-invite";
 
 const userCount = (db: Database): number => db.select({ value: count() }).from(schema.user).get()?.value ?? 0;
 
@@ -35,8 +39,11 @@ export const createAuth = ({ db, secret, openSignup, trustedOrigins = [] }: Auth
     databaseHooks: {
       user: {
         create: {
-          before: async () => {
-            if (!openSignup && userCount(db) > 0) {
+          // A link that still holds opens a closed sign-up: the page sends its token along.
+          before: async (_user, context) => {
+            const token = context?.headers?.get(INVITE_HEADER);
+            const invited = token ? findInvitation(db, token).ok : false;
+            if (!openSignup && !invited && userCount(db) > 0) {
               throw new APIError("FORBIDDEN", { message: "Neue Konten legt hier nur die Verwaltung an." });
             }
           },

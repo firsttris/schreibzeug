@@ -1,11 +1,19 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Layers } from "lucide-react";
 import { type InputHTMLAttributes, useState } from "react";
 import { Button } from "../ui/button";
+import { Brand } from "./brand";
 import { useAccount } from "./context";
 
-type Mode = "signIn" | "signUp";
+export type Mode = "signIn" | "signUp";
+
+export type LoginPageProps = {
+  /** Where to go afterwards, a path in the app. */
+  redirect: string | undefined;
+  /** The token of a link someone came with: it lets them create an account when sign-up is closed. */
+  invite?: string | undefined;
+  mode?: Mode | undefined;
+};
 
 const Field = ({ label, ...input }: { label: string } & InputHTMLAttributes<HTMLInputElement>) => (
   <label className="flex flex-col gap-1.5 text-sm">
@@ -22,11 +30,11 @@ const Field = ({ label, ...input }: { label: string } & InputHTMLAttributes<HTML
  * Signing in and creating an account on one page. After either, the session is read again and
  * the person lands where they wanted to go.
  */
-export const LoginPage = ({ redirect }: { redirect: string | undefined }) => {
+export const LoginPage = ({ redirect, invite, mode: initialMode = "signIn" }: LoginPageProps) => {
   const account = useAccount();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("signIn");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -38,11 +46,10 @@ export const LoginPage = ({ redirect }: { redirect: string | undefined }) => {
       if (mode === "signIn")
         await account.signIn({ email: field("email"), password: String(form.get("password")) });
       else
-        await account.signUp({
-          name: field("name"),
-          email: field("email"),
-          password: String(form.get("password")),
-        });
+        await account.signUp(
+          { name: field("name"), email: field("email"), password: String(form.get("password")) },
+          invite,
+        );
       await queryClient.resetQueries({ queryKey: account.session.queryKey });
       await navigate({ to: redirect?.startsWith("/") ? redirect : "/" });
     } catch (failure) {
@@ -56,12 +63,7 @@ export const LoginPage = ({ redirect }: { redirect: string | undefined }) => {
   return (
     <main className="flex min-h-full items-center justify-center p-4">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
-            <Layers size={18} />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">Stapel</span>
-        </div>
+        <Brand />
         <div className="flex flex-col gap-1">
           <h1 className="m-0 text-xl font-semibold">{signingUp ? "Konto anlegen" : "Anmelden"}</h1>
           <p className="m-0 text-sm text-[var(--muted-foreground)]">

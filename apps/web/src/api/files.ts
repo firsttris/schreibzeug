@@ -1,7 +1,10 @@
 import {
   type BlankFormat,
+  type CreateInvite,
   type FileNode,
   folderListingSchema,
+  invitationSchema,
+  inviteSchema,
   nodeSchema,
   type ShareRole,
   sharedNodeSchema,
@@ -10,7 +13,7 @@ import {
   versionSchema,
 } from "@stapel/files-api";
 import { type QueryClient, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
-import { type ApiClient, expectBytes, expectJson } from "./client";
+import { type ApiClient, expectBytes, expectJson, expectOk } from "./client";
 
 /** Query keys: everything about files sits under "files", so one invalidation refreshes every list. */
 export const fileKeys = {
@@ -21,6 +24,8 @@ export const fileKeys = {
   trash: ["files", "trash"] as const,
   shared: ["files", "shared"] as const,
   shares: (id: string) => ["files", "shares", id] as const,
+  invites: (id: string) => ["files", "invites", id] as const,
+  invitation: (token: string) => ["invitation", token] as const,
   versions: (id: string) => ["files", "versions", id] as const,
 };
 
@@ -53,6 +58,18 @@ export const fileQueries = (api: ApiClient) => ({
     queryOptions({
       queryKey: fileKeys.shares(id),
       queryFn: () => expectJson(api.nodes[":id"].shares.$get({ param: { id } }), shareList),
+    }),
+  invites: (id: string) =>
+    queryOptions({
+      queryKey: fileKeys.invites(id),
+      queryFn: () => expectJson(api.nodes[":id"].invites.$get({ param: { id } }), inviteSchema.array()),
+    }),
+  /** What a link shares; readable without signing in. */
+  invitation: (token: string) =>
+    queryOptions({
+      queryKey: fileKeys.invitation(token),
+      queryFn: () => expectJson(api.invites[":token"].$get({ param: { token } }), invitationSchema),
+      retry: false,
     }),
   versions: (id: string) =>
     queryOptions({
@@ -90,6 +107,12 @@ export const fileCommands = (api: ApiClient) => ({
     expectJson(api.nodes[":id"].shares.$put({ param: { id }, json: { email, role } }), shareList),
   unshare: (id: string, userId: string) =>
     expectJson(api.nodes[":id"].shares[":userId"].$delete({ param: { id, userId } }), shareList),
+  createInvite: (id: string, input: CreateInvite) =>
+    expectJson(api.nodes[":id"].invites.$post({ param: { id }, json: input }), inviteSchema),
+  removeInvite: (id: string, token: string) =>
+    expectOk(api.nodes[":id"].invites[":token"].$delete({ param: { id, token } })),
+  acceptInvite: (token: string) =>
+    expectJson(api.invites[":token"].accept.$post({ param: { token } }), nodeSchema),
   save: (id: string, bytes: Uint8Array) =>
     // hc types only form and JSON bodies; `init` is spread last into fetch (hono/dist/client/client.js).
     expectJson(

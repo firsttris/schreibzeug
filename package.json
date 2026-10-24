@@ -11,7 +11,7 @@
   "scripts": {
     "engine:prepare": "bun engine/scripts/prepare.ts",
     "test-files": "bun test-files/make.ts",
-    "dev": "bun run --filter @stapel/web dev",
+    "dev": "bun run engine:prepare && bun run --filter '@stapel/{web,server}' dev",
     "build": "bun run --filter @stapel/web build",
     "preview": "bun run --filter @stapel/web preview",
     "typecheck": "tsc -b",

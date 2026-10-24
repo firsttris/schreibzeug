@@ -91,10 +91,12 @@ Requires [Bun](https://bun.sh) 1.4 or newer; nothing else, the database is a SQL
 ```bash
 git clone https://github.com/firsttris/stapel && cd stapel
 bun install
-bun run engine:prepare   # downloads the pinned Euro-Office engine and generates its fonts (Linux x86_64)
-bun run server           # files API on http://localhost:3000 (data: STAPEL_DATA_DIR)
-bun run dev              # http://localhost:5173
+bun run dev              # http://localhost:5173, with the files API on http://localhost:3000
 ```
+
+`bun run dev` first prepares the engine (`bun run engine:prepare`: downloads the pinned Euro-Office
+release and generates its fonts, Linux x86_64; a no-op once it is up to date), then starts the
+server (data: `STAPEL_DATA_DIR`) and the app together. `bun run server` starts the server alone.
 
 Checks: `bun run lint`, `bun run typecheck`, `bun run test` (unit and integration, on Bun), `bun run test:e2e` (Playwright with the real engine).
 

@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: key
-        run: echo "key=engine-${{ hashFiles('engine/engine.json', 'engine/scripts/prepare.ts', 'engine/frame/**') }}" >> "$GITHUB_OUTPUT"
+        run: echo "key=engine-${{ hashFiles('engine/engine.json', 'engine/scripts/**', 'engine/frame/**') }}" >> "$GITHUB_OUTPUT"
       - id: cache
         uses: actions/cache@v4
         with:

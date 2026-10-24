@@ -7,8 +7,9 @@ it.
 ## Where it comes from
 
 `engine/engine.json` pins one official Euro-Office Document Server release.
-`bun run engine:prepare` (`engine/scripts/prepare.ts`) downloads that package, checks its SHA-256,
-and builds `engine/dist`:
+`bun run engine:prepare` (`engine/scripts/prepare.ts`, also run by `bun run dev`) downloads that
+package, checks its SHA-256, and builds `engine/dist`, showing each step and the download's
+progress:
 
 | Path | What it is |
 |---|---|
@@ -22,7 +23,7 @@ and builds `engine/dist`:
 | `licenses/` | engine and font licenses |
 
 `allfontsgen` is a Linux x86_64 binary, so preparing the engine needs Linux (CI does it and caches
-the result by the hash of the spec, the script and the frame pages).
+the result by the hash of the spec, the scripts and the frame pages).
 
 ## How it is loaded
 

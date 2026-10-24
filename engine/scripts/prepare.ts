@@ -21,6 +21,7 @@
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { describeTransfer, type Report, runSteps } from "./progress";
 
 type ReleaseAsset = {
   source: string;
@@ -37,8 +38,11 @@ type EngineSpec = ReleaseAsset & {
 const engineDir = resolve(import.meta.dir, "..");
 const distDir = join(engineDir, "dist");
 const cacheDir = join(engineDir, ".cache");
+const extractDir = join(cacheDir, "extract");
 const stampFile = join(distDir, ".version");
 const packageRoot = "var/www/euro-office/documentserver";
+/** The unpacked release package; every step after the extraction reads from here. */
+const pkg = join(extractDir, packageRoot);
 /** Globals sdkjs uses without loading them: XRegExp, and jQuery for the page layout (word CEditorPage). */
 const vendorLibraries = ["xregexp", "jquery"];
 
@@ -53,19 +57,24 @@ const frameFiles = (): string[] =>
 const stampOf = (spec: EngineSpec): string => {
   const hash = createHash("sha256")
     .update(JSON.stringify(spec))
-    .update(readFileSync(import.meta.path));
+    .update(readFileSync(import.meta.path))
+    .update(readFileSync(join(import.meta.dir, "progress.ts")));
   for (const file of frameFiles()) hash.update(relative(engineDir, file)).update(readFileSync(file));
   return hash.digest("hex");
 };
 
-const run = (cmd: string[], cwd: string, env: Record<string, string> = {}): void => {
-  const result = Bun.spawnSync(cmd, {
-    cwd,
-    env: { ...process.env, ...env },
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-  if (result.exitCode !== 0) throw new Error(`Command failed (${result.exitCode}): ${cmd.join(" ")}`);
+/**
+ * Runs a tool without blocking, so the progress line keeps ticking. Its output is collected and
+ * shown only when it fails, to keep the progress line readable.
+ */
+const run = async (cmd: string[], cwd: string, env: Record<string, string> = {}): Promise<void> => {
+  const proc = Bun.spawn(cmd, { cwd, env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe" });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  if (exitCode !== 0) throw new Error(`Command failed (${exitCode}): ${cmd.join(" ")}\n${stdout}${stderr}`);
 };
 
 const sha256OfFile = async (path: string): Promise<string> => {
@@ -74,27 +83,56 @@ const sha256OfFile = async (path: string): Promise<string> => {
   return hash.digest("hex");
 };
 
-const download = async (spec: ReleaseAsset): Promise<string> => {
-  mkdirSync(cacheDir, { recursive: true });
-  const target = join(cacheDir, spec.asset);
-  if (existsSync(target) && (await sha256OfFile(target)) === spec.sha256) return target;
-
-  const url = `${spec.source}/releases/download/${encodeURIComponent(spec.version)}/${spec.asset}`;
-  console.log(`Downloading ${url}`);
-  const response = await fetch(url);
-  if (!response.ok || !response.body) throw new Error(`Download failed: ${response.status} ${url}`);
-  await Bun.write(target, response);
-
-  const actual = await sha256OfFile(target);
-  if (actual !== spec.sha256) throw new Error(`Checksum mismatch for ${spec.asset}: ${actual}`);
-  return target;
+/**
+ * Writes the body chunk by chunk. Bun.write(path, response) never finishes for the ~630 MB release
+ * package (Bun 1.3.5: the body sits in memory and nothing reaches the disk), so it is not used here.
+ */
+const writeStream = async (
+  path: string,
+  body: ReadableStream<Uint8Array>,
+  onProgress: (received: number) => void,
+): Promise<void> => {
+  const writer = Bun.file(path).writer();
+  let received = 0;
+  for await (const chunk of body) {
+    writer.write(chunk);
+    received += chunk.length;
+    onProgress(received);
+  }
+  await writer.end();
 };
 
-const extract = (debFile: string, spec: EngineSpec): string => {
-  const out = join(cacheDir, "extract");
-  rmSync(out, { recursive: true, force: true });
-  mkdirSync(out, { recursive: true });
-  run(["ar", "x", debFile, "data.tar.xz"], out);
+const assetPath = (spec: ReleaseAsset): string => join(cacheDir, spec.asset);
+
+const download = async (spec: ReleaseAsset, report: Report): Promise<void> => {
+  mkdirSync(cacheDir, { recursive: true });
+  const target = assetPath(spec);
+  report("checking the cache");
+  if (existsSync(target) && (await sha256OfFile(target)) === spec.sha256) {
+    report("cached");
+    return;
+  }
+
+  const url = `${spec.source}/releases/download/${encodeURIComponent(spec.version)}/${spec.asset}`;
+  report("connecting");
+  const response = await fetch(url);
+  if (!response.ok || !response.body) throw new Error(`Download failed: ${response.status} ${url}`);
+  const total = Number(response.headers.get("content-length") ?? 0);
+  const started = performance.now();
+  await writeStream(target, response.body, (received) =>
+    report(describeTransfer(received, total, performance.now() - started)),
+  );
+
+  report("verifying the checksum");
+  const actual = await sha256OfFile(target);
+  if (actual !== spec.sha256) throw new Error(`Checksum mismatch for ${spec.asset}: ${actual}`);
+  report(`${(total / 1e6).toFixed(0)} MB`);
+};
+
+const extract = async (spec: EngineSpec): Promise<void> => {
+  rmSync(extractDir, { recursive: true, force: true });
+  mkdirSync(extractDir, { recursive: true });
+  await run(["ar", "x", assetPath(spec), "data.tar.xz"], extractDir);
   const members = [
     "sdkjs/common",
     ...spec.editors.map((editor) => `sdkjs/${editor}`),
@@ -105,15 +143,8 @@ const extract = (debFile: string, spec: EngineSpec): string => {
     "server/FileConverter/bin",
     ...vendorLibraries.map((library) => `web-apps/vendor/${library}`),
   ].map((member) => `./${packageRoot}/${member}`);
-  run(["tar", "-xJf", "data.tar.xz", ...members], out);
-  rmSync(join(out, "data.tar.xz"));
-  return join(out, packageRoot);
-};
-
-const extractConverter = (zipFile: string): void => {
-  const out = join(distDir, "x2t");
-  mkdirSync(out, { recursive: true });
-  run(["unzip", "-o", "-q", zipFile, "x2t.js", "x2t.wasm", "-d", out], cacheDir);
+  await run(["tar", "-xJf", "data.tar.xz", ...members], extractDir);
+  rmSync(join(extractDir, "data.tar.xz"));
 };
 
 const removeCompressedCopies = (dir: string): void => {
@@ -122,9 +153,29 @@ const removeCompressedCopies = (dir: string): void => {
   }
 };
 
-const generateFonts = (pkg: string): void => {
+const copyEngine = (spec: EngineSpec): void => {
+  rmSync(distDir, { recursive: true, force: true });
+  mkdirSync(distDir, { recursive: true });
+  cpSync(join(pkg, "sdkjs/common"), join(distDir, "sdkjs/common"), { recursive: true });
+  for (const editor of spec.editors) {
+    cpSync(join(pkg, "sdkjs", editor), join(distDir, "sdkjs", editor), { recursive: true });
+  }
+  removeCompressedCopies(join(distDir, "sdkjs"));
+  for (const library of vendorLibraries) {
+    cpSync(join(pkg, "web-apps/vendor", library), join(distDir, "vendor", library), { recursive: true });
+  }
+  cpSync(join(engineDir, "frame"), join(distDir, "frame"), { recursive: true });
+};
+
+const extractConverter = async (spec: ReleaseAsset): Promise<void> => {
+  const out = join(distDir, "x2t");
+  mkdirSync(out, { recursive: true });
+  await run(["unzip", "-o", "-q", assetPath(spec), "x2t.js", "x2t.wasm", "-d", out], cacheDir);
+};
+
+const generateFonts = async (): Promise<void> => {
   mkdirSync(join(distDir, "fonts"), { recursive: true });
-  run(
+  await run(
     [
       join(pkg, "server/tools/allfontsgen"),
       `--input=${join(pkg, "core-fonts")}`,
@@ -154,8 +205,8 @@ const generateFonts = (pkg: string): void => {
  * converter. Its renderer reads the release's sdkjs and xregexp (server/FileConverter/bin/
  * DoctRenderer.config), so it runs against the extracted package and writes into dist.
  */
-const generateThemes = (pkg: string): void => {
-  run(
+const generateThemes = async (): Promise<void> => {
+  await run(
     [
       join(pkg, "server/tools/allthemesgen"),
       `--converter-dir=${join(pkg, "server/FileConverter/bin")}`,
@@ -170,7 +221,8 @@ const generateThemes = (pkg: string): void => {
   }
 };
 
-const copyFontLicenses = (pkg: string): void => {
+const copyLicenses = (): void => {
+  cpSync(join(pkg, "license"), join(distDir, "licenses/engine"), { recursive: true });
   const fontsDir = join(pkg, "core-fonts");
   for (const entry of readdirSync(fontsDir, { withFileTypes: true })) {
     const license = join(fontsDir, entry.name, "LICENSE.txt");
@@ -188,28 +240,23 @@ const prepare = async (force: boolean): Promise<void> => {
     return;
   }
 
-  const pkg = extract(await download(spec), spec);
-  rmSync(distDir, { recursive: true, force: true });
-  mkdirSync(distDir, { recursive: true });
-
-  cpSync(join(pkg, "sdkjs/common"), join(distDir, "sdkjs/common"), { recursive: true });
-  for (const editor of spec.editors) {
-    cpSync(join(pkg, "sdkjs", editor), join(distDir, "sdkjs", editor), { recursive: true });
-  }
-  removeCompressedCopies(join(distDir, "sdkjs"));
-  for (const library of vendorLibraries) {
-    cpSync(join(pkg, "web-apps/vendor", library), join(distDir, "vendor", library), { recursive: true });
-  }
-  cpSync(join(engineDir, "frame"), join(distDir, "frame"), { recursive: true });
-
-  extractConverter(await download(spec.converter));
-  generateFonts(pkg);
-  generateThemes(pkg);
-  cpSync(join(pkg, "license"), join(distDir, "licenses/engine"), { recursive: true });
-  copyFontLicenses(pkg);
+  const started = performance.now();
+  console.log(`Preparing engine ${spec.version}`);
+  await runSteps([
+    { label: "Download the Document Server package", run: (report) => download(spec, report) },
+    { label: "Unpack the package", run: () => extract(spec) },
+    { label: "Copy sdkjs and its libraries", run: () => copyEngine(spec) },
+    { label: "Download the converter", run: (report) => download(spec.converter, report) },
+    { label: "Unpack the converter", run: () => extractConverter(spec.converter) },
+    { label: "Generate the fonts (allfontsgen)", run: generateFonts },
+    { label: "Generate the presentation themes (allthemesgen)", run: generateThemes },
+    { label: "Copy the licenses", run: copyLicenses },
+  ]);
 
   writeFileSync(stampFile, stamp);
-  console.log(`Engine ${spec.version} prepared in ${distDir}`);
+  console.log(
+    `Engine ${spec.version} prepared in ${distDir} (${((performance.now() - started) / 1000).toFixed(1)} s)`,
+  );
 };
 
 await prepare(process.argv.includes("--force"));

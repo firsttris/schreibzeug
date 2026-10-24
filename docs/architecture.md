@@ -46,7 +46,7 @@ opens the version the session started from, so refreshing the lists after a save
 the document. Every reply is checked against the schemas in
 `packages/files-api`.
 
-In development `bun run dev` serves the app on port 5173 and forwards `/api`, WebSockets included, to the server
+In development `bun run dev` prepares the engine if needed, starts the server and serves the app on port 5173, which forwards `/api`, WebSockets included, to the server
 (`STAPEL_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
 database (`e2e/server.ts`, port 3100) and the app on port 5174. Without Playwright's own browser download, an installed
 Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.

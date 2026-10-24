@@ -84,9 +84,10 @@ export const contextMenuSource = (
  * Keys the engine leaves to its UI (word/Editor/Shortcuts.js OpenFindDialog, OpenFindAndReplaceMenu,
  * PrintPreviewAndPrint): Strg+F searches, Strg+H replaces, Strg+P prints.
  */
-export type AppShortcut = "find" | "replace" | "print";
+export type AppShortcut = "find" | "replace" | "print" | "save";
 
-const SHORTCUT_KEYS: Record<string, AppShortcut> = { f: "find", h: "replace", p: "print" };
+/** Strg+S saves through the app: the engine's own save (asc_Save) talks to the Document Server. */
+const SHORTCUT_KEYS: Record<string, AppShortcut> = { f: "find", h: "replace", p: "print", s: "save" };
 
 /** The shortcut a key press stands for, if any; Cmd on a Mac counts as Strg. */
 export const shortcutOf = (event: {

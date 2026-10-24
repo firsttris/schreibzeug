@@ -18,8 +18,10 @@ export const WORD_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+] / [", label: "Schrift größer, kleiner" },
   { keys: "Strg+L / E / R / J", label: "Links, zentriert, rechts, Blocksatz" },
   { keys: "Strg+Enter", label: "Seitenumbruch" },
+  { keys: "Strg+K", label: "Link einfügen" },
   { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
   { keys: "Strg+P", label: "Drucken" },
+  { keys: "Strg+S", label: "Speichern" },
 ];
 
 /** Keys of the spreadsheet, as its engine handles them (cell/view/WorkbookView.js, CellEditor). */
@@ -34,6 +36,7 @@ export const SHEET_SHORTCUTS: Shortcut[] = [
   { keys: "Alt+Enter", label: "Zeilenumbruch in der Zelle" },
   { keys: "Strg+F", label: "Suchen" },
   { keys: "Strg+P", label: "Drucken" },
+  { keys: "Strg+S", label: "Speichern" },
 ];
 
 /** Keys of the presentation, as its engine handles them (slide/api.js, common shortcuts). */
@@ -48,6 +51,7 @@ export const SLIDE_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+M", label: "Neue Folie" },
   { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
   { keys: "Strg+P", label: "Drucken" },
+  { keys: "Strg+S", label: "Speichern" },
 ];
 
 export const ShortcutsDialog = ({

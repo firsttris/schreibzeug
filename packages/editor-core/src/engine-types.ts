@@ -1,5 +1,6 @@
 import type { HeaderFooterApi } from "./header-footer";
 import type { LayoutApi, ParagraphSpacing, SectionProps } from "./layout";
+import type { HyperlinkProps, LinkApi, SelectedObject } from "./links";
 /**
  * The part of the sdkjs API that Stapel uses, typed by hand. sdkjs has no type definitions; every
  * member here is traceable to Euro-Office/sdkjs (file named per member). Only this package touches
@@ -135,7 +136,11 @@ export type WordEventArgs = TextEventArgs & {
   /** word/api.js sync_InitEditorStyles: the paragraph styles of the document and the defaults */
   asc_onInitEditorStyles: [styles: { get_MergedStyles(): Array<{ get_Name(): string }> }];
   /** The selection moved to other objects (paragraph, table, image …): common/apiCommon.js asc_CSelectedObject. */
-  asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number }>];
+  asc_onFocusObject: [objects: Array<{ asc_getObjectType(): number } & Partial<SelectedObject>>];
+  /** Strg+K in the document (word/Editor/Shortcuts.js InsertHyperlink): the UI opens its link dialog. */
+  asc_onDialogAddHyperlink: [];
+  /** A link was followed with Strg+click (word/api.js sync_HyperlinkClickCallback). */
+  asc_onHyperlinkClick: [url: string];
   /** word/Editor/Document.js UpdateInterface: the section at the cursor. */
   asc_onSectionProps: [props: SectionProps];
   /** word/api.js sync_ParaSpacingLine: the spacing of the paragraph at the cursor. */
@@ -198,6 +203,8 @@ export interface EngineApiBase<Events extends CommonEventArgs> {
   asc_setAutoSaveGap(seconds: number): void;
   /** word/api.js, cell/api.js, slide/api.js: true makes the document read-only. */
   asc_setViewMode(isViewMode: boolean): void;
+  /** common/apiBase.js: the engine's default keyboard shortcuts, anew. */
+  asc_resetAllShortcutTypes(): void;
   /**
    * common/apiBase.js: inserts images by URL at the cursor. URLs already in DocumentUrls go
    * straight to the editor's `_addImageUrl`; others would be sent to the Document Server first.
@@ -232,7 +239,8 @@ export interface WordEngineApi
     ViewApi,
     SearchApi,
     LayoutApi,
-    HeaderFooterApi {
+    HeaderFooterApi,
+    LinkApi {
   SetFontRenderingMode(mode: number): void;
   Resize(): void;
   put_AddPageBreak(): void;
@@ -330,7 +338,7 @@ export interface WordWindow extends EngineWindow {
     /** common/commonDefines.js */
     c_oAscCollaborativeMarksShowType: { None: number };
     /** common/commonDefines.js: what a selected object is. */
-    c_oAscTypeSelectElement: { Table: number; Header: number };
+    c_oAscTypeSelectElement: { Table: number; Header: number; Hyperlink: number };
     /** word/apiDefines.js */
     c_oAscContextMenuTypes: { Common: number; ChangeHdrFtr: number };
     /** word/Editor/api/document-section-props.js */
@@ -338,6 +346,8 @@ export interface WordWindow extends EngineWindow {
     /** common/commonDefines.js */
     c_oAscPageOrientation: { PagePortrait: number };
     linerule_Auto: number;
+    /** common/apiCommon.js */
+    CHyperlinkProperty: new () => HyperlinkProps;
   };
 }
 

@@ -7,6 +7,7 @@ import {
   Bold,
   ImagePlus,
   Italic,
+  Link,
   List,
   ListOrdered,
   type LucideIcon,
@@ -51,10 +52,18 @@ export type ToolbarProps = {
   onAddComment: () => void;
   /** Opens the file dialog for an image; null where none can be put in. */
   onInsertImage: (() => void) | null;
+  onInsertLink: () => void;
 };
 
 /** The formatting row above the document: every control reads EditorState and calls a command. */
-export const Toolbar = ({ state, commands, layout, onAddComment, onInsertImage }: ToolbarProps) => {
+export const Toolbar = ({
+  state,
+  commands,
+  layout,
+  onAddComment,
+  onInsertImage,
+  onInsertLink,
+}: ToolbarProps) => {
   const disabled = !commands || state.status !== "ready";
   const { text, paragraph, catalog, document } = state;
   const fontSize = text.fontSize ?? 11;
@@ -169,6 +178,9 @@ export const Toolbar = ({ state, commands, layout, onAddComment, onInsertImage }
         onClick={() => onInsertImage?.()}
       >
         <ImagePlus size={16} />
+      </Button>
+      <Button variant="ghost" aria-label="Link einfügen" disabled={disabled} onClick={onInsertLink}>
+        <Link size={16} />
       </Button>
       <Button variant="ghost" aria-label="Kommentar hinzufügen" disabled={disabled} onClick={onAddComment}>
         <MessageSquarePlus size={16} />

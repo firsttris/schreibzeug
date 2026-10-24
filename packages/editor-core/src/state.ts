@@ -1,5 +1,6 @@
 import { type CoreEvent, type CoreState, initialCoreState, isCoreEvent, reduceCore } from "./core-state";
 import type { PageLayout } from "./layout";
+import type { Link } from "./links";
 
 export type Align = "left" | "center" | "right" | "justify";
 
@@ -29,6 +30,8 @@ export type ParagraphState = {
   inTable: boolean;
   /** The cursor is in a header or footer. */
   inHeaderFooter: boolean;
+  /** The link the cursor is in, if any. */
+  link: Link | null;
   /** As a multiple of a single line; null for an exact height or a mixed selection. */
   lineSpacing: number | null;
 };
@@ -90,6 +93,7 @@ export type WordEvent =
   | { type: "list"; value: ListKind | null }
   | { type: "inTable"; value: boolean }
   | { type: "inHeaderFooter"; value: boolean }
+  | { type: "link"; value: Link | null }
   | { type: "lineSpacing"; value: number | null }
   | { type: "page"; value: PageLayout }
   | { type: "styles"; value: string[] }
@@ -138,7 +142,14 @@ export const reduceTextEvent = <S extends { text: TextState; catalog: CatalogSta
 export const initialEditorState: EditorState = {
   ...initialCoreState,
   text: initialTextState,
-  paragraph: { style: null, list: null, inTable: false, inHeaderFooter: false, lineSpacing: null },
+  paragraph: {
+    style: null,
+    list: null,
+    inTable: false,
+    inHeaderFooter: false,
+    link: null,
+    lineSpacing: null,
+  },
   page: null,
   catalog: { fonts: [], styles: [] },
   comments: [],
@@ -171,6 +182,8 @@ export const reduceEditorState = (state: EditorState, event: EditorEvent): Edito
       return withParagraph(state, { list: event.value });
     case "inTable":
       return withParagraph(state, { inTable: event.value });
+    case "link":
+      return withParagraph(state, { link: event.value });
     case "inHeaderFooter":
       return withParagraph(state, { inHeaderFooter: event.value });
     case "lineSpacing":

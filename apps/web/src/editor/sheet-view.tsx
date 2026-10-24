@@ -25,7 +25,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     initialSheetState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
-  const chrome = useEditorChrome(editor, container, name, file.readOnly);
+  const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "xlsx"), MIME.xlsx);

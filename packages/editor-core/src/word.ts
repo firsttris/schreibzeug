@@ -6,6 +6,7 @@ import type { EngineWindow, WordEngineApi, WordEventArgs, WordWindow } from "./e
 import { stateEvents } from "./events";
 import { createHeaderFooterCommands, type HeaderFooterCommands } from "./header-footer";
 import { createLayoutCommands, type LayoutCommands, readLineSpacing, readSection } from "./layout";
+import { createLinkCommands, type HyperlinkProps, type LinkCommands, readLink } from "./links";
 import { readListKind } from "./lists";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
@@ -15,7 +16,13 @@ import {
   reduceEditorState,
   type WordEvent,
 } from "./state";
-import { type ContextMenuListener, contextMenuSource, createViewCommands, type ViewCommands } from "./view";
+import {
+  type ContextMenuListener,
+  contextMenuSource,
+  createListeners,
+  createViewCommands,
+  type ViewCommands,
+} from "./view";
 
 export type OpenWordOptions = OpenOptions;
 
@@ -23,6 +30,11 @@ export type WordEditor = OpenedDocument<EditorState> & {
   commands: TextCommands;
   layout: LayoutCommands;
   headerFooter: HeaderFooterCommands;
+  links: LinkCommands;
+  /** Strg+K in the document: the listener opens the link dialog. Returns the unsubscribe. */
+  onLinkRequest: (listener: () => void) => () => void;
+  /** Strg+click on a link: the listener opens the address. Returns the unsubscribe. */
+  onLinkOpen: (listener: (url: string) => void) => () => void;
   comments: CommentCommands;
   view: ViewCommands;
   search: SearchCommands;
@@ -49,7 +61,19 @@ const wordBinding: EditorBinding<
   WordEngineApi,
   EditorState,
   WordEvent,
-  Pick<WordEditor, "commands" | "layout" | "headerFooter" | "comments" | "view" | "search" | "onContextMenu">
+  Pick<
+    WordEditor,
+    | "commands"
+    | "layout"
+    | "headerFooter"
+    | "links"
+    | "onLinkRequest"
+    | "onLinkOpen"
+    | "comments"
+    | "view"
+    | "search"
+    | "onContextMenu"
+  >
 > = {
   format: "docx",
   createApi: (win) => {
@@ -65,11 +89,13 @@ const wordBinding: EditorBinding<
       dispatch({ type: "list", value: readListKind(api, win.Asc.c_oAscNumberingFormat) });
     api.asc_registerCallback("asc_onFocusObject", (objects) => {
       refreshList();
-      const { Table, Header } = win.Asc.c_oAscTypeSelectElement;
+      const { Table, Header, Hyperlink } = win.Asc.c_oAscTypeSelectElement;
       const has = (type: number) => objects.some((object) => object.asc_getObjectType() === type);
       dispatch({ type: "inTable", value: has(Table) });
       // word/api.js sync_HeadersAndFootersPropCallback: a header or footer is being edited.
       dispatch({ type: "inHeaderFooter", value: has(Header) });
+      const link = objects.find((object) => object.asc_getObjectType() === Hyperlink);
+      dispatch({ type: "link", value: link ? readLink(link.get_ObjectValue?.() as HyperlinkProps) : null });
     });
     const layoutConstants = {
       portrait: win.Asc.c_oAscPageOrientation.PagePortrait,
@@ -81,6 +107,10 @@ const wordBinding: EditorBinding<
     api.asc_registerCallback("asc_onParaSpacingLine", (spacing) =>
       dispatch({ type: "lineSpacing", value: readLineSpacing(spacing, layoutConstants) }),
     );
+    const linkRequests = createListeners<void>();
+    const linkOpens = createListeners<string>();
+    api.asc_registerCallback("asc_onDialogAddHyperlink", () => linkRequests.emit());
+    api.asc_registerCallback("asc_onHyperlinkClick", (url) => linkOpens.emit(url));
     const onContextMenu = contextMenuSource(api, () => win.document.getElementById("editor_sdk"), {
       headerFooter: win.Asc.c_oAscContextMenuTypes.ChangeHdrFtr,
     });
@@ -92,6 +122,13 @@ const wordBinding: EditorBinding<
         () => dispatch({ type: "searchCurrent", current: -1, total: 0 }),
       ),
       onContextMenu,
+      links: createLinkCommands(
+        api,
+        () => new win.Asc.CHyperlinkProperty(),
+        win.Asc.c_oAscTypeSelectElement.Hyperlink,
+      ),
+      onLinkRequest: linkRequests.add,
+      onLinkOpen: linkOpens.add,
       headerFooter: createHeaderFooterCommands(api, () => {
         win.focus();
         api.getFocusElement().focus();
@@ -113,6 +150,10 @@ const wordBinding: EditorBinding<
     // Spell checking needs the Document Server's dictionary service, which Stapel does not run:
     // without it every word is marked. web-apps switches it here too (documenteditor/mobile Main.jsx).
     api.asc_setSpellCheck(false);
+    // The engine's shortcut table stays empty unless the UI fills it, so Strg+K did nothing; web-apps
+    // resets it to the defaults once the editor runs (common/main/lib/controller/Shortcuts.js →
+    // common/apiBase.js asc_resetAllShortcutTypes, word/Editor/Shortcuts.js c_oAscDefaultShortcuts).
+    api.asc_resetAllShortcutTypes();
     // Marks commented text and reports the comments at the cursor (asc_onShowComment), as web-apps
     // does with live commenting on; resolved comments stay unmarked.
     api.asc_showComments(false);

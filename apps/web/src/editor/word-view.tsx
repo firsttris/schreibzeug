@@ -11,11 +11,13 @@ import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { WORD_SHORTCUTS } from "./help-dialogs";
+import { LinkDialog } from "./link-dialog";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
+import { openLink, useLinks } from "./use-links";
 import { type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 
 /** A text document: title and menus, the toolbar above the page, comments beside it. */
@@ -29,9 +31,10 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     initialEditorState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
-  const chrome = useEditorChrome(editor, container, name, file.readOnly);
+  const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
   const [comments, setComments] = useState<"closed" | "open" | "composing">("closed");
   const [tableDialog, setTableDialog] = useState(false);
+  const links = useLinks(editor, file.readOnly, chrome.notify);
   const openComments = state.comments.filter((comment) => !comment.resolved).length;
 
   // The engine measures its frame only on resize; the panel takes width from it.
@@ -49,6 +52,9 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     commands: editor?.commands ?? null,
     layout: editor?.layout ?? null,
     headerFooter: editor?.headerFooter ?? null,
+    links: editor?.links ?? null,
+    onLink: links.request,
+    onOpenLink: openLink,
     view: editor?.view ?? null,
     onClipboardRefused: (action) => chrome.notify(clipboardHint(action)),
     onAddComment: () => setComments("composing"),
@@ -95,6 +101,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
             layout={editor?.layout ?? null}
             onAddComment={() => setComments("composing")}
             onInsertImage={chrome.insertImage}
+            onInsertLink={links.request}
           />
         }
       />
@@ -126,6 +133,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
           onClose={chrome.closeMenu}
         />
       )}
+      <LinkDialog draft={links.draft} onClose={links.close} />
       <Dialog open={tableDialog} title="Tabelle einfügen" onClose={() => setTableDialog(false)}>
         <SizeGrid
           onPick={({ columns, rows }) => {

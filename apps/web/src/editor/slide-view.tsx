@@ -24,7 +24,7 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
     initialSlideState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
-  const chrome = useEditorChrome(editor, container, name, file.readOnly);
+  const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
 
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "pptx"), MIME.pptx);

@@ -59,6 +59,7 @@ export {
   type PaperSize,
   paperSizeOf,
 } from "./layout";
+export type { Link, LinkCommands, LinkDraft } from "./links";
 export type { ImageStore } from "./media";
 export { createSearchCommands, type SearchCommands, type SearchQuery } from "./search";
 export {

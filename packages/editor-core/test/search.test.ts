@@ -92,6 +92,7 @@ describe("shortcutOf", () => {
   it("knows Strg+F and Strg+H, also with Cmd", () => {
     expect(shortcutOf(key("f", { ctrlKey: true }))).toBe("find");
     expect(shortcutOf(key("H", { metaKey: true }))).toBe("replace");
+    expect(shortcutOf(key("s", { ctrlKey: true }))).toBe("save");
     expect(shortcutOf(key("f"))).toBeNull();
     expect(shortcutOf(key("f", { ctrlKey: true, shiftKey: true }))).toBeNull();
   });

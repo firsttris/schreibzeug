@@ -188,6 +188,19 @@ cursor; `asc_AddPageCount` adds the number of pages (`src/header-footer.ts`). Th
 the frame, so going into the header or back out hands the keys to the engine again. Whether the
 cursor is in a header or footer comes from `asc_onFocusObject` (a `Header` element).
 
+## Links
+
+"Link …" (Strg+K, the toolbar, the context menu) works as web-apps' link dialog
+(`controller/Links.js`, `view/HyperlinkSettingsDialog.js`): when `can_AddHyperlink()` answers the
+selected text, a new link goes in with `add_Hyperlink`; otherwise the cursor is in a link, whose
+`Asc.CHyperlinkProperty` from `getSelectedElements()` is changed or removed with
+`change_Hyperlink` and `remove_Hyperlink` (`src/links.ts`). An address without a scheme gets
+`http://` (an e-mail address `mailto:`), and an unchanged text is passed as null so the linked
+text keeps its formatting. Strg+K reaches the app as `asc_onDialogAddHyperlink`; the engine's
+shortcut table is empty until it is reset to the defaults (`asc_resetAllShortcutTypes`, as
+web-apps' `Shortcuts.js` does), which the text editor does once the document shows. Strg+click on
+a link sends `asc_onHyperlinkClick`; the app opens http, https and mailto addresses in a new tab.
+
 ## Find and replace
 
 `src/search.ts` fills a `CSearchSettings` (`common/api/searchSettings.js`: text, match case,
@@ -221,7 +234,8 @@ the converter three things, the way CryptPad does (`www/common/outer/x2t.js`
 
 "Drucken" prints that PDF through the browser's dialog from a hidden frame (`apps/web/src/editor/pdf.ts`).
 Strg+P is another key the engine leaves to its UI; it goes to the same place as Strg+F
-(`onShortcut`). The document's images go along as `media/`, as below.
+(`onShortcut`), and so does Strg+S, which saves through the app (the engine's own `asc_Save` would
+talk to the Document Server). The document's images go along as `media/`, as below.
 
 ## Images
 

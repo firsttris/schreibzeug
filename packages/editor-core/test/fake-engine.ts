@@ -224,6 +224,12 @@ export const createFakeEngine = (): FakeEngine => {
         asc_CancelHdrFtrEditing: record(calls, "asc_CancelHdrFtrEditing"),
         put_PageNum: record(calls, "put_PageNum"),
         asc_AddPageCount: record(calls, "asc_AddPageCount"),
+        asc_resetAllShortcutTypes: record(calls, "asc_resetAllShortcutTypes"),
+        can_AddHyperlink: () => "",
+        getSelectedElements: () => [],
+        add_Hyperlink: record(calls, "add_Hyperlink"),
+        change_Hyperlink: record(calls, "change_Hyperlink"),
+        remove_Hyperlink: record(calls, "remove_Hyperlink"),
         DecreaseIndent: record(calls, "DecreaseIndent"),
         asc_findText: (settings, isNext) => {
           calls.push(["asc_findText", (settings as unknown as FakeSearchSettings).values, isNext]);
@@ -369,7 +375,7 @@ export const createFakeEngine = (): FakeEngine => {
       asc_CColor: FakeColor,
       asc_CCommentDataWord: FakeCommentData,
       c_oAscNumberingFormat: NUMBERING_FORMATS,
-      c_oAscTypeSelectElement: { Paragraph: 0, Table: 1, Header: 2 },
+      c_oAscTypeSelectElement: { Paragraph: 0, Table: 1, Header: 2, Hyperlink: 4 },
       c_oAscContextMenuTypes: { Common: 0, ChangeHdrFtr: 1 },
       c_oAscPageOrientation: { PagePortrait: 0 },
       linerule_Auto: 1,

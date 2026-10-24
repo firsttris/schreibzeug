@@ -400,6 +400,26 @@ describe("openWordDocument", () => {
     expect(engine.focused()).toBe(focused + 1);
   });
 
+  it("knows the link at the cursor and passes on Strg+K and Strg+click", async () => {
+    const { engine, editor } = await openReady();
+    const link = {
+      asc_getObjectType: () => 4,
+      get_ObjectType: () => 4,
+      get_ObjectValue: () => ({ get_Value: () => "https://stapel.dev", get_Text: () => "Stapel" }),
+    };
+    engine.api().emit("asc_onFocusObject", [selected(0), link]);
+    expect(editor.store.get().paragraph.link).toEqual({ url: "https://stapel.dev", text: "Stapel" });
+    engine.api().emit("asc_onFocusObject", [selected(0)]);
+    expect(editor.store.get().paragraph.link).toBeNull();
+
+    const requests: string[] = [];
+    editor.onLinkRequest(() => requests.push("dialog"));
+    editor.onLinkOpen((url) => requests.push(url));
+    engine.api().emit("asc_onDialogAddHyperlink");
+    engine.api().emit("asc_onHyperlinkClick", "https://stapel.dev");
+    expect(requests).toEqual(["dialog", "https://stapel.dev"]);
+  });
+
   it("adds, answers, resolves and removes comments through the engine", async () => {
     const { engine, editor } = await openReady();
     const id = editor.comments.add("  Bitte prüfen ");

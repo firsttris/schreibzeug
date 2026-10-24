@@ -111,6 +111,40 @@ test.describe("menus of the text editor", () => {
     expect(await storedXml(page, fileId)).toContain("Hallo Stapel");
   });
 
+  test("links text with Strg+K, edits the link from the context menu and keeps it", async ({
+    page,
+  }, testInfo) => {
+    const { fileId } = await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.press("Control+k");
+    const dialog = page.getByRole("dialog", { name: "Link einfügen" });
+    await expect(dialog.getByLabel("Angezeigter Text")).toHaveValue("Hallo Stapel");
+    await dialog.getByLabel("Adresse").fill("stapel.dev");
+    await dialog.getByRole("button", { name: "Einfügen" }).click();
+
+    // A right click on the linked text offers to edit it.
+    await page.getByTestId("engine-frame").click({ position: { x: 230, y: 210 }, button: "right" });
+    await page
+      .getByRole("menu", { name: "Kontextmenü" })
+      .getByRole("menuitem", { name: "Link bearbeiten …" })
+      .click();
+    const edit = page.getByRole("dialog", { name: "Link bearbeiten" });
+    await expect(edit.getByLabel("Adresse")).toHaveValue("http://stapel.dev");
+    await edit.getByLabel("Adresse").fill("https://stapel.dev/hilfe");
+    await edit.getByRole("button", { name: "Ändern" }).click();
+    await save(page);
+
+    const files = unzipSync(await storedDocx(page, fileId));
+    expect(strFromU8(files["word/_rels/document.xml.rels"] as Uint8Array)).toContain(
+      'Target="https://stapel.dev/hilfe"',
+    );
+    expect(await storedXml(page, fileId)).toMatch(
+      /<w:hyperlink [^>]*>[\s\S]*Hallo Stapel[\s\S]*<\/w:hyperlink>/,
+    );
+  });
+
   test("zooms from the view menu", async ({ page }, testInfo) => {
     await openHello(page, testInfo);
     await pick(page, "Ansicht", "150 %");

@@ -35,6 +35,7 @@ export const useEditorChrome = (
   container: RefObject<HTMLDivElement | null>,
   name: string,
   readOnly: boolean,
+  save: () => void,
 ) => {
   const [notice, notify] = useNotice();
   const searchBar = useSearchBar(!readOnly);
@@ -46,6 +47,7 @@ export const useEditorChrome = (
     find: () => searchBar.open("find"),
     replace: () => searchBar.open("replace"),
     ...(pdf ? { print: pdf.print } : {}),
+    ...(readOnly ? {} : { save }),
   });
 
   useEffect(() => {

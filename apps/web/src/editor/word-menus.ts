@@ -3,6 +3,7 @@ import type {
   EditorState,
   HeaderFooterCommands,
   LayoutCommands,
+  LinkCommands,
   TextCommands,
   ViewCommands,
 } from "@stapel/editor-core";
@@ -19,6 +20,11 @@ export type WordMenuContext = {
   commands: TextCommands | null;
   layout: LayoutCommands | null;
   headerFooter: HeaderFooterCommands | null;
+  links: LinkCommands | null;
+  /** Opens the link dialog for the selection or the link at the cursor. */
+  onLink: () => void;
+  /** Opens an address in a new tab. */
+  onOpenLink: (url: string) => void;
   view: ViewCommands | null;
   /** The browser refused the clipboard: say which keys to use instead. */
   onClipboardRefused: (action: ClipboardAction) => void;
@@ -84,6 +90,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
       groups: [
         [
           { label: "Tabelle …", disabled: off, onSelect: context.onInsertTable },
+          { label: "Link …", shortcut: "Strg+K", disabled: off, onSelect: context.onLink },
           {
             label: "Bild …",
             disabled: off || !context.onInsertImage,
@@ -207,6 +214,17 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
   ];
 };
 
+/** Inside a link: edit, open or remove it; elsewhere: make one (DocumentHolder hyperlinkMenu). */
+const linkItems = ({ state, links, onLink, onOpenLink }: WordMenuContext): MenuItem[] => {
+  const { link } = state.paragraph;
+  if (!link) return [{ label: "Link …", onSelect: onLink }];
+  return [
+    { label: "Link bearbeiten …", onSelect: onLink },
+    { label: "Link öffnen", onSelect: () => onOpenLink(link.url) },
+    { label: "Link entfernen", onSelect: () => links?.remove() },
+  ];
+};
+
 /**
  * The right-click menu of the text editor: the clipboard, a comment, the table at the cursor, and
  * formatting, as web-apps offers for text (documenteditor main DocumentHolder textMenu, tableMenu).
@@ -219,6 +237,7 @@ export const wordContextMenu = (context: WordMenuContext): MenuItem[][] => {
     state.paragraph.inHeaderFooter
       ? [{ label: "Kopf- und Fußzeile schließen", onSelect: () => context.headerFooter?.close() }]
       : [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
+    linkItems(context),
     ...(state.paragraph.inTable ? tableActions(run) : []),
     [
       { label: "Formatierung löschen", onSelect: () => run((c) => c.clearFormatting()) },

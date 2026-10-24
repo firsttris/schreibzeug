@@ -46,7 +46,7 @@ Green before every push, then check CI:
 bun install --frozen-lockfile
 bun run typecheck        # tsc --noEmit in every workspace
 bun run lint             # biome check
-bun run test             # vitest: unit + integration (needs PostgreSQL, see docs/files.md)
+bun run test             # vitest on Bun: unit + integration (SQLite, see docs/files.md)
 bun run test:e2e         # playwright: engine, flows, collaboration, format fidelity
 bun run build
 cargo fmt --check && cargo clippy -- -D warnings && cargo test   # in apps/desktop, when it changed

@@ -5,7 +5,7 @@ one Bun server that stores the files and relays collaboration. The same app runs
 browser and in the Tauri desktop app.
 
 ```
-apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶ PostgreSQL (tree, versions)
+apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶ SQLite (tree, versions, accounts)
    │                                         │                └─▶ data/blobs (file bytes)
    └─ iframe: engine (sdkjs + x2t)           └─ WebSocket relay (collaboration)
 ```
@@ -17,7 +17,7 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 | `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store, for the text, spreadsheet and presentation editors. Framework-free. See [the engine](engine.md). |
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
 | `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests. |
-| `apps/server` | The files API on Bun with Hono, Drizzle and PostgreSQL. See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
+| `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
 | `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`. |
 
 ## Why a SPA and a Hono API, not TanStack Start

@@ -71,7 +71,7 @@ describe("sign-up", () => {
     // A fresh database: the shared one already has accounts.
     const fresh = await startServer();
     try {
-      await fresh.db.insert(nodes).values({ kind: "folder", name: "Von früher" });
+      await fresh.db.insert(nodes).values({ kind: "folder", name: "Von früher", nameKey: "von früher" });
       const closed = createAuth({ db: fresh.db, secret: "x".repeat(40), openSignup: false });
       const app = createApp({
         auth: closed,

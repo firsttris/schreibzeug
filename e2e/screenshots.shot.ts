@@ -6,9 +6,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
-import postgres from "postgres";
 import { collectErrors, expectEditorReady, row } from "./app";
-import { e2eDatabaseUrl } from "./database";
+import { runSql } from "./database";
 
 const NOW = new Date("2026-10-23T16:00:00+02:00");
 const out = (name: string) => join(import.meta.dirname, "../docs/screenshots", `${name}.png`);
@@ -53,12 +52,15 @@ const seed = async (api: APIRequestContext) => {
     );
   }
   // The server stamps nodes with the time of the run; the pictures need the same dates every time.
-  const sql = postgres(e2eDatabaseUrl(), { max: 1, onnotice: () => {} });
-  for (const { name, ago } of [...FOLDERS, ...DOCUMENTS]) {
-    const at = before(ago);
-    await sql`update nodes set created_at = ${at}, updated_at = ${at} where name = ${name}`;
-  }
-  await sql.end();
+  runSql(
+    [...FOLDERS, ...DOCUMENTS].map(({ name, ago }) => {
+      const at = before(ago).getTime();
+      return {
+        sql: "update nodes set created_at = ?, updated_at = ? where name = ?",
+        params: [at, at, name],
+      };
+    }),
+  );
 };
 
 /** The account the pictures show. */

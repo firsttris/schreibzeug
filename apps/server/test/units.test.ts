@@ -70,7 +70,6 @@ describe("readConfig", () => {
     expect(readConfig({})).toEqual({
       ok: true,
       value: {
-        databaseUrl: "postgres://stapel:stapel@localhost:5432/stapel",
         dataDir: "data",
         port: 3000,
         maxUploadBytes: 512 * 1024 * 1024,

@@ -16,8 +16,7 @@ export type AuthDeps = {
   trustedOrigins?: string[];
 };
 
-const userCount = async (db: Database): Promise<number> =>
-  (await db.select({ value: count() }).from(schema.user))[0]?.value ?? 0;
+const userCount = (db: Database): number => db.select({ value: count() }).from(schema.user).get()?.value ?? 0;
 
 /**
  * Accounts with email and password (Better Auth), stored in the app's database with its Drizzle
@@ -29,7 +28,7 @@ export const createAuth = ({ db, secret, openSignup, trustedOrigins = [] }: Auth
   betterAuth({
     secret,
     basePath: "/api/auth",
-    database: drizzleAdapter(db, { provider: "pg", schema }),
+    database: drizzleAdapter(db, { provider: "sqlite", schema }),
     emailAndPassword: { enabled: true, minPasswordLength: 8, autoSignIn: true },
     trustedOrigins: (request) => [...trustedOrigins, ...(request ? [new URL(request.url).origin] : [])],
     telemetry: { enabled: false },
@@ -37,13 +36,13 @@ export const createAuth = ({ db, secret, openSignup, trustedOrigins = [] }: Auth
       user: {
         create: {
           before: async () => {
-            if (!openSignup && (await userCount(db)) > 0) {
+            if (!openSignup && userCount(db) > 0) {
               throw new APIError("FORBIDDEN", { message: "Neue Konten legt hier nur die Verwaltung an." });
             }
           },
           // The first account takes over the files from before there were accounts.
           after: async (user) => {
-            if ((await userCount(db)) === 1) await adoptOwnerless(db, user.id);
+            if (userCount(db) === 1) adoptOwnerless(db, user.id);
           },
         },
       },

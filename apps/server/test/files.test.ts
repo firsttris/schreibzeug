@@ -93,6 +93,15 @@ describe("folders", () => {
     );
   });
 
+  it("ignores case also in umlauts, which SQLite's lower() does not know", async () => {
+    await folder("Übersicht");
+    await expectError(
+      await api.folders.$post({ json: { name: "übersicht", parentId: null } }),
+      409,
+      "name_taken",
+    );
+  });
+
   it("rejects names a file system cannot hold", async () => {
     for (const name of ["", "  ", "a/b", "..", "x:y"]) {
       await expectError(await api.folders.$post({ json: { name, parentId: null } }), 400, "invalid");

@@ -1,16 +1,19 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 /**
- * The tables Better Auth works with, as its Drizzle schema generator writes them for PostgreSQL
- * (@better-auth/drizzle-adapter generateDrizzleSchema, better-auth 1.7.12, email and password).
- * Better Auth fills the ids and times itself. Keep them in step with that generator when Better
- * Auth is updated: its adapter checks the schema at start.
+ * The tables Better Auth works with, as its Drizzle schema generator writes them for SQLite
+ * (@better-auth/drizzle-adapter generateDrizzleSchema, better-auth 1.7.12, email and password;
+ * the same shape as in firsttris/sekretaer server/db/schema.ts). Better Auth fills the ids and
+ * times itself. Keep them in step with that generator when Better Auth is updated: its adapter
+ * checks the schema at start.
  */
-export const user = pgTable("user", {
+const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
+
+export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").default(false).notNull(),
+  emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at")
@@ -18,7 +21,7 @@ export const user = pgTable("user", {
     .notNull(),
 });
 
-export const session = pgTable(
+export const session = sqliteTable(
   "session",
   {
     id: text("id").primaryKey(),
@@ -37,7 +40,7 @@ export const session = pgTable(
   (table) => [index("session_userId_idx").on(table.userId)],
 );
 
-export const account = pgTable(
+export const account = sqliteTable(
   "account",
   {
     id: text("id").primaryKey(),
@@ -61,7 +64,7 @@ export const account = pgTable(
   (table) => [index("account_userId_idx").on(table.userId)],
 );
 
-export const verification = pgTable(
+export const verification = sqliteTable(
   "verification",
   {
     id: text("id").primaryKey(),

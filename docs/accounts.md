@@ -2,7 +2,7 @@
 
 Everyone signs in with an email address and a password. The accounts are
 [Better Auth](https://www.better-auth.com/) on the Stapel server (`apps/server/src/auth`), stored
-in the app's own PostgreSQL through Better Auth's Drizzle adapter.
+in the app's own SQLite database through Better Auth's Drizzle adapter.
 
 ## Server
 

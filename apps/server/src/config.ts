@@ -8,7 +8,6 @@ const flag = z
   .transform((value) => value === "true" || value === "1");
 
 const configSchema = z.object({
-  DATABASE_URL: z.url().default("postgres://stapel:stapel@localhost:5432/stapel"),
   STAPEL_DATA_DIR: z.string().min(1).default("data"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   STAPEL_MAX_UPLOAD_MB: z.coerce.number().positive().default(512),
@@ -18,7 +17,7 @@ const configSchema = z.object({
 });
 
 export type Config = {
-  databaseUrl: string;
+  /** The blobs and the SQLite database (stapel.db) live here. */
   dataDir: string;
   port: number;
   maxUploadBytes: number;
@@ -34,7 +33,6 @@ export const readConfig = (env: Record<string, string | undefined>) => {
   if (!parsed.success) return { ok: false as const, error: z.prettifyError(parsed.error) };
   const value = parsed.data;
   const config: Config = {
-    databaseUrl: value.DATABASE_URL,
     dataDir: value.STAPEL_DATA_DIR,
     port: value.PORT,
     maxUploadBytes: value.STAPEL_MAX_UPLOAD_MB * MEGABYTE,

@@ -16,5 +16,5 @@ e2e/.data/
 
 .DS_Store
 
-# Server data (blobs) in development
+# Server data (database and blobs) in development
 apps/server/data/

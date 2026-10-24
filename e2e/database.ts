@@ -1,13 +1,24 @@
 /**
- * The database the E2E server runs on: created fresh by server.ts, read by the screenshots to pin
- * the dates they show. E2E_DATABASE_URL is a PostgreSQL user that may create databases.
+ * Where the E2E server keeps its data: emptied by server.ts before every run, read by the
+ * screenshots to pin the dates they show.
  */
-export const adminUrl = process.env.E2E_DATABASE_URL ?? "postgres://stapel:stapel@localhost:5432/stapel";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 
-export const E2E_DATABASE = "stapel_e2e";
+export const E2E_DATA_DIR = join(import.meta.dirname, ".data");
 
-export const e2eDatabaseUrl = (): string => {
-  const url = new URL(adminUrl);
-  url.pathname = `/${E2E_DATABASE}`;
-  return url.toString();
+/** The server's SQLite file in that folder (apps/server/src/main.ts). */
+export const E2E_DATABASE = join(E2E_DATA_DIR, "stapel.db");
+
+export type Statement = { sql: string; params: Array<string | number | null> };
+
+/**
+ * Runs statements on the E2E database. Playwright runs on Node and the database is opened with
+ * bun:sqlite, so a small Bun script does it (sqlite.ts); SQLite lets it write next to the server.
+ */
+export const runSql = (statements: Statement[]): void => {
+  execFileSync("bun", [join(import.meta.dirname, "sqlite.ts"), E2E_DATABASE], {
+    input: JSON.stringify(statements),
+    stdio: ["pipe", "inherit", "inherit"],
+  });
 };

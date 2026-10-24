@@ -67,7 +67,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
 
   const createStoredFile = async (user: string, parentId: string | null, name: string, bytes: Uint8Array) => {
     // Checked before the bytes go into the blob store.
-    const parent = await repository.findTargetFolder(db, user, parentId);
+    const parent = repository.findTargetFolder(db, user, parentId);
     if (!parent.ok) return parent;
     return repository.createFile(db, user, { parentId, name, mime: mimeOf(name), ...(await store(bytes)) });
   };
@@ -76,7 +76,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
     .get("/nodes", validate("query", parentQuery), async (c) => {
       const { parent } = c.req.valid("query");
       const user = userOf(c);
-      const folder = parent === "root" ? ok(null) : await repository.findNode(db, user, parent);
+      const folder = parent === "root" ? ok(null) : repository.findNode(db, user, parent);
       if (!folder.ok) return c.json({ error: folder.error }, statusOf(folder.error.kind));
       const found = folder.value;
       if (found && found.node.kind !== "folder") {
@@ -95,7 +95,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       });
     })
     .get("/nodes/:id", validate("param", idParam), async (c) =>
-      respond(c, await repository.findNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+      respond(c, repository.findNode(db, userOf(c), c.req.valid("param").id), toFileNode),
     )
     .patch("/nodes/:id", validate("param", idParam), validate("json", updateNodeSchema), async (c) => {
       const { name, parentId } = c.req.valid("json");
@@ -103,22 +103,18 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
         ...(name === undefined ? {} : { name }),
         ...(parentId === undefined ? {} : { parentId }),
       };
-      return respond(
-        c,
-        await repository.updateNode(db, userOf(c), c.req.valid("param").id, update),
-        toFileNode,
-      );
+      return respond(c, repository.updateNode(db, userOf(c), c.req.valid("param").id, update), toFileNode);
     })
     .post("/nodes/:id/trash", validate("param", idParam), async (c) =>
-      respond(c, await repository.trashNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+      respond(c, repository.trashNode(db, userOf(c), c.req.valid("param").id), toFileNode),
     )
     .post("/nodes/:id/restore", validate("param", idParam), async (c) =>
-      respond(c, await repository.restoreNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+      respond(c, repository.restoreNode(db, userOf(c), c.req.valid("param").id), toFileNode),
     )
-    .get("/trash", async (c) => c.json((await repository.listTrash(db, userOf(c))).map(toFileNode)))
-    .get("/recent", async (c) => c.json((await repository.listRecent(db, userOf(c))).map(toFileNode)))
+    .get("/trash", async (c) => c.json(repository.listTrash(db, userOf(c)).map(toFileNode)))
+    .get("/recent", async (c) => c.json(repository.listRecent(db, userOf(c)).map(toFileNode)))
     .post("/folders", validate("json", createFolderSchema), async (c) =>
-      respond(c, await repository.createFolder(db, userOf(c), c.req.valid("json")), toFileNode, 201),
+      respond(c, repository.createFolder(db, userOf(c), c.req.valid("json")), toFileNode, 201),
     )
     .post("/files", limit, validate("form", uploadForm), async (c) => {
       const { parentId, file } = c.req.valid("form");
@@ -145,7 +141,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       return respond(c, created, toFileNode, 201);
     })
     .get("/files/:id/content", validate("param", idParam), validate("query", versionQuery), async (c) => {
-      const found = await repository.findVersion(
+      const found = repository.findVersion(
         db,
         userOf(c),
         c.req.valid("param").id,
@@ -164,7 +160,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
     })
     .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
       const bytes = new Uint8Array(await c.req.arrayBuffer());
-      const saved = await repository.addVersion(db, userOf(c), c.req.valid("param").id, await store(bytes));
+      const saved = repository.addVersion(db, userOf(c), c.req.valid("param").id, await store(bytes));
       return respond(c, saved, toFileNode);
     })
     .post(
@@ -172,16 +168,16 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       validate("param", z.object({ id: nodeIdSchema, number: z.coerce.number().int().positive() })),
       async (c) => {
         const { id, number } = c.req.valid("param");
-        return respond(c, await repository.restoreVersion(db, userOf(c), id, number), toFileNode);
+        return respond(c, repository.restoreVersion(db, userOf(c), id, number), toFileNode);
       },
     )
     .get("/nodes/:id/shares", validate("param", idParam), async (c) =>
-      respond(c, await shares.listShares(db, userOf(c), c.req.valid("param").id), (list) => list),
+      respond(c, shares.listShares(db, userOf(c), c.req.valid("param").id), (list) => list),
     )
     .put("/nodes/:id/shares", validate("param", idParam), validate("json", putShareSchema), async (c) =>
       respond(
         c,
-        await shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json")),
+        shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json")),
         (list) => list,
       ),
     )
@@ -190,12 +186,12 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       validate("param", z.object({ id: nodeIdSchema, userId: z.string().min(1) })),
       async (c) => {
         const { id, userId } = c.req.valid("param");
-        return respond(c, await shares.removeShare(db, userOf(c), id, userId), (list) => list);
+        return respond(c, shares.removeShare(db, userOf(c), id, userId), (list) => list);
       },
     )
-    .get("/shared", async (c) => c.json((await shares.listSharedWithMe(db, userOf(c))).map(toSharedNode)))
+    .get("/shared", async (c) => c.json(shares.listSharedWithMe(db, userOf(c)).map(toSharedNode)))
     .get("/files/:id/versions", validate("param", idParam), async (c) =>
-      respond(c, await repository.listVersions(db, userOf(c), c.req.valid("param").id), (rows) =>
+      respond(c, repository.listVersions(db, userOf(c), c.req.valid("param").id), (rows) =>
         rows.map(toFileVersion),
       ),
     );

@@ -15,9 +15,10 @@ if (!config.ok) {
   process.exit(1);
 }
 
-const { databaseUrl, dataDir, port, maxUploadBytes, authSecret, openSignup, trustedOrigins } = config.value;
-const { db, close } = connect(databaseUrl);
-await migrateDatabase(db);
+const { dataDir, port, maxUploadBytes, authSecret, openSignup, trustedOrigins } = config.value;
+// One SQLite file next to the blobs: backing up the data folder backs up everything.
+const { db, close } = connect(join(resolve(dataDir), "stapel.db"));
+migrateDatabase(db);
 
 const auth = createAuth({
   db,
@@ -27,7 +28,7 @@ const auth = createAuth({
 });
 const hub = createHub({
   access: async (fileId, userId) => {
-    const found = await roleOf(db, userId, fileId);
+    const found = roleOf(db, userId, fileId);
     return found?.node.kind === "file" && found.node.version !== null
       ? { version: found.node.version, role: found.role }
       : null;
@@ -52,7 +53,7 @@ console.log(`Stapel server on http://localhost:${server.port}`);
 
 const shutdown = async () => {
   await server.stop();
-  await close();
+  close();
   process.exit(0);
 };
 process.on("SIGINT", shutdown);

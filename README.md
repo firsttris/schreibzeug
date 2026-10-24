@@ -86,21 +86,20 @@ that feels like today's web apps.
 
 ## 🛠️ Development
 
-Requires [Bun](https://bun.sh) 1.4 or newer and PostgreSQL 16 or newer.
+Requires [Bun](https://bun.sh) 1.4 or newer; nothing else, the database is a SQLite file.
 
 ```bash
 git clone https://github.com/firsttris/stapel && cd stapel
 bun install
 bun run engine:prepare   # downloads the pinned Euro-Office engine and generates its fonts (Linux x86_64)
-bun run server           # files API on http://localhost:3000 (database: DATABASE_URL)
+bun run server           # files API on http://localhost:3000 (data: STAPEL_DATA_DIR)
 bun run dev              # http://localhost:5173
 ```
 
-Checks: `bun run lint`, `bun run typecheck`, `bun run test` (unit, and integration against
-PostgreSQL), `bun run test:e2e` (Playwright with the real engine).
+Checks: `bun run lint`, `bun run typecheck`, `bun run test` (unit and integration, on Bun), `bun run test:e2e` (Playwright with the real engine).
 
 Stack: a React SPA with TanStack Router and Query, Tailwind and shadcn-style components; Euro-Office
-`sdkjs` as the editing engine; a Bun server with Hono, Drizzle and PostgreSQL for files and the
+`sdkjs` as the editing engine; a Bun server with Hono, Drizzle and SQLite for files and the
 collaboration relay; Tauri 2 for the desktop app.
 
 ## 🤝 Contributing

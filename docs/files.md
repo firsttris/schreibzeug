@@ -1,7 +1,15 @@
 # Files
 
 `apps/server` stores folders and files and every version of a file. It is a Hono app on Bun
-(`src/app.ts`) over PostgreSQL (Drizzle, `src/db/schema.ts`) and a folder of blobs.
+(`src/app.ts`) over SQLite (`bun:sqlite` with Drizzle, `src/db/schema.ts`) and a folder of blobs;
+both live in the data folder, so copying that folder backs up everything.
+
+SQLite rather than PostgreSQL: one process and one folder to run, nothing else to install, the
+same database the desktop app can use locally, and the same choice as firsttris/sekretaer, which
+Stapel is meant to join. While several people edit, their changes go through the relay in memory;
+the database sees a save every few seconds, which one writer at a time handles easily.
+`bun:sqlite` is synchronous, so the repository functions are too: a function that does not await
+is not interleaved with other requests, and a transaction must not await (`src/db/database.ts`).
 
 ## Data
 
@@ -16,7 +24,9 @@ the same bytes are stored once, and a blob is written to a temporary name and re
 never leaves half a blob under a real key.
 
 Names are unique per folder (at the top level per owner), ignoring case, as on macOS and Windows (a partial unique index on
-`lower(name)` among nodes outside the trash). Names must not contain `/ \ : * ? " < > |` or control
+`name_key` among nodes outside the trash; the server keeps `name_key` as the lowercased name, because
+SQLite's own `lower()` only knows ASCII and would let "Übersicht" and "übersicht" stand side by side).
+Times are stored as milliseconds. Names must not contain `/ \ : * ? " < > |` or control
 characters, so every file can be downloaded under its name on every system
 (`packages/files-api/src/schemas.ts`).
 
@@ -65,19 +75,20 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 
 | Variable | Default |
 |---|---|
-| `DATABASE_URL` | `postgres://stapel:stapel@localhost:5432/stapel` |
-| `STAPEL_DATA_DIR` | `data` (blobs go to `data/blobs`) |
+| `STAPEL_DATA_DIR` | `data`: the database `stapel.db`, the blobs in `blobs/`, the generated `auth-secret` |
 | `PORT` | `3000` |
 | `STAPEL_MAX_UPLOAD_MB` | `512` |
 | `STAPEL_OPEN_SIGNUP`, `STAPEL_AUTH_SECRET`, `STAPEL_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on
 start. After a change to the schema, `bun run --filter @stapel/server db:generate` writes the next
-migration.
+migration. drizzle-kit 0.31 quotes the expressions of a SQLite index as column names; check
+generated indexes on expressions (as `nodes_name_per_parent` in `0000_init.sql`, fixed by hand).
 
 ## Tests
 
 `apps/server/test/files.test.ts` signs up an account and runs the app with `app.request()` and Hono's typed test client
-against a real PostgreSQL: each test file creates a database of its own from `TEST_DATABASE_URL`
-(default as `DATABASE_URL`; the user needs `CREATEDB`) and drops it afterwards. CI runs them with a
-PostgreSQL service.
+against a real SQLite file: each test file gets a temporary data folder of its own
+(`test/harness.ts`), removed afterwards. Vitest runs on Bun (`bun --bun vitest`), which `bun:sqlite`
+needs. The E2E server starts on an empty `e2e/.data`; the screenshots pin their dates in its
+database through a small Bun script (`e2e/sqlite.ts`), since Playwright runs on Node.

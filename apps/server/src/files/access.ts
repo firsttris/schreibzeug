@@ -26,14 +26,16 @@ const active = isNull(nodes.trashedAt);
  * The user's role on a node outside the trash: owner, or the strongest share on the node or on any
  * folder above it; null when there is none. The chain of folders is read in one query.
  */
-export const roleOf = async (db: Queryable, user: UserId, id: string): Promise<Accessible | null> => {
-  const [node] = await db
+export const roleOf = (db: Queryable, user: UserId, id: string): Accessible | null => {
+  const node = db
     .select()
     .from(nodes)
-    .where(and(eq(nodes.id, id), active));
+    .where(and(eq(nodes.id, id), active))
+    .get();
   if (!node) return null;
   if (node.ownerId === user) return { node, role: "owner" };
-  const [row] = await db.execute<{ role: "edit" | "view" | null }>(sql`
+  // db.all, not db.get: drizzle's bun-sqlite get() returns the values without their names.
+  const [row] = db.all<{ role: "edit" | "view" | null }>(sql`
     with recursive chain as (
       select id, parent_id from ${nodes} where id = ${id}
       union all
@@ -49,13 +51,8 @@ export const roleOf = async (db: Queryable, user: UserId, id: string): Promise<A
  * A node the user may use as `needed` asks. Someone without any access learns nothing: for them
  * the node does not exist. Someone who may look but not change gets "forbidden".
  */
-export const requireRole = async (
-  db: Queryable,
-  user: UserId,
-  id: string,
-  needed: Role,
-): Promise<Result<Accessible>> => {
-  const access = await roleOf(db, user, id);
+export const requireRole = (db: Queryable, user: UserId, id: string, needed: Role): Result<Accessible> => {
+  const access = roleOf(db, user, id);
   if (!access) return fail("not_found", NOT_FOUND);
   if (!allows(access.role, needed)) {
     return fail(
@@ -67,11 +64,12 @@ export const requireRole = async (
 };
 
 /** The roles shares give the user directly on some nodes, for listing children that have their own. */
-export const directRoles = async (db: Queryable, user: UserId, ids: string[]): Promise<Map<string, Role>> => {
+export const directRoles = (db: Queryable, user: UserId, ids: string[]): Map<string, Role> => {
   if (ids.length === 0) return new Map();
-  const rows = await db
+  const rows = db
     .select({ nodeId: shares.nodeId, role: shares.role })
     .from(shares)
-    .where(and(eq(shares.userId, user), inArray(shares.nodeId, ids)));
+    .where(and(eq(shares.userId, user), inArray(shares.nodeId, ids)))
+    .all();
   return new Map(rows.map((row) => [row.nodeId, row.role]));
 };

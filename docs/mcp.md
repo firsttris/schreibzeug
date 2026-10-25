@@ -31,7 +31,9 @@ The desktop app's local server (`apps/local src/mcp.ts`) has `/mcp` too, for the
 There is one person and no account, so there is no token: like the rest of the local server it only
 answers requests for 127.0.0.1 and refuses one a web page sends from another origin (`gate.ts`). Its
 tools call the local API with the app's own key; what only a server has (sharing, links, versions,
-the trash) they answer with the local server's "Das gibt es nur auf einem Schreibzeug-Server".
+the trash, `search_files`, and the tools for an open document: `outline`, `replace_text`,
+`insert_content`, `set_cells`, `export_pdf`) they answer with the local server's "Das gibt es nur
+auf einem Schreibzeug-Server".
 The desktop app starts the local server on a free port; started by hand with a fixed one:
 
 ```sh

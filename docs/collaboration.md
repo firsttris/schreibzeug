@@ -118,7 +118,8 @@ for while one runs follows it. Each save is a version, so a session leaves sever
 
 ## Tests
 
-`apps/server/test/collab.test.ts` covers the session functions and the hub,
+`apps/server/test/collab.test.ts` covers the session functions and the hub, `locks.test.ts` the
+locks,
 `packages/editor-core/test` the channel, the socket stand-in and the save counting.
 `e2e/collaboration.spec.ts` opens the same file in two browser contexts: both type and see each
 other's text; one loses its connection, waits for it to come back and edits on; a change is stored

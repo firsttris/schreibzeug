@@ -49,9 +49,9 @@ Linux. The editors, the converter (WebAssembly) and saving were tried in WebKitG
 
 ## Files on this computer
 
-`apps/local` is a small server for working without a Schreibzeug server: it speaks the same files API
-as `apps/server` (the same routes and shapes from `@schreibzeug/files-api`) over a folder on the
-computer, the system's documents folder by default. The web app is the same; it asks `/api/info`
+`apps/local` is a small server for working without a Schreibzeug server: it speaks the part of the
+files API a single person needs (the same routes and shapes as `apps/server`, from
+`@schreibzeug/files-api`) over a folder on the computer, the system's documents folder by default. The web app is the same; it asks `/api/info`
 which kind of server it talks to and, for `local`, names the root after the folder ("Dokumente")
 and leaves out what only makes sense with accounts.
 
@@ -64,8 +64,10 @@ and leaves out what only makes sense with accounts.
   runs (`src/ids.ts`), so an open editor stays on its file.
 - **Deleting** moves into the system's trash (`gio trash` on Linux, the Finder on macOS, the
   recycle bin on Windows; `src/trash.ts`) and only counts as done when the file is gone. There is no
-  trash page of its own, no sharing, no links and no versions to go back to; the version number
-  only counts the saves since the server started, which the editing session needs.
+  trash page of its own, no sharing, no links, no versions to go back to, no search and no jobs for
+  an open document; those routes answer "Das gibt es nur auf einem Schreibzeug-Server"
+  (`src/app.ts`). The version number only counts the saves since the server started, which the
+  editing session needs.
 - **Editing** uses the same relay as the server (`apps/server/src/collab`), so two windows on the
   same file edit together. Images added while editing wait in a cache folder until the file is
   saved with them inside.
@@ -85,6 +87,9 @@ and leaves out what only makes sense with accounts.
 | `PORT` | 0 (default): any free port |
 | `SCHREIBZEUG_WEB_DIR` | The built web app to serve beside the API |
 | `SCHREIBZEUG_LOCAL_CACHE` | Where images wait until saved; a folder in the system's temp folder by default |
+| `SCHREIBZEUG_MAX_UPLOAD_MB` | The largest file to upload or save; 512 by default |
+| `SCHREIBZEUG_LOCAL_EXIT_WITH_STDIN` | `1`: stop when stdin closes, which the desktop app sets so the server ends with it (`src-tauri/src/local.rs`) |
+| `USER`, `USERNAME` | The name shown for the one person; the system account's name |
 
 Once it listens it prints `SCHREIBZEUG_LOCAL_READY http://127.0.0.1:<port>`. By hand, with the web
 app's dev server in front of it:
@@ -119,6 +124,13 @@ release. The version comes from `apps/desktop/package.json`.
 The builds are not signed yet. Windows SmartScreen shows "unknown publisher" (More info → Run
 anyway), and macOS Gatekeeper refuses to open the app until it is opened once with right click →
 Open. Linux packages need no signature.
+
+## Tests
+
+`apps/local/test/files.test.ts` runs the local API over a temporary folder, `gate.test.ts` the
+check of host, origin and key, `mcp.test.ts` the MCP endpoint, `units.test.ts` the settings and the
+ids. `e2e/local.spec.ts` opens the app on the local server and works on files in its folder;
+`apps/desktop/src/*.test.ts` covers the start page.
 
 ## Next
 

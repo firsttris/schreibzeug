@@ -19,6 +19,8 @@ is not interleaved with other requests, and a transaction must not await (`src/d
 | `versions` | Every saved state of a file: number, size and the SHA-256 of its bytes. |
 | `shares` | Who else may open a node, with `edit` or `view`; see [accounts](accounts.md#sharing). |
 | `invites` | Links that share a node: a random token, the role, when it expires. |
+| `pending_shares` | Shares with an address that has no account yet, taken over at its first sign-in; see [accounts](accounts.md). |
+| `access_tokens` | Personal access tokens for MCP clients: only their SHA-256, name, scope, expiry, last use; see [the MCP server](mcp.md#access-tokens). |
 
 The bytes are in the blob store (`src/blobs.ts`), under `data/blobs/ab/abcdef…` by their SHA-256:
 the same bytes are stored once, and a blob is written to a temporary name and renamed, so a crash
@@ -44,8 +46,9 @@ again.
 
 ## API
 
-All under `/api`; bodies are JSON unless noted. Every route but `/health` and Better Auth's
-`/auth/*` needs a session or a personal access token and acts for its user ([accounts](accounts.md),
+All under `/api`; bodies are JSON unless noted. Every route but `/health`, `/info`, Better Auth's
+`/auth/*`, `GET /invites/:token` and `DELETE /sessions` (only with a token from Kontext,
+[Kontext](kontext.md#tokens-from-kontext)) needs a session or a personal access token and acts for its user ([accounts](accounts.md),
 [MCP server](mcp.md#access-tokens)). Errors are
 `{ "error": { "kind", "message" } }`, with `kind` one of `not_found` (404), `invalid` (400),
 `unauthorized` (401), `forbidden` (403: the role is too weak), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
@@ -82,7 +85,18 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |
-| `GET /info` | `{ "mode": "server" }`; the desktop app's local server answers `{ "mode": "local", "rootName" }` ([desktop app](desktop.md#files-on-this-computer)). **No session needed** |
+| `GET /info` | `{ "mode": "server" }`, with `oidc: { name }` when a sign-in provider is set and `embedOrigin` when a site may frame the app ([Kontext](kontext.md)); the desktop app's local server answers `{ "mode": "local", "rootName" }` ([desktop app](desktop.md#files-on-this-computer)). **No session needed** |
+
+More routes, described where they belong:
+
+| Route | Where |
+|---|---|
+| `GET /tokens`, `POST /tokens`, `DELETE /tokens/:id` | Personal access tokens, only with a session ([MCP server](mcp.md#access-tokens)) |
+| `POST /files/:id/agent`, `GET /files/:id/outline` | A job for the open editor ([MCP server](mcp.md#editing-in-the-open-tab)) |
+| `GET /collab/:fileId` (WebSocket) | The editing session of a file ([collaboration](collaboration.md)) |
+| `GET /agent/:fileId` (WebSocket) | An open editor taking jobs ([MCP server](mcp.md#editing-in-the-open-tab)) |
+| `DELETE /sessions` | Kontext signs someone out everywhere ([Kontext](kontext.md#tokens-from-kontext)) |
+| `/mcp` (outside `/api`) | The MCP endpoint ([MCP server](mcp.md#the-endpoint)) |
 
 ## Templates
 
@@ -109,9 +123,11 @@ needs nothing of its own for it and an own template stays as it is.
 | `SCHREIBZEUG_URL`, `SCHREIBZEUG_EMBED_ORIGIN`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_NAME` | see [Schreibzeug in Kontext](kontext.md#settings) |
 | `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
 
-The image `tristanteu/schreibzeug` (`docker/Dockerfile`, published by **Actions → Release** on a
-version tag) has the server and the built web app with its engine, with the data in `/data`
-(`SCHREIBZEUG_WEB_DIR=/app/web`, port 3000).
+The image `tristanteu/schreibzeug` (`docker/Dockerfile`) has the server and the built web app with
+its engine, with the data in `/data` (`SCHREIBZEUG_WEB_DIR=/app/web`, port 3000). **Actions →
+Release** publishes it on Docker Hub and as `ghcr.io/firsttris/schreibzeug` when a `v*` tag is
+pushed; until the first one, build it with `docker build -f docker/Dockerfile .`
+([installation](installation.md)).
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on
 start. After a change to the schema, `bun run --filter @schreibzeug/server db:generate` writes the next
@@ -125,3 +141,7 @@ against a real SQLite file: each test file gets a temporary data folder of its o
 (`test/harness.ts`), removed afterwards. Vitest runs on Bun (`bun --bun vitest`), which `bun:sqlite`
 needs. The E2E server starts on an empty `e2e/.data`; the screenshots pin their dates in its
 database through a small Bun script (`e2e/sqlite.ts`), since Playwright runs on Node.
+`apps/server/test/media.test.ts` covers images stored while editing, `units.test.ts` the settings,
+names and small helpers. Templates: `apps/web/src/files/templates.test.ts` (which files count, the
+names) and `e2e/templates.spec.ts` (a file from a built-in and from an own template, opened in its
+editor). `e2e/files.spec.ts` goes through the file list as a person does.

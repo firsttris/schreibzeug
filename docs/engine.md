@@ -20,6 +20,7 @@ progress:
 | `x2t/` | the converter: ONLYOFFICE core's x2t compiled to WebAssembly ([cryptpad/onlyoffice-x2t-wasm](https://github.com/cryptpad/onlyoffice-x2t-wasm)), pinned in `engine.json` |
 | `frame/x2t/worker.js` | the worker that runs x2t (from `engine/frame`) |
 | `frame/editor/<editor>/main/index.html` | the pages that host the engine (from `engine/frame`) |
+| `dictionaries/<lang>/` | Hunspell dictionaries for the spell checker, with their licenses ([below](#spell-checking)) |
 | `licenses/` | engine and font licenses |
 
 `allfontsgen` is a Linux x86_64 binary, so preparing the engine needs Linux (CI does it and caches
@@ -30,7 +31,8 @@ the result by the hash of the spec, the scripts and the frame pages).
 sdkjs resolves its own files relative to the page as `../../../../sdkjs/…` and `../../../../fonts/`
 (`common/libfont/loader.js`, `common/GlobalLoaders.js`, `common/zlib/zlib.js`). The host page
 therefore sits four folders below the engine root: `/engine/frame/editor/<editor>/main/index.html`,
-with `word` for text documents, `cell` for spreadsheets and `slide` for presentations.
+with `word` for text documents, `cell` for spreadsheets, `slide` for presentations and `pdf` for
+PDFs ([PDFs](pdf.md)).
 
 `mountEngineFrame` loads that page in a same-origin iframe and checks that the editor's API
 constructor is there (`asc_docs_api` for text and presentations, `spreadsheet_api` for spreadsheets). The iframe keeps the engine's globals
@@ -215,9 +217,6 @@ toolbar shows the built-in ones in German (`apps/web/src/toolbar/style-labels.ts
 presets are the first bullet and number presets of web-apps (`documenteditor/mobile`
 `store/textSettings.js`), in `src/lists.ts`; the colour palette is Word's ten standard colours.
 
-The spell checker is switched off (`asc_setSpellCheck(false)` on content ready): it needs the
-Document Server's dictionary service, and without it every word is underlined.
-
 The engine takes target values, not toggles, so a toggle command reads the current state first.
 
 ## Menus and the context menu
@@ -234,6 +233,9 @@ was in a header or footer. `editor-core` adds the view element's place in the fr
 (`src/view.ts` `toContextMenuRequest`) and hands the request to `onContextMenu` listeners; the web
 app adds the frame's place in the window and shows its own menu there, as web-apps does
 (`DocumentHolder.js` `showPopupMenu`). Someone who may only look gets no context menu.
+
+"Hilfe" has the keyboard shortcuts of the editor and "Über Schreibzeug" with the license and the
+link to the running source code, which the AGPL asks for (`src/editor/help-dialogs.tsx`).
 
 Cut, copy and paste from a menu go through the engine (`common/clipboard_base.js` `Button_Copy`,
 `Button_Cut`, `Button_Paste`), which uses the async clipboard API; the frame allows it
@@ -341,7 +343,7 @@ and only while changes are marked. The author is the name the relay gives the se
 
 `src/spelling.ts`. Without a spell checker address the engine checks in a worker of its own
 (`common/apiBase.js` `_coSpellCheckInit` → `CSpellchecker`, `common/spell/spell.js`: Hunspell as
-WebAssembly) and loads `<lang>/<lang>.aff` and `.dic` from `engine/dictionaries`, which
+WebAssembly) and loads `<lang>/<lang>.aff` and `.dic` from `engine/dist/dictionaries`, which
 `engine/scripts/prepare.ts` fills from the release package with the languages in `engine.json`
 (`de_DE`, `de_AT`, `de_CH`, `en_US`, `en_GB`) and their licenses.
 
@@ -384,7 +386,7 @@ replaced)`; both go into `state.search`. When nothing matches it sends nothing, 
 reports that itself.
 
 Strg+F and Strg+H are not handled by the engine (web-apps opens its own panel for them); a
-keydown listener in the frame (`document.ts`, `onFindShortcut`) and one in the app window open
+keydown listener in the frame (`document.ts` `onKey` with `shortcutOf`, handed out as `onShortcut`) and one in the app window open
 the search bar instead of the browser's search. Someone who may only look can search but not
 replace.
 
@@ -708,3 +710,19 @@ the host page, rotates a page, removes one, fills a field, saves through the wor
 result again and reads the file back with pdf-lib.
 
 The PDF view and its tools build on this; see [PDFs](pdf.md).
+
+## Tests
+
+`packages/editor-core/test` checks the binding against a stand-in for the engine
+(`test/fake-engine.ts`): what each command calls, and how engine events become state. The E2E
+specs run the real engine in Chromium:
+
+| Spec | What it covers |
+|---|---|
+| `e2e/word-roundtrip.spec.ts` | a .docx opened and saved back with its content, images, comments and formatting |
+| `e2e/word-formatting.spec.ts`, `e2e/word-menus.spec.ts` | the toolbar and the menus of the text editor: formatting, lists, layout, headers, notes, breaks |
+| `e2e/comments.spec.ts`, `e2e/review.spec.ts` | comments with answers, resolving and deleting; tracked changes |
+| `e2e/spelling.spec.ts` | the spell checker's marks and suggestions, by language |
+| `e2e/spreadsheet.spec.ts`, `e2e/pivot.spec.ts` | the spreadsheet editor, and pivot tables |
+| `e2e/presentation.spec.ts` | the presentation editor and the slide show |
+| `e2e/formats.fidelity.ts` | the format-fidelity pictures ([architecture](architecture.md#format-fidelity)) |

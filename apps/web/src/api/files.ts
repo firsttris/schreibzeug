@@ -5,6 +5,7 @@ import {
   folderListingSchema,
   invitationSchema,
   inviteSchema,
+  LOG_INDEX_HEADER,
   mediaSchema,
   nodeSchema,
   type ShareRole,
@@ -115,12 +116,21 @@ export const fileCommands = (api: ApiClient) => ({
     expectOk(api.nodes[":id"].invites[":token"].$delete({ param: { id, token } })),
   acceptInvite: (token: string) =>
     expectJson(api.invites[":token"].accept.$post({ param: { token } }), nodeSchema),
-  save: (id: string, bytes: Uint8Array) =>
+  /** `logIndex`: how much of a shared session's log the file holds (LOG_INDEX_HEADER). */
+  save: (id: string, bytes: Uint8Array, logIndex?: number) =>
     // hc types only form and JSON bodies; `init` is spread last into fetch (hono/dist/client/client.js).
     expectJson(
       api.files[":id"].content.$put(
         { param: { id } },
-        { init: { body: bytes as BodyInit, headers: { "content-type": "application/octet-stream" } } },
+        {
+          init: {
+            body: bytes as BodyInit,
+            headers: {
+              "content-type": "application/octet-stream",
+              ...(logIndex === undefined ? {} : { [LOG_INDEX_HEADER]: String(logIndex) }),
+            },
+          },
+        },
       ),
       nodeSchema,
     ),

@@ -132,6 +132,16 @@ export const createAccessTokenSchema = z.object({
 /** The answer to creating a token: the list entry and, this once, the token. */
 export const createdAccessTokenSchema = accessTokenSchema.extend({ token: z.string() });
 
+/**
+ * Sent with a save from a shared session: how many changes of the session's log the stored file
+ * holds, so the relay knows the version is the session's own (apps/server collab/hub.ts `stored`).
+ */
+export const LOG_INDEX_HEADER = "x-schreibzeug-log-index";
+
+/** The log index a save says it holds, or null for a save from outside a session. */
+export const logIndexOf = (header: string | undefined): number | null =>
+  header !== undefined && /^\d{1,9}$/.test(header) ? Number(header) : null;
+
 /** How long a name may be (nodeNameSchema). */
 const MAX_NAME_LENGTH = 255;
 

@@ -2,6 +2,8 @@ import { zValidator } from "@hono/zod-validator";
 import {
   createBlankFileSchema,
   createFolderSchema,
+  LOG_INDEX_HEADER,
+  logIndexOf,
   nodeIdSchema,
   nodeNameSchema,
   type ServerInfo,
@@ -168,7 +170,12 @@ export const createLocalApp = ({
       })
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
-        return respond(c, await folder.write(c.req.valid("param").id, bytes));
+        const { id } = c.req.valid("param");
+        const written = await folder.write(id, bytes);
+        const logIndex = logIndexOf(c.req.header(LOG_INDEX_HEADER));
+        if (written.ok && written.value.version !== null && logIndex !== null)
+          collab?.hub.stored(id, written.value.version, logIndex);
+        return respond(c, written);
       })
       .post("/files/:id/copy", validate("param", idParam), async (c) =>
         respond(c, await folder.copy(c.req.valid("param").id), 201),

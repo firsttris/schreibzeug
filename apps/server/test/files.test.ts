@@ -1,7 +1,15 @@
-import { type FileNode, folderListingSchema, nodeSchema, versionSchema } from "@schreibzeug/files-api";
+import {
+  type FileNode,
+  folderListingSchema,
+  LOG_INDEX_HEADER,
+  nodeSchema,
+  versionSchema,
+} from "@schreibzeug/files-api";
 import { strFromU8, unzipSync } from "fflate";
 import { testClient } from "hono/testing";
+import type { UpgradeWebSocket } from "hono/ws";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { Hub } from "../src/collab/hub";
 import { MAX_UPLOAD_BYTES, startServer, type TestServer } from "./harness";
 
 let server: TestServer;
@@ -374,5 +382,35 @@ describe("recent", () => {
     await expectNode(await save(old.id, "neu"));
     const recent = (await (await api.recent.$get()).json()).map((node) => node.name);
     expect(recent.indexOf("zuerst.txt")).toBeLessThan(recent.indexOf("danach.txt"));
+  });
+});
+
+describe("a save from a shared session", () => {
+  it("tells the relay which version holds how much of the session's log", async () => {
+    const stored: Array<[string, number, number]> = [];
+    const hub = { stored: (...args: [string, number, number]) => stored.push(args) } as unknown as Hub;
+    const upgradeWebSocket = (() => () => new Response(null, { status: 426 })) as unknown as UpgradeWebSocket;
+    const relayed = await startServer({ collab: { hub, upgradeWebSocket } });
+    try {
+      const anna = await relayed.signUp("Anna");
+      const put = (id: string, headers: Record<string, string>) =>
+        relayed.app.request(`/api/files/${id}/content`, {
+          method: "PUT",
+          body: bytesOf("neu"),
+          headers: { cookie: anna, ...headers },
+        });
+      const form = new FormData();
+      form.set("file", new File([bytesOf("x")], "geteilt.docx"));
+      const file = await expectNode(
+        await relayed.app.request("/api/files", { method: "POST", body: form, headers: { cookie: anna } }),
+        201,
+      );
+      await expectNode(await put(file.id, { [LOG_INDEX_HEADER]: "7" }));
+      await expectNode(await put(file.id, {})); // a save from outside a session
+      await expectNode(await put(file.id, { [LOG_INDEX_HEADER]: "x" }));
+      expect(stored).toEqual([[file.id, 2, 7]]);
+    } finally {
+      await relayed.stop();
+    }
   });
 });

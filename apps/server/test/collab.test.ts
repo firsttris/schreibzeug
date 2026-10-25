@@ -456,6 +456,76 @@ describe("collaboration hub", () => {
     expect(next.messages.find((m) => m.type === "authChanges")?.changes).toEqual([]);
   });
 
+  it("keeps a session whose own save landed after the drop, with what that save lacks", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    for (const change of ["c1", "c2"]) {
+      hub.message(a.id, {
+        type: "saveChanges",
+        changes: `["${change}"]`,
+        startSaveChanges: true,
+        endSaveChanges: true,
+      });
+    }
+    hub.close(a.id); // c1 and c2 unsaved: the session is kept
+    stored.version = 4; // Anna's autosave of c1 lands after the drop, saying so (LOG_INDEX_HEADER)
+    hub.stored(FILE, 4, 1);
+
+    const back = await join(ANNA);
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "auth",
+    });
+    expect(hub.session(FILE)?.savedIndex).toBe(1);
+  });
+
+  it("refuses a restore into a version stored from outside after the session ended", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.close(a.id); // everything stored: the session ends
+    stored.version = 4; // a version restored, an upload
+
+    const back = await join(ANNA);
+    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "error",
+    });
+  });
+
+  it("refuses a restore of someone who left before the last change of a session that ended", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    const b = await join(BEN);
+    hub.message(b.id, auth("ben"));
+    hub.close(a.id); // Anna's connection drops
+    hub.message(b.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    stored.version = 4;
+    hub.stored(FILE, 4, 1); // Ben stores c1 and leaves: the session ends
+    hub.close(b.id);
+
+    const back = await join(ANNA);
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 4 });
+    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "error",
+    });
+    const ben = await join(BEN);
+    hub.message(ben.id, auth("ben", { sessionId: b.id, user: { indexUser: 2 }, lastOtherSaveTime: 0 }));
+    expect(ben.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({ type: "auth" });
+  });
+
   it("restores someone alone whose connection dropped with everything stored", async () => {
     const { hub, join } = setup();
     const a = await join(ANNA);

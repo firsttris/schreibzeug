@@ -17,7 +17,7 @@ export type DocumentSave = {
 export const useDocumentSave = <S extends CoreState>(
   editor: OpenedDocument<S> | null,
   state: S,
-  store: (bytes: Uint8Array) => Promise<unknown>,
+  store: (bytes: Uint8Array, logIndex: number) => Promise<unknown>,
   readOnly = false,
 ): DocumentSave => {
   const [saving, setSaving] = useState(false);
@@ -29,7 +29,9 @@ export const useDocumentSave = <S extends CoreState>(
     setFailure(null);
     try {
       const saved = await editor.save();
-      await store(saved.bytes);
+      // The save tells the relay itself how much of the log it holds: a connection that drops
+      // meanwhile cannot send schreibzeug:saved (apps/server collab/hub.ts `stored`).
+      await store(saved.bytes, saved.seen);
       editor.markSaved(saved);
     } catch (error) {
       setFailure(`Nicht gespeichert: ${error instanceof Error ? error.message : String(error)}`);

@@ -69,8 +69,8 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const store = useCallback(
-    async (bytes: Uint8Array) => {
-      await commands.save(fileId, bytes);
+    async (bytes: Uint8Array, logIndex?: number) => {
+      await commands.save(fileId, bytes, logIndex);
       await refreshFiles(queryClient);
     },
     [commands, fileId, queryClient],

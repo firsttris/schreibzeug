@@ -10,9 +10,10 @@ export type EditorViewProps = {
   name: string;
   /**
    * Stores the saved file; the view shows "Gespeichert" once it resolves. Called by the save button
-   * and on its own a few seconds after changes; keep it stable (useCallback).
+   * and on its own a few seconds after changes; keep it stable (useCallback). `logIndex` is how
+   * much of the shared session's log the bytes hold.
    */
-  onSave: (bytes: Uint8Array) => Promise<unknown>;
+  onSave: (bytes: Uint8Array, logIndex?: number) => Promise<unknown>;
   /** What the "Datei" menu does with the file on the server (use-file-actions.tsx). */
   fileActions: FileActions;
   onRename?: ((name: string) => Promise<unknown>) | undefined;

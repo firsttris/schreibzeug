@@ -82,9 +82,10 @@ The channel reconnects on its own, with a growing pause up to five seconds. Whil
 engine starts its `Disconnect` action and takes no edits (`common/apiBase.js`
 `CoAuthoringApi.onDisconnect`); the editor's status line says "Verbindung unterbrochen" until the
 action ends. The engine comes back with its old session id. The relay restores the session if
-it gave out that id, or the file's previous session did and ended with everything stored (a
-session that started over after a server restart lacks the changes the engine's copy may hold, so
-the engine has to open the document again), if nobody else changed the document meanwhile (the last change by someone else is the one the client
+it gave out that id, or the file's previous session did, ended with everything stored at the
+version the new session opens, and the client was there until its last change (a session that
+started over after a server restart lacks the changes the engine's copy may hold, so the engine has
+to open the document again), if nobody else changed the document meanwhile (the last change by someone else is the one the client
 last saw, `lastOtherSaveTime`) and the blocks the engine still holds pass the same check as a
 `getLock`: a text lock someone else took meanwhile stays theirs, and a spreadsheet or slide block
 the editor's rule refuses ends the restore ("Restore error. Locks not checked.", DocsCoServer.js
@@ -98,14 +99,17 @@ The session lives only in the server's memory. It ends with the last person leav
 version holds its whole log; until then it stays, so someone whose connection dropped before their
 editor saved can restore it, and whoever opens the file next opens the session's version, replays
 the log and saves it. A version stored meanwhile from outside the session (a restored version, an
-upload) is newer than the waiting changes and wins: the next person opens it, as without the
-session. A server restart loses what no stored version holds. So the editor saves on
+upload, an MCP edit) is newer than the waiting changes and wins: the next person opens it, as
+without the session. A save of the session's own, one that landed after its editor's connection
+dropped, does not count as from outside. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The
-saving editor then sends `{"type":"schreibzeug:saved","index":n}`: its copy holds the first `n` changes
-of the log. The relay keeps the highest index and sends it to everyone (and to everyone joining
+saving editor sends with the upload the header `x-schreibzeug-log-index: n` and then
+`{"type":"schreibzeug:saved","index":n}`: its copy holds the first `n` changes of the log. The
+header tells the relay the version is the session's own, also when the connection dropped before
+the message (`hub.ts` `stored`); a version stored without it is from outside. The relay keeps the highest index and sends it to everyone (and to everyone joining
 later), so every editor knows whether the session is ahead of the stored file.
 
 Each editor counts the log from the relay's messages (`packages/editor-core/src/session-progress.ts`):

@@ -3,6 +3,8 @@ import {
   createBlankFileSchema,
   createFolderSchema,
   createInviteSchema,
+  LOG_INDEX_HEADER,
+  logIndexOf,
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
@@ -36,6 +38,8 @@ export type FilesDeps = {
   maxUploadBytes: number;
   /** Shares may wait for an address without an account (a sign-in provider confirms addresses). */
   pendingShares?: boolean;
+  /** A save from a shared session stored a version (collab/hub.ts `stored`). */
+  onStored?: ((fileId: string, version: number, logIndex: number) => void) | undefined;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -88,7 +92,7 @@ export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
     respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
   );
 
-export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }: FilesDeps) => {
+export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, onStored }: FilesDeps) => {
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -196,7 +200,11 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
       })
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
-        const saved = repository.addVersion(db, userOf(c), c.req.valid("param").id, await store(bytes));
+        const { id } = c.req.valid("param");
+        const saved = repository.addVersion(db, userOf(c), id, await store(bytes));
+        const logIndex = logIndexOf(c.req.header(LOG_INDEX_HEADER));
+        const version = saved.ok ? saved.value.node.version : null;
+        if (version !== null && logIndex !== null) onStored?.(id, version, logIndex);
         return respond(c, saved, toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever

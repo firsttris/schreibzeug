@@ -44,8 +44,23 @@ export const readMessage = (
   return parsed.success ? parsed.data : null;
 };
 
-/** A path of this app only, never another site: `/edit/…`, not `//evil.example` or `https://…`. */
-export const isAppPath = (path: string): boolean => path.startsWith("/") && !path.startsWith("//");
+/** Any origin will do: only whether the path leaves it matters. */
+const PROBE_ORIGIN = "https://schreibzeug.invalid";
+
+/**
+ * A path of this app only, never another site: `/edit/…`, not `//evil.example` or `https://…`.
+ * The URL parser decides, since it also reads `/\evil.example`, or `/` and `/evil.example` with a
+ * tab between them, as another host (for http(s) a backslash counts as a slash and tabs are
+ * dropped: WHATWG URL Standard, "basic URL parser").
+ */
+export const isAppPath = (path: string): boolean => {
+  if (!path.startsWith("/")) return false;
+  try {
+    return new URL(path, PROBE_ORIGIN).origin === PROBE_ORIGIN;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Whether Schreibzeug runs embedded: opened in a frame, by the one origin that may embed it, with

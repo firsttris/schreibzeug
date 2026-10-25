@@ -591,8 +591,8 @@ cache (`xl/pivotTables/`, `xl/pivotCache/`).
 ### CSV files
 
 A .csv opens in the spreadsheet editor and is saved as a CSV again, with the delimiter it came
-with (`src/csv.ts` `detectDelimiter`: the one most of the first lines use outside quotes, ";" on a
-tie). The editor says once that only values are kept.
+with (`src/csv.ts` `detectDelimiter`: the one most of the first lines use outside quotes, a quoted
+field running on over a line break included, ";" on a tie). The editor says once that only values are kept.
 
 - **Reading**: x2t reads a CSV into an .xlsx, not into the binary format (that stops with error
   89), and only with both formats in the task (`m_nFormatFrom` 260, `m_nFormatTo` 257) plus

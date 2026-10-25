@@ -13,36 +13,43 @@ export const CSV_DELIMITER_CODES: Record<CsvDelimiter, number> = { tab: 1, semic
 
 const CSV_DELIMITER_CHARACTERS: Record<CsvDelimiter, string> = { semicolon: ";", comma: ",", tab: "\t" };
 
-/** How often each delimiter appears in a line, quoted parts left out. */
-const countOutsideQuotes = (line: string): Record<CsvDelimiter, number> => {
+/** How many lines are looked at to tell the delimiter. */
+const SAMPLE_LINES = 20;
+
+/**
+ * How often each delimiter appears in the first non-empty lines, quoted parts left out. The quote
+ * state carries over line breaks, since a quoted field may hold one (RFC 4180), so a delimiter on
+ * the second line of such a field is not counted.
+ */
+const countOutsideQuotes = (text: string, lines: number): Record<CsvDelimiter, number> => {
   const counts: Record<CsvDelimiter, number> = { semicolon: 0, comma: 0, tab: 0 };
   let quoted = false;
-  for (const character of line) {
+  let inLine = false;
+  let seen = 0;
+  for (const character of text) {
     if (character === '"') quoted = !quoted;
-    else if (!quoted) {
-      for (const delimiter of Object.keys(CSV_DELIMITER_CHARACTERS) as CsvDelimiter[]) {
-        if (character === CSV_DELIMITER_CHARACTERS[delimiter]) counts[delimiter] += 1;
-      }
+    if (!quoted && character === "\n") {
+      if (inLine) seen += 1;
+      if (seen >= lines) break;
+      inLine = false;
+      continue;
+    }
+    if (character !== "\r") inLine = true;
+    if (quoted) continue;
+    for (const delimiter of Object.keys(CSV_DELIMITER_CHARACTERS) as CsvDelimiter[]) {
+      if (character === CSV_DELIMITER_CHARACTERS[delimiter]) counts[delimiter] += 1;
     }
   }
   return counts;
 };
 
-/** How many lines are looked at to tell the delimiter. */
-const SAMPLE_LINES = 20;
-
 /**
- * The delimiter the most lines of the start of the file use, preferring ";" on a tie (and for a
- * file of one column), as German Excel does.
+ * The delimiter the start of the file uses most, preferring ";" on a tie (and for a file of one
+ * column), as German Excel does.
  */
 export const detectDelimiter = (bytes: Uint8Array): CsvDelimiter => {
-  const text = new TextDecoder().decode(bytes.subarray(0, 64 * 1024)).replace(/^﻿/, "");
-  const lines = text.split(/\r?\n/).filter(Boolean).slice(0, SAMPLE_LINES);
-  const totals: Record<CsvDelimiter, number> = { semicolon: 0, comma: 0, tab: 0 };
-  for (const line of lines) {
-    const counts = countOutsideQuotes(line);
-    for (const delimiter of Object.keys(totals) as CsvDelimiter[]) totals[delimiter] += counts[delimiter];
-  }
+  const text = new TextDecoder().decode(bytes.subarray(0, 64 * 1024)).replace(/^\uFEFF/, "");
+  const totals = countOutsideQuotes(text, SAMPLE_LINES);
   const order: CsvDelimiter[] = ["semicolon", "tab", "comma"];
   return order.reduce(
     (best, delimiter) => (totals[delimiter] > totals[best] ? delimiter : best),

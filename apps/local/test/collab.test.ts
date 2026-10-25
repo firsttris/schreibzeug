@@ -77,5 +77,15 @@ describe("the local relay", () => {
     hub.message(b, { type: "auth", user: { id: "local" } });
     expect(second[0]).toEqual({ type: "schreibzeug:session", baseVersion: 2 });
     expect(second.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c3"' }]);
+
+    // A late save of the first window's copy (version 1 and two changes) is refused: it lacks c3.
+    const late = await app.request(`/api/files/${id}/content`, {
+      method: "PUT",
+      headers: { ...headers, [SESSION_SAVE_HEADER]: "1:2" },
+      body: new Uint8Array([9]),
+    });
+    expect(late.status).toBe(409);
+    const onDisk = await app.request(`/api/files/${id}/content`, { headers });
+    expect(new Uint8Array(await onDisk.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4]));
   });
 });

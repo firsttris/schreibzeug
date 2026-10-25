@@ -4,6 +4,7 @@ import {
   createFolderSchema,
   nodeIdSchema,
   nodeNameSchema,
+  SESSION_GONE,
   SESSION_SAVE_HEADER,
   type ServerInfo,
   sessionSaveOf,
@@ -171,9 +172,11 @@ export const createLocalApp = ({
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
-        const written = await folder.write(id, bytes);
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
-        if (written.ok && written.value.version !== null && sessionSave !== null)
+        if (sessionSave && collab && !collab.hub.isCurrent(id, sessionSave))
+          return respond(c, fail("conflict", SESSION_GONE));
+        const written = await folder.write(id, bytes);
+        if (written.ok && written.value.version !== null && sessionSave)
           collab?.hub.stored(id, written.value.version, sessionSave);
         return respond(c, written);
       })

@@ -191,6 +191,10 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
      * save itself, so it counts even when the client's connection dropped meanwhile; a save from a
      * session that is gone is from outside for the one open now.
      */
+    /** Whether a save comes from the file's session open now (files-api SessionSaves). */
+    isCurrent: (fileId: string, { baseVersion }: SessionSave): boolean =>
+      sessions.get(fileId)?.baseVersion === baseVersion,
+
     stored: (fileId: string, version: number, { baseVersion, index }: SessionSave) => {
       if (sessions.get(fileId)?.baseVersion !== baseVersion) return;
       storedAt.set(fileId, version);

@@ -484,6 +484,29 @@ describe("collaboration hub", () => {
     expect(back.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c2"' }]);
   });
 
+  it("takes only saves from the session open now for its own", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    for (const change of ["c1", "c2", "c3"]) {
+      hub.message(a.id, {
+        type: "saveChanges",
+        changes: `["${change}"]`,
+        startSaveChanges: true,
+        endSaveChanges: true,
+      });
+    }
+    hub.close(a.id);
+    expect(hub.isCurrent(FILE, { baseVersion: 3, index: 1 })).toBe(true);
+    stored.version = 4;
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 }); // the session goes on from version 4
+    // Another late save of the old copy would become the newest version without c3: refused.
+    expect(hub.isCurrent(FILE, { baseVersion: 3, index: 2 })).toBe(false);
+    expect(hub.isCurrent(FILE, { baseVersion: 4, index: 0 })).toBe(true);
+    expect(hub.isCurrent("another-file", { baseVersion: 4, index: 0 })).toBe(false);
+  });
+
   it("ends a kept session once a save of its own holds the whole log", async () => {
     const stored = { version: 3 };
     const { hub, join } = setup(undefined, undefined, stored);

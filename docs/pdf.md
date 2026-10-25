@@ -43,7 +43,8 @@ form designer: every field shows its name and a click selects the field to move 
 "Unterschreiben" opens a dialog (`apps/web/src/editor/signature-dialog.tsx`) to draw the signature
 with the mouse, a pen or a finger, or to take the last one used in this browser (kept as strokes in
 `localStorage`, only there). The strokes go on the page in view as an ink annotation, sharp at any
-size, about 6 cm wide in the middle of what is in view, and can be moved and sized there
+size, about 6 cm wide (a tall drawing at most about 3 cm high) in the middle of what is in view,
+and can be moved and sized there
 (`packages/editor-core/src/pdf-signature.ts`). It is built the way the engine's document builder
 builds one (`pdf/apiBuilder.js` `Api.CreateInkAnnot`: annotation props, a solid border of the
 pen's width and colour, `SetInkPoints`), in one step of the history. It is a signature to look at,

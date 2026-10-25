@@ -15,6 +15,12 @@ export type Stroke = Array<{ x: number; y: number }>;
 /** How wide a signature lands on the page, in points (about 6 cm); it can be moved and sized there. */
 export const SIGNATURE_WIDTH = 170;
 
+/** How high a signature lands at most, in points (about 3 cm), so a tall drawing stays small too. */
+export const SIGNATURE_HEIGHT = 85;
+
+/** The smallest side of the place, in points, so a single straight stroke still has a box. */
+const MIN_SIDE = 2;
+
 /** The pen of the signature, in points: a signature written with a fine pen. */
 export const SIGNATURE_PEN = 1.2;
 
@@ -29,34 +35,48 @@ export const boundsOf = (strokes: Stroke[]): Box | null => {
   return { x1: Math.min(...xs), y1: Math.min(...ys), x2: Math.max(...xs), y2: Math.max(...ys) };
 };
 
+/** The drawing's size in the dialog's pixels, at least one pixel a side (a straight stroke has none). */
+const drawnSize = (drawing: Box) => ({
+  width: Math.max(drawing.x2 - drawing.x1, 1),
+  height: Math.max(drawing.y2 - drawing.y1, 1),
+});
+
 /**
  * Where the signature goes, in page points from the top left as the engine counts: in the middle
- * of the part of the page in view (CHtmlPage.getViewingRect, fractions of the page), at the
- * signature width or less on a narrow page, with the drawing's proportions.
+ * of the part of the page in view (CHtmlPage.getViewingRect, fractions of the page), with the
+ * drawing's proportions, as large as fits into the signature width and height (less on a small
+ * page).
  */
 export const signaturePlace = (
   page: { width: number; height: number },
   view: { x: number; y: number; r: number; b: number },
   drawing: Box,
 ): Box => {
-  const width = Math.min(SIGNATURE_WIDTH, page.width * 0.8);
-  const drawnWidth = Math.max(drawing.x2 - drawing.x1, 1);
-  const height = Math.max(width * ((drawing.y2 - drawing.y1) / drawnWidth), 2);
+  const drawn = drawnSize(drawing);
+  const scale = Math.min(
+    Math.min(SIGNATURE_WIDTH, page.width * 0.8) / drawn.width,
+    Math.min(SIGNATURE_HEIGHT, page.height * 0.8) / drawn.height,
+  );
+  const width = Math.max(drawn.width * scale, MIN_SIDE);
+  const height = Math.max(drawn.height * scale, MIN_SIDE);
   const cx = page.width * ((view.x + view.r) / 2);
   const cy = page.height * ((view.y + view.b) / 2);
   return { x1: cx - width / 2, y1: cy - height / 2, x2: cx + width / 2, y2: cy + height / 2 };
 };
 
-/** The strokes moved and scaled into the place, as the engine's flat ink paths [x, y, x, y, …]. */
+/**
+ * The strokes scaled into the place with their proportions and centred in it, as the engine's flat
+ * ink paths [x, y, x, y, …].
+ */
 export const inkPaths = (strokes: Stroke[], drawing: Box, place: Box): number[][] => {
-  const scale = (place.x2 - place.x1) / Math.max(drawing.x2 - drawing.x1, 1);
+  const drawn = drawnSize(drawing);
+  const scale = Math.min((place.x2 - place.x1) / drawn.width, (place.y2 - place.y1) / drawn.height);
+  const left = (place.x1 + place.x2 - (drawing.x2 - drawing.x1) * scale) / 2;
+  const top = (place.y1 + place.y2 - (drawing.y2 - drawing.y1) * scale) / 2;
   return strokes
     .filter((stroke) => stroke.length > 0)
     .map((stroke) =>
-      stroke.flatMap(({ x, y }) => [
-        place.x1 + (x - drawing.x1) * scale,
-        place.y1 + (y - drawing.y1) * scale,
-      ]),
+      stroke.flatMap(({ x, y }) => [left + (x - drawing.x1) * scale, top + (y - drawing.y1) * scale]),
     );
 };
 

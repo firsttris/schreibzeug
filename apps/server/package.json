@@ -15,7 +15,8 @@
     "./files/media": "./src/files/media.ts",
     "./files/mime": "./src/files/mime.ts",
     "./files/serialize": "./src/files/serialize.ts",
-    "./auth/middleware": "./src/auth/middleware.ts"
+    "./auth/middleware": "./src/auth/middleware.ts",
+    "./mcp": "./src/mcp.ts"
   },
   "scripts": {
     "dev": "bun --watch src/main.ts",
@@ -25,6 +26,7 @@
   "dependencies": {
     "@hono/zod-validator": "0.9.1",
     "@schreibzeug/files-api": "workspace:*",
+    "@schreibzeug/mcp": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
     "better-auth": "1.7.12",
     "drizzle-orm": "0.45.4",
@@ -33,6 +35,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
     "drizzle-kit": "0.31.11",
     "fflate": "0.8.3"
   }

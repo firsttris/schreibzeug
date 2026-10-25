@@ -11,6 +11,7 @@ import { SLIDE_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { type SlideMenuContext, slideContextMenu, slideMenus } from "./slide-menus";
+import { useAgent } from "./use-agent";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
@@ -18,7 +19,15 @@ import { useEngineEditor } from "./use-engine-editor";
 import { useSlideShow } from "./use-slide-show";
 
 /** A presentation: title and menus, the toolbar above, the engine's slide list and the slide below. */
-export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
+export const SlideView = ({
+  file,
+  fileId,
+  name,
+  onSave,
+  fileActions,
+  onRename,
+  onCreateFile,
+}: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
     container,
@@ -28,6 +37,16 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
     initialSlideState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
+  const agent = useAgent({
+    fileId,
+    editor,
+    kind: "slide",
+    state,
+    readOnly: file.readOnly,
+    save: saving.save,
+    onCreateFile,
+    name,
+  });
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
   const present = useSlideShow(editor, container, state.show.running);
   const comments = useCommentsPanel(editor, state, file.readOnly, "slide");
@@ -78,6 +97,8 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
         }
         toolbar={<SlideToolbar state={state} commands={editor?.commands ?? null} />}
       />
+      {agent.bar}
+      {agent.dialog}
       <div className="flex min-h-0 flex-1">
         <DocumentArea
           container={container}

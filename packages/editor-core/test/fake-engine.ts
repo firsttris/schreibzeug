@@ -182,6 +182,10 @@ export const createFakeEngine = (): FakeEngine => {
           api.emit("asc_onGetEditorPermissions", {});
         },
         asc_LoadDocument: record(calls, "asc_LoadDocument"),
+        callCommand: (code, isRecalculate, callback) => {
+          calls.push(["callCommand", code, isRecalculate]);
+          callback(undefined);
+        },
         asc_openDocumentFromBytes: record(calls, "asc_openDocumentFromBytes"),
         _openChartOrLocalDocument: record(calls, "_openChartOrLocalDocument"),
         asc_nativeGetFile: () => {

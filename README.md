@@ -17,7 +17,11 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > comments, tracked changes and spell checking (German and English, without a server), a spreadsheet editor with formulas, formatting, number formats, sheets, sorting, filters, frozen rows and columns, merged cells, charts, pivot tables, dropdown lists, conditional formats, CSV files, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, shapes and text boxes, designs, transitions, speaker notes, text formatting, lists, images, menus and PDF, and PDFs: fill in forms, notes, text boxes, highlight, underline and strike out,
 > drawing, shapes, signing by hand or digitally with your own certificate, text recognition (OCR) for scans, the e-invoice of a ZUGFeRD PDF shown and its XML to download, blacking out, turning, adding and removing pages, appending another PDF and saving pages apart, saved as PDF again or as PDF/A for archiving. OpenDocument files (.odt, .ods, .odp) are edited and saved as what they are; older Word, Excel and PowerPoint files and RTF open as a copy in the Office format. All four save on their own, every save a new version, and several people can edit the
-> same file at once, PDFs included. All without a document server. A desktop app for Windows, macOS and Linux
+> same file at once, PDFs included. All without a document server. Claude Code and other MCP clients
+> work in your files with a personal access token: list, search, read documents, spreadsheets,
+> presentations and PDFs, create documents from Markdown, files from templates, spreadsheets,
+> presentations and e-invoice XML, rename, move, share, versions and trash, and edit an open
+> document after you allow it: find and replace, insert text, fill cells, save as PDF ([MCP server](https://firsttris.github.io/schreibzeug/mcp/)). A desktop app for Windows, macOS and Linux
 > works on the files in the computer's documents folder (or another folder) without any server, or
 > opens a Schreibzeug server in a window of its own (builds not signed yet).
 
@@ -70,6 +74,12 @@ Word and PowerPoint files. Schreibzeug puts a new, clean interface on top of a p
 - **Versions**: every save is kept, any version can be restored.
 - **With Kontext**: one sign-in, Schreibzeug as Kontext's module "Dokumente", attachments into
   folders and documents onto mails (done, [how](https://firsttris.github.io/schreibzeug/kontext/)).
+
+### 🤖 AI assistants
+
+- **MCP server**: Claude Code and other MCP clients find, manage, read and create files with your
+  rights, through a personal access token, and edit the document you have open, visibly and
+  undoably (done); editing without an open tab later.
 
 ### 📝 Editors
 

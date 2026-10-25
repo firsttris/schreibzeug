@@ -45,7 +45,8 @@ again.
 ## API
 
 All under `/api`; bodies are JSON unless noted. Every route but `/health` and Better Auth's
-`/auth/*` needs a session and acts for its user ([accounts](accounts.md)). Errors are
+`/auth/*` needs a session or a personal access token and acts for its user ([accounts](accounts.md),
+[MCP server](mcp.md#access-tokens)). Errors are
 `{ "error": { "kind", "message" } }`, with `kind` one of `not_found` (404), `invalid` (400),
 `unauthorized` (401), `forbidden` (403: the role is too weak), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
 `internal` (500).
@@ -60,6 +61,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /nodes/:id/trash` | Move into the trash |
 | `POST /nodes/:id/restore` | Bring back from the trash |
 | `GET /trash`, `GET /recent` | What is in the trash; files by last change (both only the user's own) |
+| `GET /search?q=` | Nodes whose name contains `q`, ignoring case: the user's own and what lies in or below what is shared with them, files first, at most 50 |
 | `GET /nodes/:id/shares` | Who the node is shared with (owner only) |
 | `PUT /nodes/:id/shares` | Share with the account behind `email`, or change its `role` (`edit`, `view`) |
 | `DELETE /nodes/:id/shares/:userId` | Take a share back |

@@ -162,6 +162,15 @@ The UI never calls the engine. `editor-core` translates engine events into `Edit
 | – | – | `asc_onCountPages` |
 | – | – | `asc_onStartAction` / `asc_onEndAction` with `c_oAscAsyncAction.Disconnect`: `document.connected` |
 
+## Builder scripts
+
+`OpenedDocument.runBuilder` runs a script against the engine's builder API (`word/apiBuilder.js`,
+`cell/apiBuilder.js`, `slide/apiBuilder.js`) through `callCommand` (`common/apiBase.js`), as plugins
+do: one action of the history, recalculated once at the end, with the co-editing lock check. The
+MCP server's jobs for an open document use it (`src/agent.ts`, see [the MCP server](mcp.md#editing-in-the-open-tab)).
+The script is evaluated as it is, so it is wrapped in a function to return a value, and only plain
+data comes back (`Asc.checkReturnCommand`).
+
 ## Comments
 
 `src/comments.ts` reads and writes `asc_CCommentDataWord` (`word/api.js`) the way web-apps does

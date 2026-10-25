@@ -1,9 +1,17 @@
 import { copyName } from "@schreibzeug/files-api";
 import { and, asc, desc, eq, inArray, isNull, max, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
-import { type NodeRow, nameKey, nodes, type VersionRow, versions } from "../db/schema";
+import { type NodeRow, nameKey, nodes, shares, type VersionRow, versions } from "../db/schema";
 import { fail, ok, type Result } from "../result";
-import { type Accessible, directRoles, NOT_FOUND, requireRole, strongest, type UserId } from "./access";
+import {
+  type Accessible,
+  directRoles,
+  NOT_FOUND,
+  requireRole,
+  roleOf,
+  strongest,
+  type UserId,
+} from "./access";
 
 const NAME_TAKEN = "In diesem Ordner gibt es schon etwas mit diesem Namen.";
 const NOT_A_FILE = "Das ist ein Ordner, keine Datei.";
@@ -404,3 +412,30 @@ export const listRecent = (db: Queryable, user: UserId, limit = 50): Accessible[
     .limit(limit)
     .all()
     .map(asOwner);
+
+/** LIKE's wildcards in what someone typed, taken literally (escaped with "\"). */
+const likeLiteral = (text: string): string => text.replace(/[\\%_]/g, (character) => `\\${character}`);
+
+/**
+ * Nodes outside the trash whose name contains `query`, ignoring case: the user's own, and what lies
+ * in or below what others shared with them. Files first, newest change first.
+ */
+export const searchNodes = (db: Queryable, user: UserId, query: string, limit = 50): Accessible[] => {
+  const pattern = `%${likeLiteral(nameKey(query))}%`;
+  const ids = db.all<{ id: string }>(sql`
+    with recursive shared(id) as (
+      select node_id from ${shares} where user_id = ${user}
+      union
+      select n.id from ${nodes} n join shared s on n.parent_id = s.id
+    )
+    select n.id from ${nodes} n
+    where n.trashed_at is null
+      and (n.owner_id = ${user} or n.id in (select id from shared))
+      and n.name_key like ${pattern} escape '\\'
+    order by n.kind = 'file' desc, n.updated_at desc
+    limit ${limit}`);
+  return ids.flatMap(({ id }) => {
+    const found = roleOf(db, user, id);
+    return found ? [found] : [];
+  });
+};

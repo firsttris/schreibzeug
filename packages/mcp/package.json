@@ -1,0 +1,20 @@
+{
+  "name": "@schreibzeug/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "The MCP server of Schreibzeug: tools that find, read, manage and create files through the files API, for Claude Code and other MCP clients.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@schreibzeug/einvoice": "workspace:*",
+    "@schreibzeug/files-api": "workspace:*",
+    "@schreibzeug/ooxml": "workspace:*",
+    "@schreibzeug/pdf-sign": "workspace:*",
+    "pdfjs-dist": "6.4.299",
+    "zod": "4.6.7"
+  }
+}

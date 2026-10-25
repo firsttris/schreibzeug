@@ -107,6 +107,31 @@ export const serverInfoSchema = z.discriminatedUnion("mode", [
 ]);
 export type ServerInfo = z.infer<typeof serverInfoSchema>;
 
+/** What a personal access token may do: only look ("read"), or what its user may ("write"). */
+export const tokenScopeSchema = z.enum(["read", "write"]);
+
+/** How long a new access token holds, in days; null: until it is revoked. */
+export const TOKEN_DAYS = [30, 90, 365] as const;
+
+/** A personal access token as its user sees it in the list; the token itself is shown only once. */
+export const accessTokenSchema = z.object({
+  id: nodeIdSchema,
+  name: z.string(),
+  scope: tokenScopeSchema,
+  createdAt: z.iso.datetime({ offset: true }),
+  expiresAt: z.iso.datetime({ offset: true }).nullable(),
+  lastUsedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
+export const createAccessTokenSchema = z.object({
+  name: z.string().trim().min(1, "Der Name darf nicht leer sein.").max(100, "Der Name ist zu lang."),
+  scope: tokenScopeSchema,
+  days: z.union([z.literal(30), z.literal(90), z.literal(365), z.null()]).default(90),
+});
+
+/** The answer to creating a token: the list entry and, this once, the token. */
+export const createdAccessTokenSchema = accessTokenSchema.extend({ token: z.string() });
+
 /** The name of the n-th copy of a file next to the original: "Bericht (Kopie 2).docx". */
 export const copyName = (name: string, attempt: number): string => {
   const dot = name.lastIndexOf(".");
@@ -180,5 +205,9 @@ export type CreateFolder = z.infer<typeof createFolderSchema>;
 export type CreateBlankFile = z.infer<typeof createBlankFileSchema>;
 export type BlankFormat = z.infer<typeof blankFormatSchema>;
 export type UpdateNode = z.infer<typeof updateNodeSchema>;
+export type TokenScope = z.infer<typeof tokenScopeSchema>;
+export type AccessToken = z.infer<typeof accessTokenSchema>;
+export type CreateAccessToken = z.infer<typeof createAccessTokenSchema>;
+export type CreatedAccessToken = z.infer<typeof createdAccessTokenSchema>;
 export type ApiErrorKind = z.infer<typeof apiErrorKindSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>["error"];

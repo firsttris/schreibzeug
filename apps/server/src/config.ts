@@ -52,7 +52,7 @@ export type Config = {
   trustedOrigins: string[];
   /** The built web app (apps/web/dist) to serve beside the API; absent: the API only. */
   webDir: string | undefined;
-  /** Where browsers reach this server; the base of the sign-in callback and of the API tokens' audience. */
+  /** Where browsers reach this server; the base of the sign-in callback, the API tokens' audience and the links the MCP tools give. */
   publicUrl: string | undefined;
   /** The one site that may show Schreibzeug in a frame (Kontext), as an origin. */
   embedOrigin: string | undefined;

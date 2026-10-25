@@ -28,7 +28,7 @@ export const columnName = (index: number): string =>
     : columnName(Math.floor(index / 26) - 1) + columnName(index % 26);
 
 /** A cell in SpreadsheetML (ECMA-376 Part 1, 18.3.1.4); texts as inline strings, no shared table. */
-const cellXml = (cell: CellValue, reference: string): string => {
+export const cellXml = (cell: CellValue, reference: string): string => {
   const [value, style] = typeof cell === "object" ? [cell.value, STYLE_INDEX[cell.style]] : [cell, 0];
   const at = `r="${reference}"${style ? ` s="${style}"` : ""}`;
   if (typeof value === "number") return `<c ${at}><v>${value}</v></c>`;

@@ -12,6 +12,7 @@ in the app's own SQLite database through Better Auth's Drizzle adapter.
 | Better Auth's routes: sign-up, sign-in, sign-out, session | `/api/auth/*`, mounted in `src/app.ts` |
 | Its tables `user`, `session`, `account`, `verification` | `src/db/auth-schema.ts`, as Better Auth's Drizzle schema generator writes them |
 | The session check in front of every other route | `src/auth/middleware.ts` (`requireUser`); without a session the answer is `401` with `kind: "unauthorized"`. A bearer token from Kontext counts as well ([Schreibzeug in Kontext](kontext.md#tokens-from-kontext)) |
+| Personal access tokens, for MCP clients | `src/auth/tokens.ts`, `/api/tokens`; a request with `Authorization: Bearer sz_…` acts for the token's user, see [the MCP server](mcp.md#access-tokens) |
 
 The session is a cookie, named `schreibzeug.session_token` (and so on, `advanced.cookiePrefix`):
 beside Kontext on one host, as `localhost` in development, Better Auth's default names would make

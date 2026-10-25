@@ -20,6 +20,7 @@ import {
   sheetContextMenu,
   sheetMenus,
 } from "./sheet-menus";
+import { useAgent } from "./use-agent";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
@@ -29,7 +30,15 @@ const CSV_NOTICE =
   "CSV-Datei: Gespeichert werden nur die Werte des ersten Blatts, ohne Formatierung und Formeln.";
 
 /** A spreadsheet: title and menus, the toolbar above the grid (with the formula bar), the sheets below. */
-export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
+export const SheetView = ({
+  file,
+  fileId,
+  name,
+  onSave,
+  fileActions,
+  onRename,
+  onCreateFile,
+}: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
     container,
@@ -39,6 +48,16 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
     initialSheetState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
+  const agent = useAgent({
+    fileId,
+    editor,
+    kind: "cell",
+    state,
+    readOnly: file.readOnly,
+    save: saving.save,
+    onCreateFile,
+    name,
+  });
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
   // The comments of the sheet shown, as web-apps filters them (common/mobile Comments.jsx onFilterChange).
   const sheetId = state.sheets[state.activeSheet]?.id;
@@ -121,6 +140,8 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
           />
         }
       />
+      {agent.bar}
+      {agent.dialog}
       <div className="flex min-h-0 flex-1">
         <DocumentArea
           container={container}

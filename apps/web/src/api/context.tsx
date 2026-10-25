@@ -2,16 +2,23 @@ import { type ServerInfo, serverInfoSchema } from "@schreibzeug/files-api";
 import { createContext, type ReactNode, useContext } from "react";
 import type { ApiClient } from "./client";
 import { fileCommands, fileQueries } from "./files";
+import { type TokenApi, tokenApi } from "./tokens";
 
 export type Files = {
   queries: ReturnType<typeof fileQueries>;
   commands: ReturnType<typeof fileCommands>;
   /** The WebSocket address of a file's editing session (apps/server src/collab/routes.ts). */
   collabUrl: (fileId: string) => string;
+  /** The WebSocket an open editor takes an assistant's jobs over (apps/server src/agent/routes.ts). */
+  agentUrl: (fileId: string) => string;
   /** Where an image added to a file while editing is served (apps/server src/files/routes.ts). */
   mediaUrl: (fileId: string, name: string) => string;
   /** A Schreibzeug server, or the desktop app's files on this computer (apps/local). */
   info: ServerInfo;
+  /** Personal access tokens, for MCP clients such as Claude Code; only on a server. */
+  tokens: TokenApi;
+  /** Where an MCP client connects (apps/server src/mcp.ts). */
+  mcpUrl: string;
 };
 
 const FilesContext = createContext<Files | null>(null);
@@ -20,8 +27,11 @@ export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): 
   queries: fileQueries(api),
   commands: fileCommands(api),
   collabUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/collab/${fileId}`,
+  agentUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/agent/${fileId}`,
   mediaUrl: (fileId, name) => `${baseUrl}/api/files/${fileId}/media/${name}`,
   info,
+  tokens: tokenApi(api),
+  mcpUrl: `${baseUrl}/mcp`,
 });
 
 /**

@@ -19,6 +19,7 @@ import { FolderPage } from "./files/folder-page";
 import { RecentPage } from "./files/recent-page";
 import { SharedPage } from "./files/shared-page";
 import { TrashPage } from "./files/trash-page";
+import { SettingsPage } from "./settings/settings-page";
 import { Shell } from "./shell";
 
 /**
@@ -148,6 +149,12 @@ const sharedRoute = createRoute({ getParentRoute: () => shellRoute, path: "/shar
 
 const trashRoute = createRoute({ getParentRoute: () => shellRoute, path: "/trash", component: TrashPage });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: "/settings",
+  component: SettingsPage,
+});
+
 const editRoute = createRoute({
   getParentRoute: () => signedInRoute,
   path: "/edit/$fileId",
@@ -161,7 +168,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   inviteRoute,
   signedInRoute.addChildren([
-    shellRoute.addChildren([homeRoute, folderRoute, recentRoute, sharedRoute, trashRoute]),
+    shellRoute.addChildren([homeRoute, folderRoute, recentRoute, sharedRoute, trashRoute, settingsRoute]),
     editRoute,
   ]),
 ]);

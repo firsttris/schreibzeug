@@ -1,11 +1,13 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createAgentHub } from "../src/agent/hub";
 import { createApp } from "../src/app";
 import { createAuth } from "../src/auth/auth";
 import type { Bearer } from "../src/auth/bearer";
 import { createBlobStore } from "../src/blobs";
 import { connect, type Database, migrateDatabase } from "../src/db/database";
+import { mcpRoutes } from "../src/mcp";
 
 /**
  * The server on a database and a data folder of its own, in a temporary folder that is removed
@@ -31,7 +33,10 @@ export const startServer = async ({
   const connection = connect(join(dataDir, "schreibzeug.db"));
   migrateDatabase(connection.db);
   const auth = createAuth({ db: connection.db, secret: TEST_SECRET, openSignup: true });
+  // Tabs that take jobs are stood in for by the tests (mcp-edit.test.ts), with a short wait.
+  const agent = createAgentHub({ timeoutMs: 1000 });
   const app = createApp({
+    agent,
     auth,
     ...(bearer ? { bearer: bearer(connection.db) } : {}),
     db: connection.db,
@@ -40,6 +45,9 @@ export const startServer = async ({
     pendingShares,
     log: () => {},
   });
+
+  // The MCP endpoint beside the API, as main.ts mounts it.
+  const mcp = mcpRoutes({ db: connection.db, api: app });
 
   const stop = async () => {
     connection.close();
@@ -60,7 +68,7 @@ export const startServer = async ({
       .join("; ");
   };
 
-  return { app, auth, db: connection.db, dataDir, signUp, stop };
+  return { app, mcp, agent, auth, db: connection.db, dataDir, signUp, stop };
 };
 
 export type TestServer = Awaited<ReturnType<typeof startServer>>;

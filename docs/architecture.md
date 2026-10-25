@@ -7,7 +7,8 @@ browser and in the Tauri desktop app.
 ```
 apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶ SQLite (tree, versions, accounts)
    │                                         │                └─▶ data/blobs (file bytes)
-   └─ iframe: engine (sdkjs + x2t)           └─ WebSocket relay (collaboration)
+   └─ iframe: engine (sdkjs + x2t)           ├─ WebSocket relay (collaboration)
+MCP client (Claude Code) ──HTTP /mcp────────▶└─ MCP tools (packages/mcp) → the same /api
 ```
 
 ## Workspaces
@@ -15,11 +16,12 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 | Workspace | What it does |
 |---|---|
 | `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store, for the text, spreadsheet, presentation and PDF editors. Framework-free. See [the engine](engine.md) and [PDFs](pdf.md). |
+| `packages/mcp` | The MCP server's tools for Claude Code and other clients: find, read, manage and create files, each through the files API with the caller's token. See [the MCP server](mcp.md). |
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
 | `packages/einvoice` | E-invoices: finds and reads the invoice XML a ZUGFeRD or Factur-X PDF carries (CII and UBL, taken from Haben), and writes one: reads an invoice from a document's text, writes Factur-X XML (EN 16931) and makes the PDF/A a ZUGFeRD PDF/A-3. See [E-invoices](e-invoice.md). |
 | `packages/pdf-ocr` | Searchable scans: finds the pages of a PDF without text and lays recognised text over them, invisible. See [PDFs](pdf.md#text-recognition). |
 | `packages/pdf-sign` | Digital signatures in PDFs: signs with a PKCS#12 certificate (PKCS#7, detached) and checks the signatures a PDF holds. See [PDFs](pdf.md#digital-signatures). |
-| `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests; reads the text of a .docx (for [e-invoices](e-invoice.md)). |
+| `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests; reads the text of a .docx (for [e-invoices](e-invoice.md) and the [MCP server](mcp.md)), the sheets of an .xlsx and the slides of a .pptx. |
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
 | `apps/local` | The desktop app's local server: the same files API over a folder on the computer, for one person, without accounts. See [the desktop app](desktop.md#files-on-this-computer). |
 | `apps/desktop` | The desktop app (Tauri 2) for Windows, macOS and Linux: the files on this computer through `apps/local`, or a window onto a Schreibzeug server. See [the desktop app](desktop.md). |
@@ -42,7 +44,8 @@ Hono's WebSocket upgrade, so access checks for files and editing sessions live i
 
 Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an account; every
 other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
-`/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views, `/edit/:id` opens a file in its editor with the whole window
+`/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views,
+`/settings` the access tokens for MCP clients ([MCP server](mcp.md)), `/edit/:id` opens a file in its editor with the whole window
 (`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, sharing
 the header with the editable name, the menu bar, status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under
@@ -51,7 +54,7 @@ opens the version the session started from, so refreshing the lists after a save
 the document. Every reply is checked against the schemas in
 `packages/files-api`.
 
-In development `bun run dev` prepares the engine if needed, starts the server and serves the app on port 5173, which forwards `/api`, WebSockets included, to the server
+In development `bun run dev` prepares the engine if needed, starts the server and serves the app on port 5173, which forwards `/api`, WebSockets included, and `/mcp` to the server
 (`SCHREIBZEUG_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
 database (`e2e/server.ts`, port 3100) and the app on port 5174. Without Playwright's own browser download, an installed
 Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.

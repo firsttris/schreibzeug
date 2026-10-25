@@ -1,3 +1,13 @@
+export {
+  type AgentBlock,
+  type AgentCommand,
+  type AgentEngine,
+  type AgentOutcome,
+  type AgentPosition,
+  filledRange,
+  type RunBuilder,
+  runAgentCommand,
+} from "./agent";
 export { openSheetDocument, type SheetEditor } from "./cell";
 export { CHART_KINDS, type ChartCommands, type ChartFailure, type ChartKind } from "./cell-chart";
 export {

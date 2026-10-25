@@ -1,6 +1,6 @@
-import { strToU8, zipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { xlsx, xlsxRows } from "../src";
+import { xlsx, xlsxRows, xlsxSheets } from "../src";
 
 describe("xlsxRows", () => {
   it("reads the sheets the package writes, formulas as their values where cached", () => {
@@ -50,5 +50,43 @@ describe("xlsxRows", () => {
       ["Frau Müller", "WAHR", "23.10.2026", "15.03.2023"],
       ["Name!"],
     ]);
+  });
+});
+
+describe("xlsxSheets", () => {
+  it("reads every sheet by its name, in the order of the tabs", () => {
+    const bytes = xlsx([
+      {
+        name: "Preise & Mengen",
+        rows: [
+          ["Artikel", "Preis"],
+          ["Stift", 1.5],
+        ],
+      },
+      { name: "Leer", rows: [] },
+      { name: "Notizen", rows: [["Hallo"]] },
+    ]);
+    expect(xlsxSheets(bytes)).toEqual([
+      {
+        name: "Preise & Mengen",
+        rows: [
+          ["Artikel", "Preis"],
+          ["Stift", "1,5"],
+        ],
+      },
+      { name: "Leer", rows: [] },
+      { name: "Notizen", rows: [["Hallo"]] },
+    ]);
+  });
+});
+
+describe("empty rows written as <row/>", () => {
+  it("keep the rows below them in their place", () => {
+    const files = unzipSync(xlsx([{ name: "S", rows: [["a"], [], ["c"]] }]));
+    const sheet = strFromU8(files["xl/worksheets/sheet1.xml"] ?? new Uint8Array());
+    files["xl/worksheets/sheet1.xml"] = strToU8(
+      sheet.replace('<row r="2"></row>', '<row r="2" ht="30" customHeight="1"/>'),
+    );
+    expect(xlsxSheets(zipSync(files))[0]?.rows).toEqual([["a"], [], ["c"]]);
   });
 });

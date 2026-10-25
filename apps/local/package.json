@@ -15,9 +15,13 @@
   "dependencies": {
     "@hono/zod-validator": "0.9.1",
     "@schreibzeug/files-api": "workspace:*",
+    "@schreibzeug/mcp": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
     "@schreibzeug/server": "workspace:*",
     "hono": "4.13.13",
     "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1"
   }
 }

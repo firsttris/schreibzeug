@@ -1,5 +1,6 @@
 import { AFRelationship, decodePDFRawStream, PDFDocument, PDFName, PDFRawStream, PDFStream } from "pdf-lib";
 import type { Read } from "./types";
+import { escapeXml } from "./write-cii";
 
 /*
  * A ZUGFeRD 2 / Factur-X PDF: a PDF/A-3 with the invoice XML attached as "factur-x.xml"
@@ -23,8 +24,6 @@ const FX_PROPERTIES: Array<[name: string, description: string]> = [
 
 /** "2026-10-25T03:39:43Z": seconds, as the Info dictionary's dates have them. */
 const xmpDate = (date: Date) => `${date.toISOString().slice(0, 19)}Z`;
-
-const escapeXml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 type Xmp = { conformance: string; created: string; modified: string; title?: string | undefined };
 

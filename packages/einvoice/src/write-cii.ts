@@ -29,7 +29,7 @@ const NAMESPACES =
  */
 const NOT_XML_CHAR = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
 
-const escapeXml = (text: string): string =>
+export const escapeXml = (text: string): string =>
   text
     .replace(NOT_XML_CHAR, " ")
     .replace(/&/g, "&amp;")

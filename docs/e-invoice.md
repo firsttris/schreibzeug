@@ -19,10 +19,10 @@ What happens, in `apps/web/src/editor/use-e-invoice.tsx`:
    invoices lay it out and Schreibzeug's invoice template has it (DIN 5008): the sender's line
    above the address field is the seller, the address field the recipient, "Rechnungsnummer",
    "Rechnungsdatum", "Leistungszeitraum" and "bis zum …" the details, the first table with a
-   description and a price column the lines, "Umsatzsteuer 19 %" the rate (and "§ 19 UStG" a small
-   business without VAT), "Steuernummer", "USt-IdNr.", "IBAN" and "BIC" in the footer the seller's.
-   A template's placeholders ("[Nr.]") count as empty. Nothing is guessed: what is not found stays
-   empty for the dialog.
+   description and a price column the lines (without its rows of sums), "Umsatzsteuer 19 %" the
+   rate (and "§ 19 UStG" a small business without VAT), "Steuernummer", "USt-IdNr.", "IBAN" and
+   "BIC" in the footer the seller's. A template's placeholders ("[Nr.]") count as empty. Nothing is
+   guessed: what is not found stays empty for the dialog.
 3. The dialog (`e-invoice-dialog.tsx`) shows that as a form and computes the sums as the XML will
    have them. If the document states a total ("Rechnungsbetrag") that differs from what the lines
    add up to, it says so: the e-invoice contains the lines as they are in the dialog, and a

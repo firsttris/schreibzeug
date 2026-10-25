@@ -166,8 +166,18 @@ const columnsOf = (header: string[]): Columns | undefined => {
   return { description, quantity, price, total, quantityLabel: header[quantity] ?? "" };
 };
 
+/** A sum's label ("Summe netto", "Zwischensumme", "zzgl. USt 19 %"), not "Gesamtpaket". */
+const SUM_LABEL =
+  /^(?:(?:zwischen|end|gesamt)?summe|gesamt(?:betrag)?|(?:netto|brutto)(?:betrag)?|übertrag|rechnungsbetrag|(?:zzgl\.?\s+)?(?:umsatzsteuer|ust|mwst|mehrwertsteuer))(?:\b|$)/i;
+
+/** A row of sums inside the table of lines: a sum's label and no quantity. */
+const isSumRow = (row: string[], columns: Columns): boolean =>
+  row.some((cell) => SUM_LABEL.test(cell.trim())) &&
+  (columns.quantity < 0 || (row[columns.quantity] ?? "").trim() === "");
+
 const linesFromTable = (rows: string[][], columns: Columns, taxRate: number): DraftLine[] =>
   rows.flatMap((row) => {
+    if (isSumRow(row, columns)) return [];
     const description = real(row[columns.description]);
     const quantityText = columns.quantity >= 0 ? (row[columns.quantity] ?? "") : "";
     const quantity = parseQuantity(quantityText) ?? 1000;

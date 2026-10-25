@@ -191,6 +191,19 @@ describe("the table of invoice lines", () => {
     expect(lines.map((line) => line.unitPrice)).toEqual([18900]);
   });
 
+  it("leaves out the rows of sums inside the table", () => {
+    const lines = linesOf([
+      ["Pos.", "Beschreibung", "Menge", "Einzelpreis", "Gesamt"],
+      ["1", "Scanner", "4", "189,00 €", "756,00 €"],
+      ["", "Zwischensumme", "", "", "756,00 €"],
+      ["2", "Gesamtpaket Wartung", "1", "120,00 €", "120,00 €"],
+      ["", "Summe netto", "", "", "876,00 €"],
+      ["", "zzgl. USt 19 %", "", "", "166,44 €"],
+      ["", "Gesamt", "", "", "1.042,44 €"],
+    ]);
+    expect(lines.map((line) => line.description)).toEqual(["Scanner", "Gesamtpaket Wartung"]);
+  });
+
   it("takes an hourly rate for the price, not for the hours", () => {
     const lines = linesOf([
       ["Leistung", "Stundensatz", "Stunden", "Betrag"],

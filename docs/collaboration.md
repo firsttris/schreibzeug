@@ -101,7 +101,10 @@ editor saved can restore it, and whoever opens the file next opens the session's
 the log and saves it. A version stored meanwhile from outside the session (a restored version, an
 upload, an MCP edit) is newer than the waiting changes and wins: the next person opens it, as
 without the session. A save of the session's own, one that landed after its editor's connection
-dropped, does not count as from outside. A server restart loses what no stored version holds. So the editor saves on
+dropped, does not count as from outside. With nobody connected, a session goes on from the newest
+version it stored and keeps only the changes that version lacks, so the next person opens the newest
+version (the local server keeps no older one) and replays the rest; once no change is left, the
+session ends. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a

@@ -110,6 +110,31 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     deliver(fileId, from, result.out);
   };
 
+  /**
+   * A session nobody is connected to goes on from the newest version it stored, with the part of
+   * its log that version lacks: the next person opens that version (the local server keeps no
+   * older one to open) and replays the rest. With nothing left, the session ends. A client of the
+   * old base cannot restore into it; its engine opens the document again.
+   */
+  const settle = (fileId: string) => {
+    const session = sessions.get(fileId);
+    if (!session || membersOf(fileId).length > 0) return;
+    const stored = storedAt.get(fileId) ?? session.baseVersion;
+    if (hasUnsavedChanges(session)) {
+      if (session.savedIndex > 0) {
+        const changes = session.changes.slice(session.savedIndex);
+        sessions.set(fileId, { ...session, baseVersion: stored, changes, savedIndex: 0, sessionIds: [] });
+      }
+      return;
+    }
+    // Without a change everyone's copy is the version; with one, only those there to the end.
+    const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
+    ended.set(fileId, { ids: whole.slice(-ENDED_IDS_KEPT), version: stored });
+    sessions.delete(fileId);
+    storedAt.delete(fileId);
+    leftSinceChange.delete(fileId);
+  };
+
   const startSession = (fileId: string, version: number): Session => {
     const last = ended.get(fileId);
     ended.delete(fileId);
@@ -156,19 +181,8 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (!connection) return;
       apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
       connections.delete(connectionId);
-      const { fileId } = connection;
-      leftSinceChange.get(fileId)?.push(connectionId);
-      const session = sessions.get(fileId);
-      if (membersOf(fileId).length > 0 || !session || hasUnsavedChanges(session)) return;
-      // Without a change everyone's copy is the version; with one, only those there to the end.
-      const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
-      ended.set(fileId, {
-        ids: whole.slice(-ENDED_IDS_KEPT),
-        version: storedAt.get(fileId) ?? session.baseVersion,
-      });
-      sessions.delete(fileId);
-      storedAt.delete(fileId);
-      leftSinceChange.delete(fileId);
+      leftSinceChange.get(connection.fileId)?.push(connectionId);
+      settle(connection.fileId);
     },
 
     /**
@@ -181,6 +195,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (sessions.get(fileId)?.baseVersion !== baseVersion) return;
       storedAt.set(fileId, version);
       apply(fileId, "", (session) => markSaved(session, index));
+      settle(fileId);
     },
 
     /** For tests and diagnostics: the session of a file, if one is open. */

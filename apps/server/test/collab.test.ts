@@ -460,7 +460,7 @@ describe("collaboration hub", () => {
     expect(next.messages.find((m) => m.type === "authChanges")?.changes).toEqual([]);
   });
 
-  it("keeps a session whose own save landed after the drop, with what that save lacks", async () => {
+  it("goes on from a save of its own that landed after the drop, with what that save lacks", async () => {
     const stored = { version: 3 };
     const { hub, join } = setup(undefined, undefined, stored);
     const a = await join(ANNA);
@@ -477,13 +477,28 @@ describe("collaboration hub", () => {
     stored.version = 4; // Anna's autosave of c1 lands after the drop, saying so (SESSION_SAVE_HEADER)
     hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
 
+    // The local server has only the newest file: the next person opens version 4 and replays c2.
     const back = await join(ANNA);
-    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
-    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
-    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
-      type: "auth",
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 4 });
+    hub.message(back.id, auth("anna"));
+    expect(back.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c2"' }]);
+  });
+
+  it("ends a kept session once a save of its own holds the whole log", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
     });
-    expect(hub.session(FILE)?.savedIndex).toBe(1);
+    hub.close(a.id);
+    stored.version = 4;
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
+    expect(hub.session(FILE)).toBeUndefined();
   });
 
   it("takes a late save of a session that is gone for one from outside", async () => {
@@ -544,9 +559,12 @@ describe("collaboration hub", () => {
     hub.close(b.id); // c4 and c5 are in no newest version: the session is kept
 
     const next = await join(ANNA);
-    expect(next.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    expect(next.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 5 });
     hub.message(next.id, auth("anna"));
-    expect(next.messages.find((m) => m.type === "authChanges")?.changes).toHaveLength(5);
+    expect(next.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([
+      { change: '"c4"' },
+      { change: '"c5"' },
+    ]);
   });
 
   it("refuses a restore into a version stored from outside after the session ended", async () => {

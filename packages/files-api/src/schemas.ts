@@ -132,11 +132,21 @@ export const createAccessTokenSchema = z.object({
 /** The answer to creating a token: the list entry and, this once, the token. */
 export const createdAccessTokenSchema = accessTokenSchema.extend({ token: z.string() });
 
-/** The name of the n-th copy of a file next to the original: "Bericht (Kopie 2).docx". */
+/** How long a name may be (nodeNameSchema). */
+const MAX_NAME_LENGTH = 255;
+
+/**
+ * The name of the n-th copy of a file next to the original: "Bericht (Kopie 2).docx". A name that
+ * would grow past what a name may be loses the end of its base, not the mark or the extension.
+ */
 export const copyName = (name: string, attempt: number): string => {
   const dot = name.lastIndexOf(".");
   const [base, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
-  return `${base} (Kopie${attempt > 1 ? ` ${attempt}` : ""})${extension}`;
+  const mark = ` (Kopie${attempt > 1 ? ` ${attempt}` : ""})`;
+  const room = Math.max(1, MAX_NAME_LENGTH - mark.length - extension.length);
+  // Cut between characters, not inside a surrogate pair.
+  const kept = base.length > room ? base.slice(0, room).replace(/[\uD800-\uDBFF]$/, "") : base;
+  return `${kept}${mark}${extension}`;
 };
 
 export const folderListingSchema = z.object({

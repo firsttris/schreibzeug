@@ -140,10 +140,12 @@ const MAX_NAME_LENGTH = 255;
  * would grow past what a name may be loses the end of its base, not the mark or the extension.
  */
 export const copyName = (name: string, attempt: number): string => {
-  const dot = name.lastIndexOf(".");
-  const [base, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
   const mark = ` (Kopie${attempt > 1 ? ` ${attempt}` : ""})`;
-  const room = Math.max(1, MAX_NAME_LENGTH - mark.length - extension.length);
+  const dot = name.lastIndexOf(".");
+  // An "extension" that leaves no room for the base is part of the name.
+  const split = dot > 0 && name.length - dot + mark.length < MAX_NAME_LENGTH;
+  const [base, extension] = split ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  const room = MAX_NAME_LENGTH - mark.length - extension.length;
   // Cut between characters, not inside a surrogate pair.
   const kept = base.length > room ? base.slice(0, room).replace(/[\uD800-\uDBFF]$/, "") : base;
   return `${kept}${mark}${extension}`;

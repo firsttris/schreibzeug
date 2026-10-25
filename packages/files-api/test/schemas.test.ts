@@ -46,6 +46,7 @@ describe("copyName", () => {
     expect(name).toBe(`${"a".repeat(239)} (Kopie 12).docx`);
     expect(name).toHaveLength(255);
     expect(nodeNameSchema.safeParse(name).success).toBe(true);
+    expect(copyName(`a.${"x".repeat(253)}`, 1)).toBe(`a.${"x".repeat(245)} (Kopie)`);
     expect(copyName(`${"😀".repeat(125)}x.docx`, 1)).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
 });

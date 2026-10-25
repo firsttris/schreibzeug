@@ -17,6 +17,7 @@ is not interleaved with other requests, and a transaction must not await (`src/d
 |---|---|
 | `nodes` | Folders and files in one tree (`parent_id`, `null` is the root of the owner's files, `owner_id` whose they are; see [accounts](accounts.md)). A file has `mime`, `size` and its newest `version`. |
 | `versions` | Every saved state of a file: number, size and the SHA-256 of its bytes. |
+| `media` | Which image belongs to which file: the file and the SHA-256 of an image put into it while it was edited. |
 | `shares` | Who else may open a node, with `edit` or `view`; see [accounts](accounts.md#sharing). |
 | `invites` | Links that share a node: a random token, the role, when it expires. |
 | `pending_shares` | Shares with an address that has no account yet, taken over at its first sign-in; see [accounts](accounts.md). |
@@ -25,7 +26,8 @@ is not interleaved with other requests, and a transaction must not await (`src/d
 The bytes are in the blob store (`src/blobs.ts`), under `data/blobs/ab/abcdef…` by their SHA-256:
 the same bytes are stored once, and a blob is written to a temporary name and renamed, so a crash
 never leaves half a blob under a real key. Images put into a document while it is edited go there
-too, named after their hash (`src/files/media.ts`); once saved, the Office file holds them itself.
+too, named after their hash (`src/files/media.ts`), and `media` notes the file each one was put
+into; once saved, the Office file holds them itself.
 
 Names are unique per folder (at the top level per owner), ignoring case, as on macOS and Windows (a partial unique index on
 `name_key` among nodes outside the trash; the server keeps `name_key` as the lowercased name, because
@@ -81,7 +83,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `PUT /files/:id/content` | Save: the body becomes a new version |
 | `GET /files/:id/versions` | All versions, newest first |
 | `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
-| `GET /files/:id/media/:name` | That image, for everyone who may see the file |
+| `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash |
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |

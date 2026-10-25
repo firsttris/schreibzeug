@@ -17,7 +17,7 @@ import type { BlobStore } from "../blobs";
 import type { Database } from "../db/database";
 import { fail, ok, type Result, statusOf } from "../result";
 import * as invites from "./invites";
-import { imageTypeOf, mediaNameOf, parseMediaName } from "./media";
+import { hasMedia, imageTypeOf, mediaNameOf, parseMediaName, recordMedia } from "./media";
 import { mimeOf } from "./mime";
 import * as repository from "./repository";
 import {
@@ -199,20 +199,24 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
         return respond(c, saved, toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever
-      // may see it may load it. The engine refers to it by its URL until the file is saved.
+      // may see it may load it, and only the images put into this file. The engine refers to one by
+      // its URL until the file is saved.
       .post("/files/:id/media", limit, validate("param", idParam), async (c) => {
         const file = repository.requireFile(db, userOf(c), c.req.valid("param").id, "edit");
         if (!file.ok) return c.json({ error: file.error }, statusOf(file.error.kind));
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const type = imageTypeOf(bytes);
         if (!type) return c.json({ error: { kind: "invalid" as const, message: NOT_AN_IMAGE } }, 400);
-        return c.json({ name: mediaNameOf(await blobs.put(bytes), type) }, 201);
+        const sha256 = await blobs.put(bytes);
+        recordMedia(db, file.value.node.id, sha256);
+        return c.json({ name: mediaNameOf(sha256, type) }, 201);
       })
       .get("/files/:id/media/:name", validate("param", mediaParam), async (c) => {
         const { id, name } = c.req.valid("param");
         const file = repository.requireFile(db, userOf(c), id, "view");
         if (!file.ok) return c.json({ error: file.error }, statusOf(file.error.kind));
-        const media = parseMediaName(name);
+        const parsed = parseMediaName(name);
+        const media = parsed && hasMedia(db, id, parsed.sha256) ? parsed : null;
         const bytes = media && (await blobs.get(media.sha256).catch(() => null));
         if (!media || !bytes)
           return c.json({ error: { kind: "not_found" as const, message: NO_SUCH_IMAGE } }, 404);

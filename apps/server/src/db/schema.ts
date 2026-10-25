@@ -100,6 +100,23 @@ export const versions = sqliteTable(
 );
 
 /**
+ * The images put into a file while it was edited (src/files/media.ts). Their bytes are in the blob
+ * store like the versions'; a row says an image belongs to this file, so the file's image route
+ * serves only those, never another blob whose hash someone has learnt.
+ */
+export const media = sqliteTable(
+  "media",
+  {
+    fileId: text("file_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    sha256: text("sha256").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.fileId, table.sha256] })],
+);
+
+/**
  * Who else may open a node, and how: a share on a folder holds for everything below it. The node
  * stays its owner's; files created in a shared folder belong to the folder's owner too.
  */

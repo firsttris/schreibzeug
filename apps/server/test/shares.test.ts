@@ -65,6 +65,21 @@ describe("sharing", () => {
     expect(await (await call("/api/shared", stranger)).json()).toEqual([]);
   });
 
+  it("gives each folder in the path the role the user has on it", async () => {
+    const { owner, guest, guestEmail } = await people("P");
+    const top = await createFolder(owner, "Projekt");
+    const sub = await createFolder(owner, "Entwürfe", top.id);
+    await share(owner, top.id, guestEmail, "view");
+    await share(owner, sub.id, guestEmail, "edit");
+
+    const inside = await listing(guest, sub.id);
+    expect(inside.path).toMatchObject([
+      { id: top.id, role: "view" },
+      { id: sub.id, role: "edit" },
+    ]);
+    expect((await listing(owner, sub.id)).path.map((node) => node.role)).toEqual(["owner", "owner"]);
+  });
+
   it("lets a viewer look but not change, and an editor change but not delete or move", async () => {
     const { owner, guest, guestEmail } = await people("B");
     const folder = await createFolder(owner, "Team");

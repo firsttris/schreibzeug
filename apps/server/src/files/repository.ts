@@ -124,19 +124,25 @@ const chainTo = (db: Queryable, id: string): NodeRow[] => {
 };
 
 /**
- * The folders from the top down to and including `id`. Someone it is shared with sees the path
- * from the folder that was shared with them, not the owner's folders above it.
+ * The folders from the top down to and including `id`, each with the user's role on it. Someone it
+ * is shared with sees the path from the folder that was shared with them, not the owner's folders
+ * above it; a folder further down has the stronger of its parent's role and its own share.
  */
-export const pathTo = (db: Queryable, user: UserId, folder: Accessible): NodeRow[] => {
+export const pathTo = (db: Queryable, user: UserId, folder: Accessible): Accessible[] => {
   const chain = chainTo(db, folder.node.id);
-  if (folder.role === "owner") return chain;
+  if (folder.role === "owner") return chain.map(asOwner);
   const shared = directRoles(
     db,
     user,
     chain.map((node) => node.id),
   );
   const top = chain.findIndex((node) => shared.has(node.id));
-  return top < 0 ? [folder.node] : chain.slice(top);
+  if (top < 0) return [folder];
+  let role: Accessible["role"] = "view";
+  return chain.slice(top).map((node) => {
+    role = strongest(role, shared.get(node.id) ?? "view");
+    return { node, role };
+  });
 };
 
 /** New nodes belong to the owner of the folder they are created in. */

@@ -52,7 +52,7 @@ Everything stays its owner's: what an editor creates in a shared folder belongs 
 owner, and moving only happens within the owner's own folders. A weaker role than needed answers
 `403 forbidden`. Trash and recent files list only the user's own nodes; "Für mich freigegeben"
 (`GET /api/shared`) lists what was shared with them, and the path of a shared folder starts at the
-folder that was shared.
+folder that was shared, each folder in it with the role the user has on it.
 
 ### Links
 

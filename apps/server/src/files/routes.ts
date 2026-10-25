@@ -118,11 +118,9 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
           repository.listChildren(db, user, found),
           found ? repository.pathTo(db, user, found) : Promise.resolve([]),
         ]);
-        // The folders above share the role of the one asked for: someone who sees the path sees them.
-        const role = found?.role ?? "owner";
         return c.json({
           folder: found ? toFileNode(found) : null,
-          path: path.map((node) => toFileNode({ node, role })),
+          path: path.map(toFileNode),
           children: children.map(toFileNode),
         });
       })

@@ -263,7 +263,17 @@ export const createFakeEngine = (): FakeEngine => {
               return new Uint8Array([1, 2, 3]);
             },
           },
+          m_oLogicDocument: {
+            Get_MailMergedDocument: () => null,
+            FieldsManager: { GetAllFieldsByType: () => [] },
+          },
         },
+        asc_StartMailMergeByList: record(calls, "asc_StartMailMergeByList"),
+        asc_GetReceptionsCount: () => 0,
+        asc_AddMailMergeField: record(calls, "asc_AddMailMergeField"),
+        asc_PreviewMailMergeResult: record(calls, "asc_PreviewMailMergeResult"),
+        asc_EndPreviewMailMergeResult: record(calls, "asc_EndPreviewMailMergeResult"),
+        asc_SetHighlightMailMergeFields: record(calls, "asc_SetHighlightMailMergeFields"),
         put_TextPrBold: record(calls, "put_TextPrBold"),
         put_TextPrItalic: record(calls, "put_TextPrItalic"),
         put_TextPrUnderline: record(calls, "put_TextPrUnderline"),

@@ -316,7 +316,21 @@ export interface WordEngineApi
    * word/Drawing/DrawingDocument.js ToRendererPart: every page as the drawing commands x2t turns
    * into a PDF; what word/api.js `_downloadAs` sends for a PDF or for printing.
    */
-  WordControl: { m_oDrawingDocument: { ToRendererPart(noBase64: true, isPrint: boolean): Uint8Array } };
+  WordControl: {
+    m_oDrawingDocument: { ToRendererPart(noBase64: true, isPrint: boolean): Uint8Array };
+    /** word/Editor/Document.js `CDocument`, as far as a mail merge reads it (word-mail-merge.ts). */
+    m_oLogicDocument: MailMergeDocument;
+  };
+  /** word/api.js: the recipients of a mail merge, the first row their field names. */
+  asc_StartMailMergeByList(rows: string[][]): void;
+  asc_GetReceptionsCount(): number;
+  /** A MERGEFIELD at the cursor, showing «name» (CDocument.Add_MailMergeField). */
+  asc_AddMailMergeField(name: string): void;
+  /** Shows the document filled in for one recipient, from 0; the document cannot be edited meanwhile. */
+  asc_PreviewMailMergeResult(index: number): void;
+  asc_EndPreviewMailMergeResult(): void;
+  /** Shades the merge fields, so they are told from text. */
+  asc_SetHighlightMailMergeFields(on: boolean): void;
   /** Applies a paragraph style by its name. */
   put_Style(name: string): void;
   /**
@@ -429,6 +443,22 @@ export interface WordWindow extends EngineWindow {
     /** word/apiCommon.js */
     CTableOfContentsPr: new () => EngineTableOfContentsPr;
   } & InsertConstants;
+  /** word/Editor/Serialize2.js: writes a document in the engine's binary format, as asc_nativeGetFile. */
+  AscCommonWord: { BinaryFileWriter: new (document: unknown) => { Write(): string } };
+  /** word/Editor/Paragraph/ComplexFields/types.js */
+  AscWord: { fieldtype_MERGEFIELD: number };
+}
+
+/** A field of the document (word/Editor/Field.js `ParaField`). */
+export interface EngineField {
+  Get_Argument(index: number): string | undefined;
+}
+
+/** word/Editor/Document.js `CDocument`, as a mail merge uses it. */
+export interface MailMergeDocument {
+  /** The recipients' letters as one document, each after a page break; null without recipients. */
+  Get_MailMergedDocument(start?: number, end?: number): unknown | null;
+  FieldsManager: { GetAllFieldsByType(type: number): EngineField[] };
 }
 
 /** cell/model/WorkbookElems.js `CellXfs`: the formatting of the active cell. */

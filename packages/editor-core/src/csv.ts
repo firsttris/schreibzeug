@@ -63,3 +63,46 @@ export const encodeCsv = (rows: readonly (readonly string[])[], delimiter: CsvDe
   const lines = rows.map((row) => row.map((value) => field(value, character)).join(character));
   return new TextEncoder().encode(`\uFEFF${lines.map((line) => `${line}\r\n`).join("")}`);
 };
+
+/**
+ * The text of a CSV file: UTF-8 (with or without a byte order mark), else Windows-1252, as German
+ * Excel writes "CSV (Trennzeichen-getrennt)".
+ */
+const csvText = (bytes: Uint8Array): string => {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^\uFEFF/, "");
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+};
+
+/** A CSV file as rows of values (RFC 4180: quoted fields, doubled quotes, line breaks inside quotes). */
+export const decodeCsv = (bytes: Uint8Array): string[][] => {
+  const delimiter = CSV_DELIMITER_CHARACTERS[detectDelimiter(bytes)];
+  const text = csvText(bytes);
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index];
+    if (quoted) {
+      if (character === '"' && text[index + 1] === '"') {
+        value += '"';
+        index++;
+      } else if (character === '"') quoted = false;
+      else value += character;
+    } else if (character === '"') quoted = true;
+    else if (character === delimiter) {
+      row.push(value);
+      value = "";
+    } else if (character === "\n" || character === "\r") {
+      if (character === "\r" && text[index + 1] === "\n") index++;
+      rows.push([...row, value]);
+      row = [];
+      value = "";
+    } else value += character;
+  }
+  if (value !== "" || row.length > 0) rows.push([...row, value]);
+  return rows;
+};

@@ -17,6 +17,7 @@ import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
 import { headerFooterGroups } from "./header-footer-menus";
 import { insertGroups } from "./insert-menus";
 import { layoutMenu, paragraphSpacingGroups } from "./layout-menus";
+import { type MailMergeMenuContext, mailMergeMenu } from "./mail-merge-menu";
 import { reviewMenu } from "./review-menus";
 import { spellCheckItem, suggestionGroups } from "./spelling-menus";
 
@@ -46,6 +47,7 @@ export type WordMenuContext = {
   onFind: (mode: "find" | "replace") => void;
   /** Says something in the editor's notice line. */
   onNotice: (message: string) => void;
+  mailMerge: MailMergeMenuContext;
 };
 
 /**
@@ -225,6 +227,7 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ],
       ],
     },
+    mailMergeMenu(context.mailMerge, off),
     reviewMenu(state.review, context.review, off, [spellCheckItem(state.spelling, context.spelling, off)]),
   ];
 };

@@ -83,6 +83,36 @@ on the server as a new version (`PUT /api/files/:id/content`, see [files](files.
 In a shared session it also tells the relay how much of the change log the stored copy holds; see
 [collaboration](collaboration.md#saving).
 
+## Mail merge
+
+"Serienbrief" in the text editor: a letter with merge fields and a table of recipients become one
+new document with a letter per recipient, each after a page break, stored beside the letter as
+"<Name> – Serienbrief.docx" (`apps/web/src/editor/use-mail-merge.tsx`).
+
+- **Recipients:** "Empfänger wählen …" takes a table from the user's files or from the computer:
+  .xlsx (its first sheet, read by `packages/ooxml` `xlsxRows`, dates and numbers as German text),
+  .ods and .xls (turned into an .xlsx by x2t first) or .csv (`decodeCsv` in `src/csv.ts`; UTF-8 or
+  Windows-1252, as German Excel writes it). The first row names the fields; a column without a name
+  or a table without recipients is refused with the reason. The engine gets them as a list
+  (`word/api.js` `asc_StartMailMergeByList`); they live in the session, not in the document.
+- **Fields:** the bar above the letter puts a field at the cursor (`asc_AddMailMergeField`, a
+  MERGEFIELD showing «Name», which Word reads too) and names the fields of the letter that the table
+  lacks. Word writes merge fields as complex fields (`w:fldChar` … `MERGEFIELD Name` … `w:fldChar`);
+  the engine reads those but merges only simple ones (`word/Editor/Document.js` `Register_Field` →
+  `m_oMailMergeFields`), so a .docx has its complex merge fields made simple (`w:fldSimple`, same
+  instruction and result) before it opens (`packages/ooxml` `simplifyMergeFields`).
+- **Preview:** shows the letter for one recipient (`asc_PreviewMailMergeResult`); the engine does
+  not let the letter be edited meanwhile.
+- **The letters:** `CDocument.Get_MailMergedDocument` copies the letter once per recipient with the
+  fields replaced. The engine's own download sends that to the Document Server; here it is written in
+  the binary format (`AscCommonWord.BinaryFileWriter`, as `asc_nativeGetFile`) and turned into a .docx
+  by x2t with the letter's images (`src/word-mail-merge.ts`).
+
+`e2e/mail-merge.spec.ts` merges `test-files/einladung.docx` (Word's merge fields) with
+`test-files/empfaenger.xlsx`, adds a field, steps through the preview and reads the stored letters;
+a second test takes a Windows-1252 CSV from the computer and checks the warning for fields the table
+lacks.
+
 ## Other formats
 
 x2t reads more than the Office formats, and the file list opens those files too:

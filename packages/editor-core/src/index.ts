@@ -72,6 +72,7 @@ export {
   initialCoreState,
   type SearchState,
 } from "./core-state";
+export { decodeCsv } from "./csv";
 export type { DocumentFormat, DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
@@ -169,3 +170,4 @@ export {
 } from "./view";
 export { type OpenWordOptions, openWordDocument, type WordEditor } from "./word";
 export type { InsertCommands, SectionBreak } from "./word-insert";
+export type { MailMergeCommands } from "./word-mail-merge";

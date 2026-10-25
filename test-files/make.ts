@@ -16,6 +16,22 @@ const spaced = (after: number) => `<w:spacing w:after="${after * 20}"/>`;
 const paragraph = (text: string, properties = spaced(8), run?: string) =>
   paragraphXml([{ text, ...(run ? { properties: run } : {}) } satisfies Run], properties);
 
+/** A merge field as Word writes it: a complex field (ECMA-376 Part 1, 17.16.18) showing «Name». */
+const mergeField = (name: string) =>
+  '<w:r><w:fldChar w:fldCharType="begin"/></w:r>' +
+  `<w:r><w:instrText xml:space="preserve"> MERGEFIELD ${name} \\* MERGEFORMAT </w:instrText></w:r>` +
+  '<w:r><w:fldChar w:fldCharType="separate"/></w:r>' +
+  `<w:r><w:t>«${name}»</w:t></w:r>` +
+  '<w:r><w:fldChar w:fldCharType="end"/></w:r>';
+
+/** A paragraph of merge fields and the text between them, e.g. ["PLZ", " ", "Ort"]. */
+const mergeLine = (parts: string[]) =>
+  `<w:p><w:pPr>${spaced(0)}</w:pPr>${parts
+    .map((part, index) =>
+      index % 2 === 0 ? mergeField(part) : `<w:r><w:t xml:space="preserve">${part}</w:t></w:r>`,
+    )
+    .join("")}</w:p>`;
+
 const files: Record<string, Uint8Array> = {
   "hello.docx": docx([
     paragraphXml([{ text: "Hallo Schreibzeug" }]),
@@ -114,6 +130,28 @@ const files: Record<string, Uint8Array> = {
       ],
     },
     { lines: ["Seite zwei", "Allgemeine Bedingungen"] },
+  ]),
+  // A letter with merge fields as Word writes them (complex fields), and its recipients: the mail
+  // merge tests (e2e/mail-merge.spec.ts).
+  "einladung.docx": docx([
+    paragraph("Einladung zum Projektstart", spaced(12), `${bold}${size(16)}`),
+    mergeLine(["Anrede", " ", "Name"]),
+    mergeLine(["Straße"]),
+    mergeLine(["PLZ", " ", "Ort"]),
+    paragraph(""),
+    paragraph("wir laden Sie herzlich zum Start der neuen Lagerverwaltung ein."),
+  ]),
+  "empfaenger.xlsx": xlsx([
+    {
+      name: "Empfänger",
+      rows: [
+        ["Anrede", "Name", "Straße", "PLZ", "Ort"],
+        ["Frau", "Anna Berger", "Lindenweg 3a", "76530", "Baden-Baden"],
+        ["Herr", "Ben Krüger", "Hauptstraße 7", "77815", "Bühl"],
+        ["Frau", "Clara Hoffmann", "Am Markt 1", "76437", "Rastatt"],
+      ],
+      widths: [8, 18, 18, 8, 14],
+    },
   ]),
   // A one-page PDF to append to another one.
   "anhang.pdf": pdf([{ lines: ["Anhang", "Lieferschein 2026-117"] }]),

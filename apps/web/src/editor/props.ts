@@ -24,4 +24,6 @@ export type EditorViewProps = {
    * shows, e.g. a PDF once it is digitally signed.
    */
   onReplace?: ((bytes: Uint8Array) => Promise<void>) | undefined;
+  /** The folder the file is in, where pickers start; null for the top of the user's files. */
+  folderId?: string | null | undefined;
 };

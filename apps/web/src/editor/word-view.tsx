@@ -9,8 +9,10 @@ import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { WORD_SHORTCUTS } from "./help-dialogs";
 import { LinkDialog } from "./link-dialog";
+import { MailMergeBar } from "./mail-merge-bar";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { RecipientsDialog } from "./recipients-dialog";
 import { RevisionBalloon } from "./revision-balloon";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
@@ -18,10 +20,19 @@ import { useEInvoice } from "./use-e-invoice";
 import { frameToWindow, useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
 import { openLink, useLinks } from "./use-links";
+import { useMailMerge } from "./use-mail-merge";
 import { type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 
 /** A text document: title and menus, the toolbar above the page, comments beside it. */
-export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorViewProps) => {
+export const WordView = ({
+  file,
+  name,
+  onSave,
+  fileActions,
+  onRename,
+  onCreateFile,
+  folderId = null,
+}: EditorViewProps) => {
   const container = useRef<HTMLDivElement>(null);
   const { editor, state, failure } = useEngineEditor(
     container,
@@ -36,6 +47,12 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   const [tableDialog, setTableDialog] = useState(false);
   const links = useLinks(editor, file.readOnly, chrome.notify);
   const eInvoice = useEInvoice(editor, name, chrome.notify);
+  const mailMerge = useMailMerge({
+    mailMerge: editor?.mailMerge ?? null,
+    name,
+    onCreateFile,
+    notify: chrome.notify,
+  });
 
   // The change at the cursor, beside it while changes are marked (not in "Endgültig" or "Original").
   const [firstRevision] = state.review.atCursor;
@@ -69,6 +86,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
     onNotice: chrome.notify,
+    mailMerge: mailMerge.menu,
   };
 
   return (
@@ -103,6 +121,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
           />
         }
       />
+      {mailMerge.bar && <MailMergeBar {...mailMerge.bar} />}
       <div className="flex min-h-0 flex-1">
         <DocumentArea
           container={container}
@@ -114,6 +133,12 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         {comments.panel}
       </div>
       {eInvoice.dialog}
+      <RecipientsDialog
+        open={mailMerge.choosing}
+        folderId={folderId}
+        onClose={mailMerge.closeChooser}
+        onChoose={mailMerge.choose}
+      />
       {balloonAt && editor && (
         <RevisionBalloon
           revisions={state.review.atCursor}

@@ -8,6 +8,7 @@ import {
   type OpenOptions,
   type Store,
 } from "@schreibzeug/editor-core";
+import { simplifyMergeFields } from "@schreibzeug/ooxml";
 import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useUser } from "../account/context";
 import { kindOf } from "../lib/format";
@@ -55,7 +56,11 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
         };
         if (cancelled) return cleanup();
         const opened = await open(frame.window, {
-          bytes: file.bytes,
+          // Word's merge fields are complex fields, which the engine does not merge (merge-fields.ts).
+          bytes:
+            kindOf({ kind: "file", name: file.name }) === "docx"
+              ? simplifyMergeFields(file.bytes)
+              : file.bytes,
           title: file.name,
           user: { id: userId, name: userName },
           convert: converter.convert,

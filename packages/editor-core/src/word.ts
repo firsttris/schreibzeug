@@ -32,6 +32,7 @@ import {
   type ViewCommands,
 } from "./view";
 import { createInsertCommands, type InsertCommands } from "./word-insert";
+import { createMailMergeCommands, type MailMergeCommands } from "./word-mail-merge";
 
 export type OpenWordOptions = OpenOptions;
 
@@ -56,6 +57,8 @@ export type WordEditor = OpenedDocument<EditorState> & {
   search: SearchCommands;
   /** Someone right-clicked in the document; the listener shows the menu. Returns the unsubscribe. */
   onContextMenu: (listener: ContextMenuListener) => () => void;
+  /** Serienbriefe: recipients, merge fields, preview, the letters as a new document. */
+  mailMerge: MailMergeCommands;
 };
 
 /** sdkjs `SetFontRenderingMode`: 3 = hinting for normal screens, 1 = none for high-DPI (web-apps uses the same). */
@@ -117,6 +120,7 @@ const wordBinding: EditorBinding<
     | "view"
     | "search"
     | "onContextMenu"
+    | "mailMerge"
   >
 > = {
   format: "docx",
@@ -219,6 +223,7 @@ const wordBinding: EditorBinding<
       onLinkRequest: linkRequests.add,
       onLinkOpen: linkOpens.add,
       headerFooter: createHeaderFooterCommands(api, focusEngine),
+      mailMerge: createMailMergeCommands(win, api, options.convert),
       insert: createInsertCommands(api, win.Asc, () => new win.Asc.CTableOfContentsPr(), focusEngine),
       layout: createLayoutCommands(api, () => new win.Asc.CDocumentSectionProps(), layoutConstants),
       commands: withListRefresh(

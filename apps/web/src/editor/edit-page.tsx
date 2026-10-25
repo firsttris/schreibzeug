@@ -110,6 +110,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
         fileActions={actions}
         onRename={onRename}
         onCreateFile={createFile}
+        folderId={file.owned ? file.parentId : null}
         onReplace={async (bytes) => {
           await store(bytes);
           onRestored();

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PDFDocument } from "pdf-lib";
+import { PDFDict, PDFDocument, PDFHexString, PDFName, PDFString } from "pdf-lib";
 import { beforeAll, describe, expect, it } from "vitest";
 import { checkSignatures, readIdentity, type SigningIdentity, signPdf } from "../src";
 import { makeP12 } from "./identity";
@@ -18,10 +18,21 @@ beforeAll(async () => {
   identity = read.value;
 }, 60_000);
 
-const signed = async () => {
-  const result = await signPdf(formular, identity, details);
+const signed = async (changes: Partial<typeof details> = {}, who = identity) => {
+  const result = await signPdf(formular, who, { ...details, ...changes });
   if (!result.ok) throw new Error(result.error);
   return result.value;
+};
+
+/** An entry of the signature dictionary as a PDF reader reads it. */
+const signatureEntry = async (pdf: Uint8Array, key: string) => {
+  const doc = await PDFDocument.load(pdf);
+  const signature = doc.context
+    .enumerateIndirectObjects()
+    .map(([, object]) => object)
+    .find((object) => object instanceof PDFDict && object.get(PDFName.of("Type")) === PDFName.of("Sig"));
+  const value = signature instanceof PDFDict ? signature.lookup(PDFName.of(key)) : undefined;
+  return value instanceof PDFString || value instanceof PDFHexString ? value.decodeText() : undefined;
 };
 
 describe("readIdentity", () => {
@@ -80,6 +91,22 @@ describe("signPdf and checkSignatures", () => {
     const [check] = checkSignatures(appended);
     expect(check?.intact).toBe(true);
     expect(check?.coversWholeFile).toBe(false);
+  });
+
+  it("keeps parentheses and backslashes in the reason and location", async () => {
+    const pdf = await signed({ reason: "Punkt 1) erledigt", location: "Pfad C:\\Akten (alt" });
+    expect(await signatureEntry(pdf, "Reason")).toBe("Punkt 1) erledigt");
+    expect(checkSignatures(pdf)[0]).toMatchObject({
+      reason: "Punkt 1) erledigt",
+      location: "Pfad C:\\Akten (alt",
+      intact: true,
+    });
+  });
+
+  it("keeps a signer's name and a reason beyond Latin-1", async () => {
+    const pdf = await signed({ reason: "Zgoda – Łódź" }, { ...identity, name: "Łukasz Dvořák" });
+    expect(await signatureEntry(pdf, "Name")).toBe("Łukasz Dvořák");
+    expect(checkSignatures(pdf)[0]?.reason).toBe("Zgoda – Łódź");
   });
 
   it("finds no signature in an unsigned PDF", () => {

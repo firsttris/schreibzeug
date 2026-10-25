@@ -1,4 +1,5 @@
 import forge from "node-forge";
+import { PDFHexString, PDFString } from "pdf-lib";
 import { type ByteRange, latin1, signedBytes, toBinary } from "./bytes";
 
 /** What a signature in a PDF says, and whether it holds. */
@@ -22,10 +23,18 @@ export type SignatureCheck = {
 const name = (attributes: forge.pki.Certificate["subject"]) =>
   String(attributes.getField("CN")?.value ?? attributes.getField("O")?.value ?? "Unbekannt");
 
-/** The text of a literal string in the signature dictionary near the position, e.g. /Reason. */
+/**
+ * The text of a string in the signature dictionary near the position, e.g. /Reason: a literal
+ * string with its escapes, or a hex string as signPdf writes them (ISO 32000-1 7.3.4).
+ */
 const dictionaryString = (text: string, from: number, to: number, key: string): string | null => {
-  const match = new RegExp(`/${key}\\s*\\(((?:\\\\.|[^\\\\)])*)\\)`).exec(text.slice(from, to));
-  return match?.[1]?.replace(/\\(.)/g, "$1") ?? null;
+  const match = new RegExp(`/${key}\\s*(?:\\(((?:\\\\.|[^\\\\)])*)\\)|<([0-9A-Fa-f\\s]*)>)`).exec(
+    text.slice(from, to),
+  );
+  const [, literal, hex] = match ?? [];
+  if (literal !== undefined) return PDFString.of(literal).decodeText();
+  if (hex !== undefined) return PDFHexString.of(hex.replace(/\s/g, "")).decodeText();
+  return null;
 };
 
 const DIGESTS: Record<string, () => forge.md.MessageDigest> = {

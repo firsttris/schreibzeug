@@ -37,10 +37,13 @@ export const addSignaturePlaceholder = async (pdf: Uint8Array, info: SignatureIn
     SubFilter: "adbe.pkcs7.detached",
     ByteRange: [PDFNumber.of(0), placeholder, placeholder, placeholder],
     Contents: PDFHexString.of("0".repeat(SIGNATURE_BYTES * 2)),
-    Name: PDFString.of(info.name),
+    // Text strings in UTF-16BE (ISO 32000-1 7.9.2.2), as hex: any name or reason, no escaping.
+    // PDFString.of writes its value between parentheses as it is, so ")" or "\" broke the
+    // dictionary, and a character beyond Latin-1 lost its high byte.
+    Name: PDFHexString.fromText(info.name),
     M: PDFString.fromDate(info.date),
-    ...(info.reason ? { Reason: PDFString.of(info.reason) } : {}),
-    ...(info.location ? { Location: PDFString.of(info.location) } : {}),
+    ...(info.reason ? { Reason: PDFHexString.fromText(info.reason) } : {}),
+    ...(info.location ? { Location: PDFHexString.fromText(info.location) } : {}),
   });
   const signatureRef = context.register(signature);
 

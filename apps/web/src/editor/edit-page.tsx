@@ -107,6 +107,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
     <>
       <View
         file={file}
+        fileId={fileId}
         name={node?.name ?? file.name}
         onSave={store}
         fileActions={actions}

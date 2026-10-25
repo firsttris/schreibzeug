@@ -294,3 +294,43 @@ export const markdownDocx = (markdown: string): Uint8Array => {
     hyperlinks: links,
   });
 };
+
+/** A paragraph as the editor inserts it (files-api agentBlockSchema), from Markdown. */
+export type MarkdownParagraph = {
+  kind: "heading" | "paragraph" | "bullet" | "number";
+  level: number;
+  runs: { text: string; bold?: boolean; italic?: boolean }[];
+};
+
+const plainRuns = (text: string): MarkdownParagraph["runs"] =>
+  inlineSegments(text).map(({ text: part, bold, italic }) => ({
+    text: part,
+    ...(bold ? { bold } : {}),
+    ...(italic ? { italic } : {}),
+  }));
+
+/**
+ * Markdown as paragraphs for inserting into an open document: headings, paragraphs and list items
+ * keep what they are; a table becomes a line per row with its cells apart by tabs, a quote and code
+ * plain paragraphs, a rule nothing. Links keep their text.
+ */
+export const markdownParagraphs = (markdown: string): MarkdownParagraph[] =>
+  markdownBlocks(markdown).flatMap((block): MarkdownParagraph[] => {
+    switch (block.type) {
+      case "heading":
+        return [{ kind: "heading", level: block.level, runs: plainRuns(block.text) }];
+      case "item":
+        return [
+          { kind: block.ordered ? "number" : "bullet", level: block.level, runs: plainRuns(block.text) },
+        ];
+      case "table":
+        return block.rows.map((row) => ({ kind: "paragraph", level: 0, runs: plainRuns(row.join("\t")) }));
+      case "code":
+        return block.lines.map((line) => ({ kind: "paragraph", level: 0, runs: [{ text: line }] }));
+      case "paragraph":
+      case "quote":
+        return [{ kind: "paragraph", level: 0, runs: plainRuns(block.text) }];
+      default:
+        return [];
+    }
+  });

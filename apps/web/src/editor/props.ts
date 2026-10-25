@@ -4,6 +4,8 @@ import type { OpenedFile } from "./opened-file";
 /** What the edit page hands every editor view. */
 export type EditorViewProps = {
   file: OpenedFile;
+  /** The file's id on the server, for an assistant's jobs (use-agent.tsx). */
+  fileId?: string | undefined;
   /** The file's name now; it changes when someone renames it while it is open. */
   name: string;
   /**

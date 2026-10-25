@@ -20,7 +20,8 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > same file at once, PDFs included. All without a document server. Claude Code and other MCP clients
 > work in your files with a personal access token: list, search, read documents, spreadsheets,
 > presentations and PDFs, create documents from Markdown, files from templates, spreadsheets,
-> presentations and e-invoice XML, rename, move, share, versions and trash ([MCP server](https://firsttris.github.io/schreibzeug/mcp/)). A desktop app for Windows, macOS and Linux
+> presentations and e-invoice XML, rename, move, share, versions and trash, and edit an open
+> document after you allow it: find and replace, insert text, fill cells, save as PDF ([MCP server](https://firsttris.github.io/schreibzeug/mcp/)). A desktop app for Windows, macOS and Linux
 > works on the files in the computer's documents folder (or another folder) without any server, or
 > opens a Schreibzeug server in a window of its own (builds not signed yet).
 
@@ -77,8 +78,8 @@ Word and PowerPoint files. Schreibzeug puts a new, clean interface on top of a p
 ### 🤖 AI assistants
 
 - **MCP server**: Claude Code and other MCP clients find, manage, read and create files with your
-  rights, through a personal access token (reading, creating and managing done); editing open
-  documents later.
+  rights, through a personal access token, and edit the document you have open, visibly and
+  undoably (done); editing without an open tab later.
 
 ### 📝 Editors
 

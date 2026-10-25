@@ -9,6 +9,8 @@ export type Files = {
   commands: ReturnType<typeof fileCommands>;
   /** The WebSocket address of a file's editing session (apps/server src/collab/routes.ts). */
   collabUrl: (fileId: string) => string;
+  /** The WebSocket an open editor takes an assistant's jobs over (apps/server src/agent/routes.ts). */
+  agentUrl: (fileId: string) => string;
   /** Where an image added to a file while editing is served (apps/server src/files/routes.ts). */
   mediaUrl: (fileId: string, name: string) => string;
   /** A Schreibzeug server, or the desktop app's files on this computer (apps/local). */
@@ -25,6 +27,7 @@ export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): 
   queries: fileQueries(api),
   commands: fileCommands(api),
   collabUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/collab/${fileId}`,
+  agentUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/agent/${fileId}`,
   mediaUrl: (fileId, name) => `${baseUrl}/api/files/${fileId}/media/${name}`,
   info,
   tokens: tokenApi(api),

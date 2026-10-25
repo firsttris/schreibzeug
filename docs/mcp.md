@@ -103,6 +103,11 @@ document is data, not an instruction.
 | `append_rows` | Rows below the last row of a sheet, as a new version | write |
 | `einvoice_xml` | Factur-X XML (EN 16931) from an invoice's data, checked first (`draftProblems`) | write |
 | `upload_file` | A small file from the conversation (up to 1 MB), as text or base64 | write |
+| `outline` | The open document as it is in the editor: numbered paragraphs (with their style) and tables, sheets with their used range, slides with their text | read |
+| `replace_text` | Find and replace in an open .docx; answers how often | write |
+| `insert_content` | Markdown (headings, paragraphs, lists, bold, italic) into an open .docx, before or after element n of the outline, or at the end | write |
+| `set_cells` | Values and formulas into an open .xlsx from the top left cell of a range | write |
+| `export_pdf` | An open document as PDF or PDF/A, stored beside it | write |
 
 The reading tools read the file itself, without the engine: `packages/ooxml` (`docxContent` with
 heading levels from the styles' outline level and list levels from `w:numPr`, `xlsxSheets`,
@@ -130,6 +135,52 @@ from the interface would (`POST /api/files`; `append_rows` saves a new version w
   `packages/einvoice` does. The ZUGFeRD PDF needs the engine for the PDF/A and comes with editing
   in an open tab.
 
+## Editing in the open tab
+
+What changes an existing document runs where the engine is: in the browser tab that has the
+document open. The person sees the change, can undo it, and whoever edits along gets it through the
+relay; it is saved as a new version at once.
+
+```
+MCP client ─▶ /mcp edit tool ─▶ POST /api/files/:id/agent ─▶ agent hub (src/agent/hub.ts)
+                                                               │ job over /api/agent/:fileId (WebSocket)
+                                                               ▼
+                                          the open editor (apps/web src/editor/use-agent.tsx)
+                                          └─ editor-core agent.ts ─▶ engine (builder API) ─▶ save
+```
+
+- **The hub** (`apps/server src/agent`): every editor with a document open for editing joins
+  `/api/agent/:fileId` (WebSocket, session only, the right to edit checked). A job for a user and
+  file goes to that user's tab that joined last and waits up to two minutes for its answer.
+  Without a tab the answer is `Das Dokument ist gerade in keinem Tab geöffnet.`, and the tool adds
+  the link to open it. `POST /api/files/:id/agent` checks "edit", `GET /api/files/:id/outline`
+  "view", so a read-only token may read the outline.
+- **Consent**: the first job that changes something asks the person in the tab ("Claude möchte
+  dieses Dokument bearbeiten": Erlauben, Ablehnen), once per document and tab. Afterwards a bar says
+  "Claude darf dieses Dokument bearbeiten." with "Anhalten"; stopped, the tab refuses every job until
+  "Wieder zulassen". Reading the outline needs no consent.
+- **The engine** (`packages/editor-core src/agent.ts`): jobs are scripts against the engine's
+  builder API (`Api.GetDocument()`, `Api.GetSheet()`, `Api.GetPresentation()`), run through its
+  plugin command (`common/apiBase.js callCommand` → `common/plugins.js callCommandInternal`), which
+  wraps them in one action (`canRunBuilderScript`: `StartAction`, `CheckActionLock`;
+  `_onEndBuilderScript`: `Recalculate`, `FinalizeAction`). One job is one step of the history.
+  Its input goes in as a JSON literal; it returns plain data, which becomes the answer.
+- **Replacing** uses the search bar's `asc_replaceText`, not the builder's `SearchAndReplace`. In
+  a shared session `ReplaceSearchElement` asks the relay for its locks and holds the global lock
+  until the answer comes; a builder action around it would see that lock and undo itself
+  (`private_CheckActionLock`, `StartSelectionLockCheck`).
+- **Cells**: `ApiRange.SetValue` writes every value as text the sheet reads in its language
+  (`checkFormat`, `Range.setValue`), so numbers go in with the document's decimal separator
+  (`AscCommon.g_oDefaultCultureInfo`), and true and false as `=TRUE()` and `=FALSE()`.
+- **Inserting** gets paragraphs, not Markdown: `packages/mcp` turns the Markdown into them with
+  `markdownParagraphs` (`packages/ooxml`), so the engine binding needs no parser. Headings get
+  Word's "Heading n" style, list items a numbering of their own per list.
+
+The engine's builder runs scripts with only a light sandbox (`common/macros.js` `_safePluginEval`
+hides `window` and `document` but not `fetch`), so a free `run_script` tool is not offered; the
+fixed tools are what an assistant can do. ZUGFeRD PDFs, the mail merge and formatting come next,
+then editing without an open tab (a headless browser on the server).
+
 Links point into the app: `/edit/<id>` for a file, `/folders/<id>` for a folder, `/invite/<token>`
 for a link.
 
@@ -147,5 +198,12 @@ gets the local server's answer for sharing, and is refused for a foreign host or
 a built-in and an own template, a sheet with appended rows as version 2, a presentation, an
 e-invoice read back with `readInvoiceXml`, small uploads. The readers and writers have their own tests
 in `packages/ooxml` and `packages/mcp`. `e2e/mcp.spec.ts` opens what the tools made in the editor,
-saves the document through the engine and finds its heading style and table again. `e2e/mcp.spec.ts` creates a token in the settings, calls
+saves the document through the engine and finds its heading style and table again.
+`apps/server/test/mcp-edit.test.ts` stands in for the tab on the hub: the link when nothing is open,
+the job and its answer, a refusal, the newest tab of the same person only, a tab that does not
+answer, the outline for a read-only token. `packages/editor-core/test/agent.test.ts` covers the
+scripts' input and answers. `e2e/mcp-edit.spec.ts` runs it with the engine: a document open in two
+tabs, the outline, replacing after consent, inserting, the first tab getting both through the relay,
+undo taking the insert back, "Anhalten", and the answer once no tab is open; and cells set in an
+open spreadsheet, read back as numbers and a formula's result. `e2e/mcp.spec.ts` creates a token in the settings, calls
 the endpoint as a client would, sees the folder it made in the file list, and revokes the token.

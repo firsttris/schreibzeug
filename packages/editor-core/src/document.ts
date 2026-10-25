@@ -92,6 +92,11 @@ export type OpenedDocument<S extends CoreState> = {
   onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void;
   /** Puts an image (PNG, JPEG, GIF, BMP) in at the cursor; null without an image store. */
   insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
+  /**
+   * Runs a script against the engine's builder API as one step of the history (agent.ts), and
+   * resolves with what it returned; for jobs an assistant gives the open document.
+   */
+  runBuilder: (script: string) => Promise<unknown>;
 };
 
 /** The formats the editors open: the Office formats and PDF. */
@@ -179,6 +184,25 @@ export type KindContext<W, Api, S, E> = {
   dispatch: (event: E | CoreEvent) => void;
   options: OpenOptions;
 };
+
+/** How long a builder script may take before the job counts as failed. */
+const BUILDER_TIMEOUT_MS = 30_000;
+
+/**
+ * The engine's plugin command with a promise around it. Its callback comes once the action is
+ * finished (plugins.js shiftCommand), also when the script threw, then with undefined.
+ */
+const runBuilder = (api: EngineApiBase<CommonEventArgs>, script: string): Promise<unknown> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("Die Engine hat nicht rechtzeitig geantwortet.")),
+      BUILDER_TIMEOUT_MS,
+    );
+    api.callCommand(script, true, (value) => {
+      clearTimeout(timer);
+      resolve(value);
+    });
+  });
 
 /** common/errorCodes.js `c_oAscError.Level.Critical`: the document cannot be used. */
 const CRITICAL_ERROR_LEVEL = -1;
@@ -424,6 +448,7 @@ export const openDocument = <
             ? fileExport(api, options, win, documentMedia, saveFile, binding.pdfA)
             : pdfExport(win, api, binding.printCommands, options.renderPdf, snapshot),
         insertImage: insertImage(urls, base, options.images),
+        runBuilder: (script) => runBuilder(base, script),
         close: () => {
           win.removeEventListener("keydown", onKey, true);
           stopProgress();

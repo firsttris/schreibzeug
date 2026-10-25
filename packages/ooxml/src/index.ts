@@ -1,7 +1,7 @@
 export { blankDocx, type DocxExtras, docx, paragraphXml, type Run } from "./docx";
 export { blocksOf, type DocxBlock, type DocxContent, docxContent, headingStyles } from "./docx-text";
 export { type Filled, fillPlaceholders, placeholdersOf } from "./fill";
-export { markdownDocx } from "./markdown-docx";
+export { type MarkdownParagraph, markdownDocx, markdownParagraphs } from "./markdown-docx";
 export { simplifyMergeFields, simplifyMergeFieldsIn } from "./merge-fields";
 export { blankPptx, pptx, type Slide, type SlideLayout } from "./pptx";
 export { pptxSlides, type SlideText } from "./pptx-read";

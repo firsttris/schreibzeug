@@ -1,33 +1,13 @@
-import { type APIRequestContext, expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { collectErrors, credentialsFor, expectEditorReady, row, save, signUp, storedDocx } from "./app";
 import { documentXml, paragraphTexts, styleNameOf } from "./docx";
+import { callTool, rpc, writeToken } from "./mcp";
 
 /*
  * Claude Code's way in: a personal access token made in the settings, then the MCP endpoint over
  * Streamable HTTP. The client's requests are written out here as JSON-RPC (MCP 2025-06-18), so the
  * test sees what goes over the wire; the server is stateless, so every call stands alone.
  */
-
-const MCP_HEADERS = { accept: "application/json, text/event-stream", "content-type": "application/json" };
-
-let nextId = 1;
-const rpc = (request: APIRequestContext, token: string, method: string, params: Record<string, unknown>) =>
-  request.post("/mcp", {
-    headers: { ...MCP_HEADERS, authorization: `Bearer ${token}` },
-    data: { jsonrpc: "2.0", id: nextId++, method, params },
-  });
-
-const callTool = async (
-  request: APIRequestContext,
-  token: string,
-  name: string,
-  args: Record<string, unknown>,
-) => {
-  const reply = await rpc(request, token, "tools/call", { name, arguments: args });
-  expect(reply.ok(), await reply.text()).toBe(true);
-  const body = (await reply.json()) as { result: { content: { text: string }[]; isError?: boolean } };
-  return body.result;
-};
 
 test("a token from the settings lets an MCP client work as the person, until it is revoked", async ({
   page,
@@ -66,13 +46,6 @@ test("a token from the settings lets an MCP client work as the person, until it 
   await expect(page.getByText("Noch keine Zugangsschlüssel.")).toBeVisible();
   expect((await rpc(page.request, token, "tools/list", {})).status()).toBe(401);
 });
-
-/** A token made through the API, for the tests that are not about the settings page. */
-const writeToken = async (request: APIRequestContext) => {
-  const reply = await request.post("/api/tokens", { data: { name: "E2E", scope: "write" } });
-  expect(reply.ok(), await reply.text()).toBe(true);
-  return ((await reply.json()) as { token: string }).token;
-};
 
 test("files made over MCP open in the editor and keep their structure through a save", async ({
   page,

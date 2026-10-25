@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { docxContent, markdownDocx } from "../src";
+import { docxContent, markdownDocx, markdownParagraphs } from "../src";
 import { inlineSegments, markdownBlocks } from "../src/markdown-docx";
 
 const part = (bytes: Uint8Array, path: string): string =>
@@ -90,5 +90,22 @@ describe("markdownDocx", () => {
 
   it("gives a document with one empty paragraph for no text", () => {
     expect(docxContent(markdownDocx("")).body).toEqual([{ type: "paragraph", text: "" }]);
+  });
+});
+
+describe("markdownParagraphs", () => {
+  it("gives headings, paragraphs and list items with their marks, tables as lines", () => {
+    expect(
+      markdownParagraphs(
+        "## Ziel\n\nText mit **fett**\n\n1. eins\n  - unter\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n---",
+      ),
+    ).toEqual([
+      { kind: "heading", level: 2, runs: [{ text: "Ziel" }] },
+      { kind: "paragraph", level: 0, runs: [{ text: "Text mit " }, { text: "fett", bold: true }] },
+      { kind: "number", level: 0, runs: [{ text: "eins" }] },
+      { kind: "bullet", level: 1, runs: [{ text: "unter" }] },
+      { kind: "paragraph", level: 0, runs: [{ text: "a\tb" }] },
+      { kind: "paragraph", level: 0, runs: [{ text: "1\t2" }] },
+    ]);
   });
 });

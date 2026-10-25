@@ -14,6 +14,7 @@ import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { RecipientsDialog } from "./recipients-dialog";
 import { RevisionBalloon } from "./revision-balloon";
+import { useAgent } from "./use-agent";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEInvoice } from "./use-e-invoice";
@@ -26,6 +27,7 @@ import { type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 /** A text document: title and menus, the toolbar above the page, comments beside it. */
 export const WordView = ({
   file,
+  fileId,
   name,
   onSave,
   fileActions,
@@ -42,6 +44,16 @@ export const WordView = ({
     initialEditorState,
   );
   const saving = useDocumentSave(editor, state, onSave, file.readOnly);
+  const agent = useAgent({
+    fileId,
+    editor,
+    kind: "word",
+    state,
+    readOnly: file.readOnly,
+    save: saving.save,
+    onCreateFile,
+    name,
+  });
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
   const comments = useCommentsPanel(editor, state, file.readOnly);
   const [tableDialog, setTableDialog] = useState(false);
@@ -121,6 +133,8 @@ export const WordView = ({
           />
         }
       />
+      {agent.bar}
+      {agent.dialog}
       {mailMerge.bar && <MailMergeBar {...mailMerge.bar} />}
       <div className="flex min-h-0 flex-1">
         <DocumentArea

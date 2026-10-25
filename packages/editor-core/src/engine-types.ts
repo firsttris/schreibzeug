@@ -255,6 +255,11 @@ export interface EngineApiBase<Events extends CommonEventArgs> {
    * "XLSY;…" (cell/api.js), "PPTY;…" (slide/api.js).
    */
   asc_nativeGetFile(): string;
+  /**
+   * common/apiBase.js: runs builder code (Api, ApiDocument, …) as plugins do, as one action of the
+   * history; the callback gets what the code returned, if it is plain data.
+   */
+  callCommand(code: string, isRecalculate: boolean, callback: (value: unknown) => void): void;
   /** common/apiBase.js: the hidden input that takes the keys (g_inputContext.HtmlArea). */
   getFocusElement(): HTMLElement;
   /** Whether there are changes not yet saved or, in co-editing, not yet sent. */

@@ -51,7 +51,8 @@ const countOutsideQuotes = (text: string, lines: number): Record<CsvDelimiter, n
       fieldStart = false;
       continue;
     }
-    fieldStart = isDelimiter(character);
+    // Spaces after a delimiter ("1, \"a; b\"") still come before the field's first character.
+    fieldStart = isDelimiter(character) || (fieldStart && character === " ");
     for (const delimiter of Object.keys(CSV_DELIMITER_CHARACTERS) as CsvDelimiter[]) {
       if (character === CSV_DELIMITER_CHARACTERS[delimiter]) counts[delimiter] += 1;
     }

@@ -27,6 +27,7 @@ describe("the delimiter of a CSV file", () => {
     const file = 'Artikel;Preis\nMonitor, schwarz, matt, 27";199\nMaus;19\nTastatur;29\nKabel;5\nHub;25';
     expect(detectDelimiter(bytes(file))).toBe("semicolon");
     expect(detectDelimiter(bytes('a;b\n"x ""y"", z, w";1\n'))).toBe("semicolon");
+    expect(detectDelimiter(bytes('id, text\n1, "a; b; c"\n2, "d; e; f"\n'))).toBe("comma");
   });
 
   it("looks at the first 20 lines with content only", () => {

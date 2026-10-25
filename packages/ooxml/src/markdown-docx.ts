@@ -13,12 +13,13 @@ type Marks = { bold?: boolean; italic?: boolean; code?: boolean; link?: string }
 type Segment = Marks & { text: string };
 
 /**
- * Inline Markdown: emphasis, code and links, nested; a backslash takes the next character literally.
+ * Inline Markdown: emphasis, code and links, nested; a backslash takes the next character literally
+ * when it is ASCII punctuation (CommonMark 2.4), and stays itself before anything else.
  * As in CommonMark, "_" marks emphasis only at word bounds, so my_var_name stays as it is, and a
  * link target may hold balanced parentheses (6.3): [Foo](https://en.wikipedia.org/wiki/Foo_(bar)).
  */
 const INLINE =
-  /\\(?<escaped>[\\`*_[\]()#+\-.!|>])|`(?<code>[^`]+)`|\*\*(?=\S)(?<strongStar>[\s\S]+?)(?<=\S)\*\*|(?<![\p{L}\p{N}_])__(?=\S)(?<strongUnder>[\s\S]+?)(?<=\S)__(?![\p{L}\p{N}_])|\*(?=\S)(?<emStar>[\s\S]+?)(?<=\S)\*|(?<![\p{L}\p{N}_])_(?=\S)(?<emUnder>[\s\S]+?)(?<=\S)_(?![\p{L}\p{N}_])|\[(?<label>[^\]]+)\]\((?<target>(?:[^()\s]|\([^()\s]*\))+)\)/gu;
+  /\\(?<escaped>[!-/:-@[-`{-~])|`(?<code>[^`]+)`|\*\*(?=\S)(?<strongStar>[\s\S]+?)(?<=\S)\*\*|(?<![\p{L}\p{N}_])__(?=\S)(?<strongUnder>[\s\S]+?)(?<=\S)__(?![\p{L}\p{N}_])|\*(?=\S)(?<emStar>[\s\S]+?)(?<=\S)\*|(?<![\p{L}\p{N}_])_(?=\S)(?<emUnder>[\s\S]+?)(?<=\S)_(?![\p{L}\p{N}_])|\[(?<label>[^\]]+)\]\((?<target>(?:[^()\s]|\([^()\s]*\))+)\)/gu;
 
 export const inlineSegments = (text: string, marks: Marks = {}): Segment[] => {
   const segments: Segment[] = [];

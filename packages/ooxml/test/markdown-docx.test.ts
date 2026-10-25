@@ -140,6 +140,12 @@ describe("Markdown as CommonMark reads it", () => {
     expect(levels("1. a\n   - b\n2. c\n")).toEqual([0, 1, 0]);
   });
 
+  it("takes a backslash before any ASCII punctuation as an escape, and keeps it before a letter", () => {
+    expect(inlineSegments("costs \\$5 \\& more, \\{x\\} \\~ \\@ \\: but C:\\Akten")).toEqual([
+      { text: "costs $5 & more, {x} ~ @ : but C:\\Akten" },
+    ]);
+  });
+
   it("keeps balanced parentheses in a link target", () => {
     expect(inlineSegments("[Foo](https://en.wikipedia.org/wiki/Foo_(bar)) und (mehr)")).toEqual([
       { text: "Foo", link: "https://en.wikipedia.org/wiki/Foo_(bar)" },

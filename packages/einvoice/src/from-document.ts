@@ -191,12 +191,18 @@ const columnsOf = (header: string[]): Columns | undefined => {
   return { description, quantity, price, total, quantityLabel: header[quantity] ?? "" };
 };
 
+/** The words a sum's label is made of: "Summe", "Netto", "USt", "Betrag", … */
+const SUM_WORD =
+  "(?:zwischen|end|gesamt)?summe|gesamt(?:betrag)?|(?:netto|brutto)(?:betrag)?|übertrag|rechnungsbetrag|umsatzsteuer|ust|mwst|mehrwertsteuer";
+
 /**
- * A sum's label ("Summe netto", "Zwischensumme", "zzgl. USt 19 %") as a word of its own: not
- * "Gesamtpaket", nor "USt-Voranmeldung", a line a tax adviser bills.
+ * A sum's label ("Summe netto", "Zwischensumme", "Netto-Summe", "USt-Betrag", "zzgl. USt 19 %") as
+ * words of its own: not "Gesamtpaket", nor "USt-Voranmeldung", a line a tax adviser bills.
  */
-const SUM_LABEL =
-  /^(?:(?:zwischen|end|gesamt)?summe|gesamt(?:betrag)?|(?:netto|brutto)(?:betrag)?|übertrag|rechnungsbetrag|(?:zzgl\.?\s+)?(?:umsatzsteuer|ust|mwst|mehrwertsteuer))(?![\p{L}\d-])/iu;
+const SUM_LABEL = new RegExp(
+  `^(?:zzgl\\.?\\s+)?(?:${SUM_WORD})(?:-(?:${SUM_WORD}|betrag))*(?![\\p{L}\\d-])`,
+  "iu",
+);
 
 /** A row of sums inside the table of lines: a sum's label and no quantity. */
 const isSumRow = (row: string[], columns: Columns): boolean =>

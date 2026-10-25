@@ -232,6 +232,9 @@ describe("the table of invoice lines", () => {
       ["", "Summe netto", "", "", "876,00 €"],
       ["", "zzgl. USt 19 %", "", "", "166,44 €"],
       ["", "Gesamt", "", "", "1.042,44 €"],
+      ["", "Netto-Summe", "", "", "876,00 €"],
+      ["", "USt-Betrag 19 %", "", "", "166,44 €"],
+      ["", "Brutto-Betrag", "", "", "1.042,44 €"],
     ]);
     expect(lines.map((line) => line.description)).toEqual(["Scanner", "Gesamtpaket Wartung"]);
   });

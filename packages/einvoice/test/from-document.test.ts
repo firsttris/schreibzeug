@@ -236,6 +236,21 @@ describe("the table of invoice lines", () => {
     expect(lines.map((line) => line.description)).toEqual(["Scanner", "Gesamtpaket Wartung"]);
   });
 
+  it("keeps a line whose description only starts like a sum, without a quantity column", () => {
+    const lines = linesOf([
+      ["Leistung", "Betrag"],
+      ["USt-Voranmeldung September 2026", "150,00 €"],
+      ["Umsatzsteuer-Jahreserklärung 2025", "480,00 €"],
+      ["Netto-Lohnabrechnung Oktober", "90,00 €"],
+      ["Summe netto", "720,00 €"],
+    ]);
+    expect(lines.map((line) => line.description)).toEqual([
+      "USt-Voranmeldung September 2026",
+      "Umsatzsteuer-Jahreserklärung 2025",
+      "Netto-Lohnabrechnung Oktober",
+    ]);
+  });
+
   it("takes an hourly rate for the price, not for the hours", () => {
     const lines = linesOf([
       ["Leistung", "Stundensatz", "Stunden", "Betrag"],

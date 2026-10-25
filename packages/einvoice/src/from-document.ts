@@ -191,9 +191,12 @@ const columnsOf = (header: string[]): Columns | undefined => {
   return { description, quantity, price, total, quantityLabel: header[quantity] ?? "" };
 };
 
-/** A sum's label ("Summe netto", "Zwischensumme", "zzgl. USt 19 %"), not "Gesamtpaket". */
+/**
+ * A sum's label ("Summe netto", "Zwischensumme", "zzgl. USt 19 %") as a word of its own: not
+ * "Gesamtpaket", nor "USt-Voranmeldung", a line a tax adviser bills.
+ */
 const SUM_LABEL =
-  /^(?:(?:zwischen|end|gesamt)?summe|gesamt(?:betrag)?|(?:netto|brutto)(?:betrag)?|übertrag|rechnungsbetrag|(?:zzgl\.?\s+)?(?:umsatzsteuer|ust|mwst|mehrwertsteuer))(?:\b|$)/i;
+  /^(?:(?:zwischen|end|gesamt)?summe|gesamt(?:betrag)?|(?:netto|brutto)(?:betrag)?|übertrag|rechnungsbetrag|(?:zzgl\.?\s+)?(?:umsatzsteuer|ust|mwst|mehrwertsteuer))(?![\p{L}\d-])/iu;
 
 /** A row of sums inside the table of lines: a sum's label and no quantity. */
 const isSumRow = (row: string[], columns: Columns): boolean =>

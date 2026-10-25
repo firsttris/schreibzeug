@@ -1,0 +1,72 @@
+# The documentation as a website: https://firsttris.github.io/schreibzeug/
+# Source is docs/, built with MkDocs Material (.github/workflows/docs.yml).
+# Locally: pip install -r requirements-docs.txt && mkdocs serve
+site_name: Schreibzeug
+site_description: >-
+  Schreibzeug, the self-hosted open-source office suite: edit Word, Excel, PowerPoint and PDF files
+  together in the browser or as a desktop app, without a document server. An alternative to Google
+  Docs and Microsoft 365 on your own server.
+site_url: https://firsttris.github.io/schreibzeug/
+repo_url: https://github.com/firsttris/schreibzeug
+repo_name: firsttris/schreibzeug
+edit_uri: edit/main/docs/
+copyright: >-
+  License AGPL-3.0 · © Tristan Teufel and contributors · Schreibzeug builds on the open-source
+  Euro-Office engine and is not affiliated with Euro-Office, ONLYOFFICE, Microsoft or Google.
+
+docs_dir: docs
+# Pages as installation.html rather than installation/: the README links to them so, and relative
+# image paths stay the same as on GitHub.
+use_directory_urls: false
+
+nav:
+  - Overview: index.md
+  - Running it:
+      - Installation: installation.md
+      - Accounts and sharing: accounts.md
+      - Sign-in through Kontext: kontext.md
+      - Desktop app: desktop.md
+  - Working with it:
+      - Files and versions: files.md
+      - Collaboration: collaboration.md
+      - PDFs: pdf.md
+      - E-invoices: e-invoice.md
+      - MCP server (AI assistants): mcp.md
+  - Behind it:
+      - Architecture: architecture.md
+      - The editing engine: engine.md
+      - Development: development.md
+
+theme:
+  name: material
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.details

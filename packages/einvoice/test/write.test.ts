@@ -164,6 +164,15 @@ describe("draftProblems", () => {
     expect(draftProblems({ ...draft, lines: [] })).toEqual(["Die Rechnung hat keine Positionen."]);
   });
 
+  it("takes only days the calendar has", () => {
+    const draft = sampleDraft();
+    expect(draftProblems({ ...draft, issueDate: "2026-02-31", dueDate: "2026-13-01" })).toEqual([
+      "Das Rechnungsdatum fehlt.",
+      "Das Fälligkeitsdatum ist kein Datum.",
+    ]);
+    expect(draftProblems({ ...draft, issueDate: "2028-02-29" })).toEqual([]);
+  });
+
   it("refuses a negative unit price, which EN 16931 forbids (BR-27)", () => {
     const draft = sampleDraft();
     const discount = {

@@ -1,3 +1,4 @@
+import { parseDate } from "./german";
 import type { BasisPoints, Cents, Millis } from "./types";
 
 /*
@@ -116,8 +117,9 @@ export const totalsOf = (draft: Pick<InvoiceDraft, "lines" | "taxMode">): Totals
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** A day of the calendar: Date.parse takes "2026-02-31" in Bun, parseDate checks day and month. */
 const isDate = (value: string | undefined): value is string =>
-  value !== undefined && ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+  value !== undefined && ISO_DATE.test(value) && parseDate(value) === value;
 
 /** ISO 13616: the check digits of an IBAN, mod 97. */
 export const isIban = (value: string): boolean => {

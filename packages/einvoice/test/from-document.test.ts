@@ -190,6 +190,16 @@ describe("the table of invoice lines", () => {
     ]);
     expect(lines.map((line) => line.unitPrice)).toEqual([18900]);
   });
+
+  it("takes an hourly rate for the price, not for the hours", () => {
+    const lines = linesOf([
+      ["Leistung", "Stundensatz", "Stunden", "Betrag"],
+      ["Beratung", "95,00 €", "2,5", "237,50 €"],
+    ]);
+    expect(lines).toEqual([
+      { description: "Beratung", quantity: 2500, unit: "HUR", unitPrice: 9500, taxRate: 1900 },
+    ]);
+  });
 });
 
 describe("German numbers and dates", () => {

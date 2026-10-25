@@ -154,9 +154,12 @@ const TAX_RATE_COLUMN = /ust|mwst|steuer/i;
 const columnsOf = (header: string[]): Columns | undefined => {
   const find = (pattern: RegExp) => header.findIndex((cell) => pattern.test(cell));
   const description = find(/beschreibung|leistung|bezeichnung|artikel|tätigkeit|text/i);
-  const quantity = find(/menge|anzahl|stunden|std\.?|stk/i);
   const price = header.findIndex(
     (cell) => /preis/i.test(cell) || (/satz/i.test(cell) && !TAX_RATE_COLUMN.test(cell)),
+  );
+  // The price column first: "Stundensatz" names hours too, but is the price of one.
+  const quantity = header.findIndex(
+    (cell, index) => index !== price && /menge|anzahl|stunden|std\.?|stk/i.test(cell),
   );
   const total = header.findLastIndex((cell) => /gesamt|betrag|summe|netto/i.test(cell));
   if (description < 0 || (price < 0 && total < 0)) return undefined;

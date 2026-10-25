@@ -1,4 +1,4 @@
-import { strToU8, zipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 import { xlsx, xlsxRows, xlsxSheets } from "../src";
 
@@ -77,5 +77,16 @@ describe("xlsxSheets", () => {
       { name: "Leer", rows: [] },
       { name: "Notizen", rows: [["Hallo"]] },
     ]);
+  });
+});
+
+describe("empty rows written as <row/>", () => {
+  it("keep the rows below them in their place", () => {
+    const files = unzipSync(xlsx([{ name: "S", rows: [["a"], [], ["c"]] }]));
+    const sheet = strFromU8(files["xl/worksheets/sheet1.xml"] ?? new Uint8Array());
+    files["xl/worksheets/sheet1.xml"] = strToU8(
+      sheet.replace('<row r="2"></row>', '<row r="2" ht="30" customHeight="1"/>'),
+    );
+    expect(xlsxSheets(zipSync(files))[0]?.rows).toEqual([["a"], [], ["c"]]);
   });
 });

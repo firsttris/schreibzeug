@@ -16,6 +16,16 @@ describe("blocksMarkdown", () => {
     ).toBe("# Angebot\n\n- Eins\n  - Unter\n\nDanach\n\n| A | B\\|C |\n| --- | --- |\n| zwei<br>Zeilen |  |");
   });
 
+  it("leaves out empty headings and list items", () => {
+    expect(
+      blocksMarkdown([
+        { type: "paragraph", text: "", heading: 1 },
+        { type: "paragraph", text: "Text" },
+        { type: "paragraph", text: " ", list: 0 },
+      ]),
+    ).toBe("Text");
+  });
+
   it("caps headings at six levels", () => {
     expect(tableMarkdown([[]])).toBe("|  |\n| --- |");
     expect(blocksMarkdown([{ type: "paragraph", text: "Tief", heading: 9 }])).toBe("###### Tief");

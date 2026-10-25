@@ -68,7 +68,10 @@ const partPath = (target: string): string => (target.startsWith("/") ? target.sl
 /** The values of one sheet, row by row, as text; trailing empty rows and cells left out. */
 const sheetRows = (sheet: string, shared: string[], dates: boolean[]): string[][] => {
   const rows: string[][] = [];
-  for (const [, rowAttributes = "", rowXml = ""] of sheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
+  // An empty row may be written as <row …/> (a row with only a height, say); it holds no cells.
+  for (const [, rowAttributes = "", rowXml = ""] of sheet.matchAll(
+    /<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g,
+  )) {
     const rowIndex = Number(attribute(rowAttributes, "r") ?? rows.length + 1) - 1;
     const row: string[] = [];
     for (const [, cellAttributes = "", content = ""] of rowXml.matchAll(

@@ -109,3 +109,33 @@ describe("markdownParagraphs", () => {
     ]);
   });
 });
+
+describe("Markdown as CommonMark reads it", () => {
+  it("leaves an empty header cell empty", () => {
+    const [table] = docxContent(markdownDocx("|  | Q1 |\n| --- | --- |\n| a | 1 |")).body;
+    expect(table).toEqual({
+      type: "table",
+      rows: [
+        ["", "Q1"],
+        ["a", "1"],
+      ],
+    });
+  });
+
+  it("strips closing hashes only after a space", () => {
+    expect(markdownBlocks("## Using C#")).toEqual([{ type: "heading", level: 2, text: "Using C#" }]);
+    expect(markdownBlocks("## Titel ##")).toEqual([{ type: "heading", level: 2, text: "Titel" }]);
+  });
+
+  it("takes underscores inside words literally", () => {
+    expect(inlineSegments("set my_var_name and https://x.org/a_b_c")).toEqual([
+      { text: "set my_var_name and https://x.org/a_b_c" },
+    ]);
+    expect(inlineSegments("ein _kursives_ Wort und __fett__")).toEqual([
+      { text: "ein " },
+      { italic: true, text: "kursives" },
+      { text: " Wort und " },
+      { bold: true, text: "fett" },
+    ]);
+  });
+});

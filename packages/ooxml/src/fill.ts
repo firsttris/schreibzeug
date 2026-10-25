@@ -9,6 +9,15 @@ import { escapeXml } from "./zip";
  * says which ones were not.
  */
 
+/** The text of XML text content; placeholders are named as a person reads them. */
+const unescapeXml = (text: string): string =>
+  text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+
 const TEXT_PARTS =
   /^(word\/(document|header\d*|footer\d*)|xl\/(sharedStrings|worksheets\/sheet\d+)|ppt\/slides\/slide\d+)\.xml$/;
 const PLACEHOLDER = /\[[^\][<>]{1,60}\]/g;
@@ -26,7 +35,8 @@ export const placeholdersOf = (bytes: Uint8Array): string[] => {
   const found = new Set<string>();
   for (const [path, data] of Object.entries(unzipSync(bytes))) {
     if (!TEXT_PARTS.test(path)) continue;
-    for (const [placeholder] of strFromU8(data).matchAll(PLACEHOLDER)) found.add(placeholder.slice(1, -1));
+    for (const [placeholder] of strFromU8(data).matchAll(PLACEHOLDER))
+      found.add(unescapeXml(placeholder.slice(1, -1)));
   }
   return [...found];
 };

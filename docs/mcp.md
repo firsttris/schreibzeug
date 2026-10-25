@@ -50,7 +50,7 @@ none) and the time it was last used.
 
 | Scope | What it may do |
 |---|---|
-| `read` | Only `GET` requests; over MCP it does not even see the tools that write |
+| `read` | Only `GET` requests, and not the links of a node (`GET /api/nodes/:id/invites`, `refuseReadToken`): their secret would let another account edit; over MCP it does not even see the tools that write |
 | `write` | What its user may do |
 
 `requireUser` (`src/auth/middleware.ts`) takes a session cookie or `Authorization: Bearer <token>`. A

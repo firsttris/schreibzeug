@@ -15,14 +15,15 @@ export const tableMarkdown = (rows: string[][]): string => {
 /** A Word document's blocks as Markdown: headings, list items, paragraphs and tables. */
 export const blocksMarkdown = (blocks: DocxBlock[]): string =>
   blocks
+    // Empty paragraphs, headings and list items are spacing, not content.
+    .filter((block) => block.type === "table" || block.text.trim() !== "")
     .map((block) => {
       if (block.type === "table") return tableMarkdown(block.rows);
       if (block.heading !== undefined) return `${"#".repeat(Math.min(block.heading, 6))} ${block.text}`;
       if (block.list !== undefined) return `${"  ".repeat(block.list)}- ${block.text}`;
       return block.text;
     })
-    // Empty paragraphs are spacing, not content; a list stays together.
-    .filter((text) => text.trim() !== "")
+    // A list stays together.
     .reduce((text, part, index, parts) => {
       if (index === 0) return part;
       const together = /^\s*- /.test(part) && /^\s*- /.test(parts[index - 1] ?? "");

@@ -129,3 +129,21 @@ describe("personal access tokens", () => {
     expect(reply.status).toBe(400);
   });
 });
+
+describe("read tokens and links", () => {
+  it("do not reveal the secret of a link, which would let someone else edit", async () => {
+    const { token } = await makeToken(anna, { name: "Nur lesen, Links", scope: "read" });
+    const folder = (await (await newFolder(withCookie(anna))).json()) as { id: string };
+    const link = await server.app.request(
+      `/api/nodes/${folder.id}/invites`,
+      withCookie(anna, { method: "POST", body: JSON.stringify({ role: "edit", days: 7 }) }),
+    );
+    expect(link.status).toBe(201);
+    const listed = await server.app.request(`/api/nodes/${folder.id}/invites`, withToken(token));
+    expect(listed.status).toBe(403);
+    expect(await listed.text()).not.toContain(((await link.json()) as { token: string }).token);
+    // A token that may write may list them, as its user may.
+    const { token: writer } = await makeToken(anna, { name: "Schreiben, Links", scope: "write" });
+    expect((await server.app.request(`/api/nodes/${folder.id}/invites`, withToken(writer))).status).toBe(200);
+  });
+});

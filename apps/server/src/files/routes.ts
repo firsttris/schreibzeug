@@ -12,7 +12,7 @@ import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
 import { type Context, Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import type { AuthEnv } from "../auth/middleware";
+import { type AuthEnv, refuseReadToken } from "../auth/middleware";
 import type { BlobStore } from "../blobs";
 import type { Database } from "../db/database";
 import { fail, ok, type Result, statusOf } from "../result";
@@ -252,7 +252,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
           return respond(c, shares.removeShare(db, userOf(c), id, userId), (list) => list);
         },
       )
-      .get("/nodes/:id/invites", validate("param", idParam), (c) =>
+      .get("/nodes/:id/invites", refuseReadToken, validate("param", idParam), (c) =>
         respond(c, invites.listInvites(db, userOf(c), c.req.valid("param").id), (list) => list.map(toInvite)),
       )
       .post("/nodes/:id/invites", validate("param", idParam), validate("json", createInviteSchema), (c) =>

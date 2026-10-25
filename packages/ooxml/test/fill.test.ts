@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { docxContent, fillPlaceholders, placeholdersOf, TEMPLATES, xlsxSheets } from "../src";
+import { docxContent, fillPlaceholders, markdownDocx, placeholdersOf, TEMPLATES, xlsxSheets } from "../src";
 
 const template = (id: string) => {
   const found = TEMPLATES.find((entry) => entry.id === id);
@@ -32,5 +32,14 @@ describe("fillPlaceholders", () => {
     const deck = fillPlaceholders(template("praesentation"), { Titel: "Lagerverwaltung" });
     expect(deck.missing).toEqual([]);
     expect(placeholdersOf(deck.bytes)).not.toContain("Titel");
+  });
+});
+
+describe("placeholders with & < >", () => {
+  it("are named as written, and filled by that name", () => {
+    const document = markdownDocx("Firma: [Firma & Co]");
+    expect(placeholdersOf(document)).toEqual(["Firma & Co"]);
+    const filled = fillPlaceholders(document, { "Firma & Co": "Müller" });
+    expect(filled).toMatchObject({ missing: [], left: [] });
   });
 });

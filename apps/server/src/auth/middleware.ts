@@ -57,3 +57,12 @@ export const requireSession = createMiddleware<AuthEnv>(async (c, next) => {
     return refuse(c, 403, "Das geht nur angemeldet in der App, nicht mit einem Zugangsschlüssel.");
   await next();
 });
+
+/**
+ * For what a "read" token must not reach although it only reads: the secrets of links, which would
+ * let another account edit what the token may only look at.
+ */
+export const refuseReadToken = createMiddleware<AuthEnv>(async (c, next) => {
+  if (c.var.token?.scope === "read") return refuse(c, 403, "Dieser Zugangsschlüssel darf nur lesen.");
+  await next();
+});

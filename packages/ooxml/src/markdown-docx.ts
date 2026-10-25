@@ -12,9 +12,12 @@ import { escapeXml } from "./zip";
 type Marks = { bold?: boolean; italic?: boolean; code?: boolean; link?: string };
 type Segment = Marks & { text: string };
 
-/** Inline Markdown: emphasis, code and links, nested; a backslash takes the next character literally. */
+/**
+ * Inline Markdown: emphasis, code and links, nested; a backslash takes the next character literally.
+ * As in CommonMark, "_" marks emphasis only at word bounds, so my_var_name stays as it is.
+ */
 const INLINE =
-  /\\([\\`*_[\]()#+\-.!|>])|`([^`]+)`|(\*\*|__)(?=\S)([\s\S]+?)(?<=\S)\3|(\*|_)(?=\S)([\s\S]+?)(?<=\S)\5|\[([^\]]+)\]\(([^)\s]+)\)/g;
+  /\\(?<escaped>[\\`*_[\]()#+\-.!|>])|`(?<code>[^`]+)`|\*\*(?=\S)(?<strongStar>[\s\S]+?)(?<=\S)\*\*|(?<![\p{L}\p{N}_])__(?=\S)(?<strongUnder>[\s\S]+?)(?<=\S)__(?![\p{L}\p{N}_])|\*(?=\S)(?<emStar>[\s\S]+?)(?<=\S)\*|(?<![\p{L}\p{N}_])_(?=\S)(?<emUnder>[\s\S]+?)(?<=\S)_(?![\p{L}\p{N}_])|\[(?<label>[^\]]+)\]\((?<target>[^)\s]+)\)/gu;
 
 export const inlineSegments = (text: string, marks: Marks = {}): Segment[] => {
   const segments: Segment[] = [];
@@ -22,7 +25,9 @@ export const inlineSegments = (text: string, marks: Marks = {}): Segment[] => {
   for (const match of text.matchAll(INLINE)) {
     const at = match.index ?? 0;
     if (at > from) segments.push({ ...marks, text: text.slice(from, at) });
-    const [, escaped, code, , strong, , emphasis, label, target] = match;
+    const { escaped, code, strongStar, strongUnder, emStar, emUnder, label, target } = match.groups ?? {};
+    const strong = strongStar ?? strongUnder;
+    const emphasis = emStar ?? emUnder;
     if (escaped !== undefined) segments.push({ ...marks, text: escaped });
     else if (code !== undefined) segments.push({ ...marks, code: true, text: code });
     else if (strong !== undefined) segments.push(...inlineSegments(strong, { ...marks, bold: true }));
@@ -82,7 +87,8 @@ type Block =
   | { type: "code"; lines: string[] }
   | { type: "rule" };
 
-const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
+// A closing run of "#" counts only after a space (CommonMark 4.2): "## Using C#" keeps its "#".
+const HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;
 const ITEM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
 const FENCE = /^\s*(```|~~~)/;
@@ -198,7 +204,7 @@ const tableXml = (rows: string[][], links: string[]): string => {
       const text = row[index] ?? "";
       return `<w:tc><w:tcPr><w:tcW w:w="${column}" w:type="dxa"/></w:tcPr>${paragraph(
         '<w:spacing w:before="0" w:after="0"/>',
-        runsXml(header ? `**${text.replace(/\*\*/g, "")}**` : text, links),
+        runsXml(header && text ? `**${text.replace(/\*\*/g, "")}**` : text, links),
       )}</w:tc>`;
     }).join("")}</w:tr>`;
   return `<w:tbl><w:tblPr><w:tblW w:w="${column * width}" w:type="dxa"/><w:tblBorders>${borders}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="57" w:type="dxa"/><w:left w:w="85" w:type="dxa"/><w:bottom w:w="57" w:type="dxa"/><w:right w:w="85" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${Array.from(

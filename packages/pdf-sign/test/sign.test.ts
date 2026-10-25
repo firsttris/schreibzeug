@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import forge from "node-forge";
 import { PDFDict, PDFDocument, PDFHexString, PDFName, PDFString } from "pdf-lib";
 import { beforeAll, describe, expect, it } from "vitest";
 import { checkSignatures, readIdentity, type SigningIdentity, signPdf } from "../src";
@@ -107,6 +108,37 @@ describe("signPdf and checkSignatures", () => {
     const pdf = await signed({ reason: "Zgoda – Łódź" }, { ...identity, name: "Łukasz Dvořák" });
     expect(await signatureEntry(pdf, "Name")).toBe("Łukasz Dvořák");
     expect(checkSignatures(pdf)[0]?.reason).toBe("Zgoda – Łódź");
+  });
+
+  it("reads a signature whose DER ends in a zero byte", async () => {
+    const pdf = await signed();
+    const text = new TextDecoder("latin1").decode(pdf);
+    const [, start = 0, end = 0] = (/\/ByteRange \[0 (\d+) (\d+) \d+\]/.exec(text) ?? []).map(Number);
+    const { asn1, util } = forge;
+    const der = util.hexToBytes(text.slice(start + 1, end - 1));
+    // node-forge takes options here, though its types say a boolean: the zeros after the DER stay.
+    const message = asn1.fromDer(der, { parseAllBytes: false } as unknown as boolean);
+    const child = (node: forge.asn1.Asn1, index: number) =>
+      (node.value as forge.asn1.Asn1[]).at(index) as forge.asn1.Asn1;
+    // ContentInfo → [0] SignedData → signerInfos → the SignerInfo. An unsigned attribute after the
+    // signature (RFC 2315 9.2) ending in 0x00 leaves it valid, as a signature value ending in 0x00
+    // does about once in 256 signatures.
+    const signerInfo = child(child(child(child(message, 1), 0), -1), 0);
+    const universal = (type: number, value: string | forge.asn1.Asn1[]) =>
+      asn1.create(asn1.Class.UNIVERSAL, type, Array.isArray(value), value);
+    (signerInfo.value as forge.asn1.Asn1[]).push(
+      asn1.create(asn1.Class.CONTEXT_SPECIFIC, 1, true, [
+        universal(asn1.Type.SEQUENCE, [
+          universal(asn1.Type.OID, asn1.oidToDer("1.2.3.4").getBytes()),
+          universal(asn1.Type.SET, [universal(asn1.Type.OCTETSTRING, "\0")]),
+        ]),
+      ]),
+    );
+    const hex = util.bytesToHex(asn1.toDer(message).getBytes());
+    expect(hex.endsWith("00")).toBe(true);
+    const changed = pdf.slice();
+    changed.set(new TextEncoder().encode(hex.padEnd(end - start - 2, "0")), start + 1);
+    expect(checkSignatures(changed)[0]).toMatchObject({ intact: true, problem: null });
   });
 
   it("finds no signature in an unsigned PDF", () => {

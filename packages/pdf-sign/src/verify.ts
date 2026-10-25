@@ -122,14 +122,30 @@ const checkPkcs7 = (der: string, data: Uint8Array) => {
   };
 };
 
+/**
+ * The DER signature without the zeros that fill the rest of /Contents. Its length is the one its
+ * outer header states (X.690 8.1.3): the signature itself may end in a zero byte.
+ */
+const withoutPadding = (bytes: string): string => {
+  const first = bytes.charCodeAt(1);
+  if (first < 0x80) return bytes.slice(0, 2 + first);
+  const count = first & 0x7f;
+  // An indefinite length (0x80) is not DER; the parser is left to refuse it.
+  if (count === 0) return bytes;
+  const contentLength = Array.from(bytes.slice(2, 2 + count)).reduce(
+    (sum, char) => sum * 256 + char.charCodeAt(0),
+    0,
+  );
+  return bytes.slice(0, 2 + count + contentLength);
+};
+
 /** Every signature in the PDF, in file order, each checked. */
 export const checkSignatures = (pdf: Uint8Array): SignatureCheck[] => {
   const text = latin1(pdf);
   return [...text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g)].map((match) => {
     const range = match.slice(1, 5).map(Number) as ByteRange;
     const [, length, second] = range;
-    const hex = text.slice(length + 1, second - 1).replace(/0+$/, "");
-    const der = forge.util.hexToBytes(hex.length % 2 ? `${hex}0` : hex);
+    const der = withoutPadding(forge.util.hexToBytes(text.slice(length + 1, second - 1)));
     const dictionaryStart = text.lastIndexOf("<<", match.index ?? 0);
     const dictionaryEnd = text.indexOf(">>", second);
     let checked: ReturnType<typeof checkPkcs7>;

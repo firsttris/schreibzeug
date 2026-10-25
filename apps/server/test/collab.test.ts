@@ -277,6 +277,19 @@ describe("collaboration session", () => {
     ]);
   });
 
+  it("sends a client away that comes back to a session which never gave out its id", () => {
+    const { log } = run([
+      ["a", auth("anna")],
+      ["b2", auth("ben", { sessionId: "b", user: { id: "ben", indexUser: 1 }, lastOtherSaveTime: 0 })],
+    ]);
+    expect(log[1]?.out).toEqual([
+      {
+        to: "self",
+        message: { type: "error", description: "Restore error. Session ended.", code: RESTORE_CODE },
+      },
+    ]);
+  });
+
   it("leaves a text lock someone took meanwhile to them when its former holder returns", () => {
     const { session: held } = run([
       ["a", auth("anna")],
@@ -390,10 +403,36 @@ describe("collaboration hub", () => {
     expect(b.messages.map((m) => m.type)).toContain("saveChanges");
     expect(a.messages.filter((m) => m.type === "saveChanges")).toEqual([]);
 
+    hub.message(b.id, { type: "schreibzeug:saved", index: 1 });
+
     hub.close(a.id);
     expect(b.messages.at(-1)).toMatchObject({ type: "connectState", participants: [{ id: "ben2" }] });
     hub.close(b.id);
     expect(hub.session(FILE)).toBeUndefined();
+  });
+
+  it("keeps changes no version holds after the last one leaves, for whoever comes next", async () => {
+    const { hub, join } = setup();
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    hub.close(a.id); // the connection drops before Anna's editor saved
+
+    const back = await join(ANNA);
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "auth",
+    });
+
+    const b = await join(BEN);
+    hub.message(b.id, auth("ben"));
+    expect(b.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c1"' }]);
   });
 
   it("lets a viewer follow along but not change anything", async () => {

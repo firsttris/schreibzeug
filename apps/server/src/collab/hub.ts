@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   createSession,
   disconnect,
+  hasUnsavedChanges,
   type Incoming,
   licenseMessage,
   type Outgoing,
@@ -63,7 +64,9 @@ const CHANGING = new Set([
 
 /**
  * Holds the sessions of all open files and delivers what session.ts decides. A session starts
- * with the first connection to a file, at the file's newest version, and ends with the last one.
+ * with the first connection to a file, at the file's newest version, and ends with the last one,
+ * unless its log holds changes no stored version has: then it waits for the next connection, which
+ * opens the same version, replays them and saves them (or, after a lost connection, restores).
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
 export const createHub = ({ access, now = Date.now }: HubDeps) => {
@@ -128,7 +131,10 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (!connection) return;
       apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
       connections.delete(connectionId);
-      if (membersOf(connection.fileId).length === 0) sessions.delete(connection.fileId);
+      const session = sessions.get(connection.fileId);
+      if (membersOf(connection.fileId).length === 0 && session && !hasUnsavedChanges(session)) {
+        sessions.delete(connection.fileId);
+      }
     },
 
     /** For tests and diagnostics: the session of a file, if one is open. */

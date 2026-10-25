@@ -82,7 +82,8 @@ The channel reconnects on its own, with a growing pause up to five seconds. Whil
 engine starts its `Disconnect` action and takes no edits (`common/apiBase.js`
 `CoAuthoringApi.onDisconnect`); the editor's status line says "Verbindung unterbrochen" until the
 action ends. The engine comes back with its old session id. The relay restores the session if
-nobody else changed the document meanwhile (the last change by someone else is the one the client
+it gave out that id (a session that started over, after a server restart say, lacks the changes the
+engine's copy holds, so the engine has to open the document again), if nobody else changed the document meanwhile (the last change by someone else is the one the client
 last saw, `lastOtherSaveTime`) and the blocks the engine still holds pass the same check as a
 `getLock`: a text lock someone else took meanwhile stays theirs, and a spreadsheet or slide block
 the editor's rule refuses ends the restore ("Restore error. Locks not checked.", DocsCoServer.js
@@ -92,8 +93,11 @@ the reconnect failed.
 
 ## Saving
 
-The session lives only in the server's memory and ends with the last person leaving; what no
-stored version holds is gone then. So the editor saves on its own.
+The session lives only in the server's memory. It ends with the last person leaving once a stored
+version holds its whole log; until then it stays, so someone whose connection dropped before their
+editor saved can restore it, and whoever opens the file next opens the session's version, replays
+the log and saves it. A server restart loses what no stored version holds. So the editor saves on
+its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The

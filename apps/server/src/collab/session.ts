@@ -41,6 +41,11 @@ export type Session = {
   nextIndexUser: number;
   /** How many changes of the log a stored version holds: the rest exists only in this session. */
   savedIndex: number;
+  /**
+   * The session ids this session gave out (sdkjs keeps the one from its `auth` answer and comes
+   * back with it after a lost connection): a restore with another one belongs to an ended session.
+   */
+  sessionIds: string[];
 };
 
 export type Recipient = { to: "self" } | { to: "others" } | { to: "all" };
@@ -59,7 +64,11 @@ export const createSession = (fileId: string, baseVersion: number): Session => (
   participants: [],
   nextIndexUser: 1,
   savedIndex: 0,
+  sessionIds: [],
 });
+
+/** Whether the log holds changes no stored version has: the session must not end yet. */
+export const hasUnsavedChanges = (session: Session): boolean => session.savedIndex < session.changes.length;
 
 /** Our message telling everyone how much of the log is stored in a version. */
 const savedMessage = (session: Session) => ({ type: "schreibzeug:saved", index: session.savedIndex });
@@ -120,13 +129,21 @@ const isViewer = (data: Incoming): boolean => data.mode === "view";
 export const RESTORE_CODE = 4004;
 
 /**
- * A client that lost its connection comes back with its old session id. That works only if
- * nobody else changed the document meanwhile: the last change by someone else must be the one the
+ * A client that lost its connection comes back with its old session id. That works only if this
+ * session gave out that id: a session that started over (the server restarted, say) has none of
+ * the changes the client's copy holds, and anyone joining it would open a different document.
+ * And it works only if nobody else changed the document meanwhile: the last change by someone else must be the one the
  * client last saw (`lastOtherSaveTime`, compared in whole seconds like DocsCoServer), and the
  * blocks it held may be taken again. Then it keeps its user id and its locks; otherwise it gets an
  * error and has to open the document again (DocsCoServer.js auth, "Restore error. …").
  */
 const restore = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  if (!session.sessionIds.includes(String(data.sessionId))) {
+    return {
+      session,
+      out: [self({ type: "error", description: "Restore error. Session ended.", code: RESTORE_CODE })],
+    };
+  }
   const { idOriginal, username } = readUser(data);
   const user = (data.user ?? {}) as AuthUser;
   const indexUser = typeof user.indexUser === "number" ? user.indexUser : session.nextIndexUser;
@@ -161,6 +178,7 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
   const next: Session = {
     ...session,
     nextIndexUser: Math.max(session.nextIndexUser, indexUser + 1),
+    sessionIds: [...session.sessionIds, connectionId],
     locks,
     participants: [...session.participants.filter((p) => p.id !== id), participant],
   };
@@ -205,6 +223,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
   const next: Session = {
     ...session,
     nextIndexUser: indexUser + 1,
+    sessionIds: [...session.sessionIds, connectionId],
     participants: [...session.participants.filter((p) => p.connectionId !== connectionId), participant],
     // DocsCoServer keeps the editor type per connection; one file is always in one editor.
     editorType: typeof data.editorType === "number" ? data.editorType : session.editorType,

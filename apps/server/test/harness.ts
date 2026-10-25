@@ -16,8 +16,17 @@ export const MAX_UPLOAD_BYTES = 64 * 1024;
 
 const TEST_SECRET = "a-test-secret-that-is-long-enough-for-better-auth";
 
-/** `bearer`: builds the check of other services' tokens from the server's database (auth/bearer.ts). */
-export const startServer = async ({ bearer }: { bearer?: (db: Database) => Bearer } = {}) => {
+/**
+ * `bearer`: builds the check of other services' tokens from the server's database (auth/bearer.ts);
+ * `pendingShares`: shares may wait for an address without an account (as with a sign-in provider).
+ */
+export const startServer = async ({
+  bearer,
+  pendingShares = false,
+}: {
+  bearer?: (db: Database) => Bearer;
+  pendingShares?: boolean;
+} = {}) => {
   const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
   const connection = connect(join(dataDir, "schreibzeug.db"));
   migrateDatabase(connection.db);
@@ -28,6 +37,7 @@ export const startServer = async ({ bearer }: { bearer?: (db: Database) => Beare
     db: connection.db,
     blobs: createBlobStore(join(dataDir, "blobs")),
     maxUploadBytes: MAX_UPLOAD_BYTES,
+    pendingShares,
     log: () => {},
   });
 

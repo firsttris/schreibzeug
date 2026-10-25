@@ -1,21 +1,35 @@
 import type { Share, ShareRole } from "@schreibzeug/files-api";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
-import { type NodeRow, nodes, shares, user } from "../db/schema";
+import { type NodeRow, nodes, pendingShares, shares, user } from "../db/schema";
 import { fail, ok, type Result } from "../result";
 import { requireRole, type UserId } from "./access";
 
 const NO_ACCOUNT = "Kein Konto mit dieser E-Mail.";
 
-/** Who a node is shared with, by name as a person reads it (SQLite's lower() knows only ASCII). */
-const listOf = (db: Queryable, nodeId: string): Share[] =>
-  db
+/** The id a share with an address without an account goes by (to remove it). */
+const PENDING = "pending:";
+
+/**
+ * Who a node is shared with, by name as a person reads it (SQLite's lower() knows only ASCII); then
+ * the addresses that have no account yet.
+ */
+const listOf = (db: Queryable, nodeId: string): Share[] => [
+  ...db
     .select({ userId: shares.userId, name: user.name, email: user.email, role: shares.role })
     .from(shares)
     .innerJoin(user, eq(user.id, shares.userId))
     .where(eq(shares.nodeId, nodeId))
     .all()
-    .sort((a, b) => a.name.localeCompare(b.name, "de"));
+    .sort((a, b) => a.name.localeCompare(b.name, "de")),
+  ...db
+    .select({ email: pendingShares.email, role: pendingShares.role })
+    .from(pendingShares)
+    .where(eq(pendingShares.nodeId, nodeId))
+    .orderBy(pendingShares.email)
+    .all()
+    .map(({ email, role }) => ({ userId: `${PENDING}${email}`, name: email, email, role, pending: true })),
+];
 
 /** Who a node is shared with; only its owner may ask. */
 export const listShares = (db: Queryable, owner: UserId, nodeId: string): Result<Share[]> => {
@@ -25,14 +39,17 @@ export const listShares = (db: Queryable, owner: UserId, nodeId: string): Result
 };
 
 /**
- * Shares a node with the account behind an e-mail address, or changes the role it has. The person
- * must have an account: there are no invitations yet. `email` comes lowercased (putShareSchema).
+ * Shares a node with the account behind an e-mail address, or changes the role it has. Without an
+ * account the share waits for one (`pending`, only where a sign-in provider confirms addresses,
+ * see claimPendingShares); otherwise the person must have an account. `email` comes lowercased
+ * (putShareSchema).
  */
 export const putShare = (
   db: Queryable,
   owner: UserId,
   nodeId: string,
   input: { email: string; role: ShareRole },
+  { pending = false }: { pending?: boolean } = {},
 ): Result<Share[]> => {
   const access = requireRole(db, owner, nodeId, "owner");
   if (!access.ok) return access;
@@ -41,7 +58,14 @@ export const putShare = (
     .from(user)
     .where(eq(sql`lower(${user.email})`, input.email))
     .get();
-  if (!grantee) return fail("not_found", NO_ACCOUNT);
+  if (!grantee && !pending) return fail("not_found", NO_ACCOUNT);
+  if (!grantee) {
+    db.insert(pendingShares)
+      .values({ nodeId, email: input.email, role: input.role })
+      .onConflictDoUpdate({ target: [pendingShares.nodeId, pendingShares.email], set: { role: input.role } })
+      .run();
+    return ok(listOf(db, nodeId));
+  }
   if (grantee.id === owner) return fail("invalid", "Das gehört dir schon.");
   db.insert(shares)
     .values({ nodeId, userId: grantee.id, role: input.role })
@@ -58,10 +82,30 @@ export const removeShare = (
 ): Result<Share[]> => {
   const access = requireRole(db, owner, nodeId, "owner");
   if (!access.ok) return access;
-  db.delete(shares)
-    .where(and(eq(shares.nodeId, nodeId), eq(shares.userId, userId)))
-    .run();
+  if (userId.startsWith(PENDING)) {
+    db.delete(pendingShares)
+      .where(and(eq(pendingShares.nodeId, nodeId), eq(pendingShares.email, userId.slice(PENDING.length))))
+      .run();
+  } else {
+    db.delete(shares)
+      .where(and(eq(shares.nodeId, nodeId), eq(shares.userId, userId)))
+      .run();
+  }
   return ok(listOf(db, nodeId));
+};
+
+/**
+ * Turns the shares waiting for an address into shares of the account that now has it. Only for an
+ * address the sign-in provider confirmed (Kontext, auth.ts and bearer.ts): with a password anyone
+ * could sign up as anybody's address.
+ */
+export const claimPendingShares = (db: Queryable, userId: UserId, email: string): void => {
+  const address = email.toLowerCase();
+  const waiting = db.select().from(pendingShares).where(eq(pendingShares.email, address)).all();
+  for (const { nodeId, role } of waiting) {
+    db.insert(shares).values({ nodeId, userId, role }).onConflictDoNothing().run();
+  }
+  db.delete(pendingShares).where(eq(pendingShares.email, address)).run();
 };
 
 export type SharedWithMe = { node: NodeRow; role: ShareRole; ownerName: string };

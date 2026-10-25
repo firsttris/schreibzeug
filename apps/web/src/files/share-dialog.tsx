@@ -117,7 +117,9 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm font-medium">{entry.name}</span>
-                <span className="truncate text-xs text-[var(--muted-foreground)]">{entry.email}</span>
+                <span className="truncate text-xs text-[var(--muted-foreground)]">
+                  {entry.pending ? "Noch ohne Konto: gilt ab der ersten Anmeldung über Kontext" : entry.email}
+                </span>
               </span>
               <RoleSelect
                 value={entry.role}

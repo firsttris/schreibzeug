@@ -77,6 +77,15 @@ client id as audience and is refused. `apps/server/src/auth/bearer.ts` checks it
 from the provider's discovery document and finds the person by `sub` (the account the sign-in
 keeps), else by address, else creates them; the request then has exactly that person's rights.
 
+## Files in Kontext
+
+Kontext puts files of Dokumente where they belong: as a card in its chat, linked to a task, attached
+to an appointment. Each opens `/documents/edit/<id>` in the module. So that the people there may
+open it, Kontext's server shares the file with them to view, as its owner, with the owner's token
+(`PUT /api/nodes/:id/shares`). Colleagues who never opened Dokumente have no account yet; their
+share waits for their address and holds from their first sign-in through Kontext
+([accounts](accounts.md#sharing)).
+
 ## Settings
 
 | Variable | |
@@ -93,6 +102,8 @@ the image `tristanteu/schreibzeug` (`docker/Dockerfile`, published by **Release*
 
 ## Tests
 
+`apps/server/test/pending-shares.test.ts`: a share with an address that waits, holds once the
+person comes through Kontext, never goes to a sign-up with a password, and can be taken back.
 `apps/server/test/bearer.test.ts`: tokens found by address and kept by subject, a new account,
 refused audience, issuer, subject and garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
 `apps/web/src/embed/messages.test.ts`: origin and window checks, when the app counts as embedded,

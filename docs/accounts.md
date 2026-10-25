@@ -31,8 +31,13 @@ cursors and on comments are real.
 ## Sharing
 
 The owner shares a folder or a file with the account behind an e-mail address, as `edit` or
-`view` (table `shares`; `src/files/shares.ts`). There are no invitations yet: the person needs an
-account. A share on a folder holds for everything below it; the user's role on a node is "owner",
+`view` (table `shares`; `src/files/shares.ts`). The person needs an account, unless the server
+signs in through Kontext: then a share with an address without an account waits (table
+`pending_shares`; the share dialog says "Noch ohne Konto") and becomes a share when that address
+gets an account the provider confirmed, at its first sign-in through Kontext or with Kontext's
+first token for it (`claimPendingShares`). A sign-up with a password never gets it, since anyone
+could sign up with anybody's address. Kontext uses this when a document goes into a chat, a task or
+an appointment ([Schreibzeug in Kontext](kontext.md#files-in-kontext)). A share on a folder holds for everything below it; the user's role on a node is "owner",
 or the strongest share on the node or on any folder above it, found with one recursive query
 (`roleOf`).
 

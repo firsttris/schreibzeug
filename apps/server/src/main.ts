@@ -56,6 +56,7 @@ const app = createApp({
   db,
   blobs: createBlobStore(join(resolve(dataDir), "blobs")),
   maxUploadBytes,
+  pendingShares: Boolean(oidc),
   collab: { hub, upgradeWebSocket },
   // Kontext's tokens name this server's address, so they need it (SCHREIBZEUG_URL).
   ...(oidc && publicUrl

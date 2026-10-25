@@ -30,7 +30,13 @@ import {
 } from "./serialize";
 import * as shares from "./shares";
 
-export type FilesDeps = { db: Database; blobs: BlobStore; maxUploadBytes: number };
+export type FilesDeps = {
+  db: Database;
+  blobs: BlobStore;
+  maxUploadBytes: number;
+  /** Shares may wait for an address without an account (a sign-in provider confirms addresses). */
+  pendingShares?: boolean;
+};
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
 const userOf = (c: Context<AuthEnv>) => c.var.user.id;
@@ -81,7 +87,7 @@ export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
     respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
   );
 
-export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
+export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }: FilesDeps) => {
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -228,7 +234,9 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes }: FilesDeps) => {
       .put("/nodes/:id/shares", validate("param", idParam), validate("json", putShareSchema), async (c) =>
         respond(
           c,
-          shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json")),
+          shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json"), {
+            pending: pendingShares,
+          }),
           (list) => list,
         ),
       )

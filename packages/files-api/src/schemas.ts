@@ -53,6 +53,8 @@ export const shareSchema = z.object({
   name: z.string(),
   email: z.string(),
   role: shareRoleSchema,
+  /** Shared with an address that has no account yet; it holds once the person signs in through Kontext. */
+  pending: z.boolean().optional(),
 });
 
 export const putShareSchema = z.object({

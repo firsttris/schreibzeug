@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import type { Database } from "../db/database";
 import { account, user } from "../db/schema";
+import { claimPendingShares } from "../files/shares";
 import type { SessionUser } from "./auth";
 
 /**
@@ -69,6 +70,8 @@ const personOf = (db: Database, providerId: string, subject: string, email: stri
       tx.insert(user)
         .values({ ...person, emailVerified: true, createdAt: now, updatedAt: now })
         .run();
+      // The provider vouches for the address: what was shared with it is theirs now.
+      claimPendingShares(tx, person.id, email);
     }
     tx.insert(account)
       .values({

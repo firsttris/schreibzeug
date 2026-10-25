@@ -8,6 +8,7 @@ import type { Database } from "../db/database";
 import * as schema from "../db/schema";
 import { findInvitation } from "../files/invites";
 import { adoptOwnerless } from "../files/repository";
+import { claimPendingShares } from "../files/shares";
 
 export type AuthDeps = {
   db: Database;
@@ -90,9 +91,11 @@ export const createAuth = ({ db, secret, openSignup, trustedOrigins = [], baseUr
               throw new APIError("FORBIDDEN", { message: "Neue Konten legt hier nur die Verwaltung an." });
             }
           },
-          // The first account takes over the files from before there were accounts.
+          // The first account takes over the files from before there were accounts. An address
+          // the provider confirmed gets what was shared with it before it had an account.
           after: async (user) => {
             if (userCount(db) === 1) adoptOwnerless(db, user.id);
+            if (user.emailVerified) claimPendingShares(db, user.id, user.email);
           },
         },
       },

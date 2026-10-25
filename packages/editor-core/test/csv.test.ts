@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CSV_DELIMITER_CODES, detectDelimiter, encodeCsv } from "../src/csv";
+import { CSV_DELIMITER_CODES, decodeCsv, detectDelimiter, encodeCsv } from "../src/csv";
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 
@@ -12,6 +12,27 @@ describe("the delimiter of a CSV file", () => {
 
   it("does not count what is quoted, nor the byte order mark", () => {
     expect(detectDelimiter(bytes('﻿"Müller, Hans";Köln\n"Schmidt, Eva";Bonn'))).toBe("semicolon");
+  });
+
+  it("does not count what is quoted across a line break", () => {
+    const file = bytes('name,note\r\nMüller,"Zeile eins\r\nx;y;z;w"\r\n');
+    expect(detectDelimiter(file)).toBe("comma");
+    expect(decodeCsv(file)).toEqual([
+      ["name", "note"],
+      ["Müller", "Zeile eins\r\nx;y;z;w"],
+    ]);
+  });
+
+  it("takes a quote inside a field for a character, not for the start of a quoted part", () => {
+    const file = 'Artikel;Preis\nMonitor, schwarz, matt, 27";199\nMaus;19\nTastatur;29\nKabel;5\nHub;25';
+    expect(detectDelimiter(bytes(file))).toBe("semicolon");
+    expect(detectDelimiter(bytes('a;b\n"x ""y"", z, w";1\n'))).toBe("semicolon");
+    expect(detectDelimiter(bytes('id, text\n1, "a; b; c"\n2, "d; e; f"\n'))).toBe("comma");
+  });
+
+  it("looks at the first 20 lines with content only", () => {
+    const head = "a,b\n\n".repeat(20);
+    expect(detectDelimiter(bytes(`${head}${"x;y;z\n".repeat(30)}`))).toBe("comma");
   });
 
   it("is ; for one column, as German Excel writes", () => {

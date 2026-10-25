@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
+import type { SessionSave } from "@schreibzeug/files-api";
 import {
   createSession,
   disconnect,
+  hasUnsavedChanges,
   type Incoming,
   licenseMessage,
+  markSaved,
   type Outgoing,
   receive,
   type Session,
@@ -52,23 +55,36 @@ const withUser = (data: Incoming, connection: Connection): Incoming =>
  * viewer and drops the connection (DocsCoServer.js, "access deny"); a viewer's engine sends none of
  * them, so the relay just ignores them, with the messages that would end a save or mark one.
  */
-const CHANGING = new Set([
-  "getLock",
-  "saveChanges",
-  "isSaveLock",
-  "unSaveLock",
-  "unLockDocument",
-  "schreibzeug:saved",
-]);
+const CHANGING = new Set(["getLock", "saveChanges", "isSaveLock", "unSaveLock", "unLockDocument"]);
+
+/** How many session ids of an ended session stay valid for a restore: the latest connections. */
+const ENDED_IDS_KEPT = 50;
 
 /**
  * Holds the sessions of all open files and delivers what session.ts decides. A session starts
- * with the first connection to a file, at the file's newest version, and ends with the last one.
+ * with the first connection to a file, at the file's newest version, and ends with the last one,
+ * unless its log holds changes no stored version has: then it waits for the next connection, which
+ * opens the same version, replays them and saves them (or, after a lost connection, restores),
+ * unless a newer version was stored meanwhile.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
 export const createHub = ({ access, now = Date.now }: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
+  /**
+   * The newest version an open session knows holds its document: the one it started at, or one its
+   * own clients stored (`stored`, told by the save). Another version is from outside.
+   */
+  const storedAt = new Map<string, number>();
+  /** Of each open session, the connections that left after its last change: their copies are whole. */
+  const leftSinceChange = new Map<string, string[]>();
+  /**
+   * A file's last session that ended with everything stored: the session ids whose copies are the
+   * version it stored, and that version. A client whose connection dropped comes back with one, and
+   * may restore into the next session at that version (DocsCoServer refuses a restore only for a
+   * changed document or locks, DocsCoServer.js auth).
+   */
+  const ended = new Map<string, { ids: string[]; version: number }>();
 
   const membersOf = (fileId: string) =>
     [...connections.entries()].filter(([, connection]) => connection.fileId === fileId);
@@ -94,6 +110,14 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     deliver(fileId, from, result.out);
   };
 
+  const startSession = (fileId: string, version: number): Session => {
+    const last = ended.get(fileId);
+    ended.delete(fileId);
+    storedAt.set(fileId, version);
+    leftSinceChange.set(fileId, []);
+    return { ...createSession(fileId, version), sessionIds: last?.version === version ? last.ids : [] };
+  };
+
   return {
     /**
      * A new connection to a file. It first learns the version to open (our own `schreibzeug:session`
@@ -104,8 +128,11 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       const allowed = await access(fileId, user.id);
       if (allowed === null) return null;
       const { version } = allowed;
+      // A version stored from outside while a kept session waited (a restored version, an upload)
+      // is newer than the session's changes: it wins, as it would have without the session.
+      if (membersOf(fileId).length === 0 && storedAt.get(fileId) !== version) sessions.delete(fileId);
       // Another connection may have started the session while we looked the version up.
-      const session = sessions.get(fileId) ?? createSession(fileId, version);
+      const session = sessions.get(fileId) ?? startSession(fileId, version);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
       connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
@@ -121,6 +148,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       apply(connection.fileId, connectionId, (session) =>
         receive(session, connectionId, withUser(data, connection), now()),
       );
+      if (data.type === "saveChanges") leftSinceChange.set(connection.fileId, []);
     },
 
     close: (connectionId: string) => {
@@ -128,7 +156,31 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (!connection) return;
       apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
       connections.delete(connectionId);
-      if (membersOf(connection.fileId).length === 0) sessions.delete(connection.fileId);
+      const { fileId } = connection;
+      leftSinceChange.get(fileId)?.push(connectionId);
+      const session = sessions.get(fileId);
+      if (membersOf(fileId).length > 0 || !session || hasUnsavedChanges(session)) return;
+      // Without a change everyone's copy is the version; with one, only those there to the end.
+      const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
+      ended.set(fileId, {
+        ids: whole.slice(-ENDED_IDS_KEPT),
+        version: storedAt.get(fileId) ?? session.baseVersion,
+      });
+      sessions.delete(fileId);
+      storedAt.delete(fileId);
+      leftSinceChange.delete(fileId);
+    },
+
+    /**
+     * A client stored the file as `version`, from the session that started at `baseVersion`,
+     * holding the first `index` changes of its log (the save's SESSION_SAVE_HEADER). Told by the
+     * save itself, so it counts even when the client's connection dropped meanwhile; a save from a
+     * session that is gone is from outside for the one open now.
+     */
+    stored: (fileId: string, version: number, { baseVersion, index }: SessionSave) => {
+      if (sessions.get(fileId)?.baseVersion !== baseVersion) return;
+      storedAt.set(fileId, version);
+      apply(fileId, "", (session) => markSaved(session, index));
     },
 
     /** For tests and diagnostics: the session of a file, if one is open. */

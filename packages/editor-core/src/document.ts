@@ -60,18 +60,23 @@ export type OpenOptions = {
   images?: ImageStore;
 };
 
-/** An Office file made from the document, and how many of the session's changes it holds. */
-export type SavedDocument = { bytes: Uint8Array; seen: number };
+/**
+ * An Office file made from the document, and how many of the session's changes it holds. In a
+ * shared session, `session` says which (the version it started at) for the upload to tell the
+ * relay (files-api SESSION_SAVE_HEADER).
+ */
+export type SavedDocument = {
+  bytes: Uint8Array;
+  seen: number;
+  session?: { baseVersion: number; index: number };
+};
 
 /** What every open document offers, whatever the editor. */
 export type OpenedDocument<S extends CoreState> = {
   store: Store<S>;
   /** The document as an Office file: the engine's binary, converted in the browser. */
   save: () => Promise<SavedDocument>;
-  /**
-   * The copy from `save` is stored: "modified" turns false until the next change, and in a shared
-   * session everyone learns how much of the change log the stored version holds.
-   */
+  /** The copy from `save` is stored: "modified" turns false until the next change. */
   markSaved: (saved: SavedDocument) => void;
   resize: () => void;
   close: () => void;
@@ -428,18 +433,20 @@ export const openDocument = <
         store,
         save: async () => {
           const seen = store.get().session.seen;
-          if (file.format === "csv") return { bytes: csvOf(api, binding.sheetText, file.delimiter), seen };
-          if (saveFile) return { bytes: await saveFile(api, options, documentMedia), seen };
+          const channel = options.collaboration?.channel;
+          const held = {
+            seen,
+            ...(channel ? { session: { baseVersion: channel.baseVersion, index: seen } } : {}),
+          };
+          if (file.format === "csv") return { bytes: csvOf(api, binding.sheetText, file.delimiter), ...held };
+          if (saveFile) return { bytes: await saveFile(api, options, documentMedia), ...held };
           if (file.format === "pdf") throw new Error("A PDF editor saves through saveFile.");
           const { binary: binaryNow, media: mediaNow } = await snapshot();
           const saved = await options.convert(binaryNow, "bin", file.format, mediaNow);
-          return { bytes: saved.bytes, seen };
+          return { bytes: saved.bytes, ...held };
         },
         exportAs: async () => csvOf(api, binding.sheetText, "semicolon"),
-        markSaved: ({ seen }) => {
-          binding.markUnchanged(api);
-          options.collaboration?.channel.send(JSON.stringify({ type: "schreibzeug:saved", index: seen }));
-        },
+        markSaved: () => binding.markUnchanged(api),
         resize: () => binding.resize(api),
         onShortcut: shortcuts.add,
         // A PDF is its own PDF: exporting it is saving it, or drawing it anew as PDF/A.

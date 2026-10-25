@@ -1,6 +1,6 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import { extractEmbeddedXml, facturXml, readEmbeddedInvoice, zugferdPdf } from "../src";
+import { extractEmbeddedXml, facturXml, readEmbeddedInvoice, zugferdPdf, zugferdXmp } from "../src";
 import { sampleDraft } from "./sample-draft";
 
 /** A PDF that says it is PDF/A-2A, as the converter writes one (x2t's XMP, shortened). */
@@ -96,5 +96,17 @@ describe("zugferdPdf", () => {
         "<x/>",
       ),
     ).toEqual(error);
+  });
+});
+
+describe("zugferdXmp", () => {
+  it("writes a title with a character XML 1.0 has none for as a space", () => {
+    const xmp = zugferdXmp({
+      conformance: "B",
+      created: "c",
+      modified: "m",
+      title: "Rechnung\u000B4711 & Co",
+    });
+    expect(xmp).toContain('<rdf:li xml:lang="x-default">Rechnung 4711 &amp; Co</rdf:li>');
   });
 });

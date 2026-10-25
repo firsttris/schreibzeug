@@ -1,4 +1,5 @@
 import forge from "node-forge";
+import { PDFHexString, PDFString } from "pdf-lib";
 import { type ByteRange, latin1, signedBytes, toBinary } from "./bytes";
 
 /** What a signature in a PDF says, and whether it holds. */
@@ -22,10 +23,18 @@ export type SignatureCheck = {
 const name = (attributes: forge.pki.Certificate["subject"]) =>
   String(attributes.getField("CN")?.value ?? attributes.getField("O")?.value ?? "Unbekannt");
 
-/** The text of a literal string in the signature dictionary near the position, e.g. /Reason. */
+/**
+ * The text of a string in the signature dictionary near the position, e.g. /Reason: a literal
+ * string with its escapes, or a hex string as signPdf writes them (ISO 32000-1 7.3.4).
+ */
 const dictionaryString = (text: string, from: number, to: number, key: string): string | null => {
-  const match = new RegExp(`/${key}\\s*\\(((?:\\\\.|[^\\\\)])*)\\)`).exec(text.slice(from, to));
-  return match?.[1]?.replace(/\\(.)/g, "$1") ?? null;
+  const match = new RegExp(`/${key}\\s*(?:\\(((?:\\\\.|[^\\\\)])*)\\)|<([0-9A-Fa-f\\s]*)>)`).exec(
+    text.slice(from, to),
+  );
+  const [, literal, hex] = match ?? [];
+  if (literal !== undefined) return PDFString.of(literal).decodeText();
+  if (hex !== undefined) return PDFHexString.of(hex.replace(/\s/g, "")).decodeText();
+  return null;
 };
 
 const DIGESTS: Record<string, () => forge.md.MessageDigest> = {
@@ -113,14 +122,30 @@ const checkPkcs7 = (der: string, data: Uint8Array) => {
   };
 };
 
+/**
+ * The DER signature without the zeros that fill the rest of /Contents. Its length is the one its
+ * outer header states (X.690 8.1.3): the signature itself may end in a zero byte.
+ */
+const withoutPadding = (bytes: string): string => {
+  const first = bytes.charCodeAt(1);
+  if (first < 0x80) return bytes.slice(0, 2 + first);
+  const count = first & 0x7f;
+  // An indefinite length (0x80) is not DER; the parser is left to refuse it.
+  if (count === 0) return bytes;
+  const contentLength = Array.from(bytes.slice(2, 2 + count)).reduce(
+    (sum, char) => sum * 256 + char.charCodeAt(0),
+    0,
+  );
+  return bytes.slice(0, 2 + count + contentLength);
+};
+
 /** Every signature in the PDF, in file order, each checked. */
 export const checkSignatures = (pdf: Uint8Array): SignatureCheck[] => {
   const text = latin1(pdf);
   return [...text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g)].map((match) => {
     const range = match.slice(1, 5).map(Number) as ByteRange;
     const [, length, second] = range;
-    const hex = text.slice(length + 1, second - 1).replace(/0+$/, "");
-    const der = forge.util.hexToBytes(hex.length % 2 ? `${hex}0` : hex);
+    const der = withoutPadding(forge.util.hexToBytes(text.slice(length + 1, second - 1)));
     const dictionaryStart = text.lastIndexOf("<<", match.index ?? 0);
     const dictionaryEnd = text.indexOf(">>", second);
     let checked: ReturnType<typeof checkPkcs7>;

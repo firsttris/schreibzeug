@@ -1,3 +1,4 @@
+import { parseDate } from "./german";
 import type { BasisPoints, Cents, Millis } from "./types";
 
 /*
@@ -116,8 +117,9 @@ export const totalsOf = (draft: Pick<InvoiceDraft, "lines" | "taxMode">): Totals
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** A day of the calendar: Date.parse takes "2026-02-31" in Bun, parseDate checks day and month. */
 const isDate = (value: string | undefined): value is string =>
-  value !== undefined && ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+  value !== undefined && ISO_DATE.test(value) && parseDate(value) === value;
 
 /** ISO 13616: the check digits of an IBAN, mod 97. */
 export const isIban = (value: string): boolean => {
@@ -170,6 +172,12 @@ export const draftProblems = (draft: InvoiceDraft): string[] => [
   ...draft.lines.flatMap((line, index) => [
     ...(filled(line.description) ? [] : [`Position ${index + 1} hat keine Beschreibung.`]),
     ...(line.quantity === 0 ? [`Position ${index + 1} hat keine Menge.`] : []),
+    // BR-27: the item net price (BT-146) is never negative; a discount is an allowance (BG-27).
+    ...(line.unitPrice < 0
+      ? [
+          `Position ${index + 1} hat einen negativen Einzelpreis; Rabatte als eigene Position kann Schreibzeug noch nicht schreiben.`,
+        ]
+      : []),
     ...(line.taxRate < 0 || line.taxRate > 10_000
       ? [`Position ${index + 1} hat keinen gültigen Steuersatz.`]
       : []),

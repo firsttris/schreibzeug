@@ -75,6 +75,45 @@ describe("the local files API", () => {
     expect(response.status).toBe(409);
   });
 
+  it("checks a blank file's name with its extension", async () => {
+    const tooLong = await local.json("/api/files/blank", "POST", {
+      parentId: null,
+      name: "a".repeat(255),
+      format: "docx",
+    });
+    expect(tooLong.status).toBe(400);
+    const longest = await created(
+      await local.json("/api/files/blank", "POST", { parentId: null, name: "a".repeat(250), format: "docx" }),
+    );
+    expect(longest.name).toHaveLength(255);
+  });
+
+  it("refuses a name the file list would hide, before touching the disk", async () => {
+    await writeFile(join(local.root, "a.docx"), "x");
+    const [file] = (await listing()).children;
+    if (!file) throw new Error("no file");
+
+    const renamed = await local.json(`/api/nodes/${file.id}`, "PATCH", { name: ".a.docx" });
+    expect(renamed.status).toBe(400);
+    expect(existsSync(join(local.root, "a.docx"))).toBe(true);
+
+    const folder = await local.json("/api/folders", "POST", { parentId: null, name: ".geheim" });
+    expect(folder.status).toBe(400);
+    const blank = await local.json("/api/files/blank", "POST", {
+      parentId: null,
+      name: "~$Antrag",
+      format: "docx",
+    });
+    expect(blank.status).toBe(400);
+    const form = new FormData();
+    form.set("file", new File(["x"], "desktop.ini"));
+    const upload = await local.request("/api/files", { method: "POST", body: form });
+    expect(upload.status).toBe(400);
+    expect(existsSync(join(local.root, ".geheim"))).toBe(false);
+    expect(existsSync(join(local.root, "~$Antrag.docx"))).toBe(false);
+    expect(existsSync(join(local.root, "desktop.ini"))).toBe(false);
+  });
+
   it("saves over the file and counts the saves as versions", async () => {
     await writeFile(join(local.root, "Notiz.txt"), "alt");
     const [file] = (await listing()).children;

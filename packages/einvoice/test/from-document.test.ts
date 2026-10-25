@@ -179,6 +179,92 @@ describe("draftFromDocument", () => {
   });
 });
 
+describe("the details", () => {
+  const draftOf = (...texts: string[]) =>
+    draftFromDocument({ body: texts.map(p), headers: [], footers: [] }).draft;
+
+  it("does not take the end of the service period for the due date", () => {
+    const draft = draftOf(
+      "Rechnungsdatum 23.10.2026",
+      "Leistungszeitraum 01.10.2026 bis 20.10.2026",
+      "Zahlbar innerhalb von 14 Tagen.",
+    );
+    expect([draft.serviceFrom, draft.serviceTo, draft.dueDate]).toEqual([
+      "2026-10-01",
+      "2026-10-20",
+      "2026-11-06",
+    ]);
+    expect(draftOf("Bitte zahlen Sie bis zum 06.11.2026.").dueDate).toBe("2026-11-06");
+  });
+});
+
+describe("the seller's VAT ID", () => {
+  const vatIdOf = (text: string) =>
+    draftFromDocument({ body: [], headers: [], footers: [p(text)] }).draft.seller.vatId;
+
+  it("ends where its country's format does, not in the next word", () => {
+    expect(vatIdOf("USt-IdNr. DE123456789 Amtsgericht Dresden HRB 1")).toBe("DE123456789");
+    expect(vatIdOf("USt-IdNr.: DE 123 456 789 · IBAN DE02 1203 0000 0000 2020 51")).toBe("DE123456789");
+    expect(vatIdOf("USt-Id ATU12345678 Firmenbuch")).toBe("ATU12345678");
+    expect(vatIdOf("USt-IdNr. FRXX123456789 Paris")).toBe("FRXX123456789");
+    expect(vatIdOf("USt-IdNr. DE12345 Amtsgericht")).toBeUndefined();
+  });
+});
+
+describe("the table of invoice lines", () => {
+  const linesOf = (rows: string[][]) =>
+    draftFromDocument({ body: [{ type: "table", rows }], headers: [], footers: [] }).draft.lines;
+
+  it("does not take the VAT rate column for the unit price", () => {
+    const lines = linesOf([
+      ["Beschreibung", "Menge", "USt-Satz", "Einzelpreis", "Gesamt"],
+      ["Scanner", "4", "19 %", "189,00 €", "756,00 €"],
+    ]);
+    expect(lines.map((line) => line.unitPrice)).toEqual([18900]);
+  });
+
+  it("leaves out the rows of sums inside the table", () => {
+    const lines = linesOf([
+      ["Pos.", "Beschreibung", "Menge", "Einzelpreis", "Gesamt"],
+      ["1", "Scanner", "4", "189,00 €", "756,00 €"],
+      ["", "Zwischensumme", "", "", "756,00 €"],
+      ["2", "Gesamtpaket Wartung", "1", "120,00 €", "120,00 €"],
+      ["", "Summe netto", "", "", "876,00 €"],
+      ["", "zzgl. USt 19 %", "", "", "166,44 €"],
+      ["", "Gesamt", "", "", "1.042,44 €"],
+      ["", "Netto-Summe", "", "", "876,00 €"],
+      ["", "USt-Betrag 19 %", "", "", "166,44 €"],
+      ["", "Brutto-Betrag", "", "", "1.042,44 €"],
+    ]);
+    expect(lines.map((line) => line.description)).toEqual(["Scanner", "Gesamtpaket Wartung"]);
+  });
+
+  it("keeps a line whose description only starts like a sum, without a quantity column", () => {
+    const lines = linesOf([
+      ["Leistung", "Betrag"],
+      ["USt-Voranmeldung September 2026", "150,00 €"],
+      ["Umsatzsteuer-Jahreserklärung 2025", "480,00 €"],
+      ["Netto-Lohnabrechnung Oktober", "90,00 €"],
+      ["Summe netto", "720,00 €"],
+    ]);
+    expect(lines.map((line) => line.description)).toEqual([
+      "USt-Voranmeldung September 2026",
+      "Umsatzsteuer-Jahreserklärung 2025",
+      "Netto-Lohnabrechnung Oktober",
+    ]);
+  });
+
+  it("takes an hourly rate for the price, not for the hours", () => {
+    const lines = linesOf([
+      ["Leistung", "Stundensatz", "Stunden", "Betrag"],
+      ["Beratung", "95,00 €", "2,5", "237,50 €"],
+    ]);
+    expect(lines).toEqual([
+      { description: "Beratung", quantity: 2500, unit: "HUR", unitPrice: 9500, taxRate: 1900 },
+    ]);
+  });
+});
+
 describe("German numbers and dates", () => {
   it("reads amounts, quantities and rates", () => {
     expect(parseMoney("1.182,27 €")).toBe(118227);

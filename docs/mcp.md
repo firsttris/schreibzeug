@@ -135,7 +135,8 @@ from the interface would (`POST /api/files`; `append_rows` saves a new version w
   code and links (as `w:hyperlink` with an external relationship).
 - `create_from_template` fills placeholders in the text of the document, sheet or slide parts
   (`fillPlaceholders`). A placeholder Word split across runs is not found; the answer lists what is
-  still open.
+  still open. Formulas stay as they are: the brackets of a structured reference such as
+  `=SUM(Tabelle1[Betrag])` are no placeholder.
 - `append_rows` writes plain values below the last row (`appendRows`), and the used range grows
   with them; the workbook's own styles stay as they are.
 - `einvoice_xml` takes amounts as a person states them (euros, percent) and reckons in integers as

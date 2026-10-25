@@ -23,14 +23,25 @@ const NAMESPACES =
   'xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100" ' +
   'xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"';
 
-const escapeXml = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/**
+ * What XML 1.0 has no character for (its production Char: C0 controls but tab, LF and CR, lone
+ * surrogates, U+FFFE and U+FFFF), as a space: Word's line break (U+000B) reads as one.
+ */
+const NOT_XML_CHAR = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+
+export const escapeXml = (text: string): string =>
+  text
+    .replace(NOT_XML_CHAR, " ")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 /** <ram:Name>text</ram:Name>, or nothing for an empty value. */
-const element = (name: string, value: string | undefined, attributes = ""): string =>
-  value === undefined || value.trim() === ""
-    ? ""
-    : `<${name}${attributes}>${escapeXml(value.trim())}</${name}>`;
+const element = (name: string, value: string | undefined, attributes = ""): string => {
+  const text = escapeXml(value ?? "").trim();
+  return text === "" ? "" : `<${name}${attributes}>${text}</${name}>`;
+};
 
 /** 123456 → "1234.56". */
 export const amount = (cents: Cents): string => {

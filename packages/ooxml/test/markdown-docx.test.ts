@@ -122,6 +122,39 @@ describe("Markdown as CommonMark reads it", () => {
     });
   });
 
+  it("keeps an indented continuation line in its item, so the numbering goes on", () => {
+    expect(markdownBlocks("1. First\n   more about it\n2. Second\n")).toEqual([
+      { type: "item", ordered: true, level: 0, text: "First more about it", list: 1 },
+      { type: "item", ordered: true, level: 0, text: "Second", list: 1 },
+    ]);
+    const document = part(markdownDocx("1. First\n   more about it\n2. Second\n"), "word/document.xml");
+    expect(new Set([...document.matchAll(/<w:numId w:val="(\d+)"\/>/g)].map((m) => m[1]))).toEqual(
+      new Set(["2"]),
+    );
+  });
+
+  it("nests a list one level per parent item it is indented under by two columns or more", () => {
+    const levels = (markdown: string) =>
+      markdownBlocks(markdown).map((block) => (block.type === "item" ? block.level : -1));
+    expect(levels("- a\n    - b\n        - c\n    - d\n- e\n")).toEqual([0, 1, 2, 1, 0]);
+    expect(levels("1. a\n   - b\n2. c\n")).toEqual([0, 1, 0]);
+    // One space less than "- " is wide stays a sibling (CommonMark example 312).
+    expect(levels("- a\n - b\n  - c\n   - d\n  - e\n - f\n- g\n")).toEqual([0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it("takes a backslash before any ASCII punctuation as an escape, and keeps it before a letter", () => {
+    expect(inlineSegments("costs \\$5 \\& more, \\{x\\} \\~ \\@ \\: but C:\\Akten")).toEqual([
+      { text: "costs $5 & more, {x} ~ @ : but C:\\Akten" },
+    ]);
+  });
+
+  it("keeps balanced parentheses in a link target", () => {
+    expect(inlineSegments("[Foo](https://en.wikipedia.org/wiki/Foo_(bar)) und (mehr)")).toEqual([
+      { text: "Foo", link: "https://en.wikipedia.org/wiki/Foo_(bar)" },
+      { text: " und (mehr)" },
+    ]);
+  });
+
   it("strips closing hashes only after a space", () => {
     expect(markdownBlocks("## Using C#")).toEqual([{ type: "heading", level: 2, text: "Using C#" }]);
     expect(markdownBlocks("## Titel ##")).toEqual([{ type: "heading", level: 2, text: "Titel" }]);

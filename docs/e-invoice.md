@@ -19,10 +19,10 @@ What happens, in `apps/web/src/editor/use-e-invoice.tsx`:
    invoices lay it out and Schreibzeug's invoice template has it (DIN 5008): the sender's line
    above the address field is the seller, the address field the recipient, "Rechnungsnummer",
    "Rechnungsdatum", "Leistungszeitraum" and "bis zum …" the details, the first table with a
-   description and a price column the lines, "Umsatzsteuer 19 %" the rate (and "§ 19 UStG" a small
-   business without VAT), "Steuernummer", "USt-IdNr.", "IBAN" and "BIC" in the footer the seller's.
-   A template's placeholders ("[Nr.]") count as empty. Nothing is guessed: what is not found stays
-   empty for the dialog.
+   description and a price column the lines (without its rows of sums), "Umsatzsteuer 19 %" the
+   rate (and "§ 19 UStG" a small business without VAT), "Steuernummer", "USt-IdNr.", "IBAN" and
+   "BIC" in the footer the seller's. A template's placeholders ("[Nr.]") count as empty. Nothing is
+   guessed: what is not found stays empty for the dialog.
 3. The dialog (`e-invoice-dialog.tsx`) shows that as a form and computes the sums as the XML will
    have them. If the document states a total ("Rechnungsbetrag") that differs from what the lines
    add up to, it says so: the e-invoice contains the lines as they are in the dialog, and a
@@ -41,7 +41,8 @@ What happens, in `apps/web/src/editor/use-e-invoice.tsx`:
    declares them, unfiltered, and the Info dictionary to match it. Producer and creator are
    "Schreibzeug".
 
-Not yet: credit notes and corrections (a negative total is refused), allowances and charges,
+Not yet: credit notes and corrections (a negative total is refused), allowances and charges (a
+line with a negative price, which BR-27 forbids, is refused),
 prepayments, currencies other than the euro, XRechnung (the CIUS for public buyers, which also
 needs the seller's contact and a Leitweg-ID) and UBL. Those are what Haben, the accounting app,
 writes; Schreibzeug turns a document into an invoice.

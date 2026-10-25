@@ -60,7 +60,7 @@ The relay (`apps/server/src/collab/session.ts`) answers the messages `sdkjs` sen
 | `getLock` | all locks to everyone. Blocks nobody holds are taken; if one asked for is held already, the editor's rule decides (`src/collab/locks.ts`, ported from `_checkLockWord`, `_checkLockExcel`, `_checkLockPresentation`): text grants everything, spreadsheets refuse overlapping ranges on the same sheet, presentations the same slide or object. |
 | `unLockDocument` | drops changes from `deleteIndex` on; with `releaseLocks` `releaseLock` to the sender and the others; with `isSave` `unSaveLock` (-1) to the sender, which waits for it before it sends again. |
 | `cursor` | the cursor to the others. |
-| `schreibzeug:saved` (ours) | `schreibzeug:saved` with the highest stored index to everyone; see [saving](#saving). |
+| (a save's upload) | `schreibzeug:saved` with the index the newest stored version holds to everyone; see [saving](#saving). |
 | (disconnect) | `connectState` to the others; the person's locks are released. |
 
 `auth` hands the locks over as a map for text documents and as a list for the other editors, and
@@ -69,7 +69,8 @@ What it does not do yet: move other people's range locks when someone inserts or
 columns (`_recalcLockArray`); their next lock request sets them right.
 
 Someone who may only look at the file joins as a viewer: the hub sets `mode: "view"` in their
-`auth` and ignores what would change the document ([sharing](accounts.md#sharing)).
+`auth` and ignores what would change the document, also the locks a viewer announces when it
+reconnects ([sharing](accounts.md#sharing)).
 
 The hub (`hub.ts`) keeps one session per file in memory and delivers the answers;
 `routes.ts` does the WebSocket upgrade with Hono on Bun. Malformed messages close the socket with
@@ -81,21 +82,38 @@ The channel reconnects on its own, with a growing pause up to five seconds. Whil
 engine starts its `Disconnect` action and takes no edits (`common/apiBase.js`
 `CoAuthoringApi.onDisconnect`); the editor's status line says "Verbindung unterbrochen" until the
 action ends. The engine comes back with its old session id. The relay restores the session if
-nobody else changed the document meanwhile (the last change by someone else is the one the client
-last saw, `lastOtherSaveTime`); otherwise it answers with error 4004 and the document has to be
+it gave out that id, or the file's previous session did, ended with everything stored at the
+version the new session opens, and the client was there until its last change (a session that
+started over after a server restart lacks the changes the engine's copy may hold, so the engine has
+to open the document again), if nobody else changed the document meanwhile (the last change by someone else is the one the client
+last saw, `lastOtherSaveTime`) and the blocks the engine still holds pass the same check as a
+`getLock`: a text lock someone else took meanwhile stays theirs, and a spreadsheet or slide block
+the editor's rule refuses ends the restore ("Restore error. Locks not checked.", DocsCoServer.js
+`auth` with `getLock(…, true)`). Otherwise it answers with error 4004 and the document has to be
 opened again. If the relay started a new session at another version, the channel tells the engine
 the reconnect failed.
 
 ## Saving
 
-The session lives only in the server's memory and ends with the last person leaving; what no
-stored version holds is gone then. So the editor saves on its own.
+The session lives only in the server's memory. It ends with the last person leaving once a stored
+version holds its whole log; until then it stays, so someone whose connection dropped before their
+editor saved can restore it, and whoever opens the file next opens the session's version, replays
+the log and saves it. A version stored meanwhile from outside the session (a restored version, an
+upload, an MCP edit) is newer than the waiting changes and wins: the next person opens it, as
+without the session. A save of the session's own, one that landed after its editor's connection
+dropped, does not count as from outside. A server restart loses what no stored version holds. So the editor saves on
+its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The
-saving editor then sends `{"type":"schreibzeug:saved","index":n}`: its copy holds the first `n` changes
-of the log. The relay keeps the highest index and sends it to everyone (and to everyone joining
-later), so every editor knows whether the session is ahead of the stored file.
+saving editor sends with the upload the header `x-schreibzeug-session-save: b:n`: its copy comes
+from the session that started at version `b` and holds the first `n` changes of its log. The file
+route tells the relay (`hub.ts` `stored`), also when the editor's connection dropped meanwhile; a
+version stored without the header, or from a session that is gone, is from outside. Versions are
+numbered as they are stored, so the newest one's index is what is stored, also when it is lower
+than an earlier one's (a slower save that started before a faster one). The relay sends
+`{"type":"schreibzeug:saved","index":n}` with it to everyone (and to everyone joining later), so
+every editor knows whether the session is ahead of the stored file.
 
 Each editor counts the log from the relay's messages (`packages/editor-core/src/session-progress.ts`):
 `authChanges` carries the whole log, `saveChanges` and `unSaveLock` the log's length after the

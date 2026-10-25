@@ -157,7 +157,28 @@ const CHECKS: Record<number, Check> = {
 
 /**
  * DocsCoServer getLock: blocks nobody holds yet are added (Redis "NX", per key). When some were
- * held already, the editor's check decides; if it refuses, the new ones are taken back. Either way
+ * held already, the editor's check decides; if it refuses, the new ones are taken back and this
+ * returns null. A block held already keeps its holder either way.
+ */
+export const tryLocks = (
+  locks: Locks,
+  blocks: unknown[],
+  user: string,
+  now: number,
+  editorType: number,
+): Locks | null => {
+  const asked: Locks = Object.fromEntries(
+    blocks.map((block) => [lockKey(block), { time: now, user, block }]),
+  );
+  const added = Object.fromEntries(Object.entries(asked).filter(([key]) => !(key in locks)));
+  const all = { ...locks, ...added };
+  const conflicts = Object.keys(asked).length !== Object.keys(added).length;
+  const check = CHECKS[editorType] ?? checkTextLocks;
+  return conflicts && !check(all, added, blocks, user) ? null : all;
+};
+
+/**
+ * The locks after a `getLock`: when the check refuses, everything stays as it was. Either way
  * everyone gets all locks, and the client sees from the owner whether it got its own.
  */
 export const acquireLocks = (
@@ -166,16 +187,7 @@ export const acquireLocks = (
   user: string,
   now: number,
   editorType: number,
-): Locks => {
-  const asked: Locks = Object.fromEntries(
-    blocks.map((block) => [lockKey(block), { time: now, user, block }]),
-  );
-  const added = Object.fromEntries(Object.entries(asked).filter(([key]) => !(key in locks)));
-  const all = { ...locks, ...added };
-  const conflicts = Object.keys(asked).length !== Object.keys(added).length;
-  const check = CHECKS[editorType] ?? checkTextLocks;
-  return conflicts && !check(all, added, blocks, user) ? locks : all;
-};
+): Locks => tryLocks(locks, blocks, user, now, editorType) ?? locks;
 
 /** How `auth` hands over the locks: a map for text documents, a list otherwise (DocsCoServer sendAuthInfo). */
 export const locksForAuth = (locks: Locks, editorType: number): Locks | Lock[] =>

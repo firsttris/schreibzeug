@@ -133,6 +133,16 @@ describe("facturXml", () => {
     expect(xml).not.toContain("EmailURIUniversalCommunication");
     expect(xml).not.toContain("PaymentMeans");
   });
+
+  it("writes what XML 1.0 has no character for as a space", () => {
+    const draft = sampleDraft();
+    const [scanner, ...rest] = draft.lines;
+    const lines = scanner ? [{ ...scanner, description: "Zeile\u000Bzwei\u0000\uFFFF" }, ...rest] : rest;
+    const xml = facturXml({ ...draft, lines, note: "Gruß\uD800" });
+    for (const forbidden of ["\u000B", "\u0000", "\uFFFF", "\uD800"]) expect(xml).not.toContain(forbidden);
+    expect(read(xml).lines[0]?.description).toBe("Zeile zwei");
+    expect(xml).toContain("<ram:Content>Gruß</ram:Content>");
+  });
 });
 
 describe("draftProblems", () => {
@@ -162,6 +172,29 @@ describe("draftProblems", () => {
       "Position 1 hat keine Menge.",
     ]);
     expect(draftProblems({ ...draft, lines: [] })).toEqual(["Die Rechnung hat keine Positionen."]);
+  });
+
+  it("takes only days the calendar has", () => {
+    const draft = sampleDraft();
+    expect(draftProblems({ ...draft, issueDate: "2026-02-31", dueDate: "2026-13-01" })).toEqual([
+      "Das Rechnungsdatum fehlt.",
+      "Das Fälligkeitsdatum ist kein Datum.",
+    ]);
+    expect(draftProblems({ ...draft, issueDate: "2028-02-29" })).toEqual([]);
+  });
+
+  it("refuses a negative unit price, which EN 16931 forbids (BR-27)", () => {
+    const draft = sampleDraft();
+    const discount = {
+      description: "Rabatt",
+      quantity: 1000,
+      unit: "C62" as const,
+      unitPrice: -1000,
+      taxRate: 1900,
+    };
+    expect(draftProblems({ ...draft, lines: [...draft.lines, discount] })).toEqual([
+      "Position 4 hat einen negativen Einzelpreis; Rabatte als eigene Position kann Schreibzeug noch nicht schreiben.",
+    ]);
   });
 });
 

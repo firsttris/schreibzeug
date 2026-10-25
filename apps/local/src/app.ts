@@ -4,7 +4,9 @@ import {
   createFolderSchema,
   nodeIdSchema,
   nodeNameSchema,
+  SESSION_SAVE_HEADER,
   type ServerInfo,
+  sessionSaveOf,
   updateNodeSchema,
 } from "@schreibzeug/files-api";
 import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
@@ -148,11 +150,11 @@ export const createLocalApp = ({
       .post("/files/blank", validate("json", createBlankFileSchema), async (c) => {
         const { parentId, name, format } = c.req.valid("json");
         const blank = BLANK_FILES[format];
-        return respond(
-          c,
-          await folder.createFile(parentId, withExtension(name, blank.extension), blank.bytes()),
-          201,
-        );
+        // The name is checked again with its extension: a name of 255 characters must not grow past it.
+        const fullName = nodeNameSchema.safeParse(withExtension(name, blank.extension));
+        if (!fullName.success)
+          return respond(c, fail("invalid", fullName.error.issues[0]?.message ?? "Ungültiger Name."));
+        return respond(c, await folder.createFile(parentId, fullName.data, blank.bytes()), 201);
       })
       // The file as it is on disk now: there are no older versions to ask for.
       .get("/files/:id/content", validate("param", idParam), async (c) => {
@@ -168,7 +170,12 @@ export const createLocalApp = ({
       })
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
-        return respond(c, await folder.write(c.req.valid("param").id, bytes));
+        const { id } = c.req.valid("param");
+        const written = await folder.write(id, bytes);
+        const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
+        if (written.ok && written.value.version !== null && sessionSave !== null)
+          collab?.hub.stored(id, written.value.version, sessionSave);
+        return respond(c, written);
       })
       .post("/files/:id/copy", validate("param", idParam), async (c) =>
         respond(c, await folder.copy(c.req.valid("param").id), 201),

@@ -7,7 +7,7 @@
  * The messages are the ones sdkjs speaks with the Document Server (sdkjs common/docscoapi.js
  * `_onServerMessage`, server DocService/sources/DocsCoServer.js); docs/collaboration.md lists them.
  */
-import { acquireLocks, EDITOR_TYPE, type Locks, lockKey, locksForAuth } from "./locks";
+import { acquireLocks, EDITOR_TYPE, type Locks, locksForAuth, tryLocks } from "./locks";
 
 export type Participant = {
   /** Our connection id; sdkjs sees it as the session id. */
@@ -41,6 +41,11 @@ export type Session = {
   nextIndexUser: number;
   /** How many changes of the log a stored version holds: the rest exists only in this session. */
   savedIndex: number;
+  /**
+   * The session ids this session gave out (sdkjs keeps the one from its `auth` answer and comes
+   * back with it after a lost connection): a restore with another one belongs to an ended session.
+   */
+  sessionIds: string[];
 };
 
 export type Recipient = { to: "self" } | { to: "others" } | { to: "all" };
@@ -59,22 +64,22 @@ export const createSession = (fileId: string, baseVersion: number): Session => (
   participants: [],
   nextIndexUser: 1,
   savedIndex: 0,
+  sessionIds: [],
 });
+
+/** Whether the log holds changes no stored version has: the session must not end yet. */
+export const hasUnsavedChanges = (session: Session): boolean => session.savedIndex < session.changes.length;
 
 /** Our message telling everyone how much of the log is stored in a version. */
 const savedMessage = (session: Session) => ({ type: "schreibzeug:saved", index: session.savedIndex });
 
 /**
- * A client stored the document as a new version, holding the first `index` changes of the log
- * (`schreibzeug:saved`, sent after its upload). The newest save wins; nothing moves backwards.
+ * A client stored the document as a new version holding the first `index` changes of the log (told
+ * by its upload, hub.ts `stored`). The newest version is what is stored, so its index counts, also
+ * when it is lower than an earlier one's: saves land in the order of their versions.
  */
-export const markSaved = (session: Session, data: Incoming): Step => {
-  const index = typeof data.index === "number" && Number.isInteger(data.index) ? data.index : -1;
-  if (index < 0) return { session, out: [] };
-  const next = {
-    ...session,
-    savedIndex: Math.max(session.savedIndex, Math.min(index, session.changes.length)),
-  };
+export const markSaved = (session: Session, index: number): Step => {
+  const next = { ...session, savedIndex: Math.min(index, session.changes.length) };
   return { session: next, out: [{ to: "all", message: savedMessage(next) }] };
 };
 
@@ -120,12 +125,21 @@ const isViewer = (data: Incoming): boolean => data.mode === "view";
 export const RESTORE_CODE = 4004;
 
 /**
- * A client that lost its connection comes back with its old session id. That works only if
- * nobody else changed the document meanwhile: the last change by someone else must be the one the
- * client last saw (`lastOtherSaveTime`, compared in whole seconds like DocsCoServer). Then it keeps
- * its user id and its locks; otherwise it gets an error and has to open the document again.
+ * A client that lost its connection comes back with its old session id. That works only if this
+ * session gave out that id: a session that started over (the server restarted, say) has none of
+ * the changes the client's copy holds, and anyone joining it would open a different document.
+ * And it works only if nobody else changed the document meanwhile: the last change by someone else must be the one the
+ * client last saw (`lastOtherSaveTime`, compared in whole seconds like DocsCoServer), and the
+ * blocks it held may be taken again. Then it keeps its user id and its locks; otherwise it gets an
+ * error and has to open the document again (DocsCoServer.js auth, "Restore error. …").
  */
 const restore = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
+  if (!session.sessionIds.includes(String(data.sessionId))) {
+    return {
+      session,
+      out: [self({ type: "error", description: "Restore error. Session ended.", code: RESTORE_CODE })],
+    };
+  }
   const { idOriginal, username } = readUser(data);
   const user = (data.user ?? {}) as AuthUser;
   const indexUser = typeof user.indexUser === "number" ? user.indexUser : session.nextIndexUser;
@@ -146,14 +160,22 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
     indexUser,
     view: isViewer(data),
   };
-  const blocks = Array.isArray(data.block) ? data.block : [];
-  const restoredLocks = Object.fromEntries(
-    blocks.map((block) => [lockKey(block), { time: now, user: id, block }]),
-  );
+  // The blocks it held go through the same check as a getLock (DocsCoServer getLock with
+  // bIsRestore): someone else's lock stays theirs, and a refused one ends the restore. A viewer
+  // takes no locks, so its blocks are ignored (DocsCoServer checks them only if !conn.user.view).
+  const blocks = Array.isArray(data.block) && !isViewer(data) ? data.block : [];
+  const locks = blocks.length ? tryLocks(session.locks, blocks, id, now, session.editorType) : session.locks;
+  if (!locks) {
+    return {
+      session,
+      out: [self({ type: "error", description: "Restore error. Locks not checked.", code: RESTORE_CODE })],
+    };
+  }
   const next: Session = {
     ...session,
     nextIndexUser: Math.max(session.nextIndexUser, indexUser + 1),
-    locks: { ...session.locks, ...restoredLocks },
+    sessionIds: [...session.sessionIds, connectionId],
+    locks,
     participants: [...session.participants.filter((p) => p.id !== id), participant],
   };
   return {
@@ -197,6 +219,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
   const next: Session = {
     ...session,
     nextIndexUser: indexUser + 1,
+    sessionIds: [...session.sessionIds, connectionId],
     participants: [...session.participants.filter((p) => p.connectionId !== connectionId), participant],
     // DocsCoServer keeps the editor type per connection; one file is always in one editor.
     editorType: typeof data.editorType === "number" ? data.editorType : session.editorType,
@@ -235,7 +258,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
 export const getLock = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
   const participant = participantOf(session, connectionId);
   if (!participant) return { session, out: [] };
-  const blocks = Array.isArray(data.block) ? data.block : [];
+  const blocks = Array.isArray(data.block) && !isViewer(data) ? data.block : [];
   const locks = acquireLocks(session.locks, blocks, participant.id, now, session.editorType);
   return { session: { ...session, locks }, out: [{ to: "all", message: { type: "getLock", locks } }] };
 };
@@ -431,8 +454,6 @@ export const receive = (session: Session, connectionId: string, data: Incoming, 
     case "unSaveLock":
       // A client giving up a save without changes; -1 everywhere, as DocsCoServer answers.
       return { session, out: [self(SAVE_UNLOCKED)] };
-    case "schreibzeug:saved":
-      return markSaved(session, data);
     case "rpc":
       return answerRpc(session, data);
     case "getMessages":

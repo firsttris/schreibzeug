@@ -3,10 +3,17 @@
 const sizeFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
 const UNITS = ["Byte", "KB", "MB", "GB", "TB"] as const;
 
+/** The value as `sizeFormat` shows it, rounded to one decimal. */
+const roundedTo = (bytes: number, exponent: number): number =>
+  Math.round((bytes / 1024 ** exponent) * 10) / 10;
+
 export const formatSize = (bytes: number | null): string => {
   if (bytes === null) return "–";
-  const exponent =
+  const estimate =
     bytes < 1024 ? 0 : Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), UNITS.length - 1);
+  // The unit is chosen after rounding: 1023,97 KB shows as "1 MB", not "1.024 KB".
+  const exponent =
+    estimate < UNITS.length - 1 && roundedTo(bytes, estimate) >= 1024 ? estimate + 1 : estimate;
   return `${sizeFormat.format(bytes / 1024 ** exponent)} ${UNITS[exponent]}`;
 };
 

@@ -22,6 +22,16 @@ const TEXT_PARTS =
   /^(word\/(document|header\d*|footer\d*)|xl\/(sharedStrings|worksheets\/sheet\d+)|ppt\/slides\/slide\d+)\.xml$/;
 const PLACEHOLDER = /\[[^\][<>]{1,60}\]/g;
 
+/**
+ * A cell's formula (SpreadsheetML <f>, ECMA-376 Part 1, 18.3.1.40), empty or not. Its brackets are
+ * structured references, "=SUM(Tabelle1[Betrag])", not placeholders, so formulas stay as they are.
+ */
+const FORMULA = /(<f(?:\s[^>]*)?\/>|<f(?:\s[^>]*)?(?<!\/)>[\s\S]*?<\/f>)/;
+
+/** A part's XML in pieces: what may hold placeholders at even places, the formulas between. */
+const piecesOf = (xml: string): string[] => xml.split(FORMULA);
+const isFormula = (index: number) => index % 2 === 1;
+
 export type Filled = {
   bytes: Uint8Array;
   /** The keys given that the file does not contain. */
@@ -35,8 +45,11 @@ export const placeholdersOf = (bytes: Uint8Array): string[] => {
   const found = new Set<string>();
   for (const [path, data] of Object.entries(unzipSync(bytes))) {
     if (!TEXT_PARTS.test(path)) continue;
-    for (const [placeholder] of strFromU8(data).matchAll(PLACEHOLDER))
-      found.add(unescapeXml(placeholder.slice(1, -1)));
+    for (const [index, piece] of piecesOf(strFromU8(data)).entries()) {
+      if (isFormula(index)) continue;
+      for (const [placeholder] of piece.matchAll(PLACEHOLDER))
+        found.add(unescapeXml(placeholder.slice(1, -1)));
+    }
   }
   return [...found];
 };
@@ -47,14 +60,16 @@ export const fillPlaceholders = (bytes: Uint8Array, values: Record<string, strin
   const used = new Set<string>();
   for (const [path, data] of Object.entries(files)) {
     if (!TEXT_PARTS.test(path)) continue;
-    let xml = strFromU8(data);
+    let pieces = piecesOf(strFromU8(data));
     for (const [key, value] of Object.entries(values)) {
       const placeholder = escapeXml(`[${key}]`);
-      if (!xml.includes(placeholder)) continue;
+      if (!pieces.some((piece, index) => !isFormula(index) && piece.includes(placeholder))) continue;
       used.add(key);
-      xml = xml.split(placeholder).join(escapeXml(value));
+      pieces = pieces.map((piece, index) =>
+        isFormula(index) ? piece : piece.split(placeholder).join(escapeXml(value)),
+      );
     }
-    files[path] = strToU8(xml);
+    files[path] = strToU8(pieces.join(""));
   }
   const filled = zipSync(files);
   return {

@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createAgentHub } from "../src/agent/hub";
-import { createApp } from "../src/app";
+import { type AppDeps, createApp } from "../src/app";
 import { createAuth } from "../src/auth/auth";
 import type { Bearer } from "../src/auth/bearer";
 import { createBlobStore } from "../src/blobs";
@@ -25,9 +25,12 @@ const TEST_SECRET = "a-test-secret-that-is-long-enough-for-better-auth";
 export const startServer = async ({
   bearer,
   pendingShares = false,
+  collab,
 }: {
   bearer?: (db: Database) => Bearer;
   pendingShares?: boolean;
+  /** The collaboration relay, for the tests of what the file routes tell it. */
+  collab?: AppDeps["collab"];
 } = {}) => {
   const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
   const connection = connect(join(dataDir, "schreibzeug.db"));
@@ -43,6 +46,7 @@ export const startServer = async ({
     blobs: createBlobStore(join(dataDir, "blobs")),
     maxUploadBytes: MAX_UPLOAD_BYTES,
     pendingShares,
+    ...(collab ? { collab } : {}),
     log: () => {},
   });
 

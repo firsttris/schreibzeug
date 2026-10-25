@@ -132,11 +132,41 @@ export const createAccessTokenSchema = z.object({
 /** The answer to creating a token: the list entry and, this once, the token. */
 export const createdAccessTokenSchema = accessTokenSchema.extend({ token: z.string() });
 
-/** The name of the n-th copy of a file next to the original: "Bericht (Kopie 2).docx". */
+/**
+ * Sent with a save from a shared session as `<base version>:<n>`: the session it comes from (the
+ * version that session started at) and how many changes of its log the stored file holds, so the
+ * relay knows the version is that session's own (apps/server collab/hub.ts `stored`).
+ */
+export const SESSION_SAVE_HEADER = "x-schreibzeug-session-save";
+
+export type SessionSave = { baseVersion: number; index: number };
+
+/** The header's value for a save. */
+export const sessionSaveHeader = ({ baseVersion, index }: SessionSave): string => `${baseVersion}:${index}`;
+
+/** What a save says it holds, or null for a save from outside a session. */
+export const sessionSaveOf = (header: string | undefined): SessionSave | null => {
+  const match = /^(\d{1,9}):(\d{1,9})$/.exec(header ?? "");
+  return match ? { baseVersion: Number(match[1]), index: Number(match[2]) } : null;
+};
+
+/** How long a name may be (nodeNameSchema). */
+const MAX_NAME_LENGTH = 255;
+
+/**
+ * The name of the n-th copy of a file next to the original: "Bericht (Kopie 2).docx". A name that
+ * would grow past what a name may be loses the end of its base, not the mark or the extension.
+ */
 export const copyName = (name: string, attempt: number): string => {
+  const mark = ` (Kopie${attempt > 1 ? ` ${attempt}` : ""})`;
   const dot = name.lastIndexOf(".");
-  const [base, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
-  return `${base} (Kopie${attempt > 1 ? ` ${attempt}` : ""})${extension}`;
+  // An "extension" that leaves no room for the base is part of the name.
+  const split = dot > 0 && name.length - dot + mark.length < MAX_NAME_LENGTH;
+  const [base, extension] = split ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  const room = MAX_NAME_LENGTH - mark.length - extension.length;
+  // Cut between characters, not inside a surrogate pair.
+  const kept = base.length > room ? base.slice(0, room).replace(/[\uD800-\uDBFF]$/, "") : base;
+  return `${kept}${mark}${extension}`;
 };
 
 export const folderListingSchema = z.object({

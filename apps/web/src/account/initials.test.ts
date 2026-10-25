@@ -8,4 +8,8 @@ describe("initialsOf", () => {
     expect(initialsOf("  Ben ")).toBe("B");
     expect(initialsOf("")).toBe("");
   });
+
+  it("takes a whole character outside the BMP, not half of it", () => {
+    expect(initialsOf("𝓐nna 𝓑erger")).toBe("𝓐𝓑");
+  });
 });

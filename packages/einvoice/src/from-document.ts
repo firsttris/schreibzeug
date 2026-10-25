@@ -55,8 +55,9 @@ const SERVICE = new RegExp(
   `(?:Leistungs(?:zeitraum|datum)|Lieferdatum|Lieferzeitraum)\\s*:?\\s*${DATE_PATTERN.source}(?:\\s*(?:-|–|bis)\\s*${DATE_PATTERN.source})?`,
   "i",
 );
+// "bis" after a date ends a period ("01.10.2026 bis 20.10.2026"), it is no due date.
 const DUE = new RegExp(
-  `(?:bis\\s+(?:zum\\s+)?|fällig\\s+(?:am\\s+)?|zahlbar\\s+bis\\s+(?:zum\\s+)?)${DATE_PATTERN.source}`,
+  `(?:(?<![\\d.]\\s*)bis\\s+(?:zum\\s+)?|fällig\\s+(?:am\\s+)?|zahlbar\\s+bis\\s+(?:zum\\s+)?)${DATE_PATTERN.source}`,
   "i",
 );
 const DUE_IN_DAYS = /(?:innerhalb\s+(?:von\s+)?|binnen\s+)(\d{1,3})\s+Tag/i;
@@ -64,13 +65,37 @@ const TAX_RATE =
   /(?:Umsatzsteuer|USt\.?|MwSt\.?|Mehrwertsteuer)\s*(\d{1,2}(?:,\d+)?)\s*%|(\d{1,2}(?:,\d+)?)\s*%\s*(?:USt|MwSt|Umsatzsteuer|Mehrwertsteuer)/i;
 const SMALL_BUSINESS = /§\s*19\s*UStG|Kleinunternehmer/i;
 const TOTAL = /Rechnungsbetrag|Gesamtbetrag|Summe\s+brutto|Bruttobetrag|Gesamtsumme|Endbetrag|zu\s+zahlen/i;
-const VAT_ID = /USt-?Id(?:\.|-)?(?:Nr\.?)?\s*:?\s*([A-Z]{2}(?:\s?[\dA-Z]){8,12})/i;
+/** After a space only digits go on ("DE 123 456 789"), so the next word is not taken along. */
+const VAT_ID = /USt-?Id(?:\.|-)?(?:Nr\.?)?\s*:?\s*([A-Z]{2}\s?[\dA-Z]+(?:\s\d[\dA-Z]*)*)/i;
 const TAX_NUMBER = /Steuer(?:nummer|-?Nr\.?)\s*:?\s*(\d[\d/ ]{7,}\d)/i;
 const IBAN = /IBAN\s*:?\s*([A-Z]{2}\d{2}(?:\s?[A-Z\d]){11,30})/i;
 const BIC = /BIC\s*:?\s*([A-Z]{6}[A-Z\d]{2}(?:[A-Z\d]{3})?)\b/i;
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/;
 const POSTCODE_CITY = /^(?:D-)?(\d{5})\s+(.+)$/;
 const STREET = /^\D.*\s\d+\s?[a-z]?(?:\s?-\s?\d+)?$/i;
+
+/** The VAT ID formats with a fixed length, as the European Commission's VIES lists them. */
+const VAT_ID_FORMATS: Record<string, RegExp> = {
+  AT: /^ATU\d{8}/,
+  BE: /^BE[01]\d{9}/,
+  DE: /^DE\d{9}/,
+  DK: /^DK\d{8}/,
+  FI: /^FI\d{8}/,
+  IT: /^IT\d{11}/,
+  LU: /^LU\d{8}/,
+  NL: /^NL\d{9}B\d{2}/,
+  PL: /^PL\d{10}/,
+  SE: /^SE\d{12}/,
+};
+
+/** The VAT ID in the text, as long as its country's format says, or 8 to 12 characters after it. */
+const vatIdIn = (text: string): string | undefined => {
+  const found = real(VAT_ID.exec(text)?.[1])?.replace(/\s+/g, "").toUpperCase();
+  if (!found) return undefined;
+  const format = VAT_ID_FORMATS[found.slice(0, 2)];
+  if (format) return format.exec(found)?.[0];
+  return found.length >= 10 && found.length <= 14 ? found : undefined;
+};
 
 /** The IBAN in the text, cut back until its check digits hold ("… 2020 51 BIC" holds without " BIC"). */
 const ibanIn = (text: string): string | undefined => {
@@ -147,19 +172,46 @@ const unitOf = (text: string): UnitCode => UNIT_WORDS.find(([pattern]) => patter
 /** The columns of a table of invoice lines; the quantity's header may name the unit ("Stunden"). */
 type Columns = { description: number; quantity: number; price: number; total: number; quantityLabel: string };
 
+/** "Stundensatz" is a price, "USt-Satz" or "Steuersatz" the VAT rate. */
+const TAX_RATE_COLUMN = /ust|mwst|steuer/i;
+
 /** Which columns of a table's header hold what, for a table of invoice lines. */
 const columnsOf = (header: string[]): Columns | undefined => {
   const find = (pattern: RegExp) => header.findIndex((cell) => pattern.test(cell));
   const description = find(/beschreibung|leistung|bezeichnung|artikel|tätigkeit|text/i);
-  const quantity = find(/menge|anzahl|stunden|std\.?|stk/i);
-  const price = find(/einzelpreis|e-preis|stückpreis|preis|satz/i);
+  const price = header.findIndex(
+    (cell) => /preis/i.test(cell) || (/satz/i.test(cell) && !TAX_RATE_COLUMN.test(cell)),
+  );
+  // The price column first: "Stundensatz" names hours too, but is the price of one.
+  const quantity = header.findIndex(
+    (cell, index) => index !== price && /menge|anzahl|stunden|std\.?|stk/i.test(cell),
+  );
   const total = header.findLastIndex((cell) => /gesamt|betrag|summe|netto/i.test(cell));
   if (description < 0 || (price < 0 && total < 0)) return undefined;
   return { description, quantity, price, total, quantityLabel: header[quantity] ?? "" };
 };
 
+/** The words a sum's label is made of: "Summe", "Netto", "USt", "Betrag", … */
+const SUM_WORD =
+  "(?:zwischen|end|gesamt)?summe|gesamt(?:betrag)?|(?:netto|brutto)(?:betrag)?|übertrag|rechnungsbetrag|umsatzsteuer|ust|mwst|mehrwertsteuer";
+
+/**
+ * A sum's label ("Summe netto", "Zwischensumme", "Netto-Summe", "USt-Betrag", "zzgl. USt 19 %") as
+ * words of its own: not "Gesamtpaket", nor "USt-Voranmeldung", a line a tax adviser bills.
+ */
+const SUM_LABEL = new RegExp(
+  `^(?:zzgl\\.?\\s+)?(?:${SUM_WORD})(?:-(?:${SUM_WORD}|betrag))*(?![\\p{L}\\d-])`,
+  "iu",
+);
+
+/** A row of sums inside the table of lines: a sum's label and no quantity. */
+const isSumRow = (row: string[], columns: Columns): boolean =>
+  row.some((cell) => SUM_LABEL.test(cell.trim())) &&
+  (columns.quantity < 0 || (row[columns.quantity] ?? "").trim() === "");
+
 const linesFromTable = (rows: string[][], columns: Columns, taxRate: number): DraftLine[] =>
   rows.flatMap((row) => {
+    if (isSumRow(row, columns)) return [];
     const description = real(row[columns.description]);
     const quantityText = columns.quantity >= 0 ? (row[columns.quantity] ?? "") : "";
     const quantity = parseQuantity(quantityText) ?? 1000;
@@ -233,7 +285,7 @@ export const draftFromDocument = (document: DocumentText): DocumentPrefill => {
   const sellerFound = first(sellerLines, addressInLine);
   const seller: DraftSeller = {
     ...party({ ...emptyParty() }, sellerFound),
-    vatId: first(sellerLines, after(VAT_ID))?.replace(/\s+/g, "").toUpperCase(),
+    vatId: first(sellerLines, vatIdIn),
     taxNumber: first(sellerLines, after(TAX_NUMBER)),
     email: first(sellerLines, (text) => EMAIL.exec(text)?.[0]),
     iban: first(sellerLines, ibanIn),

@@ -1,5 +1,14 @@
+import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { docxContent, fillPlaceholders, markdownDocx, placeholdersOf, TEMPLATES, xlsxSheets } from "../src";
+import {
+  docxContent,
+  fillPlaceholders,
+  markdownDocx,
+  placeholdersOf,
+  TEMPLATES,
+  xlsx,
+  xlsxSheets,
+} from "../src";
 
 const template = (id: string) => {
   const found = TEMPLATES.find((entry) => entry.id === id);
@@ -32,6 +41,18 @@ describe("fillPlaceholders", () => {
     const deck = fillPlaceholders(template("praesentation"), { Titel: "Lagerverwaltung" });
     expect(deck.missing).toEqual([]);
     expect(placeholdersOf(deck.bytes)).not.toContain("Titel");
+  });
+});
+
+describe("placeholders in a sheet with formulas", () => {
+  it("are not taken from a formula's structured reference, which stays as it is", () => {
+    const book = xlsx([{ name: "Tabelle1", rows: [["[Betrag]", "=SUM(Tabelle1[Betrag])"]] }]);
+    expect(placeholdersOf(book)).toEqual(["Betrag"]);
+    const { bytes, left } = fillPlaceholders(book, { Betrag: "100" });
+    const sheet = strFromU8(unzipSync(bytes)["xl/worksheets/sheet1.xml"] ?? new Uint8Array());
+    expect(sheet).toContain("<f>SUM(Tabelle1[Betrag])</f>");
+    expect(sheet).not.toContain(">[Betrag]<");
+    expect(left).toEqual([]);
   });
 });
 

@@ -7,7 +7,10 @@ import {
   inviteSchema,
   mediaSchema,
   nodeSchema,
+  SESSION_SAVE_HEADER,
+  type SessionSave,
   type ShareRole,
+  sessionSaveHeader,
   sharedNodeSchema,
   shareSchema,
   type UpdateNode,
@@ -115,12 +118,21 @@ export const fileCommands = (api: ApiClient) => ({
     expectOk(api.nodes[":id"].invites[":token"].$delete({ param: { id, token } })),
   acceptInvite: (token: string) =>
     expectJson(api.invites[":token"].accept.$post({ param: { token } }), nodeSchema),
-  save: (id: string, bytes: Uint8Array) =>
+  /** `session`: the shared session the file comes from and how much of its log it holds. */
+  save: (id: string, bytes: Uint8Array, session?: SessionSave) =>
     // hc types only form and JSON bodies; `init` is spread last into fetch (hono/dist/client/client.js).
     expectJson(
       api.files[":id"].content.$put(
         { param: { id } },
-        { init: { body: bytes as BodyInit, headers: { "content-type": "application/octet-stream" } } },
+        {
+          init: {
+            body: bytes as BodyInit,
+            headers: {
+              "content-type": "application/octet-stream",
+              ...(session ? { [SESSION_SAVE_HEADER]: sessionSaveHeader(session) } : {}),
+            },
+          },
+        },
       ),
       nodeSchema,
     ),

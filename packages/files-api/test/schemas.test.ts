@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nodeNameSchema, updateNodeSchema } from "../src";
+import { copyName, nodeNameSchema, updateNodeSchema } from "../src";
 
 describe("nodeNameSchema", () => {
   it("accepts ordinary names and trims them", () => {
@@ -31,5 +31,22 @@ describe("updateNodeSchema", () => {
     expect(updateNodeSchema.safeParse({}).success).toBe(false);
     expect(updateNodeSchema.safeParse({ parentId: null }).success).toBe(true);
     expect(updateNodeSchema.safeParse({ name: "Neu" }).success).toBe(true);
+  });
+});
+
+describe("copyName", () => {
+  it("marks the copy before the extension", () => {
+    expect(copyName("Bericht.docx", 1)).toBe("Bericht (Kopie).docx");
+    expect(copyName("Bericht.docx", 2)).toBe("Bericht (Kopie 2).docx");
+    expect(copyName("Notizen", 1)).toBe("Notizen (Kopie)");
+  });
+
+  it("shortens the base of a long name, so the copy's name is still one", () => {
+    const name = copyName(`${"a".repeat(250)}.docx`, 12);
+    expect(name).toBe(`${"a".repeat(239)} (Kopie 12).docx`);
+    expect(name).toHaveLength(255);
+    expect(nodeNameSchema.safeParse(name).success).toBe(true);
+    expect(copyName(`a.${"x".repeat(253)}`, 1)).toBe(`a.${"x".repeat(245)} (Kopie)`);
+    expect(copyName(`${"😀".repeat(125)}x.docx`, 1)).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
 });

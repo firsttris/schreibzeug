@@ -1,3 +1,4 @@
+import type { SessionSave } from "@schreibzeug/files-api";
 import type { FileActions } from "./file-menu";
 import type { OpenedFile } from "./opened-file";
 
@@ -10,9 +11,10 @@ export type EditorViewProps = {
   name: string;
   /**
    * Stores the saved file; the view shows "Gespeichert" once it resolves. Called by the save button
-   * and on its own a few seconds after changes; keep it stable (useCallback).
+   * and on its own a few seconds after changes; keep it stable (useCallback). `session`: the shared
+   * session the bytes come from and how much of its log they hold.
    */
-  onSave: (bytes: Uint8Array) => Promise<unknown>;
+  onSave: (bytes: Uint8Array, session?: SessionSave) => Promise<unknown>;
   /** What the "Datei" menu does with the file on the server (use-file-actions.tsx). */
   fileActions: FileActions;
   onRename?: ((name: string) => Promise<unknown>) | undefined;

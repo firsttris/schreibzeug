@@ -39,6 +39,9 @@ describe("paths and keys", () => {
     expect(isAppPath("/edit/1")).toBe(true);
     expect(isAppPath("//evil.example")).toBe(false);
     expect(isAppPath("https://evil.example")).toBe(false);
+    expect(isAppPath("/\\evil.example")).toBe(false);
+    expect(isAppPath("/\t/evil.example")).toBe(false);
+    expect(isAppPath("/edit/1?embedded=kontext#x")).toBe(true);
   });
 
   it("drops the frame parameter and keeps the rest", () => {

@@ -1,5 +1,6 @@
-import { mediaSchema, nodeSchema } from "@schreibzeug/files-api";
+import { mediaSchema, nodeSchema, shareSchema, versionSchema } from "@schreibzeug/files-api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { imageTypeOf, parseMediaName } from "../src/files/media";
 import { startServer, type TestServer } from "./harness";
 
@@ -79,5 +80,39 @@ describe("images of a document", () => {
       error: { message: "Das ist kein Bild im Format PNG, JPEG, GIF oder BMP." },
     });
     expect((await call(`/api/files/${file.id}/media/${"b".repeat(64)}.png`, owner)).status).toBe(404);
+  });
+
+  it("serves only the images put into the file, never other blobs by their hash", async () => {
+    const owner = await server.signUp("MSecret");
+    const guest = await server.signUp("MFormer");
+    const secret = await createDocument(owner, "Geheim");
+    await call(`/api/files/${secret.id}/content`, owner, {
+      method: "PUT",
+      body: new TextEncoder().encode("the contents of version 2"),
+    });
+    const image = mediaSchema.parse(await (await addImage(owner, secret.id, PNG)).json());
+
+    // The guest may look for a while and learns the hash of a version.
+    await call(
+      `/api/nodes/${secret.id}/shares`,
+      owner,
+      json("PUT", { email: "mformer@example.org", role: "view" }),
+    );
+    const versions = z
+      .array(versionSchema)
+      .parse(await (await call(`/api/files/${secret.id}/versions`, guest)).json());
+    const sha = versions[0]?.sha256;
+    const [entry] = z
+      .array(shareSchema)
+      .parse(await (await call(`/api/nodes/${secret.id}/shares`, owner)).json());
+    await call(`/api/nodes/${secret.id}/shares/${entry?.userId}`, owner, { method: "DELETE" });
+    expect((await call(`/api/files/${secret.id}/content`, guest)).status).toBe(404);
+
+    // Through a file of their own, neither the version nor the image of the other file comes back.
+    const mine = await createDocument(guest, "Meins");
+    expect((await call(`/api/files/${mine.id}/media/${sha}.png`, guest)).status).toBe(404);
+    expect((await call(`/api/files/${mine.id}/media/${image.name}`, guest)).status).toBe(404);
+    expect((await call(`/api/files/${secret.id}/media/${sha}.png`, owner)).status).toBe(404);
+    expect((await call(`/api/files/${secret.id}/media/${image.name}`, owner)).status).toBe(200);
   });
 });

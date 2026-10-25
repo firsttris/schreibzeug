@@ -6,6 +6,9 @@ import {
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
+  SESSION_SAVE_HEADER,
+  type SessionSave,
+  sessionSaveOf,
   updateNodeSchema,
 } from "@schreibzeug/files-api";
 import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
@@ -17,7 +20,7 @@ import type { BlobStore } from "../blobs";
 import type { Database } from "../db/database";
 import { fail, ok, type Result, statusOf } from "../result";
 import * as invites from "./invites";
-import { imageTypeOf, mediaNameOf, parseMediaName } from "./media";
+import { hasMedia, imageTypeOf, mediaNameOf, parseMediaName, recordMedia } from "./media";
 import { mimeOf } from "./mime";
 import * as repository from "./repository";
 import {
@@ -36,6 +39,8 @@ export type FilesDeps = {
   maxUploadBytes: number;
   /** Shares may wait for an address without an account (a sign-in provider confirms addresses). */
   pendingShares?: boolean;
+  /** A save from a shared session stored a version (collab/hub.ts `stored`). */
+  onStored?: ((fileId: string, version: number, save: SessionSave) => void) | undefined;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -88,7 +93,7 @@ export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
     respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
   );
 
-export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }: FilesDeps) => {
+export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, onStored }: FilesDeps) => {
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -118,11 +123,9 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
           repository.listChildren(db, user, found),
           found ? repository.pathTo(db, user, found) : Promise.resolve([]),
         ]);
-        // The folders above share the role of the one asked for: someone who sees the path sees them.
-        const role = found?.role ?? "owner";
         return c.json({
           folder: found ? toFileNode(found) : null,
-          path: path.map((node) => toFileNode({ node, role })),
+          path: path.map(toFileNode),
           children: children.map(toFileNode),
         });
       })
@@ -167,12 +170,15 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
       .post("/files/blank", validate("json", createBlankFileSchema), async (c) => {
         const { parentId, name, format } = c.req.valid("json");
         const blank = BLANK_FILES[format];
-        const created = await createStoredFile(
-          userOf(c),
-          parentId,
-          withExtension(name, blank.extension),
-          blank.bytes(),
-        );
+        // The name is checked again with its extension: a name of 255 characters must not grow past it.
+        const fullName = nodeNameSchema.safeParse(withExtension(name, blank.extension));
+        if (!fullName.success)
+          return respond(
+            c,
+            fail("invalid", fullName.error.issues[0]?.message ?? "Ungültiger Name."),
+            toFileNode,
+          );
+        const created = await createStoredFile(userOf(c), parentId, fullName.data, blank.bytes());
         return respond(c, created, toFileNode, 201);
       })
       .get("/files/:id/content", validate("param", idParam), validate("query", versionQuery), async (c) => {
@@ -195,24 +201,32 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
       })
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
-        const saved = repository.addVersion(db, userOf(c), c.req.valid("param").id, await store(bytes));
+        const { id } = c.req.valid("param");
+        const saved = repository.addVersion(db, userOf(c), id, await store(bytes));
+        const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
+        const version = saved.ok ? saved.value.node.version : null;
+        if (version !== null && sessionSave !== null) onStored?.(id, version, sessionSave);
         return respond(c, saved, toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever
-      // may see it may load it. The engine refers to it by its URL until the file is saved.
+      // may see it may load it, and only the images put into this file. The engine refers to one by
+      // its URL until the file is saved.
       .post("/files/:id/media", limit, validate("param", idParam), async (c) => {
         const file = repository.requireFile(db, userOf(c), c.req.valid("param").id, "edit");
         if (!file.ok) return c.json({ error: file.error }, statusOf(file.error.kind));
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const type = imageTypeOf(bytes);
         if (!type) return c.json({ error: { kind: "invalid" as const, message: NOT_AN_IMAGE } }, 400);
-        return c.json({ name: mediaNameOf(await blobs.put(bytes), type) }, 201);
+        const sha256 = await blobs.put(bytes);
+        recordMedia(db, file.value.node.id, sha256);
+        return c.json({ name: mediaNameOf(sha256, type) }, 201);
       })
       .get("/files/:id/media/:name", validate("param", mediaParam), async (c) => {
         const { id, name } = c.req.valid("param");
         const file = repository.requireFile(db, userOf(c), id, "view");
         if (!file.ok) return c.json({ error: file.error }, statusOf(file.error.kind));
-        const media = parseMediaName(name);
+        const parsed = parseMediaName(name);
+        const media = parsed && hasMedia(db, id, parsed.sha256) ? parsed : null;
         const bytes = media && (await blobs.get(media.sha256).catch(() => null));
         if (!media || !bytes)
           return c.json({ error: { kind: "not_found" as const, message: NO_SUCH_IMAGE } }, 404);

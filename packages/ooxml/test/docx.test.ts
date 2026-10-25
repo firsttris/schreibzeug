@@ -1,6 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { blankDocx, docx, paragraphXml } from "../src";
+import { blankDocx, docx, escapeXml, paragraphXml } from "../src";
 
 const documentOf = (bytes: Uint8Array): string => {
   const part = unzipSync(bytes)["word/document.xml"];
@@ -40,6 +40,12 @@ describe("docx", () => {
   it("escapes text so it cannot break the XML", () => {
     const xml = documentOf(docx([paragraphXml([{ text: 'a < b & "c"' }])]));
     expect(xml).toContain("a &lt; b &amp; &quot;c&quot;");
+  });
+
+  it("leaves out the characters XML 1.0 has none for, and keeps tabs, line breaks and emoji", () => {
+    const xml = documentOf(docx([paragraphXml([{ text: "Text \u001b[1m und\fSeite\u0000" }])]));
+    expect(xml).toContain(">Text [1m undSeite<");
+    expect(escapeXml("a\tb\nc\rd \u{1F600} \uD800\uFFFE")).toBe("a\tb\nc\rd \u{1F600} ");
   });
 
   it("gives the same bytes for the same content", () => {

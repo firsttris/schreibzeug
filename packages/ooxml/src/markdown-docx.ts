@@ -13,11 +13,13 @@ type Marks = { bold?: boolean; italic?: boolean; code?: boolean; link?: string }
 type Segment = Marks & { text: string };
 
 /**
- * Inline Markdown: emphasis, code and links, nested; a backslash takes the next character literally.
- * As in CommonMark, "_" marks emphasis only at word bounds, so my_var_name stays as it is.
+ * Inline Markdown: emphasis, code and links, nested; a backslash takes the next character literally
+ * when it is ASCII punctuation (CommonMark 2.4), and stays itself before anything else.
+ * As in CommonMark, "_" marks emphasis only at word bounds, so my_var_name stays as it is, and a
+ * link target may hold balanced parentheses (6.3): [Foo](https://en.wikipedia.org/wiki/Foo_(bar)).
  */
 const INLINE =
-  /\\(?<escaped>[\\`*_[\]()#+\-.!|>])|`(?<code>[^`]+)`|\*\*(?=\S)(?<strongStar>[\s\S]+?)(?<=\S)\*\*|(?<![\p{L}\p{N}_])__(?=\S)(?<strongUnder>[\s\S]+?)(?<=\S)__(?![\p{L}\p{N}_])|\*(?=\S)(?<emStar>[\s\S]+?)(?<=\S)\*|(?<![\p{L}\p{N}_])_(?=\S)(?<emUnder>[\s\S]+?)(?<=\S)_(?![\p{L}\p{N}_])|\[(?<label>[^\]]+)\]\((?<target>[^)\s]+)\)/gu;
+  /\\(?<escaped>[!-/:-@[-`{-~])|`(?<code>[^`]+)`|\*\*(?=\S)(?<strongStar>[\s\S]+?)(?<=\S)\*\*|(?<![\p{L}\p{N}_])__(?=\S)(?<strongUnder>[\s\S]+?)(?<=\S)__(?![\p{L}\p{N}_])|\*(?=\S)(?<emStar>[\s\S]+?)(?<=\S)\*|(?<![\p{L}\p{N}_])_(?=\S)(?<emUnder>[\s\S]+?)(?<=\S)_(?![\p{L}\p{N}_])|\[(?<label>[^\]]+)\]\((?<target>(?:[^()\s]|\([^()\s]*\))+)\)/gu;
 
 export const inlineSegments = (text: string, marks: Marks = {}): Segment[] => {
   const segments: Segment[] = [];
@@ -103,19 +105,37 @@ const cellsOf = (line: string): string[] =>
     .split(/(?<!\\)\|/)
     .map((cell) => cell.trim().replace(/\\\|/g, "|"));
 
+/** Whether a line starts a block of its own instead of continuing the paragraph before it. */
+const startsBlock = (line: string, next: string): boolean =>
+  line.trim() === "" ||
+  HEADING.test(line) ||
+  ITEM.test(line) ||
+  FENCE.test(line) ||
+  RULE.test(line) ||
+  line.trimStart().startsWith(">") ||
+  (line.includes("|") && TABLE_DIVIDER.test(next));
+
 /** Markdown's blocks, line by line. Lists are numbered by `list`, so each numbered list starts at 1. */
 export const markdownBlocks = (markdown: string): Block[] => {
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const blocks: Block[] = [];
   let lists = 0;
   let inList = false;
+  /** The marker columns of the items the next one may be nested in, outermost first. */
+  let parents: number[] = [];
   let index = 0;
   while (index < lines.length) {
     const line = lines[index] ?? "";
     const next = lines[index + 1] ?? "";
     const item = ITEM.exec(line);
-    if (!item) inList = inList && line.trim() === "" && ITEM.test(next);
+    const last = blocks.at(-1);
+    // An indented line right after an item continues its text (CommonMark 5.2), so the list goes on.
+    const continued = inList && last?.type === "item" && /^\s/.test(line) && !startsBlock(line, next);
+    if (!item && !continued) inList = inList && line.trim() === "" && ITEM.test(next);
     if (line.trim() === "") {
+      index += 1;
+    } else if (continued) {
+      last.text += ` ${line.trim()}`;
       index += 1;
     } else if (FENCE.test(line)) {
       const fence = FENCE.exec(line)?.[1] ?? "```";
@@ -132,15 +152,23 @@ export const markdownBlocks = (markdown: string): Block[] => {
       index += 1;
     } else if (item) {
       const [, indent = "", marker = "-", text = ""] = item;
-      if (!inList) lists += 1;
+      const column = indent.replace(/\t/g, "    ").length;
+      if (!inList) {
+        lists += 1;
+        parents = [];
+      }
       inList = true;
+      // An item is nested in each open one it is indented under by at least two columns, the
+      // content column of "- " (CommonMark 5.2): one space less, as in example 312, is a sibling.
+      parents = parents.filter((parent) => parent + 2 <= column);
       blocks.push({
         type: "item",
         ordered: /\d/.test(marker),
-        level: Math.min(8, Math.floor(indent.replace(/\t/g, "    ").length / 2)),
+        level: Math.min(8, parents.length),
         text,
         list: lists,
       });
+      parents.push(column);
       index += 1;
     } else if (line.includes("|") && TABLE_DIVIDER.test(next)) {
       const rows = [cellsOf(line)];
@@ -167,17 +195,7 @@ export const markdownBlocks = (markdown: string): Block[] => {
       index += 1;
       while (index < lines.length) {
         const candidate = lines[index] ?? "";
-        const following = lines[index + 1] ?? "";
-        if (
-          candidate.trim() === "" ||
-          HEADING.test(candidate) ||
-          ITEM.test(candidate) ||
-          FENCE.test(candidate) ||
-          RULE.test(candidate) ||
-          candidate.trimStart().startsWith(">") ||
-          (candidate.includes("|") && TABLE_DIVIDER.test(following))
-        )
-          break;
+        if (startsBlock(candidate, lines[index + 1] ?? "")) break;
         text.push(candidate.trim());
         index += 1;
       }

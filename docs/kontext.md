@@ -86,6 +86,13 @@ open it, Kontext's server shares the file with them to view, as its owner, with 
 share waits for their address and holds from their first sign-in through Kontext
 ([accounts](accounts.md#sharing)).
 
+A shared mailbox of Kontext (info@, rechnung@) is a person here too: Kontext sends tokens for it
+(subject `mailbox:<account id>`, the mailbox's address), so it gets an account of its own with
+one folder named after its address. Kontext keeps that folder shared with the mailbox's people
+(members `edit`, readers `view`) and takes the share back from whoever leaves; they find it under
+"Für mich freigegeben". Nobody signs in as the mailbox: it has no password and no sign-in through
+Kontext.
+
 ## Settings
 
 | Variable | |

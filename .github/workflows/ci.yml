@@ -112,6 +112,13 @@ jobs:
       - run: bun run test:e2e --shard=${{ matrix.shard }}/3
         env:
           HOME: /root
+      # The ZUGFeRD invoice e2e/e-invoice.spec.ts makes, for the einvoice job to check.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: einvoice-${{ matrix.shard }}
+          path: test-results/**/*.zugferd.pdf
+          if-no-files-found: ignore
+          retention-days: 7
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -120,3 +127,29 @@ jobs:
             e2e/playwright-report
             e2e/test-results
           retention-days: 7
+
+  # The e-invoice the E2E tests made, checked by Mustang (ZUGFeRD/mustangproject): the Factur-X XML
+  # against its schema and the EN 16931 rules, the PDF against PDF/A-3 (veraPDF). See docs/e-invoice.md.
+  einvoice:
+    needs: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: einvoice-*
+          merge-multiple: true
+          path: einvoices
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: curl -fsSL -o mustang.jar https://repo1.maven.org/maven2/org/mustangproject/Mustang-CLI/2.26.0/Mustang-CLI-2.26.0.jar
+      - name: Validate
+        run: |
+          files=$(find einvoices -name '*.zugferd.pdf')
+          test -n "$files" || { echo "The E2E tests made no e-invoice."; exit 1; }
+          for file in $files; do
+            java -jar mustang.jar --action validate --source "$file" --no-notices | tee result.xml
+            grep -q '<summary status="valid"/>' result.xml
+          done

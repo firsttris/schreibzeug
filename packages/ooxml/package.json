@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "Builds minimal Office Open XML packages: blank documents for the server, test documents for the tests.",
+  "description": "Builds minimal Office Open XML packages: blank documents for the server, test documents for the tests. Reads the text and tables of a .docx.",
   "exports": {
     ".": "./src/index.ts"
   },

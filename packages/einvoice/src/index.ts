@@ -14,3 +14,23 @@ export const readEmbeddedInvoice = async (pdf: Uint8Array): Promise<EmbeddedInvo
   const embedded = await extractEmbeddedXml(pdf);
   return embedded && { ...embedded, invoice: readInvoiceXml(embedded.xml) };
 };
+export {
+  type DraftLine,
+  type DraftParty,
+  type DraftSeller,
+  draftProblems,
+  type InvoiceDraft,
+  isIban,
+  SMALL_BUSINESS_NOTE,
+  type TaxGroup,
+  type TaxMode,
+  type Totals,
+  taxCategory,
+  totalsOf,
+  UNITS,
+  type UnitCode,
+} from "./draft";
+export { type DocumentPrefill, type DocumentText, draftFromDocument, type TextBlock } from "./from-document";
+export { addDays, parseDate, parseMoney, parseQuantity, parseRate } from "./german";
+export { amount, EN16931_GUIDELINE, facturXml, quantity } from "./write-cii";
+export { FACTURX_FILENAME, zugferdPdf, zugferdXmp } from "./zugferd-pdf";

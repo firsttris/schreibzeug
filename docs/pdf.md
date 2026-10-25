@@ -114,7 +114,7 @@ AGPL-3.0-only, the same author), without Node and with failures as values:
 
 Saving keeps the attachment: x2t writes the changes into the PDF itself (see "Opening and saving"), and
 `e2e/pdf-invoice.spec.ts` reads the invoice back from the stored file after turning a page.
-Making ZUGFeRD invoices from a text document is not part of this yet.
+Making ZUGFeRD invoices from a text document is described in [E-invoices](e-invoice.md).
 
 ## Text recognition
 

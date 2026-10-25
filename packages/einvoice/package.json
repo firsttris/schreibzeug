@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "description": "E-invoices in PDFs: finds the invoice XML a ZUGFeRD or Factur-X PDF carries and reads it (CII and UBL).",
+  "description": "E-invoices: finds and reads the invoice XML a ZUGFeRD or Factur-X PDF carries (CII and UBL), and writes Factur-X (EN 16931) into a PDF/A-3.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./draft": "./src/draft.ts",
+    "./german": "./src/german.ts"
   },
   "dependencies": {
     "fast-xml-parser": "5.11.2",

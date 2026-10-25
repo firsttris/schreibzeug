@@ -11,6 +11,7 @@ belong here; note each file's source below.
 | `umsatz.xlsx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pivot.spec.ts` |
 | `vortrag.pptx` | written by `make.ts` in this folder (AGPL-3.0, like the repository) | `e2e/presentation.spec.ts`, `e2e/screenshots.shot.ts` |
 | `formular.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf-engine.spec.ts`, `e2e/pdf.spec.ts`, `e2e/screenshots.shot.ts` |
+| `rechnung.docx` | written by `make.ts` with `rechnung.ts`: Schreibzeug's invoice template filled in (AGPL-3.0, like the repository) | `e2e/e-invoice.spec.ts` |
 | `rechnung.pdf` | written by `make.ts` with `rechnung.ts` in this folder: a ZUGFeRD invoice with its Factur-X XML attached (AGPL-3.0, like the repository) | `e2e/pdf-invoice.spec.ts` |
 | `anhang.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf.spec.ts` |
 

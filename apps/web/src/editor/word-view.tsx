@@ -14,6 +14,7 @@ import type { EditorViewProps } from "./props";
 import { RevisionBalloon } from "./revision-balloon";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
+import { useEInvoice } from "./use-e-invoice";
 import { frameToWindow, useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
 import { openLink, useLinks } from "./use-links";
@@ -34,6 +35,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
   const comments = useCommentsPanel(editor, state, file.readOnly);
   const [tableDialog, setTableDialog] = useState(false);
   const links = useLinks(editor, file.readOnly, chrome.notify);
+  const eInvoice = useEInvoice(editor, name, chrome.notify);
 
   // The change at the cursor, beside it while changes are marked (not in "Endgültig" or "Original").
   const [firstRevision] = state.review.atCursor;
@@ -82,6 +84,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         onRename={onRename}
         onDownload={download}
         pdf={chrome.pdf}
+        downloads={chrome.pdf ? [eInvoice.item] : []}
         menus={file.readOnly ? [] : wordMenus(context)}
         shortcuts={WORD_SHORTCUTS}
         notice={chrome.notice}
@@ -109,6 +112,7 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
         />
         {comments.panel}
       </div>
+      {eInvoice.dialog}
       {balloonAt && editor && (
         <RevisionBalloon
           revisions={state.review.atCursor}

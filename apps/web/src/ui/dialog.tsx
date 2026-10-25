@@ -6,6 +6,8 @@ export type DialogProps = {
   onClose: () => void;
   /** Room for a row of controls, e.g. the share dialog. */
   wide?: boolean;
+  /** Room for a form with a table, e.g. the e-invoice; taller than the window, it scrolls. */
+  large?: boolean;
   children: ReactNode;
 };
 
@@ -13,7 +15,13 @@ export type DialogProps = {
  * A modal on the native <dialog>: focus trap, Escape and the backdrop come from the browser, so the
  * dialog stays accessible without a library.
  */
-export const Dialog = ({ open, title, onClose, wide = false, children }: DialogProps) => {
+const widths = {
+  normal: "w-[min(26rem,calc(100%-2rem))]",
+  wide: "w-[min(32rem,calc(100%-2rem))]",
+  large: "w-[min(56rem,calc(100%-2rem))] max-h-[calc(100vh-2rem)] overflow-y-auto",
+};
+
+export const Dialog = ({ open, title, onClose, wide = false, large = false, children }: DialogProps) => {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -32,7 +40,7 @@ export const Dialog = ({ open, title, onClose, wide = false, children }: DialogP
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
-      className={`m-auto ${wide ? "w-[min(32rem,calc(100%-2rem))]" : "w-[min(26rem,calc(100%-2rem))]"} rounded-xl border border-[var(--border)] bg-[var(--background)] p-0 text-[var(--foreground)] shadow-xl backdrop:bg-black/40`}
+      className={`m-auto ${widths[large ? "large" : wide ? "wide" : "normal"]} rounded-xl border border-[var(--border)] bg-[var(--background)] p-0 text-[var(--foreground)] shadow-xl backdrop:bg-black/40`}
     >
       {open && (
         <div className="flex flex-col gap-4 p-5">

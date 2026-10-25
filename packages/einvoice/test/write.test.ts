@@ -133,6 +133,16 @@ describe("facturXml", () => {
     expect(xml).not.toContain("EmailURIUniversalCommunication");
     expect(xml).not.toContain("PaymentMeans");
   });
+
+  it("writes what XML 1.0 has no character for as a space", () => {
+    const draft = sampleDraft();
+    const [scanner, ...rest] = draft.lines;
+    const lines = scanner ? [{ ...scanner, description: "Zeile\u000Bzwei\u0000\uFFFF" }, ...rest] : rest;
+    const xml = facturXml({ ...draft, lines, note: "Gruß\uD800" });
+    for (const forbidden of ["\u000B", "\u0000", "\uFFFF", "\uD800"]) expect(xml).not.toContain(forbidden);
+    expect(read(xml).lines[0]?.description).toBe("Zeile zwei");
+    expect(xml).toContain("<ram:Content>Gruß</ram:Content>");
+  });
 });
 
 describe("draftProblems", () => {

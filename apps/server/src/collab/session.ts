@@ -148,8 +148,9 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
     view: isViewer(data),
   };
   // The blocks it held go through the same check as a getLock (DocsCoServer getLock with
-  // bIsRestore): someone else's lock stays theirs, and a refused one ends the restore.
-  const blocks = Array.isArray(data.block) ? data.block : [];
+  // bIsRestore): someone else's lock stays theirs, and a refused one ends the restore. A viewer
+  // takes no locks, so its blocks are ignored (DocsCoServer checks them only if !conn.user.view).
+  const blocks = Array.isArray(data.block) && !isViewer(data) ? data.block : [];
   const locks = blocks.length ? tryLocks(session.locks, blocks, id, now, session.editorType) : session.locks;
   if (!locks) {
     return {
@@ -242,7 +243,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
 export const getLock = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
   const participant = participantOf(session, connectionId);
   if (!participant) return { session, out: [] };
-  const blocks = Array.isArray(data.block) ? data.block : [];
+  const blocks = Array.isArray(data.block) && !isViewer(data) ? data.block : [];
   const locks = acquireLocks(session.locks, blocks, participant.id, now, session.editorType);
   return { session: { ...session, locks }, out: [{ to: "all", message: { type: "getLock", locks } }] };
 };

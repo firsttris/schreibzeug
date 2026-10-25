@@ -422,4 +422,18 @@ describe("collaboration hub", () => {
     });
     expect(b.messages.map((m) => m.type)).toContain("saveChanges");
   });
+
+  it("gives a returning viewer none of the locks it announces", async () => {
+    const { hub, join } = setup(["anna"], ["ben"]);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna", { editorType: 1 }));
+    const b = await join(BEN);
+    hub.message(b.id, auth("ben"));
+    hub.close(b.id);
+    const back = await join(BEN);
+    const block = { guid: "g1", sheetId: "1", type: 3, subType: null, rangeOrObjectId: null };
+    hub.message(back.id, auth("ben", { sessionId: b.id, user: { indexUser: 2 }, block: [block] }));
+    expect(back.messages.map((m) => m.type)).toContain("auth");
+    expect(hub.session(FILE)?.locks).toEqual({});
+  });
 });

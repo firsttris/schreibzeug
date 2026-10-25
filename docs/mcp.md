@@ -79,6 +79,14 @@ document is data, not an instruction.
 | `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
 | `read_presentation` | A .pptx slide by slide: title, text, notes | read |
 | `read_pdf` | A PDF's text page by page (`pages`: `1-3`, `2,5`), its form fields, its digital signatures and whether they hold, and the e-invoice it carries | read |
+| `list_templates` | The built-in templates and the user's own in the folder "Vorlagen", each with its placeholders | read |
+| `create_document` | A .docx from Markdown | write |
+| `create_from_template` | A file from a template with its placeholders (`[Nr.]`, `[Datum]` …) filled; says which are still open | write |
+| `create_sheet` | An .xlsx from sheets of rows: numbers, texts, formulas, with the formats bold, currency, date, percent | write |
+| `create_presentation` | A .pptx from slides (title, content, title only, blank) | write |
+| `append_rows` | Rows below the last row of a sheet, as a new version | write |
+| `einvoice_xml` | Factur-X XML (EN 16931) from an invoice's data, checked first (`draftProblems`) | write |
+| `upload_file` | A small file from the conversation (up to 1 MB), as text or base64 | write |
 
 The reading tools read the file itself, without the engine: `packages/ooxml` (`docxContent` with
 heading levels from the styles' outline level and list levels from `w:numPr`, `xlsxSheets`,
@@ -88,6 +96,23 @@ than 20 000 characters comes in parts: the answer ends with the `offset` to ask 
 document does not fill the conversation. A scan without a text layer reads as empty; text
 recognition in the app gives it one. ODT and the older formats need x2t, which runs in the browser:
 open them in Schreibzeug first.
+
+The creating tools write the file on the server, without an editor open, and store it as an upload
+from the interface would (`POST /api/files`; `append_rows` saves a new version with `PUT`):
+
+- `create_document` turns Markdown into WordprocessingML (`packages/ooxml` `markdownDocx`): ATX
+  headings become Word's own styles "heading 1"–"heading 6" with their outline level, so the
+  navigation and a table of contents find them; bullet and numbered lists get a numbering part,
+  each numbered list starting at 1; pipe tables, block quotes, fenced code, rules, bold, italic,
+  code and links (as `w:hyperlink` with an external relationship).
+- `create_from_template` fills placeholders in the text of the document, sheet or slide parts
+  (`fillPlaceholders`). A placeholder Word split across runs is not found; the answer lists what is
+  still open.
+- `append_rows` writes plain values below the last row (`appendRows`), and the used range grows
+  with them; the workbook's own styles stay as they are.
+- `einvoice_xml` takes amounts as a person states them (euros, percent) and reckons in integers as
+  `packages/einvoice` does. The ZUGFeRD PDF needs the engine for the PDF/A and comes with editing
+  in an open tab.
 
 Links point into the app: `/edit/<id>` for a file, `/folders/<id>` for a folder, `/invite/<token>`
 for a link.
@@ -101,6 +126,9 @@ someone else cannot revoke one. `apps/server/test/mcp.test.ts` connects the SDK'
 someone else's folder), a revoked token. `apps/server/test/mcp-read.test.ts` reads the test files
 (`hello.docx`, `preise.xlsx`, `vortrag.pptx`, `formular.pdf`, `rechnung.pdf`) and documents written
 in the test: headings and lists as Markdown, a long text in parts, a sheet by name and range, a
-PDF's form fields and e-invoice. The readers have their own tests in `packages/ooxml` and
-`packages/mcp`. `e2e/mcp.spec.ts` creates a token in the settings, calls
+PDF's form fields and e-invoice. `apps/server/test/mcp-create.test.ts` creates every kind and reads it back: Markdown to .docx and back,
+a built-in and an own template, a sheet with appended rows as version 2, a presentation, an
+e-invoice read back with `readInvoiceXml`, small uploads. The readers and writers have their own tests
+in `packages/ooxml` and `packages/mcp`. `e2e/mcp.spec.ts` opens what the tools made in the editor,
+saves the document through the engine and finds its heading style and table again. `e2e/mcp.spec.ts` creates a token in the settings, calls
 the endpoint as a client would, sees the folder it made in the file list, and revokes the token.

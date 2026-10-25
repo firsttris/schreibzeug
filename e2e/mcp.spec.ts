@@ -1,5 +1,6 @@
 import { type APIRequestContext, expect, test } from "@playwright/test";
-import { credentialsFor, row, signUp } from "./app";
+import { collectErrors, credentialsFor, expectEditorReady, row, save, signUp, storedDocx } from "./app";
+import { documentXml, paragraphTexts, styleNameOf } from "./docx";
 
 /*
  * Claude Code's way in: a personal access token made in the settings, then the MCP endpoint over
@@ -64,4 +65,63 @@ test("a token from the settings lets an MCP client work as the person, until it 
   await page.getByRole("button", { name: "Claude Code Test widerrufen" }).click();
   await expect(page.getByText("Noch keine Zugangsschlüssel.")).toBeVisible();
   expect((await rpc(page.request, token, "tools/list", {})).status()).toBe(401);
+});
+
+/** A token made through the API, for the tests that are not about the settings page. */
+const writeToken = async (request: APIRequestContext) => {
+  const reply = await request.post("/api/tokens", { data: { name: "E2E", scope: "write" } });
+  expect(reply.ok(), await reply.text()).toBe(true);
+  return ((await reply.json()) as { token: string }).token;
+};
+
+test("files made over MCP open in the editor and keep their structure through a save", async ({
+  page,
+}, testInfo) => {
+  const errors = collectErrors(page);
+  await signUp(page, credentialsFor(testInfo));
+  const token = await writeToken(page.request);
+  const made = async (tool: string, args: Record<string, unknown>) => {
+    const result = await callTool(page.request, token, tool, args);
+    expect(result.isError ?? false, result.content[0]?.text).toBe(false);
+    return JSON.parse(result.content[0]?.text ?? "{}") as { id: string; link: string };
+  };
+
+  const document = await made("create_document", {
+    name: "Angebot",
+    markdown:
+      "# Angebot für Musterhandel\n\n- Beratung\n- Schulung\n\n| Pos. | Preis |\n| --- | --- |\n| 1 | 189 € |",
+  });
+  await page.goto(new URL(document.link).pathname);
+  await expectEditorReady(page, errors);
+  await save(page);
+  const saved = await storedDocx(page, document.id);
+  expect(paragraphTexts(documentXml(saved))).toEqual(
+    expect.arrayContaining(["Angebot für Musterhandel", "Beratung", "Schulung", "189 €"]),
+  );
+  // The engine writes Word's built-in name back as "Heading 1".
+  expect(styleNameOf(saved, "Angebot für Musterhandel")?.toLowerCase()).toBe("heading 1");
+
+  for (const [tool, args] of [
+    [
+      "create_sheet",
+      {
+        name: "Preise",
+        sheets: [
+          {
+            name: "Preise",
+            rows: [
+              ["Artikel", "Preis"],
+              ["Stift", 1.5],
+            ],
+          },
+        ],
+      },
+    ],
+    ["create_presentation", { name: "Vortrag", slides: [{ layout: "title", title: "Lager" }] }],
+    ["create_from_template", { template: "rechnung", name: "Rechnung", values: { "Nr.": "2026-042" } }],
+  ] as const) {
+    const file = await made(tool, args);
+    await page.goto(new URL(file.link).pathname);
+    await expectEditorReady(page, errors);
+  }
 });

@@ -62,6 +62,9 @@ const CHANGING = new Set([
   "schreibzeug:saved",
 ]);
 
+/** How many session ids of an ended session stay valid for a restore: the latest connections. */
+const ENDED_IDS_KEPT = 50;
+
 /**
  * Holds the sessions of all open files and delivers what session.ts decides. A session starts
  * with the first connection to a file, at the file's newest version, and ends with the last one,
@@ -72,6 +75,12 @@ const CHANGING = new Set([
 export const createHub = ({ access, now = Date.now }: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
+  /**
+   * The session ids of a file's last session that ended with everything stored: a client whose
+   * connection dropped comes back with one, and its copy is the stored version, so it may restore
+   * into the next session (DocsCoServer refuses a restore only for a changed document or locks).
+   */
+  const endedIds = new Map<string, string[]>();
 
   const membersOf = (fileId: string) =>
     [...connections.entries()].filter(([, connection]) => connection.fileId === fileId);
@@ -108,7 +117,11 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (allowed === null) return null;
       const { version } = allowed;
       // Another connection may have started the session while we looked the version up.
-      const session = sessions.get(fileId) ?? createSession(fileId, version);
+      const session = sessions.get(fileId) ?? {
+        ...createSession(fileId, version),
+        sessionIds: endedIds.get(fileId) ?? [],
+      };
+      endedIds.delete(fileId);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
       connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
@@ -131,9 +144,13 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (!connection) return;
       apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
       connections.delete(connectionId);
-      const session = sessions.get(connection.fileId);
-      if (membersOf(connection.fileId).length === 0 && session && !hasUnsavedChanges(session)) {
-        sessions.delete(connection.fileId);
+      const { fileId } = connection;
+      const session = sessions.get(fileId);
+      if (membersOf(fileId).length > 0 || !session) return;
+      if (!hasUnsavedChanges(session)) {
+        sessions.delete(fileId);
+        endedIds.set(fileId, session.sessionIds.slice(-ENDED_IDS_KEPT));
+        return;
       }
     },
 

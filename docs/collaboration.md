@@ -82,8 +82,9 @@ The channel reconnects on its own, with a growing pause up to five seconds. Whil
 engine starts its `Disconnect` action and takes no edits (`common/apiBase.js`
 `CoAuthoringApi.onDisconnect`); the editor's status line says "Verbindung unterbrochen" until the
 action ends. The engine comes back with its old session id. The relay restores the session if
-it gave out that id (a session that started over, after a server restart say, lacks the changes the
-engine's copy holds, so the engine has to open the document again), if nobody else changed the document meanwhile (the last change by someone else is the one the client
+it gave out that id, or the file's previous session did and ended with everything stored (a
+session that started over after a server restart lacks the changes the engine's copy may hold, so
+the engine has to open the document again), if nobody else changed the document meanwhile (the last change by someone else is the one the client
 last saw, `lastOtherSaveTime`) and the blocks the engine still holds pass the same check as a
 `getLock`: a text lock someone else took meanwhile stays theirs, and a spreadsheet or slide block
 the editor's rule refuses ends the restore ("Restore error. Locks not checked.", DocsCoServer.js

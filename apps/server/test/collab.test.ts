@@ -435,6 +435,24 @@ describe("collaboration hub", () => {
     expect(b.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c1"' }]);
   });
 
+  it("restores someone alone whose connection dropped with everything stored", async () => {
+    const { hub, join } = setup();
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, { type: "getLock", block: ["p1"] });
+    hub.close(a.id); // nothing unsaved: the session ends
+
+    const back = await join(ANNA);
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    hub.message(
+      back.id,
+      auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0, block: ["p1"] }),
+    );
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "auth",
+    });
+  });
+
   it("lets a viewer follow along but not change anything", async () => {
     const { hub, join } = setup(["anna"], ["ben"]);
     const a = await join(ANNA);

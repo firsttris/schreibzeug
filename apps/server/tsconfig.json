@@ -7,5 +7,9 @@
     "types": ["bun"]
   },
   "include": ["src", "test", "vitest.config.ts", "drizzle.config.ts"],
-  "references": [{ "path": "../../packages/files-api" }, { "path": "../../packages/ooxml" }]
+  "references": [
+    { "path": "../../packages/files-api" },
+    { "path": "../../packages/ooxml" },
+    { "path": "../../packages/mcp" }
+  ]
 }

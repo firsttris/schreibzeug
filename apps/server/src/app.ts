@@ -3,7 +3,8 @@ import { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
 import type { Auth } from "./auth/auth";
 import type { Bearer } from "./auth/bearer";
-import { type AuthEnv, bearerToken, requireUser } from "./auth/middleware";
+import { type AuthEnv, bearerToken, requireSession, requireUser } from "./auth/middleware";
+import { tokenRoutes } from "./auth/token-routes";
 import type { Hub } from "./collab/hub";
 import { collabRoutes } from "./collab/routes";
 import { type FilesDeps, filesRoutes, invitationRoutes } from "./files/routes";
@@ -24,9 +25,11 @@ export type AppDeps = FilesDeps & {
  * test database and a temporary blob folder with `app.request()` and no open port.
  *
  * Better Auth answers under /api/auth (sign-up, sign-in, sign-out, session), and what a link
- * shares can be read without signing in; everything after that needs a session. `DELETE
- * /api/sessions` is only for the sign-in provider's server, with a token for the person: Kontext
- * ends someone's sessions here when they leave the company or are locked (auth/bearer.ts).
+ * shares can be read without signing in; everything after that needs a session, a token from the
+ * sign-in provider, or a personal access token (auth/tokens.ts); tokens and live editing sessions
+ * are for the person in the app. `DELETE /api/sessions` is only for the sign-in provider's server,
+ * with a token for the person: Kontext ends someone's sessions here when they leave the company or
+ * are locked (auth/bearer.ts).
  */
 export const createApp = ({
   log = console.error,
@@ -49,8 +52,10 @@ export const createApp = ({
         ? c.json({ error: { kind: "unauthorized" as const, message: "Bitte melde dich an." } }, 401)
         : c.body(null, 204);
     })
-    .use(requireUser(auth, bearer))
+    .use(requireUser(auth, deps.db, bearer))
+    .route("/", tokenRoutes(deps))
     .route("/", filesRoutes(deps))
+    .use("/collab/*", requireSession)
     .route("/", collab ? collabRoutes(collab) : new Hono<AuthEnv>())
     .onError((error, c) => {
       log("[api]", error);

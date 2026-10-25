@@ -2,6 +2,7 @@ import { type ServerInfo, serverInfoSchema } from "@schreibzeug/files-api";
 import { createContext, type ReactNode, useContext } from "react";
 import type { ApiClient } from "./client";
 import { fileCommands, fileQueries } from "./files";
+import { type TokenApi, tokenApi } from "./tokens";
 
 export type Files = {
   queries: ReturnType<typeof fileQueries>;
@@ -12,6 +13,10 @@ export type Files = {
   mediaUrl: (fileId: string, name: string) => string;
   /** A Schreibzeug server, or the desktop app's files on this computer (apps/local). */
   info: ServerInfo;
+  /** Personal access tokens, for MCP clients such as Claude Code; only on a server. */
+  tokens: TokenApi;
+  /** Where an MCP client connects (apps/server src/mcp.ts). */
+  mcpUrl: string;
 };
 
 const FilesContext = createContext<Files | null>(null);
@@ -22,6 +27,8 @@ export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): 
   collabUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/collab/${fileId}`,
   mediaUrl: (fileId, name) => `${baseUrl}/api/files/${fileId}/media/${name}`,
   info,
+  tokens: tokenApi(api),
+  mcpUrl: `${baseUrl}/mcp`,
 });
 
 /**

@@ -173,3 +173,33 @@ export type NodeRow = typeof nodes.$inferSelect;
 export type InviteRow = typeof invites.$inferSelect;
 export type ShareRow = typeof shares.$inferSelect;
 export type VersionRow = typeof versions.$inferSelect;
+
+export const TOKEN_SCOPES = ["read", "write"] as const;
+
+/**
+ * Personal access tokens: how a program such as an MCP client acts for its user without a session.
+ * Only the SHA-256 of a token is kept; the token itself is shown once, when it is made. A "read"
+ * token may only look, a "write" token may do what its user may do. Deleting the row revokes it.
+ */
+export const accessTokens = sqliteTable(
+  "access_tokens",
+  {
+    id: id(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    hash: text("hash").notNull(),
+    scope: text("scope", { enum: TOKEN_SCOPES }).notNull(),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at"),
+    lastUsedAt: timestamp("last_used_at"),
+  },
+  (table) => [
+    uniqueIndex("access_tokens_hash").on(table.hash),
+    index("access_tokens_user").on(table.userId),
+    check("access_tokens_scope", sql`${table.scope} in ('read', 'write')`),
+  ],
+);
+
+export type AccessTokenRow = typeof accessTokens.$inferSelect;

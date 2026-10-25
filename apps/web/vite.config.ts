@@ -16,8 +16,16 @@ export default defineConfig({
     enginePlugin(resolve(import.meta.dirname, "../../engine/dist")),
     ocrPlugin(),
   ],
-  server: { port: 5173, strictPort: true, proxy: { "/api": { target: apiUrl, ws: true } } },
-  preview: { port: 4173, strictPort: true, proxy: { "/api": { target: apiUrl, ws: true } } },
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: { "/api": { target: apiUrl, ws: true }, "/mcp": { target: apiUrl } },
+  },
+  preview: {
+    port: 4173,
+    strictPort: true,
+    proxy: { "/api": { target: apiUrl, ws: true }, "/mcp": { target: apiUrl } },
+  },
   test: {
     name: "web",
     environment: "happy-dom",

@@ -22,6 +22,13 @@
       "when": 1792911721481,
       "tag": "0002_pending_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792944986379,
+      "tag": "0003_access_tokens",
+      "breakpoints": true
     }
   ]
 }

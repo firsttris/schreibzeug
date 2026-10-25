@@ -10,6 +10,7 @@ import { createHub } from "./collab/hub";
 import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
 import { roleOf } from "./files/access";
+import { mcpRoutes } from "./mcp";
 import { webRoutes } from "./web";
 
 const config = readConfig(process.env);
@@ -68,8 +69,9 @@ const app = createApp({
     ...(embedOrigin ? { embedOrigin } : {}),
   },
 });
-// The API first; the web app, when there is one to serve, gets every other path.
-const site = webDir ? new Hono().route("/", app).route("/", webRoutes(webDir, { embedOrigin })) : app;
+// The API and the MCP endpoint first; the web app, when there is one to serve, gets every other path.
+const site = new Hono().route("/", app).route("/", mcpRoutes({ db, api: app, publicUrl }));
+if (webDir) site.route("/", webRoutes(webDir, { embedOrigin }));
 // Bun's own limit is 128 MB; uploads are bounded by the API's body limit instead.
 const server = Bun.serve({
   port,

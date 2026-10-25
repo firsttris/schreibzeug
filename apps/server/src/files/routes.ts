@@ -58,6 +58,7 @@ const respond = <T, R>(c: Context, result: Result<T>, map: (value: T) => R, stat
 const idParam = z.object({ id: nodeIdSchema });
 const tokenParam = z.object({ token: z.string().min(1).max(100) });
 const parentQuery = z.object({ parent: z.union([z.literal("root"), nodeIdSchema]).default("root") });
+const searchQuery = z.object({ q: z.string().trim().min(1, "Wonach soll gesucht werden?").max(200) });
 const versionQuery = z.object({ version: z.coerce.number().int().positive().optional() });
 const uploadForm = z.object({
   parentId: nodeIdSchema.optional(),
@@ -144,6 +145,9 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
       )
       .get("/trash", async (c) => c.json(repository.listTrash(db, userOf(c)).map(toFileNode)))
       .get("/recent", async (c) => c.json(repository.listRecent(db, userOf(c)).map(toFileNode)))
+      .get("/search", validate("query", searchQuery), (c) =>
+        c.json(repository.searchNodes(db, userOf(c), c.req.valid("query").q).map(toFileNode)),
+      )
       .post("/folders", validate("json", createFolderSchema), async (c) =>
         respond(c, repository.createFolder(db, userOf(c), c.req.valid("json")), toFileNode, 201),
       )

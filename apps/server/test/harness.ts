@@ -6,6 +6,7 @@ import { createAuth } from "../src/auth/auth";
 import type { Bearer } from "../src/auth/bearer";
 import { createBlobStore } from "../src/blobs";
 import { connect, type Database, migrateDatabase } from "../src/db/database";
+import { mcpRoutes } from "../src/mcp";
 
 /**
  * The server on a database and a data folder of its own, in a temporary folder that is removed
@@ -41,6 +42,9 @@ export const startServer = async ({
     log: () => {},
   });
 
+  // The MCP endpoint beside the API, as main.ts mounts it.
+  const mcp = mcpRoutes({ db: connection.db, api: app });
+
   const stop = async () => {
     connection.close();
     await rm(dataDir, { recursive: true, force: true });
@@ -60,7 +64,7 @@ export const startServer = async ({
       .join("; ");
   };
 
-  return { app, auth, db: connection.db, dataDir, signUp, stop };
+  return { app, mcp, auth, db: connection.db, dataDir, signUp, stop };
 };
 
 export type TestServer = Awaited<ReturnType<typeof startServer>>;

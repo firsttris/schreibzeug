@@ -146,3 +146,37 @@ describe("sharing", () => {
     expect((await call(`/api/nodes/${file.id}`, guest)).status).toBe(404);
   });
 });
+
+describe("search", () => {
+  const search = async (cookie: string, q: string) =>
+    z
+      .array(nodeSchema)
+      .parse(await (await call(`/api/search?q=${encodeURIComponent(q)}`, cookie)).json())
+      .map((node) => `${node.name}:${node.role}`);
+
+  it("finds by part of the name, own and shared, never someone else's", async () => {
+    const { owner, guest, stranger, guestEmail } = await people("S");
+    const folder = await createFolder(owner, "Übersicht 2026");
+    await createDocument(owner, "Übersicht Angebote", folder.id);
+    await createDocument(stranger, "Übersicht fremd", null);
+    await createDocument(guest, "Meine ÜBERSICHT", null);
+    await share(owner, folder.id, guestEmail, "edit");
+
+    expect((await search(guest, "übersicht")).sort()).toEqual([
+      "Meine ÜBERSICHT.docx:owner",
+      "Übersicht 2026:edit",
+      "Übersicht Angebote.docx:edit",
+    ]);
+    expect(await search(stranger, "angebote")).toEqual([]);
+  });
+
+  it("takes % and _ literally and leaves out the trash", async () => {
+    const { owner } = await people("T");
+    await createDocument(owner, "100% sicher", null);
+    const gone = await createDocument(owner, "100 Punkte", null);
+    await call(`/api/nodes/${gone.id}/trash`, owner, { method: "POST" });
+    expect(await search(owner, "100%")).toEqual(["100% sicher.docx:owner"]);
+    expect(await search(owner, "100")).toEqual(["100% sicher.docx:owner"]);
+    expect((await call("/api/search?q=%20", owner)).status).toBe(400);
+  });
+});

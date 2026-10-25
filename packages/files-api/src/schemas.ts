@@ -143,10 +143,15 @@ export type SessionSave = { baseVersion: number; index: number };
 
 /** What a server asks of its relay for a save from a shared session (apps/server collab/hub.ts). */
 export type SessionSaves = {
-  /** Whether the save comes from the file's session open now; a copy of one that is gone is old. */
-  isCurrent: (fileId: string, save: SessionSave) => boolean;
+  /**
+   * The save starts: whether it comes from the file's session open now (a copy of one that is gone
+   * is old). Each begun save ends with `stored` or `abandon`.
+   */
+  begin: (fileId: string, save: SessionSave) => boolean;
   /** The save was stored as `version`. */
   stored: (fileId: string, version: number, save: SessionSave) => void;
+  /** The save stored nothing. */
+  abandon: (fileId: string) => void;
 };
 
 /** The answer to a save from a session that is gone: its copy must not become the newest version. */

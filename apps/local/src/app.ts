@@ -180,11 +180,17 @@ export const createLocalApp = ({
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
-        if (sessionSave && collab && !collab.hub.isCurrent(id, sessionSave))
+        const relay = sessionSave ? collab?.hub : undefined;
+        if (sessionSave && relay && !relay.begin(id, sessionSave))
           return respond(c, fail("conflict", SESSION_GONE));
-        const written = await folder.write(id, bytes);
-        if (written.ok && written.value.version !== null && sessionSave)
-          collab?.hub.stored(id, written.value.version, sessionSave);
+        // Until the save is stored or abandoned, its session does not end (hub.ts `begin`).
+        const written = await folder.write(id, bytes).catch((error: unknown) => {
+          if (sessionSave) relay?.abandon(id);
+          throw error;
+        });
+        const version = written.ok ? written.value.version : null;
+        if (sessionSave && version !== null) relay?.stored(id, version, sessionSave);
+        else if (sessionSave) relay?.abandon(id);
         return respond(c, written);
       })
       .post("/files/:id/copy", validate("param", idParam), async (c) =>

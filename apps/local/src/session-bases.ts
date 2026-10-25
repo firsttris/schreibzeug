@@ -20,7 +20,10 @@ export const createSessionBases = (baseOf: (fileId: string) => number | undefine
       const base = baseOf(fileId);
       if (base === undefined) kept.delete(fileId);
       if (asked === undefined || asked === current) {
-        if (base !== undefined && base === current) kept.set(fileId, { version: base, bytes: onDisk });
+        // Taken once, at the session's first load, before any save of it: a read racing a save
+        // may get the saved bytes still under the old version number.
+        if (base !== undefined && base === current && kept.get(fileId)?.version !== base)
+          kept.set(fileId, { version: base, bytes: onDisk });
         return onDisk;
       }
       const held = kept.get(fileId);

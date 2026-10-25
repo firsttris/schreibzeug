@@ -101,8 +101,10 @@ editor saved can restore it, and whoever opens the file next opens the session's
 the log and saves it. A version stored meanwhile from outside the session (a restored version, an
 upload, an MCP edit) is newer than the waiting changes and wins: the next person opens it, as
 without the session. A save of the session's own, one that landed after its editor's connection
-dropped, does not count as from outside. Once a save of its own holds the whole log, a session nobody is in
-ends. A server restart loses what no stored version holds. So the editor saves on
+dropped, does not count as from outside. The file route announces a save before it stores
+anything (`hub.ts` `begin`) and the last person leaving ends the session only when a stored version
+holds the whole log and no save is under way: one landing later is the newest version and may hold
+less. A session whose log a late save completed stays until the next person or a restore. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a

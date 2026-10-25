@@ -110,10 +110,21 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     deliver(fileId, from, result.out);
   };
 
-  /** A session nobody is connected to ends once a stored version holds its whole log. */
+  /** How many saves of each file's session are under way (`begin` to `stored` or `abandon`). */
+  const saving = new Map<string, number>();
+  const saveDone = (fileId: string) => {
+    const left = (saving.get(fileId) ?? 0) - 1;
+    if (left > 0) saving.set(fileId, left);
+    else saving.delete(fileId);
+  };
+
+  /**
+   * When the last person leaves, the session ends if a stored version holds its whole log and no
+   * save is under way (one that lands later would be the newest version, and may hold less).
+   */
   const settle = (fileId: string) => {
     const session = sessions.get(fileId);
-    if (!session || membersOf(fileId).length > 0 || hasUnsavedChanges(session)) return;
+    if (!session || membersOf(fileId).length > 0 || hasUnsavedChanges(session) || saving.has(fileId)) return;
     // Without a change everyone's copy is the version; with one, only those there to the end.
     const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
     ended.set(fileId, {
@@ -175,22 +186,30 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       settle(connection.fileId);
     },
 
-    /** Whether a save comes from the file's session open now (files-api SessionSaves). */
-    isCurrent: (fileId: string, { baseVersion }: SessionSave): boolean =>
-      sessions.get(fileId)?.baseVersion === baseVersion,
+    /**
+     * A save from a shared session starts (files-api SessionSaves): whether it comes from the
+     * file's session open now. Until it is stored or abandoned, that session does not end.
+     */
+    begin: (fileId: string, { baseVersion }: SessionSave): boolean => {
+      if (sessions.get(fileId)?.baseVersion !== baseVersion) return false;
+      saving.set(fileId, (saving.get(fileId) ?? 0) + 1);
+      return true;
+    },
 
     /**
-     * A client stored the file as `version`, from the session that started at `baseVersion`,
-     * holding the first `index` changes of its log (the save's SESSION_SAVE_HEADER). Told by the
-     * save itself, so it counts even when the client's connection dropped meanwhile; a save from a
-     * session that is gone is from outside for the one open now.
+     * A save begun was stored as `version`, holding the first `index` changes of its session's log
+     * (the save's SESSION_SAVE_HEADER). Told by the save itself, so it counts even when the client's
+     * connection dropped meanwhile. A session nobody is in waits for the next person or close.
      */
     stored: (fileId: string, version: number, { baseVersion, index }: SessionSave) => {
+      saveDone(fileId);
       if (sessions.get(fileId)?.baseVersion !== baseVersion) return;
       storedAt.set(fileId, version);
       apply(fileId, "", (session) => markSaved(session, index));
-      settle(fileId);
     },
+
+    /** A save begun stored nothing (it failed). */
+    abandon: (fileId: string) => saveDone(fileId),
 
     /** For tests and diagnostics: the session of a file, if one is open. */
     session: (fileId: string): Session | undefined => sessions.get(fileId),

@@ -206,11 +206,12 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         const content = await store(bytes);
         // From here to `stored` nothing waits, so no other save comes in between.
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
-        if (sessionSave && relay && !relay.isCurrent(id, sessionSave))
+        if (sessionSave && relay && !relay.begin(id, sessionSave))
           return respond(c, fail("conflict", SESSION_GONE), toFileNode);
         const saved = repository.addVersion(db, userOf(c), id, content);
         const version = saved.ok ? saved.value.node.version : null;
-        if (version !== null && sessionSave) relay?.stored(id, version, sessionSave);
+        if (sessionSave && version !== null) relay?.stored(id, version, sessionSave);
+        else if (sessionSave) relay?.abandon(id);
         return respond(c, saved, toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever

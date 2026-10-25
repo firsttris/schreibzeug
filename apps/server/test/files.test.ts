@@ -391,8 +391,9 @@ describe("a save from a shared session", () => {
     const stored: Array<[string, number, SessionSave]> = [];
     // The relay's session started at version 1.
     const hub = {
-      isCurrent: (_id: string, save: SessionSave) => save.baseVersion === 1,
+      begin: (_id: string, save: SessionSave) => save.baseVersion === 1,
       stored: (...args: [string, number, SessionSave]) => stored.push(args),
+      abandon: () => {},
     } as unknown as Hub;
     const upgradeWebSocket = (() => () => new Response(null, { status: 426 })) as unknown as UpgradeWebSocket;
     const relayed = await startServer({ collab: { hub, upgradeWebSocket } });

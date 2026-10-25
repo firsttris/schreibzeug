@@ -147,12 +147,17 @@ const unitOf = (text: string): UnitCode => UNIT_WORDS.find(([pattern]) => patter
 /** The columns of a table of invoice lines; the quantity's header may name the unit ("Stunden"). */
 type Columns = { description: number; quantity: number; price: number; total: number; quantityLabel: string };
 
+/** "Stundensatz" is a price, "USt-Satz" or "Steuersatz" the VAT rate. */
+const TAX_RATE_COLUMN = /ust|mwst|steuer/i;
+
 /** Which columns of a table's header hold what, for a table of invoice lines. */
 const columnsOf = (header: string[]): Columns | undefined => {
   const find = (pattern: RegExp) => header.findIndex((cell) => pattern.test(cell));
   const description = find(/beschreibung|leistung|bezeichnung|artikel|tätigkeit|text/i);
   const quantity = find(/menge|anzahl|stunden|std\.?|stk/i);
-  const price = find(/einzelpreis|e-preis|stückpreis|preis|satz/i);
+  const price = header.findIndex(
+    (cell) => /preis/i.test(cell) || (/satz/i.test(cell) && !TAX_RATE_COLUMN.test(cell)),
+  );
   const total = header.findLastIndex((cell) => /gesamt|betrag|summe|netto/i.test(cell));
   if (description < 0 || (price < 0 && total < 0)) return undefined;
   return { description, quantity, price, total, quantityLabel: header[quantity] ?? "" };

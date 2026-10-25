@@ -179,6 +179,19 @@ describe("draftFromDocument", () => {
   });
 });
 
+describe("the table of invoice lines", () => {
+  const linesOf = (rows: string[][]) =>
+    draftFromDocument({ body: [{ type: "table", rows }], headers: [], footers: [] }).draft.lines;
+
+  it("does not take the VAT rate column for the unit price", () => {
+    const lines = linesOf([
+      ["Beschreibung", "Menge", "USt-Satz", "Einzelpreis", "Gesamt"],
+      ["Scanner", "4", "19 %", "189,00 €", "756,00 €"],
+    ]);
+    expect(lines.map((line) => line.unitPrice)).toEqual([18900]);
+  });
+});
+
 describe("German numbers and dates", () => {
   it("reads amounts, quantities and rates", () => {
     expect(parseMoney("1.182,27 €")).toBe(118227);

@@ -41,7 +41,8 @@ What happens, in `apps/web/src/editor/use-e-invoice.tsx`:
    declares them, unfiltered, and the Info dictionary to match it. Producer and creator are
    "Schreibzeug".
 
-Not yet: credit notes and corrections (a negative total is refused), allowances and charges,
+Not yet: credit notes and corrections (a negative total is refused), allowances and charges (a
+line with a negative price, which BR-27 forbids, is refused),
 prepayments, currencies other than the euro, XRechnung (the CIUS for public buyers, which also
 needs the seller's contact and a Leitweg-ID) and UBL. Those are what Haben, the accounting app,
 writes; Schreibzeug turns a document into an invoice.

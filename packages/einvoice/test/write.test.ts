@@ -163,6 +163,20 @@ describe("draftProblems", () => {
     ]);
     expect(draftProblems({ ...draft, lines: [] })).toEqual(["Die Rechnung hat keine Positionen."]);
   });
+
+  it("refuses a negative unit price, which EN 16931 forbids (BR-27)", () => {
+    const draft = sampleDraft();
+    const discount = {
+      description: "Rabatt",
+      quantity: 1000,
+      unit: "C62" as const,
+      unitPrice: -1000,
+      taxRate: 1900,
+    };
+    expect(draftProblems({ ...draft, lines: [...draft.lines, discount] })).toEqual([
+      "Position 4 hat einen negativen Einzelpreis; Rabatte als eigene Position kann Schreibzeug noch nicht schreiben.",
+    ]);
+  });
 });
 
 describe("numbers as the XML writes them", () => {

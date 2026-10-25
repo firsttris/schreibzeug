@@ -170,6 +170,12 @@ export const draftProblems = (draft: InvoiceDraft): string[] => [
   ...draft.lines.flatMap((line, index) => [
     ...(filled(line.description) ? [] : [`Position ${index + 1} hat keine Beschreibung.`]),
     ...(line.quantity === 0 ? [`Position ${index + 1} hat keine Menge.`] : []),
+    // BR-27: the item net price (BT-146) is never negative; a discount is an allowance (BG-27).
+    ...(line.unitPrice < 0
+      ? [
+          `Position ${index + 1} hat einen negativen Einzelpreis; Rabatte als eigene Position kann Schreibzeug noch nicht schreiben.`,
+        ]
+      : []),
     ...(line.taxRate < 0 || line.taxRate > 10_000
       ? [`Position ${index + 1} hat keinen gültigen Steuersatz.`]
       : []),

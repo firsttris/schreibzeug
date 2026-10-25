@@ -73,6 +73,9 @@ and leaves out what only makes sense with accounts.
   app made at start. The app opens `/api/local/unlock?token=…`, which leaves an HttpOnly,
   SameSite=Strict cookie; a request with a foreign host name (DNS rebinding) or a change sent from
   another site's page is refused.
+- **MCP** (`src/mcp.ts`): `/mcp` serves the same tools as a server ([MCP server](mcp.md#on-this-computer)),
+  without a key, behind the same check of host and origin; its tools reach the local API with the
+  app's own key.
 
 | Variable | Meaning |
 |---|---|

@@ -8,6 +8,7 @@ import { createLocalApp } from "./app";
 import { readConfig } from "./config";
 import { createFolder } from "./folder";
 import { createIds } from "./ids";
+import { localMcpRoutes } from "./mcp";
 import { createTrash } from "./trash";
 
 /**
@@ -44,7 +45,8 @@ const app = createLocalApp({
   maxUploadBytes,
   collab: { hub, upgradeWebSocket },
 });
-const site = webDir ? new Hono().route("/", app).route("/", webRoutes(webDir)) : app;
+const site = new Hono().route("/", app).route("/", localMcpRoutes({ api: app, token }));
+if (webDir) site.route("/", webRoutes(webDir));
 const server = Bun.serve({
   hostname: "127.0.0.1",
   port,

@@ -56,13 +56,23 @@ const refuse = (c: Context, status: 401 | 403, message: string) =>
     status,
   );
 
+/**
+ * The refusal for a request that is not for this computer (Host) or, when it changes something,
+ * comes from a page elsewhere (Origin); null for one that may go on.
+ */
+export const refuseForeign = (c: Context): Response | null => {
+  if (!isLoopback(hostOf(c))) return refuse(c, 403, "Nur von diesem Computer aus.");
+  const changes = !SAFE_METHODS.has(c.req.method) || c.req.header("upgrade") !== undefined;
+  if (changes && !originIsLoopback(c.req.header("origin")))
+    return refuse(c, 403, "Nur von diesem Computer aus.");
+  return null;
+};
+
 /** Lets through only requests for this computer, from it, with the token's cookie. */
 export const requireToken = (token: string) =>
   createMiddleware(async (c, next) => {
-    if (!isLoopback(hostOf(c))) return refuse(c, 403, "Nur von diesem Computer aus.");
-    const changes = !SAFE_METHODS.has(c.req.method) || c.req.header("upgrade") !== undefined;
-    if (changes && !originIsLoopback(c.req.header("origin")))
-      return refuse(c, 403, "Nur von diesem Computer aus.");
+    const foreign = refuseForeign(c);
+    if (foreign) return foreign;
     const cookie = getCookie(c, COOKIE);
     if (!cookie || !same(cookie, token))
       return refuse(c, 401, "Bitte öffne Schreibzeug über die Desktop-App.");

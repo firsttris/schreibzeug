@@ -25,6 +25,22 @@ claude mcp add --transport http schreibzeug https://<server>/mcp --header "Autho
 `X-Forwarded-Proto` and `X-Forwarded-Host` behind a reverse proxy. In development the Vite server
 forwards `/mcp` to the API server like `/api`.
 
+### On this computer
+
+The desktop app's local server (`apps/local src/mcp.ts`) has `/mcp` too, for the files in its folder.
+There is one person and no account, so there is no token: like the rest of the local server it only
+answers requests for 127.0.0.1 and refuses one a web page sends from another origin (`gate.ts`). Its
+tools call the local API with the app's own key; what only a server has (sharing, links, versions,
+the trash) they answer with the local server's "Das gibt es nur auf einem Schreibzeug-Server".
+The desktop app starts the local server on a free port; started by hand with a fixed one:
+
+```sh
+SCHREIBZEUG_LOCAL_ROOT=~/Dokumente PORT=3300 bun run --filter @schreibzeug/local start
+claude mcp add --transport http schreibzeug-lokal http://127.0.0.1:3300/mcp
+```
+
+A fixed port in the desktop app's settings comes later.
+
 ## Access tokens
 
 A personal access token (`src/auth/tokens.ts`, table `access_tokens`) is `sz_` and 32 random bytes in
@@ -126,7 +142,8 @@ someone else cannot revoke one. `apps/server/test/mcp.test.ts` connects the SDK'
 someone else's folder), a revoked token. `apps/server/test/mcp-read.test.ts` reads the test files
 (`hello.docx`, `preise.xlsx`, `vortrag.pptx`, `formular.pdf`, `rechnung.pdf`) and documents written
 in the test: headings and lists as Markdown, a long text in parts, a sheet by name and range, a
-PDF's form fields and e-invoice. `apps/server/test/mcp-create.test.ts` creates every kind and reads it back: Markdown to .docx and back,
+PDF's form fields and e-invoice. `apps/local/test/mcp.test.ts` uses the local endpoint without a token,
+gets the local server's answer for sharing, and is refused for a foreign host or origin. `apps/server/test/mcp-create.test.ts` creates every kind and reads it back: Markdown to .docx and back,
 a built-in and an own template, a sheet with appended rows as version 2, a presentation, an
 e-invoice read back with `readInvoiceXml`, small uploads. The readers and writers have their own tests
 in `packages/ooxml` and `packages/mcp`. `e2e/mcp.spec.ts` opens what the tools made in the editor,

@@ -158,8 +158,9 @@ export const markdownBlocks = (markdown: string): Block[] => {
         parents = [];
       }
       inList = true;
-      // An item is nested in each open one whose marker stands left of its own, however far.
-      parents = parents.filter((parent) => parent < column);
+      // An item is nested in each open one it is indented under by at least two columns, the
+      // content column of "- " (CommonMark 5.2): one space less, as in example 312, is a sibling.
+      parents = parents.filter((parent) => parent + 2 <= column);
       blocks.push({
         type: "item",
         ordered: /\d/.test(marker),

@@ -23,6 +23,7 @@ const start = async () => {
   await Promise.all([mkdir(root), mkdir(join(base, "media"))]);
   const folder = createFolder({ root, ids: createIds(), trash: async () => ok(null) });
   const hub = createHub({
+    olderVersions: false, // as main.ts
     access: async (fileId) => {
       const file = await folder.findFile(fileId);
       return file.ok && file.value.version !== null ? { version: file.value.version, role: "owner" } : null;

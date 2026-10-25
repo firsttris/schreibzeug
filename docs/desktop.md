@@ -70,8 +70,10 @@ and leaves out what only makes sense with accounts.
   (`src/app.ts`). The version number only counts the saves since the server started, which the
   editing session needs.
 - **Editing** uses the same relay as the server (`apps/server/src/collab`), so two windows on the
-  same file edit together. Images added while editing wait in a cache folder until the file is
-  saved with them inside.
+  same file edit together. With no older version to open, the relay runs with
+  `olderVersions: false`: a window joining a session that waits for unsaved changes opens the file
+  on disk and replays only what it lacks ([collaboration](collaboration.md#saving)). Images added
+  while editing wait in a cache folder until the file is saved with them inside.
 - **Only for this computer** (`src/gate.ts`): the server listens on 127.0.0.1 and wants the key the
   app made at start. The app opens `/api/local/unlock?token=…`, which leaves an HttpOnly,
   SameSite=Strict cookie; a request with a foreign host name (DNS rebinding) or a change sent from

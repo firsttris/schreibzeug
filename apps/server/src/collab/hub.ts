@@ -28,6 +28,11 @@ export type HubDeps = {
    */
   access: (fileId: string, userId: string) => Promise<FileAccess | null>;
   now?: () => number;
+  /**
+   * Whether the files can be opened at an older version (`GET /content?version=`). The local
+   * server has only the file on disk: a kept session must then open at the newest version.
+   */
+  olderVersions?: boolean;
 };
 
 type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send };
@@ -68,7 +73,7 @@ const ENDED_IDS_KEPT = 50;
  * unless a newer version was stored meanwhile.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
-export const createHub = ({ access, now = Date.now }: HubDeps) => {
+export const createHub = ({ access, now = Date.now, olderVersions = true }: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
   /**
@@ -110,29 +115,32 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     deliver(fileId, from, result.out);
   };
 
-  /**
-   * A session nobody is connected to goes on from the newest version it stored, with the part of
-   * its log that version lacks: the next person opens that version (the local server keeps no
-   * older one to open) and replays the rest. With nothing left, the session ends. A client of the
-   * old base cannot restore into it; its engine opens the document again.
-   */
+  /** A session nobody is connected to ends once a stored version holds its whole log. */
   const settle = (fileId: string) => {
     const session = sessions.get(fileId);
-    if (!session || membersOf(fileId).length > 0) return;
-    const stored = storedAt.get(fileId) ?? session.baseVersion;
-    if (hasUnsavedChanges(session)) {
-      if (session.savedIndex > 0) {
-        const changes = session.changes.slice(session.savedIndex);
-        sessions.set(fileId, { ...session, baseVersion: stored, changes, savedIndex: 0, sessionIds: [] });
-      }
-      return;
-    }
+    if (!session || membersOf(fileId).length > 0 || hasUnsavedChanges(session)) return;
     // Without a change everyone's copy is the version; with one, only those there to the end.
     const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
-    ended.set(fileId, { ids: whole.slice(-ENDED_IDS_KEPT), version: stored });
+    ended.set(fileId, {
+      ids: whole.slice(-ENDED_IDS_KEPT),
+      version: storedAt.get(fileId) ?? session.baseVersion,
+    });
     sessions.delete(fileId);
     storedAt.delete(fileId);
     leftSinceChange.delete(fileId);
+  };
+
+  /**
+   * A kept session the next person joins, where only the newest version can be opened: it goes on
+   * from the newest version it stored, with the part of its log that version lacks. A client of the
+   * old base cannot restore into it, nor store its old copy (isCurrent); its engine opens the
+   * document again, as when the relay started a new session.
+   */
+  const rebased = (fileId: string, session: Session): Session => {
+    if (olderVersions || session.savedIndex === 0) return session;
+    const changes = session.changes.slice(session.savedIndex);
+    const baseVersion = storedAt.get(fileId) ?? session.baseVersion;
+    return { ...session, baseVersion, changes, savedIndex: 0, sessionIds: [] };
   };
 
   const startSession = (fileId: string, version: number): Session => {
@@ -155,9 +163,11 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       const { version } = allowed;
       // A version stored from outside while a kept session waited (a restored version, an upload)
       // is newer than the session's changes: it wins, as it would have without the session.
-      if (membersOf(fileId).length === 0 && storedAt.get(fileId) !== version) sessions.delete(fileId);
+      const alone = membersOf(fileId).length === 0;
+      if (alone && storedAt.get(fileId) !== version) sessions.delete(fileId);
       // Another connection may have started the session while we looked the version up.
-      const session = sessions.get(fileId) ?? startSession(fileId, version);
+      const kept = sessions.get(fileId);
+      const session = kept ? (alone ? rebased(fileId, kept) : kept) : startSession(fileId, version);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
       connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });

@@ -353,8 +353,15 @@ describe("collaboration hub", () => {
   const BEN = { id: "ben", name: "Ben" };
 
   /** `editors` may edit FILE, at version 3 unless `stored` moves on; `viewers` may look at it. */
-  const setup = (editors: string[] = ["anna", "ben"], viewers: string[] = [], stored = { version: 3 }) => {
+  /** `olderVersions: false` as the local server, which has only the file on disk. */
+  const setup = (
+    editors: string[] = ["anna", "ben"],
+    viewers: string[] = [],
+    stored = { version: 3 },
+    olderVersions = true,
+  ) => {
     const hub = createHub({
+      olderVersions,
       access: async (id, userId) => {
         if (id !== FILE) return null;
         if (editors.includes(userId)) return { version: stored.version, role: "edit" };
@@ -460,9 +467,10 @@ describe("collaboration hub", () => {
     expect(next.messages.find((m) => m.type === "authChanges")?.changes).toEqual([]);
   });
 
-  it("goes on from a save of its own that landed after the drop, with what that save lacks", async () => {
+  /** Anna sends c1 and c2, her connection drops, then her save of c1 lands as version 4. */
+  const lateSave = async (olderVersions: boolean) => {
     const stored = { version: 3 };
-    const { hub, join } = setup(undefined, undefined, stored);
+    const { hub, join } = setup(undefined, undefined, stored, olderVersions);
     const a = await join(ANNA);
     hub.message(a.id, auth("anna"));
     for (const change of ["c1", "c2"]) {
@@ -474,14 +482,33 @@ describe("collaboration hub", () => {
       });
     }
     hub.close(a.id); // c1 and c2 unsaved: the session is kept
-    stored.version = 4; // Anna's autosave of c1 lands after the drop, saying so (SESSION_SAVE_HEADER)
+    stored.version = 4;
     hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
-
-    // The local server has only the newest file: the next person opens version 4 and replays c2.
     const back = await join(ANNA);
+    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
+    return { hub, back };
+  };
+
+  it("keeps a session whose own save landed after the drop, and lets its editor restore", async () => {
+    const { hub, back } = await lateSave(true);
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "auth",
+    });
+    expect(hub.session(FILE)?.savedIndex).toBe(1);
+  });
+
+  it("has the next person open the newest version where no older one can be opened", async () => {
+    const { hub, back } = await lateSave(false);
+    // The local server has only the newest file: version 4 opens, and c2 is replayed on it.
     expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 4 });
-    hub.message(back.id, auth("anna"));
-    expect(back.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c2"' }]);
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "error",
+    });
+    expect(hub.session(FILE)?.changes.map((change) => change.change)).toEqual(['"c2"']);
+    // The old copy may not be stored any more: as the newest version it would lack c2.
+    expect(hub.isCurrent(FILE, { baseVersion: 3, index: 1 })).toBe(false);
+    expect(hub.isCurrent(FILE, { baseVersion: 4, index: 0 })).toBe(true);
   });
 
   it("takes only saves from the session open now for its own", async () => {
@@ -489,22 +516,19 @@ describe("collaboration hub", () => {
     const { hub, join } = setup(undefined, undefined, stored);
     const a = await join(ANNA);
     hub.message(a.id, auth("anna"));
-    for (const change of ["c1", "c2", "c3"]) {
-      hub.message(a.id, {
-        type: "saveChanges",
-        changes: `["${change}"]`,
-        startSaveChanges: true,
-        endSaveChanges: true,
-      });
-    }
-    hub.close(a.id);
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
     expect(hub.isCurrent(FILE, { baseVersion: 3, index: 1 })).toBe(true);
-    stored.version = 4;
-    hub.stored(FILE, 4, { baseVersion: 3, index: 1 }); // the session goes on from version 4
-    // Another late save of the old copy would become the newest version without c3: refused.
-    expect(hub.isCurrent(FILE, { baseVersion: 3, index: 2 })).toBe(false);
-    expect(hub.isCurrent(FILE, { baseVersion: 4, index: 0 })).toBe(true);
-    expect(hub.isCurrent("another-file", { baseVersion: 4, index: 0 })).toBe(false);
+    expect(hub.isCurrent(FILE, { baseVersion: 2, index: 1 })).toBe(false);
+    expect(hub.isCurrent("another-file", { baseVersion: 3, index: 1 })).toBe(false);
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
+    hub.close(a.id); // everything stored: the session ends
+    // A slower save of the same session, landing now, would make an older copy the newest version.
+    expect(hub.isCurrent(FILE, { baseVersion: 3, index: 0 })).toBe(false);
   });
 
   it("ends a kept session once a save of its own holds the whole log", async () => {
@@ -582,12 +606,9 @@ describe("collaboration hub", () => {
     hub.close(b.id); // c4 and c5 are in no newest version: the session is kept
 
     const next = await join(ANNA);
-    expect(next.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 5 });
+    expect(next.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
     hub.message(next.id, auth("anna"));
-    expect(next.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([
-      { change: '"c4"' },
-      { change: '"c5"' },
-    ]);
+    expect(next.messages.find((m) => m.type === "authChanges")?.changes).toHaveLength(5);
   });
 
   it("refuses a restore into a version stored from outside after the session ended", async () => {

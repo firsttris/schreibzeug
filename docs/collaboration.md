@@ -101,10 +101,10 @@ editor saved can restore it, and whoever opens the file next opens the session's
 the log and saves it. A version stored meanwhile from outside the session (a restored version, an
 upload, an MCP edit) is newer than the waiting changes and wins: the next person opens it, as
 without the session. A save of the session's own, one that landed after its editor's connection
-dropped, does not count as from outside. With nobody connected, a session goes on from the newest
-version it stored and keeps only the changes that version lacks, so the next person opens the newest
-version (the local server keeps no older one) and replays the rest; once no change is left, the
-session ends. A server restart loses what no stored version holds. So the editor saves on
+dropped, does not count as from outside. Once a save of its own holds the whole log, a session nobody is in
+ends. The local server keeps no older versions (`createHub({ olderVersions: false })`): there the
+next person joining a kept session opens the newest version it stored and replays only the
+changes that version lacks, and a client of the old base can no longer restore into it. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
@@ -113,7 +113,7 @@ saving editor sends with the upload the header `x-schreibzeug-session-save: b:n`
 from the session that started at version `b` and holds the first `n` changes of its log. The file
 route tells the relay (`hub.ts` `stored`), also when the editor's connection dropped meanwhile; a
 version stored without the header is from outside. A save from a session that is not the file's
-session now (one that ended, was dropped or went on from a newer version) is refused with 409
+session now (one that ended, was dropped, or on the local server went on from a newer version) is refused with 409
 before it stores anything: its copy is old, and as the newest version it would lose changes. Versions are
 numbered as they are stored, so the newest one's index is what is stored, also when it is lower
 than an earlier one's (a slower save that started before a faster one). The relay sends

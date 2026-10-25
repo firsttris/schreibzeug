@@ -133,6 +133,13 @@ describe("Markdown as CommonMark reads it", () => {
     );
   });
 
+  it("keeps balanced parentheses in a link target", () => {
+    expect(inlineSegments("[Foo](https://en.wikipedia.org/wiki/Foo_(bar)) und (mehr)")).toEqual([
+      { text: "Foo", link: "https://en.wikipedia.org/wiki/Foo_(bar)" },
+      { text: " und (mehr)" },
+    ]);
+  });
+
   it("strips closing hashes only after a space", () => {
     expect(markdownBlocks("## Using C#")).toEqual([{ type: "heading", level: 2, text: "Using C#" }]);
     expect(markdownBlocks("## Titel ##")).toEqual([{ type: "heading", level: 2, text: "Titel" }]);

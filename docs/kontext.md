@@ -115,7 +115,8 @@ Kontext.
 
 Sign-in through the provider needs issuer, client id and secret; without them it is email and
 password only. Kontext's `deploy/compose.yaml` runs Schreibzeug with the profile `documents`, from
-the image `tristanteu/schreibzeug` (`docker/Dockerfile`, published by **Release** on a version tag).
+the image `tristanteu/schreibzeug` (`docker/Dockerfile`; **Release** publishes it on Docker Hub
+and GHCR when a `v*` tag is pushed, [installation](installation.md)).
 
 ## Tests
 

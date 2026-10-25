@@ -1,0 +1,2 @@
+# Documentation site (mkdocs.yml, .github/workflows/docs.yml)
+mkdocs-material==9.7.7

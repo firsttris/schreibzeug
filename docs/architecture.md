@@ -45,18 +45,20 @@ Hono's WebSocket upgrade, so access checks for files and editing sessions live i
 Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an account; every
 other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
 `/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views,
-`/settings` the access tokens for MCP clients ([MCP server](mcp.md)), `/edit/:id` opens a file in its editor with the whole window
+`/settings` the access tokens for MCP clients ([MCP server](mcp.md)), `/invite/:token` a link someone shared (readable before signing in), `/edit/:id` opens a file in its editor with the whole window
 (`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, sharing
 the header with the editable name, the menu bar, status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under
-`files`. The editor page joins the file's editing session first (`src/use-session-file.ts`) and
+`files`. The editor page joins the file's editing session first (`src/editor/use-session-file.ts`) and
 opens the version the session started from, so refreshing the lists after a save does not reopen
 the document. Every reply is checked against the schemas in
 `packages/files-api`.
 
 In development `bun run dev` prepares the engine if needed, starts the server and serves the app on port 5173, which forwards `/api`, WebSockets included, and `/mcp` to the server
 (`SCHREIBZEUG_API_URL`, default `http://localhost:3000`). The E2E run starts its own server on an empty
-database (`e2e/server.ts`, port 3100) and the app on port 5174. Without Playwright's own browser download, an installed
+database (`e2e/server.ts`, port 3100) and the app on port 5174; beside them the desktop app's local
+server with an app of its own (`e2e/local-server.ts`), and a stand-in for Kontext with a server
+signed in through it (`e2e/fake-kontext.ts`, `e2e/kontext-server.ts`; `e2e/playwright.config.ts`). Without Playwright's own browser download, an installed
 Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.
 
 ## Screenshots
@@ -70,9 +72,11 @@ picture.
 
 ## Format fidelity
 
-`test-files/fidelity` holds real .docx files from LibreOffice's test suite (MPL-2.0), one per area:
-tables, lists, footnotes, headers, images, text boxes, columns, a table of contents, comments,
-charts and shapes. `e2e/formats.fidelity.ts` opens each one and compares the first screen with its
+`test-files/fidelity` holds real .docx, .xlsx and .pptx files from LibreOffice's test suite
+(MPL-2.0), one per area: in documents tables, lists, footnotes, headers, images, text boxes,
+columns, a table of contents, comments, charts and shapes; in spreadsheets borders, formats, theme
+colours, filters, charts, colour scales and data bars; in presentations shapes, bullets, themes,
+table styles, groups and SmartArt (`test-files/README.md`). `e2e/formats.fidelity.ts` opens each one and compares the first screen with its
 reference picture in `test-files/fidelity/screenshots`; then it saves the file unchanged, opens the
 saved version and compares again, so a round trip through the engine and x2t must not change how
 a document looks. The references are taken in CI with **Actions → Update screenshots**

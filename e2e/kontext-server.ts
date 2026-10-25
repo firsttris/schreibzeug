@@ -20,6 +20,8 @@ const server = Bun.spawn(["bun", join(import.meta.dir, "../apps/server/src/main.
     OIDC_ISSUER: E2E_KONTEXT_URL,
     OIDC_CLIENT_ID: E2E_OIDC_CLIENT.id,
     OIDC_CLIENT_SECRET: E2E_OIDC_CLIENT.secret,
+    // Accounts with a password beside Kontext's (the test that connects one).
+    SCHREIBZEUG_OPEN_SIGNUP: "true",
   },
   stdio: ["inherit", "inherit", "inherit"],
 });

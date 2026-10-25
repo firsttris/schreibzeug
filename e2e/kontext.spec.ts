@@ -33,6 +33,33 @@ test("signs in with Kontext instead of a password", async ({ page }, testInfo) =
   await expect(page.getByTestId("user-name")).toHaveText(kontextNameOf(email));
 });
 
+test("connects an account with a password to Kontext after signing in with the password", async ({
+  page,
+  request,
+}, testInfo) => {
+  const email = emailFor(testInfo.title);
+  const password = "kaffee-werkbank-dokumente";
+  // The account was made with a password before Kontext came (its own request, not this browser's).
+  const made = await request.post(`${E2E_EMBEDDED_URL}/api/auth/sign-up/email`, {
+    headers: { origin: E2E_EMBEDDED_URL },
+    data: { name: "Mit Passwort", email, password },
+  });
+  expect(made.ok()).toBe(true);
+  await signInAtKontext(page, email);
+  await page.goto(`${E2E_EMBEDDED_URL}/login`);
+  await page.getByRole("button", { name: "Anmelden mit Kontext" }).click();
+  // Kontext may not vouch for an address someone registered with a password: the password first.
+  await expect(page.getByRole("status")).toContainText("schon ein Konto mit Passwort");
+  await page.getByLabel("E-Mail").fill(email);
+  await page.getByLabel("Passwort").fill(password);
+  await page.getByRole("button", { name: "Anmelden", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Meine Dateien" })).toBeVisible();
+  // From now on Kontext signs the account in.
+  await page.getByRole("button", { name: "Abmelden" }).click();
+  await page.getByRole("button", { name: "Anmelden mit Kontext" }).click();
+  await expect(page.getByRole("heading", { name: "Meine Dateien" })).toBeVisible();
+});
+
 test("shows itself in Kontext's frame, signed in without a question", async ({ page }, testInfo) => {
   await signInAtKontext(page, emailFor(testInfo.title));
   await page.goto(`${E2E_KONTEXT_URL}/host`);

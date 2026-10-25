@@ -99,13 +99,22 @@ const loginRoute = createRoute({
     redirect: z.string().optional(),
     invite: z.string().optional(),
     mode: z.enum(["signIn", "signUp"]).optional(),
+    /** Better Auth's answer when a sign-in through the provider found an account it may not link. */
+    error: z.string().optional(),
   }),
   beforeLoad: async ({ context }) => {
     if (await context.queryClient.ensureQueryData(context.account.session)) throw redirect({ to: "/" });
   },
   component: () => {
-    const { redirect, invite, mode } = loginRoute.useSearch();
-    return <LoginPage redirect={redirect} invite={invite} mode={mode} />;
+    const { redirect, invite, mode, error } = loginRoute.useSearch();
+    return (
+      <LoginPage
+        redirect={redirect}
+        invite={invite}
+        mode={mode}
+        linkProvider={error === "account_not_linked"}
+      />
+    );
   },
 });
 

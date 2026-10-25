@@ -89,6 +89,34 @@ describe("shares with an address that has no account yet", () => {
     expect(await sharedWith(asCookie(squatter))).toEqual([]);
   });
 
+  it("wait while the address has an account with a password, and hold once it is connected", async () => {
+    const owner = await server.signUp("Ida", "ida@example.org");
+    const file = await documentOf(owner, "Angebot");
+    await call(
+      `/api/nodes/${file.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "bob@example.org", role: "edit" }),
+    );
+    const bob = await server.signUp("Bob", "bob@example.org");
+    // Kontext cannot vouch for an address someone registered with a password: its token is refused.
+    expect(
+      (await call("/api/shared", asBearer(await tokenFor("kontext-bob", "bob@example.org")))).status,
+    ).toBe(401);
+    expect(await sharesOf(owner, file.id)).toMatchObject([{ email: "bob@example.org", pending: true }]);
+    // Bob connects his account with Kontext from his own session (Better Auth links it).
+    const context = await server.auth.$context;
+    const session = await server.auth.api.getSession({ headers: new Headers({ cookie: bob }) });
+    await context.internalAdapter.linkAccount({
+      providerId: "oidc",
+      accountId: "kontext-bob",
+      userId: session!.user.id,
+    });
+    expect((await sharedWith(asCookie(bob))).map((node) => node.id)).toEqual([file.id]);
+    expect(
+      (await sharedWith(asBearer(await tokenFor("kontext-bob", "bob@example.org")))).map((node) => node.id),
+    ).toEqual([file.id]);
+  });
+
   it("can be taken back", async () => {
     const owner = await server.signUp("Uta", "uta@example.org");
     const file = await documentOf(owner, "Notiz");

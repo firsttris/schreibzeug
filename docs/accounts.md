@@ -85,9 +85,15 @@ so an existing installation keeps its files.
 
 Signing in through Kontext also opens a closed sign-up: whoever Kontext knows belongs to the company
 (the sign-up hook lets Better Auth's callback `/callback/:id` in). Someone who signs in through it
-with the address of an existing account gets that account (Better Auth's account linking, Kontext
-as a trusted provider); from then on the account is found by Kontext's `sub`, so a changed address
-keeps it. The variables are in [Schreibzeug in Kontext](kontext.md#settings).
+with the address of an existing account gets that account when its address is confirmed (Better
+Auth's account linking with Kontext as a trusted provider, `requireLocalEmailVerified`). An account
+with a password has an address nobody confirmed: Better Auth answers `account_not_linked`, the
+sign-in page says so, and signing in with the password links Kontext right after (`linkSocial`,
+only for the same address). Then the address counts as confirmed and what was shared with it
+waits no longer. One account has one person at Kontext: a second `sub` is not linked (the account
+hook in `src/auth/auth.ts`), so an address given to someone new does not hand on the former
+person's files. From then on the account is found by Kontext's `sub`, so a changed address keeps
+it. The variables are in [Schreibzeug in Kontext](kontext.md#settings).
 
 ## Web app
 

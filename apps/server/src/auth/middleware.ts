@@ -7,10 +7,14 @@ export type AuthEnv = { Variables: { user: SessionUser } };
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 
+/** The bearer token a request carries, if any. */
+export const bearerToken = (headers: Headers): string | undefined =>
+  headers.get("authorization")?.match(BEARER)?.[1];
+
 /** The person of the request: from the session cookie, or from a bearer token where those count. */
 const userOf = async (auth: Auth, bearer: Bearer | undefined, headers: Headers) => {
-  const token = bearer && headers.get("authorization")?.match(BEARER)?.[1];
-  return token ? bearer(token) : sessionUser(auth, headers);
+  const token = bearer && bearerToken(headers);
+  return bearer && token ? bearer.person(token) : sessionUser(auth, headers);
 };
 
 /**

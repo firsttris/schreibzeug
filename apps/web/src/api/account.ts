@@ -78,6 +78,21 @@ export const createAccount = (baseUrl: string) => {
       });
       if (error) fail(error);
     },
+    /**
+     * Connects the signed-in account with the other service (Kontext): the browser signs in there
+     * and comes back to `callbackURL`. Better Auth links it only for the same address
+     * (api/routes/account.mjs linkSocial). For an account with a password, whose address no one
+     * confirmed: the password proves the account, the provider the address.
+     */
+    linkProvider: async (input: { callbackURL: string; errorCallbackURL: string }) => {
+      const { error } = await client.linkSocial({
+        // apps/server src/auth/auth.ts OIDC_PROVIDER
+        provider: "oidc",
+        callbackURL: input.callbackURL,
+        errorCallbackURL: input.errorCallbackURL,
+      });
+      if (error) fail(error);
+    },
     signOut: async () => {
       const { error } = await client.signOut();
       if (error) fail(error);

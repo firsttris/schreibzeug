@@ -76,6 +76,16 @@ for five minutes, with Kontext as issuer and `SCHREIBZEUG_URL` as audience. An i
 client id as audience and is refused. `apps/server/src/auth/bearer.ts` checks it against the keys
 from the provider's discovery document and finds the person by `sub` (the account the sign-in
 keeps), else by address, else creates them; the request then has exactly that person's rights.
+By address only as Better Auth links a sign-in: the account's address must be confirmed, and the
+account must not belong to another `sub` already. An account someone registered with a password
+under a colleague's address is refused, and so is a new person at Kontext who got a former
+colleague's address; the first account made from a token takes over the files from before there
+were accounts, as at a sign-up.
+
+`DELETE /api/sessions` with such a token signs that person out everywhere here (their sessions go;
+an open editor keeps its connection until it reloads). Kontext calls it when someone leaves the
+company or is locked, so Dokumente closes with Kontext. For someone without an account here it does
+nothing and makes none.
 
 ## Files in Kontext
 
@@ -110,12 +120,16 @@ the image `tristanteu/schreibzeug` (`docker/Dockerfile`, published by **Release*
 ## Tests
 
 `apps/server/test/pending-shares.test.ts`: a share with an address that waits, holds once the
-person comes through Kontext, never goes to a sign-up with a password, and can be taken back.
-`apps/server/test/bearer.test.ts`: tokens found by address and kept by subject, a new account,
-refused audience, issuer, subject and garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
+person comes through Kontext, never goes to a sign-up with a password but holds once that
+account is connected with Kontext, and can be taken back.
+`apps/server/test/bearer.test.ts`: tokens kept by subject, found by a confirmed address, never
+for a password account under someone else's address or for a second subject, a new account, the
+files from before accounts, ending a person's sessions, refused audience, issuer, subject and
+garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
 `apps/web/src/embed/messages.test.ts`: origin and window checks, when the app counts as embedded,
 paths and keys. `e2e/kontext.spec.ts` runs against a stand-in for Kontext (`e2e/fake-kontext.ts`:
 discovery, authorize with PKCE and `prompt=none`, token, userinfo, keys, and a page with the frame)
 and a server of its own that signs in through it (`e2e/kontext-server.ts`): signing in with Kontext,
 the frame with silent sign-in, theme, navigation and sign-out, the sign-in page when nobody is
-signed in at Kontext, and the parameter without a frame.
+signed in at Kontext, an account with a password connected after signing in with the password,
+and the parameter without a frame.

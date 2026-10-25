@@ -18,6 +18,9 @@ describe("formatSize", () => {
     [1536, "1,5 KB"],
     [5 * 1024 * 1024, "5 MB"],
     [3.25 * 1024 ** 3, "3,3 GB"],
+    [1024 * 1024 - 1, "1 MB"],
+    [1023.97 * 1024, "1 MB"],
+    [1023.9 * 1024, "1.023,9 KB"],
   ])("formats %s as %s", (bytes, text) => {
     expect(formatSize(bytes)).toBe(text);
   });

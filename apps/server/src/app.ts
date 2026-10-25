@@ -2,6 +2,7 @@ import type { ServerInfo } from "@schreibzeug/files-api";
 import { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
 import type { Auth } from "./auth/auth";
+import type { Bearer } from "./auth/bearer";
 import { type AuthEnv, requireUser } from "./auth/middleware";
 import type { Hub } from "./collab/hub";
 import { collabRoutes } from "./collab/routes";
@@ -9,6 +10,10 @@ import { type FilesDeps, filesRoutes, invitationRoutes } from "./files/routes";
 
 export type AppDeps = FilesDeps & {
   auth: Auth;
+  /** What the web app needs to know before signing in (sign-in through Kontext, the frame). */
+  info?: ServerInfo;
+  /** Requests from Kontext on someone's behalf (auth/bearer.ts); absent: sessions only. */
+  bearer?: Bearer;
   log?: (message: string, error: unknown) => void;
   /** The collaboration relay; its WebSocket upgrade depends on the runtime (Bun in main.ts). */
   collab?: { hub: Hub; upgradeWebSocket: UpgradeWebSocket };
@@ -21,14 +26,21 @@ export type AppDeps = FilesDeps & {
  * Better Auth answers under /api/auth (sign-up, sign-in, sign-out, session), and what a link
  * shares can be read without signing in; everything after that needs a session.
  */
-export const createApp = ({ log = console.error, collab, auth, ...deps }: AppDeps) =>
+export const createApp = ({
+  log = console.error,
+  collab,
+  auth,
+  info = { mode: "server" },
+  bearer,
+  ...deps
+}: AppDeps) =>
   new Hono<AuthEnv>()
     .basePath("/api")
     .get("/health", (c) => c.json({ ok: true }))
-    .get("/info", (c) => c.json({ mode: "server" } satisfies ServerInfo))
+    .get("/info", (c) => c.json(info))
     .on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw))
     .route("/", invitationRoutes(deps))
-    .use(requireUser(auth))
+    .use(requireUser(auth, bearer))
     .route("/", filesRoutes(deps))
     .route("/", collab ? collabRoutes(collab) : new Hono<AuthEnv>())
     .onError((error, c) => {

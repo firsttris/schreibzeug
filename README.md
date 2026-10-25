@@ -12,7 +12,7 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 </div>
 
 > **Status:** early development. Nothing to install yet. Working so far: accounts with email and
-> password, a file browser (folders,
+> password or through [Kontext](https://github.com/firsttris/kontext) (OpenID Connect), where Schreibzeug is the module "Dokumente" in Kontext's own window (attachments go into a folder and documents onto a mail), a file browser (folders,
 > upload, new document, spreadsheet or presentation, templates (letter, offer, invoice, calculation, project plan, presentation, and your own), rename, move, versions, trash), sharing with other accounts or by link (edit or view), a Word editor with a menu bar, context menu, find and replace, PDF and PDF/A export and printing, e-invoices (ZUGFeRD) from an invoice document, mail merge (Serienbriefe) from a spreadsheet of recipients, styles, fonts, colours, highlighting, format painter, lists, tables, images, links, headers and footers with page numbers, table of contents, footnotes, page and section breaks, text boxes, page layout, line spacing,
 > comments, tracked changes and spell checking (German and English, without a server), a spreadsheet editor with formulas, formatting, number formats, sheets, sorting, filters, frozen rows and columns, merged cells, charts, pivot tables, dropdown lists, conditional formats, CSV files, images, comments, menus, find and replace and PDF, and a presentation editor with slides, comments, a full-screen slide show,
 > layouts, shapes and text boxes, designs, transitions, speaker notes, text formatting, lists, images, menus and PDF, and PDFs: fill in forms, notes, text boxes, highlight, underline and strike out,
@@ -68,6 +68,8 @@ Word and PowerPoint files. Schreibzeug puts a new, clean interface on top of a p
 - **Sharing**: share with other accounts or by a link with an expiry date, to edit or to view
   (done); a comment role.
 - **Versions**: every save is kept, any version can be restored.
+- **With Kontext**: one sign-in, Schreibzeug as Kontext's module "Dokumente", attachments into
+  folders and documents onto mails (done, [how](https://firsttris.github.io/schreibzeug/kontext/)).
 
 ### 📝 Editors
 

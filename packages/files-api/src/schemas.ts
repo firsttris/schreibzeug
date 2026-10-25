@@ -94,7 +94,13 @@ export type Media = z.infer<typeof mediaSchema>;
  * one over a folder on the computer (apps/local), where sharing, versions and the trash are absent.
  */
 export const serverInfoSchema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("server") }),
+  z.object({
+    mode: z.literal("server"),
+    /** Signing in through another service (Kontext): the name on the button. */
+    oidc: z.object({ name: z.string() }).optional(),
+    /** The site that may show Schreibzeug in a frame and talk to it (Kontext), as an origin. */
+    embedOrigin: z.string().optional(),
+  }),
   z.object({ mode: z.literal("local"), rootName: z.string() }),
 ]);
 export type ServerInfo = z.infer<typeof serverInfoSchema>;

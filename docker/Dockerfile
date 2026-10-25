@@ -1,0 +1,26 @@
+# Schreibzeug: the web app with its engine and the server (files, accounts, collaboration) in one
+# image, run by Bun. The engine comes from the pinned Euro-Office release (engine/engine.json);
+# its font tool is a Linux x86_64 binary, so the image is built for amd64.
+FROM docker.io/oven/bun:1.4 AS build
+WORKDIR /app
+COPY . .
+RUN bun install --frozen-lockfile \
+  && bun engine/scripts/prepare.ts \
+  && bun run build
+
+FROM docker.io/oven/bun:1.4-slim
+WORKDIR /app
+ENV NODE_ENV=production PORT=3000 SCHREIBZEUG_DATA_DIR=/data SCHREIBZEUG_WEB_DIR=/app/web
+# The server and the workspace packages it imports; the other workspaces only for the lockfile.
+COPY package.json bun.lock tsconfig.base.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY apps/local/package.json apps/local/package.json
+COPY apps/desktop/package.json apps/desktop/package.json
+COPY packages packages
+COPY apps/server apps/server
+RUN bun install --frozen-lockfile --production --ignore-scripts
+COPY --from=build /app/apps/web/dist ./web
+VOLUME /data
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s CMD bun -e "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1))"
+CMD ["bun", "apps/server/src/main.ts"]

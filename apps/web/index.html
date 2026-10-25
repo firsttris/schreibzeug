@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Schreibzeug</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      // Light or dark as the device has it, before the first paint; in Kontext's frame Kontext
+      // decides (src/embed/bridge.tsx sets data-theme-source="kontext").
+      (() => {
+        const root = document.documentElement;
+        const dark = matchMedia("(prefers-color-scheme: dark)");
+        const apply = () => {
+          if (root.dataset.themeSource !== "kontext") root.dataset.theme = dark.matches ? "dark" : "light";
+        };
+        apply();
+        dark.addEventListener("change", apply);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

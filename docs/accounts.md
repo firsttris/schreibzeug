@@ -1,6 +1,7 @@
 # Accounts
 
-Everyone signs in with an email address and a password. The accounts are
+Everyone signs in with an email address and a password, or, where the server has it, through
+another service such as Kontext ([Schreibzeug in Kontext](kontext.md)). The accounts are
 [Better Auth](https://www.better-auth.com/) on the Schreibzeug server (`apps/server/src/auth`), stored
 in the app's own SQLite database through Better Auth's Drizzle adapter.
 
@@ -10,9 +11,11 @@ in the app's own SQLite database through Better Auth's Drizzle adapter.
 |---|---|
 | Better Auth's routes: sign-up, sign-in, sign-out, session | `/api/auth/*`, mounted in `src/app.ts` |
 | Its tables `user`, `session`, `account`, `verification` | `src/db/auth-schema.ts`, as Better Auth's Drizzle schema generator writes them |
-| The session check in front of every other route | `src/auth/middleware.ts` (`requireUser`); without a session the answer is `401` with `kind: "unauthorized"` |
+| The session check in front of every other route | `src/auth/middleware.ts` (`requireUser`); without a session the answer is `401` with `kind: "unauthorized"`. A bearer token from Kontext counts as well ([Schreibzeug in Kontext](kontext.md#tokens-from-kontext)) |
 
-The session is a cookie. Better Auth checks the `Origin` of requests that carry it against its
+The session is a cookie, named `schreibzeug.session_token` (and so on, `advanced.cookiePrefix`):
+beside Kontext on one host, as `localhost` in development, Better Auth's default names would make
+each sign-in replace the other's, since cookies know no ports. Better Auth checks the `Origin` of requests that carry it against its
 trusted origins; Schreibzeug trusts its own origin, whatever host name the server is reached by, and
 the ones in `SCHREIBZEUG_TRUSTED_ORIGINS` (the desktop app, later).
 
@@ -74,6 +77,12 @@ others' changes as they come.
 
 The first account takes over the files from before there were accounts (nodes without an owner),
 so an existing installation keeps its files.
+
+Signing in through Kontext also opens a closed sign-up: whoever Kontext knows belongs to the company
+(the sign-up hook lets Better Auth's callback `/callback/:id` in). Someone who signs in through it
+with the address of an existing account gets that account (Better Auth's account linking, Kontext
+as a trusted provider); from then on the account is found by Kontext's `sub`, so a changed address
+keeps it. The variables are in [Schreibzeug in Kontext](kontext.md#settings).
 
 ## Web app
 

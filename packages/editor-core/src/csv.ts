@@ -16,26 +16,42 @@ const CSV_DELIMITER_CHARACTERS: Record<CsvDelimiter, string> = { semicolon: ";",
 /** How many lines are looked at to tell the delimiter. */
 const SAMPLE_LINES = 20;
 
+const isDelimiter = (character: string): boolean =>
+  Object.values(CSV_DELIMITER_CHARACTERS).includes(character);
+
 /**
- * How often each delimiter appears in the first non-empty lines, quoted parts left out. The quote
- * state carries over line breaks, since a quoted field may hold one (RFC 4180), so a delimiter on
- * the second line of such a field is not counted.
+ * How often each delimiter appears in the first non-empty lines, quoted parts left out. Only a
+ * field that starts with a quote is quoted, as in RFC 4180, so an inch mark as in `27"` quotes
+ * nothing; the quote state carries over line breaks, since a quoted field may hold one, so a
+ * delimiter on the second line of such a field is not counted. Two quotes in a quoted field are one.
  */
 const countOutsideQuotes = (text: string, lines: number): Record<CsvDelimiter, number> => {
   const counts: Record<CsvDelimiter, number> = { semicolon: 0, comma: 0, tab: 0 };
   let quoted = false;
+  let fieldStart = true;
   let inLine = false;
   let seen = 0;
-  for (const character of text) {
-    if (character === '"') quoted = !quoted;
-    if (!quoted && character === "\n") {
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index] ?? "";
+    if (quoted) {
+      if (character === '"' && text[index + 1] === '"') index += 1;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === "\n") {
       if (inLine) seen += 1;
       if (seen >= lines) break;
       inLine = false;
+      fieldStart = true;
       continue;
     }
     if (character !== "\r") inLine = true;
-    if (quoted) continue;
+    if (character === '"' && fieldStart) {
+      quoted = true;
+      fieldStart = false;
+      continue;
+    }
+    fieldStart = isDelimiter(character);
     for (const delimiter of Object.keys(CSV_DELIMITER_CHARACTERS) as CsvDelimiter[]) {
       if (character === CSV_DELIMITER_CHARACTERS[delimiter]) counts[delimiter] += 1;
     }

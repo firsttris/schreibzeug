@@ -23,6 +23,12 @@ describe("the delimiter of a CSV file", () => {
     ]);
   });
 
+  it("takes a quote inside a field for a character, not for the start of a quoted part", () => {
+    const file = 'Artikel;Preis\nMonitor, schwarz, matt, 27";199\nMaus;19\nTastatur;29\nKabel;5\nHub;25';
+    expect(detectDelimiter(bytes(file))).toBe("semicolon");
+    expect(detectDelimiter(bytes('a;b\n"x ""y"", z, w";1\n'))).toBe("semicolon");
+  });
+
   it("looks at the first 20 lines with content only", () => {
     const head = "a,b\n\n".repeat(20);
     expect(detectDelimiter(bytes(`${head}${"x;y;z\n".repeat(30)}`))).toBe("comma");

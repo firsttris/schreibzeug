@@ -4,7 +4,9 @@
  * changes on it, also after saves moved the file on. So the bytes of a session's base are kept when
  * they are served while that version is still the file on disk, for as long as the session lasts.
  */
-export const createSessionBases = (baseOf: (fileId: string) => number | undefined) => {
+export const createSessionBases = (
+  sessionOf: (fileId: string) => { baseVersion: number; changes: number } | undefined,
+) => {
   const kept = new Map<string, { version: number; bytes: Uint8Array }>();
   return {
     /**
@@ -17,7 +19,8 @@ export const createSessionBases = (baseOf: (fileId: string) => number | undefine
       current: number | null,
       onDisk: Uint8Array,
     ): Uint8Array | null => {
-      const base = baseOf(fileId);
+      const session = sessionOf(fileId);
+      const base = session?.baseVersion;
       if (base === undefined) kept.delete(fileId);
       if (asked === undefined || asked === current) {
         // Taken once, at the session's first load, before any save of it: a read racing a save
@@ -27,7 +30,14 @@ export const createSessionBases = (baseOf: (fileId: string) => number | undefine
         return onDisk;
       }
       const held = kept.get(fileId);
-      return held && held.version === asked && base === asked ? held.bytes : null;
+      if (held && held.version === asked && base === asked) return held.bytes;
+      // Written from outside before the session's first load: with no change made yet, the file
+      // as it is now is as good a start, for everyone joining.
+      if (base === asked && session?.changes === 0 && !held) {
+        kept.set(fileId, { version: base, bytes: onDisk });
+        return onDisk;
+      }
+      return null;
     },
   };
 };

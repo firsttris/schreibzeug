@@ -92,7 +92,10 @@ export const createLocalApp = ({
   collab,
   log = console.error,
 }: LocalDeps) => {
-  const sessionBases = createSessionBases((fileId) => collab?.hub.session(fileId)?.baseVersion);
+  const sessionBases = createSessionBases((fileId) => {
+    const session = collab?.hub.session(fileId);
+    return session && { baseVersion: session.baseVersion, changes: session.changes.length };
+  });
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),

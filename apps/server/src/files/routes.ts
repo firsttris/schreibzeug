@@ -208,7 +208,13 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
         if (sessionSave && relay && !relay.begin(id, sessionSave))
           return respond(c, fail("conflict", SESSION_GONE), toFileNode);
-        const saved = repository.addVersion(db, userOf(c), id, content);
+        let saved: ReturnType<typeof repository.addVersion>;
+        try {
+          saved = repository.addVersion(db, userOf(c), id, content);
+        } catch (error) {
+          if (sessionSave) relay?.abandon(id); // a begun save always ends (hub.ts `begin`)
+          throw error;
+        }
         const version = saved.ok ? saved.value.node.version : null;
         if (sessionSave && version !== null) relay?.stored(id, version, sessionSave);
         else if (sessionSave) relay?.abandon(id);

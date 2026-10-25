@@ -73,7 +73,8 @@ and leaves out what only makes sense with accounts.
   same file edit together. A session opens the version it started at and replays its changes on
   it, also after saves moved the file on; the folder keeps no older versions, so the server keeps
   the bytes of each session's first version while the session lasts (`src/session-bases.ts`) and
-  serves them for `?version=`. Images added while editing wait in a cache folder until the file is
+  serves them for `?version=` (a file written from outside before the session's first load, with
+  no change made yet, starts the session as it is). Images added while editing wait in a cache folder until the file is
   saved with them inside.
 - **Only for this computer** (`src/gate.ts`): the server listens on 127.0.0.1 and wants the key the
   app made at start. The app opens `/api/local/unlock?token=…`, which leaves an HttpOnly,

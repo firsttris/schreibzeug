@@ -1,4 +1,4 @@
-import type { FileNode } from "@schreibzeug/files-api";
+import { type FileNode, nodeNameSchema } from "@schreibzeug/files-api";
 import { TEMPLATES } from "@schreibzeug/ooxml";
 import { describe, expect, it } from "vitest";
 import { choiceName, fileNameFor, formatOf, ownTemplates, templateFolderOf } from "./templates";
@@ -42,6 +42,12 @@ describe("the new file's name", () => {
   it("gets the template's extension once", () => {
     expect(fileNameFor("Rechnung 2026-001", "docx")).toBe("Rechnung 2026-001.docx");
     expect(fileNameFor("Plan.XLSX", "xlsx")).toBe("Plan.XLSX");
+  });
+
+  it("is refused when nothing but the extension would be left", () => {
+    for (const typed of ["", "   ", ".docx", "  .DOCX"]) {
+      expect(nodeNameSchema.safeParse(fileNameFor(typed, "docx")).success).toBe(false);
+    }
   });
 
   it("starts as the template's name", () => {

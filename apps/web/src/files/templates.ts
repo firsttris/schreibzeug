@@ -38,6 +38,15 @@ export const formatOf = (choice: TemplateChoice): TemplateFormat =>
 export const choiceKey = (choice: TemplateChoice): string =>
   choice.kind === "builtin" ? `builtin:${choice.template.id}` : `own:${choice.node.id}`;
 
-/** The new file's name: what was typed, with the template's extension unless it is there already. */
-export const fileNameFor = (name: string, format: TemplateFormat): string =>
-  name.toLowerCase().endsWith(`.${format}`) ? name : `${name}.${format}`;
+/**
+ * The new file's name: what was typed, with the template's extension unless it is there already.
+ * A name that is blank apart from the extension stays blank, so the name check refuses it instead
+ * of creating a bare ".docx" that has no name and opens as nothing.
+ */
+export const fileNameFor = (name: string, format: TemplateFormat): string => {
+  const extension = `.${format}`;
+  const typed = name.toLowerCase().endsWith(extension);
+  const bare = typed ? name.slice(0, -extension.length) : name;
+  if (bare.trim() === "") return "";
+  return typed ? name : `${name}${extension}`;
+};

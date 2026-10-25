@@ -20,7 +20,8 @@ afterAll(() => server?.stop());
 
 const testFile = (name: string) =>
   new Uint8Array(readFileSync(join(import.meta.dirname, "../../../test-files", name)));
-const uploaded = async (name: string, bytes: Uint8Array = testFile(name)) => (await upload(server, anna, name, bytes)).id;
+const uploaded = async (name: string, bytes: Uint8Array = testFile(name)) =>
+  (await upload(server, anna, name, bytes)).id;
 
 describe("reading over MCP", () => {
   it("reads a Word document as Markdown", async () => {

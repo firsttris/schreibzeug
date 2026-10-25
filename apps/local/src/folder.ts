@@ -24,6 +24,12 @@ const MAX_WALKED = 5000;
 
 const NOT_FOUND = "Diese Datei oder diesen Ordner gibt es nicht.";
 const NAME_TAKEN = "Hier gibt es schon etwas mit diesem Namen.";
+const NAME_HIDDEN =
+  "Namen, die mit „.“ oder „~$“ beginnen, und Systemnamen wie desktop.ini sind nicht möglich.";
+
+/** A name the file list would leave out is refused before anything happens on disk. */
+const visibleName = (name: string): Result<string> =>
+  isVisible(name) ? ok(name) : fail("invalid", NAME_HIDDEN);
 
 const parentOf = (path: string): string => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 const nameOf = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
@@ -161,6 +167,8 @@ export const createFolder = ({ root: rootFolder, ids, trash, versions = new Map(
   };
 
   const createFile = async (parentId: string | null, name: string, bytes: Uint8Array) => {
+    const visible = visibleName(name);
+    if (!visible.ok) return visible;
     const folder = await targetFolder(parentId);
     if (!folder.ok) return folder;
     const path = childPath(folder.value, name);
@@ -184,6 +192,8 @@ export const createFolder = ({ root: rootFolder, ids, trash, versions = new Map(
     },
 
     createFolder: async (parentId: string | null, name: string): Promise<Result<FileNode>> => {
+      const visible = visibleName(name);
+      if (!visible.ok) return visible;
       const folder = await targetFolder(parentId);
       if (!folder.ok) return folder;
       const path = childPath(folder.value, name);
@@ -199,6 +209,8 @@ export const createFolder = ({ root: rootFolder, ids, trash, versions = new Map(
       id: string,
       update: { name?: string; parentId?: string | null },
     ): Promise<Result<FileNode>> => {
+      const visible = update.name === undefined ? ok(null) : visibleName(update.name);
+      if (!visible.ok) return visible;
       const found = await find(id);
       if (!found.ok) return found;
       const { path } = found.value;

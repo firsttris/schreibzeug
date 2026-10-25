@@ -58,7 +58,8 @@ and leaves out what only makes sense with accounts.
 - **Files are the files**: a folder in the app is a folder on disk, a file is a file. New
   documents, uploads, copies, renames and moves happen there; a save overwrites the file (written
   to a temporary name beside it first, then renamed). Hidden files, Office's `~$` lock files and
-  `desktop.ini`/`Thumbs.db` are not listed.
+  `desktop.ini`/`Thumbs.db` are not listed, and a new file, folder or name the list would hide is
+  refused (400) before anything happens on disk.
 - **Ids**: the API names nodes by UUID; here a node's id is a UUID v5 of its path below the root,
   so a link stays the same after a restart. A rename or move keeps the id for as long as the server
   runs (`src/ids.ts`), so an open editor stays on its file.

@@ -25,6 +25,7 @@ import type { UpgradeWebSocket } from "hono/ws";
 import { z } from "zod";
 import type { Folder } from "./folder";
 import { requireToken, unlock } from "./gate";
+import { createSessionBases } from "./session-bases";
 
 /** The one person using the computer, in place of an account. */
 export type LocalUser = { id: string; name: string };
@@ -62,6 +63,7 @@ const uploadForm = z.object({
   file: z.instanceof(File, { message: "Keine Datei im Upload." }),
 });
 const mediaParam = z.object({ id: nodeIdSchema, name: z.string().max(100) });
+const versionQuery = z.object({ version: z.coerce.number().int().positive().optional() });
 
 const BLANK_FILES = {
   docx: { extension: ".docx", bytes: blankDocx },
@@ -72,6 +74,7 @@ const BLANK_FILES = {
 const withExtension = (name: string, extension: string) =>
   name.toLowerCase().endsWith(extension) ? name : `${name}${extension}`;
 
+const NO_SUCH_VERSION = "Diese Version der Datei gibt es auf diesem Computer nicht mehr.";
 const UNAVAILABLE = "Das gibt es nur auf einem Schreibzeug-Server, nicht für Dateien auf diesem Computer.";
 
 /**
@@ -89,6 +92,7 @@ export const createLocalApp = ({
   collab,
   log = console.error,
 }: LocalDeps) => {
+  const sessionBases = createSessionBases((fileId) => collab?.hub.session(fileId)?.baseVersion);
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -157,11 +161,14 @@ export const createLocalApp = ({
           return respond(c, fail("invalid", fullName.error.issues[0]?.message ?? "Ungültiger Name."));
         return respond(c, await folder.createFile(parentId, fullName.data, blank.bytes()), 201);
       })
-      // The file as it is on disk now: there are no older versions to ask for.
-      .get("/files/:id/content", validate("param", idParam), async (c) => {
-        const read = await folder.read(c.req.valid("param").id);
+      // The file as it is on disk now, or the version an editing session started at (sessionBases).
+      .get("/files/:id/content", validate("param", idParam), validate("query", versionQuery), async (c) => {
+        const { id } = c.req.valid("param");
+        const read = await folder.read(id);
         if (!read.ok) return respond(c, read);
-        const { node, bytes } = read.value;
+        const { node } = read.value;
+        const bytes = sessionBases.bytesOf(id, c.req.valid("query").version, node.version, read.value.bytes);
+        if (!bytes) return respond(c, fail("not_found", NO_SUCH_VERSION));
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": node.mime ?? "application/octet-stream",
           "content-disposition": contentDisposition(node.name),

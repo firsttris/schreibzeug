@@ -30,8 +30,6 @@ await mkdir(cacheDir, { recursive: true });
 const folder = createFolder({ root, ids: createIds(), trash: createTrash() });
 const user = { id: "local", name: userName };
 const hub = createHub({
-  // The folder has only the file on disk: no older version to open (desktop.md).
-  olderVersions: false,
   access: async (fileId) => {
     const file = await folder.findFile(fileId);
     return file.ok && file.value.version !== null ? { version: file.value.version, role: "owner" } : null;

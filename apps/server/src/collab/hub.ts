@@ -28,11 +28,6 @@ export type HubDeps = {
    */
   access: (fileId: string, userId: string) => Promise<FileAccess | null>;
   now?: () => number;
-  /**
-   * Whether the files can be opened at an older version (`GET /content?version=`). The local
-   * server has only the file on disk: a kept session must then open at the newest version.
-   */
-  olderVersions?: boolean;
 };
 
 type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send };
@@ -73,7 +68,7 @@ const ENDED_IDS_KEPT = 50;
  * unless a newer version was stored meanwhile.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
-export const createHub = ({ access, now = Date.now, olderVersions = true }: HubDeps) => {
+export const createHub = ({ access, now = Date.now }: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
   /**
@@ -130,19 +125,6 @@ export const createHub = ({ access, now = Date.now, olderVersions = true }: HubD
     leftSinceChange.delete(fileId);
   };
 
-  /**
-   * A kept session the next person joins, where only the newest version can be opened: it goes on
-   * from the newest version it stored, with the part of its log that version lacks. A client of the
-   * old base cannot restore into it, nor store its old copy (isCurrent); its engine opens the
-   * document again, as when the relay started a new session.
-   */
-  const rebased = (fileId: string, session: Session): Session => {
-    if (olderVersions || session.savedIndex === 0) return session;
-    const changes = session.changes.slice(session.savedIndex);
-    const baseVersion = storedAt.get(fileId) ?? session.baseVersion;
-    return { ...session, baseVersion, changes, savedIndex: 0, sessionIds: [] };
-  };
-
   const startSession = (fileId: string, version: number): Session => {
     const last = ended.get(fileId);
     ended.delete(fileId);
@@ -163,11 +145,9 @@ export const createHub = ({ access, now = Date.now, olderVersions = true }: HubD
       const { version } = allowed;
       // A version stored from outside while a kept session waited (a restored version, an upload)
       // is newer than the session's changes: it wins, as it would have without the session.
-      const alone = membersOf(fileId).length === 0;
-      if (alone && storedAt.get(fileId) !== version) sessions.delete(fileId);
+      if (membersOf(fileId).length === 0 && storedAt.get(fileId) !== version) sessions.delete(fileId);
       // Another connection may have started the session while we looked the version up.
-      const kept = sessions.get(fileId);
-      const session = kept ? (alone ? rebased(fileId, kept) : kept) : startSession(fileId, version);
+      const session = sessions.get(fileId) ?? startSession(fileId, version);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
       connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
@@ -195,16 +175,16 @@ export const createHub = ({ access, now = Date.now, olderVersions = true }: HubD
       settle(connection.fileId);
     },
 
+    /** Whether a save comes from the file's session open now (files-api SessionSaves). */
+    isCurrent: (fileId: string, { baseVersion }: SessionSave): boolean =>
+      sessions.get(fileId)?.baseVersion === baseVersion,
+
     /**
      * A client stored the file as `version`, from the session that started at `baseVersion`,
      * holding the first `index` changes of its log (the save's SESSION_SAVE_HEADER). Told by the
      * save itself, so it counts even when the client's connection dropped meanwhile; a save from a
      * session that is gone is from outside for the one open now.
      */
-    /** Whether a save comes from the file's session open now (files-api SessionSaves). */
-    isCurrent: (fileId: string, { baseVersion }: SessionSave): boolean =>
-      sessions.get(fileId)?.baseVersion === baseVersion,
-
     stored: (fileId: string, version: number, { baseVersion, index }: SessionSave) => {
       if (sessions.get(fileId)?.baseVersion !== baseVersion) return;
       storedAt.set(fileId, version);

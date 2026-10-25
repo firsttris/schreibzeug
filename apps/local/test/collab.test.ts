@@ -23,7 +23,6 @@ const start = async () => {
   await Promise.all([mkdir(root), mkdir(join(base, "media"))]);
   const folder = createFolder({ root, ids: createIds(), trash: async () => ok(null) });
   const hub = createHub({
-    olderVersions: false, // as main.ts
     access: async (fileId) => {
       const file = await folder.findFile(fileId);
       return file.ok && file.value.version !== null ? { version: file.value.version, role: "owner" } : null;
@@ -44,7 +43,7 @@ const start = async () => {
 };
 
 describe("the local relay", () => {
-  it("has the next window open the file on disk and replay only what it lacks", async () => {
+  it("has the next window open the version the session started at, though the file moved on", async () => {
     const { app, hub, headers } = await start();
     const created = await app.request("/api/files/blank", {
       method: "POST",
@@ -52,10 +51,17 @@ describe("the local relay", () => {
       body: JSON.stringify({ parentId: null, name: "Bericht", format: "docx" }),
     });
     const { id } = (await created.json()) as { id: string };
+    const content = async (version?: number) => {
+      const response = await app.request(`/api/files/${id}/content${version ? `?version=${version}` : ""}`, {
+        headers,
+      });
+      return { status: response.status, bytes: new Uint8Array(await response.arrayBuffer()) };
+    };
 
     const first: Record<string, unknown>[] = [];
     const a = (await hub.open(id, { id: "local", name: "T" }, (m) => first.push(m))) as string;
     expect(first[0]).toEqual({ type: "schreibzeug:session", baseVersion: 1 });
+    const original = await content(1); // the window loads the version it opens
     hub.message(a, { type: "auth", user: { id: "local" } });
     hub.message(a, {
       type: "saveChanges",
@@ -72,21 +78,27 @@ describe("the local relay", () => {
     expect(put.status).toBe(200);
     hub.close(a);
 
-    // The local server keeps no older version: the file on disk (version 2) is what opens.
+    // The next window opens version 1 and replays c1 to c3 on it: the file on disk already holds
+    // c1 and c2, so version 1 is served as it was, not as the disk has it now.
     const second: Record<string, unknown>[] = [];
     const b = (await hub.open(id, { id: "local", name: "T" }, (m) => second.push(m))) as string;
     hub.message(b, { type: "auth", user: { id: "local" } });
-    expect(second[0]).toEqual({ type: "schreibzeug:session", baseVersion: 2 });
-    expect(second.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c3"' }]);
+    expect(second[0]).toEqual({ type: "schreibzeug:session", baseVersion: 1 });
+    expect(second.find((m) => m.type === "authChanges")?.changes).toHaveLength(3);
+    expect(await content(1)).toEqual(original);
+    expect((await content()).bytes).toEqual(new Uint8Array([1, 2, 3, 4]));
+  });
 
-    // A late save of the first window's copy (version 1 and two changes) is refused: it lacks c3.
-    const late = await app.request(`/api/files/${id}/content`, {
-      method: "PUT",
-      headers: { ...headers, [SESSION_SAVE_HEADER]: "1:2" },
-      body: new Uint8Array([9]),
+  it("has no older version without a session that started at it", async () => {
+    const { app, headers } = await start();
+    const created = await app.request("/api/files/blank", {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ parentId: null, name: "Bericht", format: "docx" }),
     });
-    expect(late.status).toBe(409);
-    const onDisk = await app.request(`/api/files/${id}/content`, { headers });
-    expect(new Uint8Array(await onDisk.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4]));
+    const { id } = (await created.json()) as { id: string };
+    await app.request(`/api/files/${id}/content`, { method: "PUT", headers, body: new Uint8Array([1]) });
+    expect((await app.request(`/api/files/${id}/content?version=1`, { headers })).status).toBe(404);
+    expect((await app.request(`/api/files/${id}/content?version=2`, { headers })).status).toBe(200);
   });
 });

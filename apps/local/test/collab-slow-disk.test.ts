@@ -34,7 +34,6 @@ const start = async () => {
     },
   };
   const hub = createHub({
-    olderVersions: false, // as main.ts
     access: async (fileId) => {
       const file = await real.findFile(fileId);
       return file.ok && file.value.version !== null ? { version: file.value.version, role: "owner" } : null;
@@ -98,12 +97,13 @@ describe("the local relay, when a window closes while its save is written", () =
     release();
     expect((await late).status).toBe(200); // version 3 on disk holds c1, c2
 
-    // c3 is in no version on disk: the next window must get it.
+    // c3 is in no version on disk: the next window opens version 1 and replays all three.
     const next: Record<string, unknown>[] = [];
     const b = (await hub.open(id, { id: "local", name: "T" }, (m) => next.push(m))) as string;
     hub.message(b, { type: "auth", user: { id: "local" } });
-    expect(next[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    expect(next[0]).toEqual({ type: "schreibzeug:session", baseVersion: 1 });
     const replayed = (next.find((m) => m.type === "authChanges")?.changes ?? []) as Array<{ change: string }>;
-    expect(replayed.map((c) => c.change)).toEqual(['"c3"']);
+    expect(replayed.map((c) => c.change)).toEqual(['"c1"', '"c2"', '"c3"']);
+    expect(hub.session(id)?.savedIndex).toBe(2);
   });
 });

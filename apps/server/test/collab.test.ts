@@ -353,15 +353,9 @@ describe("collaboration hub", () => {
   const BEN = { id: "ben", name: "Ben" };
 
   /** `editors` may edit FILE, at version 3 unless `stored` moves on; `viewers` may look at it. */
-  /** `olderVersions: false` as the local server, which has only the file on disk. */
-  const setup = (
-    editors: string[] = ["anna", "ben"],
-    viewers: string[] = [],
-    stored = { version: 3 },
-    olderVersions = true,
-  ) => {
+  /** `editors` may edit FILE, at version 3 unless `stored` moves on; `viewers` may look at it. */
+  const setup = (editors: string[] = ["anna", "ben"], viewers: string[] = [], stored = { version: 3 }) => {
     const hub = createHub({
-      olderVersions,
       access: async (id, userId) => {
         if (id !== FILE) return null;
         if (editors.includes(userId)) return { version: stored.version, role: "edit" };
@@ -468,9 +462,9 @@ describe("collaboration hub", () => {
   });
 
   /** Anna sends c1 and c2, her connection drops, then her save of c1 lands as version 4. */
-  const lateSave = async (olderVersions: boolean) => {
+  const lateSave = async () => {
     const stored = { version: 3 };
-    const { hub, join } = setup(undefined, undefined, stored, olderVersions);
+    const { hub, join } = setup(undefined, undefined, stored);
     const a = await join(ANNA);
     hub.message(a.id, auth("anna"));
     for (const change of ["c1", "c2"]) {
@@ -490,25 +484,12 @@ describe("collaboration hub", () => {
   };
 
   it("keeps a session whose own save landed after the drop, and lets its editor restore", async () => {
-    const { hub, back } = await lateSave(true);
+    const { hub, back } = await lateSave();
     expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
     expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
       type: "auth",
     });
     expect(hub.session(FILE)?.savedIndex).toBe(1);
-  });
-
-  it("has the next person open the newest version where no older one can be opened", async () => {
-    const { hub, back } = await lateSave(false);
-    // The local server has only the newest file: version 4 opens, and c2 is replayed on it.
-    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 4 });
-    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
-      type: "error",
-    });
-    expect(hub.session(FILE)?.changes.map((change) => change.change)).toEqual(['"c2"']);
-    // The old copy may not be stored any more: as the newest version it would lack c2.
-    expect(hub.isCurrent(FILE, { baseVersion: 3, index: 1 })).toBe(false);
-    expect(hub.isCurrent(FILE, { baseVersion: 4, index: 0 })).toBe(true);
   });
 
   it("takes only saves from the session open now for its own", async () => {

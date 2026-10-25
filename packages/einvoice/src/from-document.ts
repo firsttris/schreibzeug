@@ -55,8 +55,9 @@ const SERVICE = new RegExp(
   `(?:Leistungs(?:zeitraum|datum)|Lieferdatum|Lieferzeitraum)\\s*:?\\s*${DATE_PATTERN.source}(?:\\s*(?:-|–|bis)\\s*${DATE_PATTERN.source})?`,
   "i",
 );
+// "bis" after a date ends a period ("01.10.2026 bis 20.10.2026"), it is no due date.
 const DUE = new RegExp(
-  `(?:bis\\s+(?:zum\\s+)?|fällig\\s+(?:am\\s+)?|zahlbar\\s+bis\\s+(?:zum\\s+)?)${DATE_PATTERN.source}`,
+  `(?:(?<![\\d.]\\s*)bis\\s+(?:zum\\s+)?|fällig\\s+(?:am\\s+)?|zahlbar\\s+bis\\s+(?:zum\\s+)?)${DATE_PATTERN.source}`,
   "i",
 );
 const DUE_IN_DAYS = /(?:innerhalb\s+(?:von\s+)?|binnen\s+)(\d{1,3})\s+Tag/i;

@@ -179,6 +179,25 @@ describe("draftFromDocument", () => {
   });
 });
 
+describe("the details", () => {
+  const draftOf = (...texts: string[]) =>
+    draftFromDocument({ body: texts.map(p), headers: [], footers: [] }).draft;
+
+  it("does not take the end of the service period for the due date", () => {
+    const draft = draftOf(
+      "Rechnungsdatum 23.10.2026",
+      "Leistungszeitraum 01.10.2026 bis 20.10.2026",
+      "Zahlbar innerhalb von 14 Tagen.",
+    );
+    expect([draft.serviceFrom, draft.serviceTo, draft.dueDate]).toEqual([
+      "2026-10-01",
+      "2026-10-20",
+      "2026-11-06",
+    ]);
+    expect(draftOf("Bitte zahlen Sie bis zum 06.11.2026.").dueDate).toBe("2026-11-06");
+  });
+});
+
 describe("the table of invoice lines", () => {
   const linesOf = (rows: string[][]) =>
     draftFromDocument({ body: [{ type: "table", rows }], headers: [], footers: [] }).draft.lines;

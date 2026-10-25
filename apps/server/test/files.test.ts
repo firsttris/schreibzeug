@@ -1,8 +1,9 @@
 import {
   type FileNode,
   folderListingSchema,
-  LOG_INDEX_HEADER,
   nodeSchema,
+  SESSION_SAVE_HEADER,
+  type SessionSave,
   versionSchema,
 } from "@schreibzeug/files-api";
 import { strFromU8, unzipSync } from "fflate";
@@ -387,8 +388,8 @@ describe("recent", () => {
 
 describe("a save from a shared session", () => {
   it("tells the relay which version holds how much of the session's log", async () => {
-    const stored: Array<[string, number, number]> = [];
-    const hub = { stored: (...args: [string, number, number]) => stored.push(args) } as unknown as Hub;
+    const stored: Array<[string, number, SessionSave]> = [];
+    const hub = { stored: (...args: [string, number, SessionSave]) => stored.push(args) } as unknown as Hub;
     const upgradeWebSocket = (() => () => new Response(null, { status: 426 })) as unknown as UpgradeWebSocket;
     const relayed = await startServer({ collab: { hub, upgradeWebSocket } });
     try {
@@ -405,10 +406,10 @@ describe("a save from a shared session", () => {
         await relayed.app.request("/api/files", { method: "POST", body: form, headers: { cookie: anna } }),
         201,
       );
-      await expectNode(await put(file.id, { [LOG_INDEX_HEADER]: "7" }));
+      await expectNode(await put(file.id, { [SESSION_SAVE_HEADER]: "1:7" }));
       await expectNode(await put(file.id, {})); // a save from outside a session
-      await expectNode(await put(file.id, { [LOG_INDEX_HEADER]: "x" }));
-      expect(stored).toEqual([[file.id, 2, 7]]);
+      await expectNode(await put(file.id, { [SESSION_SAVE_HEADER]: "7" }));
+      expect(stored).toEqual([[file.id, 2, { baseVersion: 1, index: 7 }]]);
     } finally {
       await relayed.stop();
     }

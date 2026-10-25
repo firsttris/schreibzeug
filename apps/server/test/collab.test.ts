@@ -3,6 +3,7 @@ import { createHub } from "../src/collab/hub";
 import {
   createSession,
   disconnect,
+  markSaved,
   type Outgoing,
   RESTORE_CODE,
   receive,
@@ -19,11 +20,18 @@ const auth = (user: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+/** A save that stored the first `index` changes, as its upload tells the hub (hub.ts `stored`). */
+const STORED = "test:stored";
+const stored = (index: number): [string, Record<string, unknown>] => ["", { type: STORED, index }];
+
 /** Runs messages through the session like the hub, keeping what each step sent. */
 const run = (steps: Array<[string, Record<string, unknown>]>, start: Session = createSession(FILE, 3)) =>
   steps.reduce(
     ({ session, log }, [connection, data], index) => {
-      const step = receive(session, connection, data as { type: string }, NOW + index * 1000);
+      const step =
+        data.type === STORED
+          ? markSaved(session, Number(data.index))
+          : receive(session, connection, data as { type: string }, NOW + index * 1000);
       return { session: step.session, log: [...log, { connection, out: step.out }] };
     },
     { session: start, log: [] as Array<{ connection: string; out: Outgoing[] }> },
@@ -91,37 +99,33 @@ describe("collaboration session", () => {
     expect(authMessage?.locks).toEqual([{ time: expect.any(Number), user: "anna1", block }]);
   });
 
-  it("tells everyone how much of the log a stored version holds, never less than before", () => {
+  it("tells everyone how much of the log the newest stored version holds, also less than before", () => {
     const { session, log } = run([
       ["a", auth("anna")],
       ["b", auth("ben")],
       change("a", ["c1", "c2", "c3"]),
-      ["b", { type: "schreibzeug:saved", index: 2 }],
-      ["a", { type: "schreibzeug:saved", index: 1 }],
-      ["a", { type: "schreibzeug:saved", index: 99 }],
+      stored(3),
+      stored(1), // a slower save, stored after the first one: the newest version lacks c2 and c3
     ]);
-    expect(log[3]?.out).toEqual([{ to: "all", message: { type: "schreibzeug:saved", index: 2 } }]);
-    expect(log[4]?.out[0]?.message).toEqual({ type: "schreibzeug:saved", index: 2 });
+    expect(log[3]?.out).toEqual([{ to: "all", message: { type: "schreibzeug:saved", index: 3 } }]);
+    expect(log[4]?.out[0]?.message).toEqual({ type: "schreibzeug:saved", index: 1 });
+    expect(session.savedIndex).toBe(1);
     // An index past the log counts as the whole log.
-    expect(session.savedIndex).toBe(3);
+    expect(run([["a", auth("anna")], change("a", ["c1"]), stored(99)]).session.savedIndex).toBe(1);
   });
 
-  it("ignores a saved message without an index", () => {
+  it("ignores a saved message from a client: the upload tells what is stored", () => {
     const { session, log } = run([
       ["a", auth("anna")],
-      ["a", { type: "schreibzeug:saved" }],
+      change("a", ["c1"]),
+      ["a", { type: "schreibzeug:saved", index: 1 }],
     ]);
-    expect(log[1]?.out).toEqual([]);
+    expect(log[2]?.out).toEqual([]);
     expect(session.savedIndex).toBe(0);
   });
 
   it("tells someone joining later how much is stored", () => {
-    const { log } = run([
-      ["a", auth("anna")],
-      change("a", ["c1"]),
-      ["a", { type: "schreibzeug:saved", index: 1 }],
-      ["b", auth("ben")],
-    ]);
+    const { log } = run([["a", auth("anna")], change("a", ["c1"]), stored(1), ["b", auth("ben")]]);
     expect(log[3]?.out.at(-1)?.message).toEqual({ type: "schreibzeug:saved", index: 1 });
   });
 
@@ -129,7 +133,7 @@ describe("collaboration session", () => {
     const { session } = run([
       ["a", auth("anna")],
       change("a", ["c1", "c2"]),
-      ["a", { type: "schreibzeug:saved", index: 2 }],
+      stored(2),
       [
         "a",
         {
@@ -403,7 +407,7 @@ describe("collaboration hub", () => {
     expect(b.messages.map((m) => m.type)).toContain("saveChanges");
     expect(a.messages.filter((m) => m.type === "saveChanges")).toEqual([]);
 
-    hub.message(b.id, { type: "schreibzeug:saved", index: 1 });
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
 
     hub.close(a.id);
     expect(b.messages.at(-1)).toMatchObject({ type: "connectState", participants: [{ id: "ben2" }] });
@@ -470,8 +474,8 @@ describe("collaboration hub", () => {
       });
     }
     hub.close(a.id); // c1 and c2 unsaved: the session is kept
-    stored.version = 4; // Anna's autosave of c1 lands after the drop, saying so (LOG_INDEX_HEADER)
-    hub.stored(FILE, 4, 1);
+    stored.version = 4; // Anna's autosave of c1 lands after the drop, saying so (SESSION_SAVE_HEADER)
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
 
     const back = await join(ANNA);
     expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
@@ -480,6 +484,69 @@ describe("collaboration hub", () => {
       type: "auth",
     });
     expect(hub.session(FILE)?.savedIndex).toBe(1);
+  });
+
+  it("takes a late save of a session that is gone for one from outside", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["a1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    hub.close(a.id); // a1 unsaved: the session is kept
+    stored.version = 4; // a version restored meanwhile: the kept session is dropped at the next open
+    const b = await join(BEN);
+    hub.message(b.id, auth("ben"));
+    hub.message(b.id, {
+      type: "saveChanges",
+      changes: '["b1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+
+    stored.version = 5;
+    hub.stored(FILE, 5, { baseVersion: 3, index: 1 }); // Anna's tab saves its old copy late
+    expect(hub.session(FILE)?.savedIndex).toBe(0);
+    expect(b.messages.filter((m) => m.type === "schreibzeug:saved").at(-1)).toEqual({
+      type: "schreibzeug:saved",
+      index: 0,
+    });
+  });
+
+  it("counts what the newest version holds when a slower save lands after a faster one", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    const b = await join(BEN);
+    hub.message(b.id, auth("ben"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1","c2","c3"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    hub.message(b.id, {
+      type: "saveChanges",
+      changes: '["c4","c5"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    stored.version = 4;
+    hub.stored(FILE, 4, { baseVersion: 3, index: 5 }); // Ben's save
+    stored.version = 5;
+    hub.stored(FILE, 5, { baseVersion: 3, index: 3 }); // Anna's, started earlier, lands later
+    hub.close(a.id);
+    hub.close(b.id); // c4 and c5 are in no newest version: the session is kept
+
+    const next = await join(ANNA);
+    expect(next.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    hub.message(next.id, auth("anna"));
+    expect(next.messages.find((m) => m.type === "authChanges")?.changes).toHaveLength(5);
   });
 
   it("refuses a restore into a version stored from outside after the session ended", async () => {
@@ -512,7 +579,7 @@ describe("collaboration hub", () => {
       endSaveChanges: true,
     });
     stored.version = 4;
-    hub.stored(FILE, 4, 1); // Ben stores c1 and leaves: the session ends
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 }); // Ben stores c1 and leaves: the session ends
     hub.close(b.id);
 
     const back = await join(ANNA);

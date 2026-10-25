@@ -60,7 +60,7 @@ The relay (`apps/server/src/collab/session.ts`) answers the messages `sdkjs` sen
 | `getLock` | all locks to everyone. Blocks nobody holds are taken; if one asked for is held already, the editor's rule decides (`src/collab/locks.ts`, ported from `_checkLockWord`, `_checkLockExcel`, `_checkLockPresentation`): text grants everything, spreadsheets refuse overlapping ranges on the same sheet, presentations the same slide or object. |
 | `unLockDocument` | drops changes from `deleteIndex` on; with `releaseLocks` `releaseLock` to the sender and the others; with `isSave` `unSaveLock` (-1) to the sender, which waits for it before it sends again. |
 | `cursor` | the cursor to the others. |
-| `schreibzeug:saved` (ours) | `schreibzeug:saved` with the highest stored index to everyone; see [saving](#saving). |
+| (a save's upload) | `schreibzeug:saved` with the index the newest stored version holds to everyone; see [saving](#saving). |
 | (disconnect) | `connectState` to the others; the person's locks are released. |
 
 `auth` hands the locks over as a map for text documents and as a list for the other editors, and
@@ -106,11 +106,14 @@ its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The
-saving editor sends with the upload the header `x-schreibzeug-log-index: n` and then
-`{"type":"schreibzeug:saved","index":n}`: its copy holds the first `n` changes of the log. The
-header tells the relay the version is the session's own, also when the connection dropped before
-the message (`hub.ts` `stored`); a version stored without it is from outside. The relay keeps the highest index and sends it to everyone (and to everyone joining
-later), so every editor knows whether the session is ahead of the stored file.
+saving editor sends with the upload the header `x-schreibzeug-session-save: b:n`: its copy comes
+from the session that started at version `b` and holds the first `n` changes of its log. The file
+route tells the relay (`hub.ts` `stored`), also when the editor's connection dropped meanwhile; a
+version stored without the header, or from a session that is gone, is from outside. Versions are
+numbered as they are stored, so the newest one's index is what is stored, also when it is lower
+than an earlier one's (a slower save that started before a faster one). The relay sends
+`{"type":"schreibzeug:saved","index":n}` with it to everyone (and to everyone joining later), so
+every editor knows whether the session is ahead of the stored file.
 
 Each editor counts the log from the relay's messages (`packages/editor-core/src/session-progress.ts`):
 `authChanges` carries the whole log, `saveChanges` and `unSaveLock` the log's length after the

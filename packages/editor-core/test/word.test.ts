@@ -101,7 +101,7 @@ describe("openWordDocument in a shared session", () => {
     expect(typeof engine.window.io).toBe("function");
   });
 
-  it("follows the change log and tells the relay how much a save holds", async () => {
+  it("follows the change log and says which session a save comes from and how much it holds", async () => {
     const { relay, editor } = await openShared();
     relay.relay({ type: "authChanges", changes: ["a", "b"] });
     relay.relay({ type: "unSaveLock", index: 2, syncChangesIndex: 3 });
@@ -109,9 +109,11 @@ describe("openWordDocument in a shared session", () => {
     expect(hasUnsavedChanges(editor.store.get())).toBe(true);
 
     const saved = await editor.save();
+    expect(saved).toMatchObject({ seen: 3, session: { baseVersion: 1, index: 3 } });
     relay.relay({ type: "saveChanges", changes: [], syncChangesIndex: 4 });
+    const sent = relay.sent.length;
     editor.markSaved(saved);
-    expect(relay.sent.at(-1)).toBe('{"type":"schreibzeug:saved","index":3}');
+    expect(relay.sent.length).toBe(sent); // the upload tells the relay, not a message
 
     relay.relay({ type: "schreibzeug:saved", index: 3 });
     expect(hasUnsavedChanges(editor.store.get())).toBe(true);

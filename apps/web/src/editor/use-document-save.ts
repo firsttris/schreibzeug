@@ -1,4 +1,10 @@
-import { AUTOSAVE_DELAY, autosaveDelay, type CoreState, type OpenedDocument } from "@schreibzeug/editor-core";
+import {
+  AUTOSAVE_DELAY,
+  autosaveDelay,
+  type CoreState,
+  type OpenedDocument,
+  type SavedDocument,
+} from "@schreibzeug/editor-core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type DocumentSave = {
@@ -17,7 +23,7 @@ export type DocumentSave = {
 export const useDocumentSave = <S extends CoreState>(
   editor: OpenedDocument<S> | null,
   state: S,
-  store: (bytes: Uint8Array, logIndex: number) => Promise<unknown>,
+  store: (bytes: Uint8Array, session?: SavedDocument["session"]) => Promise<unknown>,
   readOnly = false,
 ): DocumentSave => {
   const [saving, setSaving] = useState(false);
@@ -29,9 +35,9 @@ export const useDocumentSave = <S extends CoreState>(
     setFailure(null);
     try {
       const saved = await editor.save();
-      // The save tells the relay itself how much of the log it holds: a connection that drops
-      // meanwhile cannot send schreibzeug:saved (apps/server collab/hub.ts `stored`).
-      await store(saved.bytes, saved.seen);
+      // The upload tells the relay how much of the log it holds (apps/server collab/hub.ts
+      // `stored`): in the order the versions are stored, also when the connection dropped meanwhile.
+      await store(saved.bytes, saved.session);
       editor.markSaved(saved);
     } catch (error) {
       setFailure(`Nicht gespeichert: ${error instanceof Error ? error.message : String(error)}`);

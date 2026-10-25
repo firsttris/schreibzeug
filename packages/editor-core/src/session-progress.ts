@@ -58,7 +58,8 @@ export const readProgress = (progress: SessionProgress, json: string): SessionPr
     }
     case "schreibzeug:saved": {
       const saved = count(message.index);
-      return saved === null ? progress : { ...progress, saved: Math.max(progress.saved, saved) };
+      // The relay's index is the newest version's, which may hold less than an earlier one.
+      return saved === null ? progress : { ...progress, saved };
     }
     default:
       return progress;

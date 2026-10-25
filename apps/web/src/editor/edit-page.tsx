@@ -1,4 +1,4 @@
-import type { FileNode } from "@schreibzeug/files-api";
+import type { FileNode, SessionSave } from "@schreibzeug/files-api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type ComponentType, useCallback, useState } from "react";
@@ -69,8 +69,8 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const store = useCallback(
-    async (bytes: Uint8Array, logIndex?: number) => {
-      await commands.save(fileId, bytes, logIndex);
+    async (bytes: Uint8Array, session?: SessionSave) => {
+      await commands.save(fileId, bytes, session);
       await refreshFiles(queryClient);
     },
     [commands, fileId, queryClient],

@@ -3,11 +3,12 @@ import {
   createBlankFileSchema,
   createFolderSchema,
   createInviteSchema,
-  LOG_INDEX_HEADER,
-  logIndexOf,
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
+  SESSION_SAVE_HEADER,
+  type SessionSave,
+  sessionSaveOf,
   updateNodeSchema,
 } from "@schreibzeug/files-api";
 import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
@@ -39,7 +40,7 @@ export type FilesDeps = {
   /** Shares may wait for an address without an account (a sign-in provider confirms addresses). */
   pendingShares?: boolean;
   /** A save from a shared session stored a version (collab/hub.ts `stored`). */
-  onStored?: ((fileId: string, version: number, logIndex: number) => void) | undefined;
+  onStored?: ((fileId: string, version: number, save: SessionSave) => void) | undefined;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -202,9 +203,9 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
         const saved = repository.addVersion(db, userOf(c), id, await store(bytes));
-        const logIndex = logIndexOf(c.req.header(LOG_INDEX_HEADER));
+        const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
         const version = saved.ok ? saved.value.node.version : null;
-        if (version !== null && logIndex !== null) onStored?.(id, version, logIndex);
+        if (version !== null && sessionSave !== null) onStored?.(id, version, sessionSave);
         return respond(c, saved, toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever

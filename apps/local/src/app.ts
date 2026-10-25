@@ -2,11 +2,11 @@ import { zValidator } from "@hono/zod-validator";
 import {
   createBlankFileSchema,
   createFolderSchema,
-  LOG_INDEX_HEADER,
-  logIndexOf,
   nodeIdSchema,
   nodeNameSchema,
+  SESSION_SAVE_HEADER,
   type ServerInfo,
+  sessionSaveOf,
   updateNodeSchema,
 } from "@schreibzeug/files-api";
 import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
@@ -172,9 +172,9 @@ export const createLocalApp = ({
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
         const written = await folder.write(id, bytes);
-        const logIndex = logIndexOf(c.req.header(LOG_INDEX_HEADER));
-        if (written.ok && written.value.version !== null && logIndex !== null)
-          collab?.hub.stored(id, written.value.version, logIndex);
+        const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
+        if (written.ok && written.value.version !== null && sessionSave !== null)
+          collab?.hub.stored(id, written.value.version, sessionSave);
         return respond(c, written);
       })
       .post("/files/:id/copy", validate("param", idParam), async (c) =>

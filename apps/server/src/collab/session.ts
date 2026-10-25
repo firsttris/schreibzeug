@@ -74,16 +74,12 @@ export const hasUnsavedChanges = (session: Session): boolean => session.savedInd
 const savedMessage = (session: Session) => ({ type: "schreibzeug:saved", index: session.savedIndex });
 
 /**
- * A client stored the document as a new version, holding the first `index` changes of the log
- * (`schreibzeug:saved`, sent after its upload). The newest save wins; nothing moves backwards.
+ * A client stored the document as a new version holding the first `index` changes of the log (told
+ * by its upload, hub.ts `stored`). The newest version is what is stored, so its index counts, also
+ * when it is lower than an earlier one's: saves land in the order of their versions.
  */
-export const markSaved = (session: Session, data: Incoming): Step => {
-  const index = typeof data.index === "number" && Number.isInteger(data.index) ? data.index : -1;
-  if (index < 0) return { session, out: [] };
-  const next = {
-    ...session,
-    savedIndex: Math.max(session.savedIndex, Math.min(index, session.changes.length)),
-  };
+export const markSaved = (session: Session, index: number): Step => {
+  const next = { ...session, savedIndex: Math.min(index, session.changes.length) };
   return { session: next, out: [{ to: "all", message: savedMessage(next) }] };
 };
 
@@ -458,8 +454,6 @@ export const receive = (session: Session, connectionId: string, data: Incoming, 
     case "unSaveLock":
       // A client giving up a save without changes; -1 everywhere, as DocsCoServer answers.
       return { session, out: [self(SAVE_UNLOCKED)] };
-    case "schreibzeug:saved":
-      return markSaved(session, data);
     case "rpc":
       return answerRpc(session, data);
     case "getMessages":

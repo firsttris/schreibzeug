@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { SessionSave } from "@schreibzeug/files-api";
 import {
   createSession,
   disconnect,
@@ -54,14 +55,7 @@ const withUser = (data: Incoming, connection: Connection): Incoming =>
  * viewer and drops the connection (DocsCoServer.js, "access deny"); a viewer's engine sends none of
  * them, so the relay just ignores them, with the messages that would end a save or mark one.
  */
-const CHANGING = new Set([
-  "getLock",
-  "saveChanges",
-  "isSaveLock",
-  "unSaveLock",
-  "unLockDocument",
-  "schreibzeug:saved",
-]);
+const CHANGING = new Set(["getLock", "saveChanges", "isSaveLock", "unSaveLock", "unLockDocument"]);
 
 /** How many session ids of an ended session stay valid for a restore: the latest connections. */
 const ENDED_IDS_KEPT = 50;
@@ -79,7 +73,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
   const connections = new Map<string, Connection>();
   /**
    * The newest version an open session knows holds its document: the one it started at, or one its
-   * own clients stored (`stored`, from the save's log index). Another version is from outside.
+   * own clients stored (`stored`, told by the save). Another version is from outside.
    */
   const storedAt = new Map<string, number>();
   /** Of each open session, the connections that left after its last change: their copies are whole. */
@@ -178,14 +172,15 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     },
 
     /**
-     * A client of the file's session stored it as `version`, holding the first `index` changes of
-     * the log (the save's LOG_INDEX_HEADER). Told by the save itself, so it counts even when the
-     * client's connection dropped before it could send `schreibzeug:saved`.
+     * A client stored the file as `version`, from the session that started at `baseVersion`,
+     * holding the first `index` changes of its log (the save's SESSION_SAVE_HEADER). Told by the
+     * save itself, so it counts even when the client's connection dropped meanwhile; a save from a
+     * session that is gone is from outside for the one open now.
      */
-    stored: (fileId: string, version: number, index: number) => {
-      if (!sessions.has(fileId)) return;
+    stored: (fileId: string, version: number, { baseVersion, index }: SessionSave) => {
+      if (sessions.get(fileId)?.baseVersion !== baseVersion) return;
       storedAt.set(fileId, version);
-      apply(fileId, "", (session) => markSaved(session, { type: "schreibzeug:saved", index }));
+      apply(fileId, "", (session) => markSaved(session, index));
     },
 
     /** For tests and diagnostics: the session of a file, if one is open. */

@@ -27,13 +27,13 @@ describe("readProgress", () => {
     });
   });
 
-  it("follows the relay's saved index without going back", () => {
+  it("follows the relay's saved index, also back: the newest version may hold less", () => {
     expect(
       read([
         { type: "schreibzeug:saved", index: 4 },
         { type: "schreibzeug:saved", index: 2 },
       ]).saved,
-    ).toBe(4);
+    ).toBe(2);
   });
 
   it("leaves the progress as it is for other messages and broken text", () => {

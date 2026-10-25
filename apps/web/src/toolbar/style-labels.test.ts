@@ -9,6 +9,9 @@ describe("styleLabel", () => {
     ["Title", "Titel"],
     ["List Paragraph", "Listenabsatz"],
     ["Angebotskopf", "Angebotskopf"],
+    ["constructor", "constructor"],
+    ["toString", "toString"],
+    ["hasOwnProperty", "hasOwnProperty"],
   ])("shows %s as %s", (name, label) => {
     expect(styleLabel(name)).toBe(label);
   });

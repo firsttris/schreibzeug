@@ -348,13 +348,13 @@ describe("collaboration hub", () => {
   const ANNA = { id: "anna", name: "Anna" };
   const BEN = { id: "ben", name: "Ben" };
 
-  /** `editors` may edit FILE, at version 3; `viewers` may look at it. */
-  const setup = (editors: string[] = ["anna", "ben"], viewers: string[] = []) => {
+  /** `editors` may edit FILE, at version 3 unless `stored` moves on; `viewers` may look at it. */
+  const setup = (editors: string[] = ["anna", "ben"], viewers: string[] = [], stored = { version: 3 }) => {
     const hub = createHub({
       access: async (id, userId) => {
         if (id !== FILE) return null;
-        if (editors.includes(userId)) return { version: 3, role: "edit" };
-        return viewers.includes(userId) ? { version: 3, role: "view" } : null;
+        if (editors.includes(userId)) return { version: stored.version, role: "edit" };
+        return viewers.includes(userId) ? { version: stored.version, role: "view" } : null;
       },
       now: () => NOW,
     });
@@ -433,6 +433,27 @@ describe("collaboration hub", () => {
     const b = await join(BEN);
     hub.message(b.id, auth("ben"));
     expect(b.messages.find((m) => m.type === "authChanges")?.changes).toMatchObject([{ change: '"c1"' }]);
+  });
+
+  it("opens a version stored while a kept session waited, not the session's older one", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    hub.close(a.id); // c1 is unsaved: the session is kept
+    await Promise.resolve();
+    stored.version = 4; // a version restored, or an upload, meanwhile
+
+    const next = await join(ANNA);
+    expect(next.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 4 });
+    hub.message(next.id, auth("anna"));
+    expect(next.messages.find((m) => m.type === "authChanges")?.changes).toEqual([]);
   });
 
   it("restores someone alone whose connection dropped with everything stored", async () => {

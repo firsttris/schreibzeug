@@ -69,7 +69,8 @@ const ENDED_IDS_KEPT = 50;
  * Holds the sessions of all open files and delivers what session.ts decides. A session starts
  * with the first connection to a file, at the file's newest version, and ends with the last one,
  * unless its log holds changes no stored version has: then it waits for the next connection, which
- * opens the same version, replays them and saves them (or, after a lost connection, restores).
+ * opens the same version, replays them and saves them (or, after a lost connection, restores),
+ * unless a newer version was stored meanwhile.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
 export const createHub = ({ access, now = Date.now }: HubDeps) => {
@@ -81,6 +82,8 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
    * into the next session (DocsCoServer refuses a restore only for a changed document or locks).
    */
   const endedIds = new Map<string, string[]>();
+  /** The file's newest version when a session with unsaved changes lost its last connection. */
+  const keptAt = new Map<string, number>();
 
   const membersOf = (fileId: string) =>
     [...connections.entries()].filter(([, connection]) => connection.fileId === fileId);
@@ -116,6 +119,11 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       const allowed = await access(fileId, user.id);
       if (allowed === null) return null;
       const { version } = allowed;
+      // A version stored while a kept session waited (a restored version, an upload) is newer than
+      // the session's changes: it wins, as it would have without the session.
+      const kept = keptAt.get(fileId);
+      if (membersOf(fileId).length === 0 && kept !== undefined && kept !== version) sessions.delete(fileId);
+      keptAt.delete(fileId);
       // Another connection may have started the session while we looked the version up.
       const session = sessions.get(fileId) ?? {
         ...createSession(fileId, version),
@@ -152,6 +160,9 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
         endedIds.set(fileId, session.sessionIds.slice(-ENDED_IDS_KEPT));
         return;
       }
+      void access(fileId, connection.user.id).then((allowed) => {
+        if (allowed && membersOf(fileId).length === 0) keptAt.set(fileId, allowed.version);
+      });
     },
 
     /** For tests and diagnostics: the session of a file, if one is open. */

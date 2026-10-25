@@ -97,7 +97,9 @@ the reconnect failed.
 The session lives only in the server's memory. It ends with the last person leaving once a stored
 version holds its whole log; until then it stays, so someone whose connection dropped before their
 editor saved can restore it, and whoever opens the file next opens the session's version, replays
-the log and saves it. A server restart loses what no stored version holds. So the editor saves on
+the log and saves it. A version stored meanwhile from outside the session (a restored version, an
+upload) is newer than the waiting changes and wins: the next person opens it, as without the
+session. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a

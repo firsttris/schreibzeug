@@ -262,6 +262,19 @@ describe("files", () => {
     expect(Object.keys(zip)).toContain("ppt/slides/slide1.xml");
   });
 
+  it("refuses a blank file whose name grows too long with its extension", async () => {
+    await expectError(
+      await api.files.blank.$post({ json: { name: "a".repeat(255), parentId: null, format: "docx" } }),
+      400,
+      "invalid",
+    );
+    const fits = await expectNode(
+      await api.files.blank.$post({ json: { name: "b".repeat(250), parentId: null, format: "docx" } }),
+      201,
+    );
+    expect(fits.name).toHaveLength(255);
+  });
+
   it("does not read a folder as a file", async () => {
     const box = await folder("Kein Inhalt");
     await expectError(await content(box.id), 400, "invalid");

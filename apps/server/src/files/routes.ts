@@ -165,12 +165,15 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false }
       .post("/files/blank", validate("json", createBlankFileSchema), async (c) => {
         const { parentId, name, format } = c.req.valid("json");
         const blank = BLANK_FILES[format];
-        const created = await createStoredFile(
-          userOf(c),
-          parentId,
-          withExtension(name, blank.extension),
-          blank.bytes(),
-        );
+        // The name is checked again with its extension: a name of 255 characters must not grow past it.
+        const fullName = nodeNameSchema.safeParse(withExtension(name, blank.extension));
+        if (!fullName.success)
+          return respond(
+            c,
+            fail("invalid", fullName.error.issues[0]?.message ?? "Ungültiger Name."),
+            toFileNode,
+          );
+        const created = await createStoredFile(userOf(c), parentId, fullName.data, blank.bytes());
         return respond(c, created, toFileNode, 201);
       })
       .get("/files/:id/content", validate("param", idParam), validate("query", versionQuery), async (c) => {

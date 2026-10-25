@@ -104,7 +104,12 @@ needs nothing of its own for it and an own template stays as it is.
 | `PORT` | `3000` |
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` |
 | `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
+| `SCHREIBZEUG_URL`, `SCHREIBZEUG_EMBED_ORIGIN`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_NAME` | see [Schreibzeug in Kontext](kontext.md#settings) |
 | `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
+
+The image `tristanteu/schreibzeug` (`docker/Dockerfile`, published by **Actions → Release** on a
+version tag) has the server and the built web app with its engine, with the data in `/data`
+(`SCHREIBZEUG_WEB_DIR=/app/web`, port 3000).
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on
 start. After a change to the schema, `bun run --filter @schreibzeug/server db:generate` writes the next

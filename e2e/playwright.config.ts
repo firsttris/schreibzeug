@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_EMBEDDED_PORT, E2E_EMBEDDED_WEB_PORT, E2E_KONTEXT_PORT } from "./kontext";
 import { E2E_LOCAL_PORT as localPort, E2E_LOCAL_WEB_PORT as localWebPort } from "./local";
 
 /** Ports of their own, so a development server that is already running does not get in the way. */
@@ -82,6 +83,31 @@ export default defineConfig({
       cwd: "../apps/web",
       url: `http://localhost:${localWebPort}`,
       env: { SCHREIBZEUG_API_URL: `http://localhost:${localPort}` },
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      // Kontext as far as Schreibzeug sees it: sign-in provider and frame (fake-kontext.ts).
+      command: "bun e2e/fake-kontext.ts",
+      cwd: "..",
+      url: `http://localhost:${E2E_KONTEXT_PORT}/health`,
+      env: { E2E_KONTEXT_PORT: String(E2E_KONTEXT_PORT) },
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      // A server that signs in through it, on a data folder of its own (kontext-server.ts).
+      command: "bun e2e/kontext-server.ts",
+      cwd: "..",
+      url: `http://localhost:${E2E_EMBEDDED_PORT}/api/health`,
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      command: `bunx vite --port ${E2E_EMBEDDED_WEB_PORT} --strictPort`,
+      cwd: "../apps/web",
+      url: `http://localhost:${E2E_EMBEDDED_WEB_PORT}`,
+      env: { SCHREIBZEUG_API_URL: `http://localhost:${E2E_EMBEDDED_PORT}` },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

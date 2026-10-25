@@ -13,6 +13,7 @@
         "@schreibzeug/pdf-sign": "workspace:*",
         "@types/bun": "1.4.4",
         "fflate": "0.8.3",
+        "jose": "6.2.13",
         "pdf-lib": "1.17.1",
         "typescript": "7.0.2",
         "vitest": "5.0.5",
@@ -49,6 +50,7 @@
         "better-auth": "1.7.12",
         "drizzle-orm": "0.45.4",
         "hono": "4.13.13",
+        "jose": "6.2.13",
         "zod": "4.6.7",
       },
       "devDependencies": {

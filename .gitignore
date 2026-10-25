@@ -14,6 +14,7 @@ blob-report/
 e2e/.downloads/
 e2e/.data/
 e2e/.local/
+e2e/.kontext/
 
 .DS_Store
 

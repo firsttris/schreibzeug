@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type InputHTMLAttributes, useState } from "react";
+import { useFiles } from "../api/context";
 import { Button } from "../ui/button";
 import { Brand } from "./brand";
 import { useAccount } from "./context";
@@ -13,6 +14,11 @@ export type LoginPageProps = {
   /** The token of a link someone came with: it lets them create an account when sign-up is closed. */
   invite?: string | undefined;
   mode?: Mode | undefined;
+  /**
+   * The sign-in through the provider found an account with a password for the address: signing in
+   * with the password connects the provider to it right after.
+   */
+  linkProvider?: boolean | undefined;
 };
 
 const Field = ({ label, ...input }: { label: string } & InputHTMLAttributes<HTMLInputElement>) => (
@@ -26,17 +32,63 @@ const Field = ({ label, ...input }: { label: string } & InputHTMLAttributes<HTML
   </label>
 );
 
+/** "Anmelden mit Kontext": the way in with the company account, when the server has it. */
+const ProviderSignIn = ({ name, redirect }: { name: string; redirect: string | undefined }) => {
+  const account = useAccount();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const target = redirect?.startsWith("/") ? redirect : "/";
+  const signIn = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await account.signInWithProvider({
+        callbackURL: target,
+        errorCallbackURL: `/login?redirect=${encodeURIComponent(target)}`,
+      });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <Button disabled={busy} onClick={() => void signIn()}>
+        Anmelden mit {name}
+      </Button>
+      {error && (
+        <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+      <p className="m-0 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+        <span className="h-px flex-1 bg-[var(--border)]" />
+        oder mit E-Mail
+        <span className="h-px flex-1 bg-[var(--border)]" />
+      </p>
+    </div>
+  );
+};
+
 /**
  * Signing in and creating an account on one page. After either, the session is read again and
  * the person lands where they wanted to go.
  */
-export const LoginPage = ({ redirect, invite, mode: initialMode = "signIn" }: LoginPageProps) => {
+export const LoginPage = ({
+  redirect,
+  invite,
+  mode: initialMode = "signIn",
+  linkProvider = false,
+}: LoginPageProps) => {
   const account = useAccount();
+  const { info } = useFiles();
+  const provider = info.mode === "server" ? info.oidc : undefined;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const connect = Boolean(provider && linkProvider) && mode === "signIn";
 
   const submit = async (form: FormData) => {
     const field = (name: string) => String(form.get(name) ?? "").trim();
@@ -50,8 +102,16 @@ export const LoginPage = ({ redirect, invite, mode: initialMode = "signIn" }: Lo
           { name: field("name"), email: field("email"), password: String(form.get("password")) },
           invite,
         );
+      const target = redirect?.startsWith("/") ? redirect : "/";
+      if (connect) {
+        await account.linkProvider({
+          callbackURL: target,
+          errorCallbackURL: `/login?redirect=${encodeURIComponent(target)}`,
+        });
+        return;
+      }
       await queryClient.resetQueries({ queryKey: account.session.queryKey });
-      await navigate({ to: redirect?.startsWith("/") ? redirect : "/" });
+      await navigate({ to: target });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {
@@ -72,6 +132,14 @@ export const LoginPage = ({ redirect, invite, mode: initialMode = "signIn" }: Lo
               : "Melde dich mit deiner E-Mail an."}
           </p>
         </div>
+        {connect && provider ? (
+          <p role="status" className="m-0 rounded-md border border-[var(--border)] p-3 text-sm">
+            Für diese Adresse gibt es hier schon ein Konto mit Passwort. Melde dich damit an, dann wird es mit{" "}
+            {provider.name} verbunden.
+          </p>
+        ) : (
+          provider && !signingUp && <ProviderSignIn name={provider.name} redirect={redirect} />
+        )}
         <form
           key={mode}
           className="flex flex-col gap-4"

@@ -97,6 +97,36 @@ describe("readConfig", () => {
     expect(readConfig({ SCHREIBZEUG_AUTH_SECRET: "short" }).ok).toBe(false);
   });
 
+  it("reads the sign-in through Kontext and the frame", () => {
+    const config = readConfig({
+      SCHREIBZEUG_URL: "https://dokumente.example.org/",
+      SCHREIBZEUG_EMBED_ORIGIN: "https://kontext.example.org/mail",
+      OIDC_ISSUER: "https://kontext.example.org/api/auth",
+      OIDC_CLIENT_ID: "schreibzeug",
+      OIDC_CLIENT_SECRET: "geheim",
+    });
+    expect(config).toMatchObject({
+      ok: true,
+      value: {
+        publicUrl: "https://dokumente.example.org",
+        embedOrigin: "https://kontext.example.org",
+        oidc: {
+          issuer: "https://kontext.example.org/api/auth",
+          clientId: "schreibzeug",
+          clientSecret: "geheim",
+          name: "Kontext",
+        },
+      },
+    });
+    // Without all three, email and password only; an empty address counts as none.
+    expect(
+      readConfig({ OIDC_ISSUER: "https://kontext.example.org/api/auth", SCHREIBZEUG_URL: "" }),
+    ).toMatchObject({
+      ok: true,
+      value: { oidc: undefined, publicUrl: undefined },
+    });
+  });
+
   it("reports what is wrong", () => {
     const config = readConfig({ PORT: "kein Port" });
     expect(config.ok).toBe(false);

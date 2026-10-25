@@ -1,0 +1,25 @@
+name: Release
+
+# A version tag publishes the image (docker/Dockerfile) after the checks: the web app with its
+# engine and the server, e.g. for Kontext's deploy/compose.yaml. The engine's font tool is a
+# Linux x86_64 binary, so the image is for amd64.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  docker:
+    needs: checks
+    uses: firsttris/workflows/.github/workflows/docker-release.yml@v1
+    with:
+      image: tristanteu/schreibzeug
+      description: Office files in the browser – documents, spreadsheets, presentations and PDFs, self-hosted
+      ghcr: true
+    secrets: inherit
+    permissions:
+      contents: write
+      packages: write

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type ComponentType, useCallback, useState } from "react";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
+import { useReportTitle } from "../embed/bridge";
 import { type EditorOf, editorOf, isLegacyFile, kindOf } from "../lib/format";
 import { ConvertPage } from "./convert-page";
 import type { OpenedFile } from "./opened-file";
@@ -85,6 +86,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
       ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
       : navigate({ to: "/shared" });
   };
+  useReportTitle(node?.name ?? file.name);
   const { actions, onRename, dialogs } = useFileActions({ node, onClose: () => void close(), onRestored });
   const createFile = async (name: string, bytes: Uint8Array, type: string) => {
     const created = await commands.upload(

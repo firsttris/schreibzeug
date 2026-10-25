@@ -6,6 +6,8 @@ import { AccountProvider } from "./account/context";
 import { createAccount } from "./api/account";
 import { createApiClient, isApiFailure } from "./api/client";
 import { createFiles, FilesProvider, fetchServerInfo } from "./api/context";
+import { EmbedProvider } from "./embed/bridge";
+import { createEmbed } from "./embed/embed";
 import { createAppRouter } from "./router";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
@@ -17,7 +19,10 @@ if (!root) throw new Error("Missing #root element");
 // The web app talks to the server it was loaded from; the desktop app will pass a configured one.
 const origin = window.location.origin;
 const account = createAccount(origin);
-const files = createFiles(createApiClient(origin), origin, await fetchServerInfo(origin));
+const info = await fetchServerInfo(origin);
+const files = createFiles(createApiClient(origin), origin, info);
+const embed = createEmbed(info.mode === "server" ? info.embedOrigin : undefined);
+const oidc = info.mode === "server" && Boolean(info.oidc);
 
 /** A request the server refused for want of a session: the session ended, so sign in again. */
 const onRequestError = (error: unknown) => {
@@ -30,14 +35,16 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({ onError: onRequestError }),
   mutationCache: new MutationCache({ onError: onRequestError }),
 });
-const router = createAppRouter({ queryClient, account });
+const router = createAppRouter({ queryClient, account, embed, oidc });
 
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AccountProvider account={account}>
         <FilesProvider files={files}>
-          <RouterProvider router={router} />
+          <EmbedProvider embed={embed}>
+            <RouterProvider router={router} />
+          </EmbedProvider>
         </FilesProvider>
       </AccountProvider>
     </QueryClientProvider>

@@ -13,6 +13,8 @@ import { InvitePage } from "./account/invite-page";
 import { LoginPage } from "./account/login-page";
 import type { Account } from "./api/account";
 import { EditPage } from "./editor/edit-page";
+import { EmbedBridge } from "./embed/bridge";
+import { type Embed, withoutEmbedParam } from "./embed/embed";
 import { FolderPage } from "./files/folder-page";
 import { RecentPage } from "./files/recent-page";
 import { SharedPage } from "./files/shared-page";
@@ -23,10 +25,42 @@ import { Shell } from "./shell";
  * Routes in code rather than generated from files: a handful of pages, and no generated route
  * tree to keep in sync. The editor has the whole window; the file pages share the shell.
  */
-export type RouterContext = { queryClient: QueryClient; account: Account };
+export type RouterContext = {
+  queryClient: QueryClient;
+  account: Account;
+  embed: Embed;
+  /** Whether the server signs in through another service (Kontext). */
+  oidc: boolean;
+};
+
+/**
+ * In Kontext's frame, someone without a session is signed in through Kontext without being asked
+ * (OIDC `prompt=none`); only when that fails do they see the sign-in page. Never resolves when it
+ * goes ahead: the browser is on its way to Kontext.
+ */
+const signInSilently = async ({ account, embed, oidc }: RouterContext, target: string) => {
+  if (!oidc || !embed.takeSilentSignIn()) return;
+  // Back without the parameter: coming back with it would allow another try (embed/embed.ts).
+  const back = withoutEmbedParam(target);
+  try {
+    await account.signInWithProvider({
+      callbackURL: back,
+      errorCallbackURL: `/login?redirect=${encodeURIComponent(back)}`,
+      silent: true,
+    });
+  } catch {
+    return;
+  }
+  await new Promise<never>(() => {});
+};
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: Outlet,
+  component: () => (
+    <>
+      <EmbedBridge />
+      <Outlet />
+    </>
+  ),
   notFoundComponent: () => (
     <div className="flex flex-col items-start gap-3 p-8 text-sm">
       <p className="m-0">Diese Seite gibt es nicht.</p>
@@ -41,7 +75,11 @@ const signedInRoute = createRoute({
   id: "signed-in",
   beforeLoad: async ({ context, location }) => {
     const user = await context.queryClient.ensureQueryData(context.account.session);
-    if (!user) throw redirect({ to: "/login", search: { redirect: location.href } });
+    if (!user) {
+      await signInSilently(context, location.href);
+      throw redirect({ to: "/login", search: { redirect: location.href } });
+    }
+    context.embed.signedIn();
     return { user };
   },
   component: () => {
@@ -61,13 +99,22 @@ const loginRoute = createRoute({
     redirect: z.string().optional(),
     invite: z.string().optional(),
     mode: z.enum(["signIn", "signUp"]).optional(),
+    /** Better Auth's answer when a sign-in through the provider found an account it may not link. */
+    error: z.string().optional(),
   }),
   beforeLoad: async ({ context }) => {
     if (await context.queryClient.ensureQueryData(context.account.session)) throw redirect({ to: "/" });
   },
   component: () => {
-    const { redirect, invite, mode } = loginRoute.useSearch();
-    return <LoginPage redirect={redirect} invite={invite} mode={mode} />;
+    const { redirect, invite, mode, error } = loginRoute.useSearch();
+    return (
+      <LoginPage
+        redirect={redirect}
+        invite={invite}
+        mode={mode}
+        linkProvider={error === "account_not_linked"}
+      />
+    );
   },
 });
 

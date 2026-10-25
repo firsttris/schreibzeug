@@ -23,7 +23,7 @@ apps/web (React SPA) ──HTTP /api──▶ apps/server (Bun + Hono) ──▶
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
 | `apps/local` | The desktop app's local server: the same files API over a folder on the computer, for one person, without accounts. See [the desktop app](desktop.md#files-on-this-computer). |
 | `apps/desktop` | The desktop app (Tauri 2) for Windows, macOS and Linux: the files on this computer through `apps/local`, or a window onto a Schreibzeug server. See [the desktop app](desktop.md). |
-| `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`. |
+| `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`, the talk with Kontext when shown in its frame (`src/embed/`, see [Schreibzeug in Kontext](kontext.md)). |
 
 ## Why a SPA and a Hono API, not TanStack Start
 

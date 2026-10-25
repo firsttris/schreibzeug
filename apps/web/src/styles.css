@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Dark when <html data-theme="dark">: from the device (index.html), or from Kontext (embed/bridge.tsx). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   /* Geist (OFL), shipped with the app via @fontsource, so it looks the same on every system. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
@@ -24,24 +27,22 @@
   --pdf-muted: #fef2f2;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --muted: #18181b;
-    --muted-foreground: #a1a1aa;
-    --border: #27272a;
-    --primary: #fafafa;
-    --primary-foreground: #09090b;
-    --docx: #60a5fa;
-    --docx-muted: #172554;
-    --xlsx: #4ade80;
-    --xlsx-muted: #052e16;
-    --pptx: #fb923c;
-    --pptx-muted: #431407;
-    --pdf: #f87171;
-    --pdf-muted: #450a0a;
-  }
+:root[data-theme="dark"] {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --docx: #60a5fa;
+  --docx-muted: #172554;
+  --xlsx: #4ade80;
+  --xlsx-muted: #052e16;
+  --pptx: #fb923c;
+  --pptx-muted: #431407;
+  --pdf: #f87171;
+  --pdf-muted: #450a0a;
 }
 
 html,

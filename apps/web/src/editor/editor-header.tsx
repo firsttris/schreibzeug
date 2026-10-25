@@ -1,6 +1,7 @@
 import type { CoreState, DocumentFormat } from "@schreibzeug/editor-core";
-import { ArrowLeft, Download, History, Save, Share2 } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, History, Save, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { useEmbed } from "../embed/bridge";
 import { FileBadge } from "../files/file-badge";
 import { Button } from "../ui/button";
 import type { MenuItem } from "../ui/menu";
@@ -67,6 +68,7 @@ export const EditorHeader = ({
   const [dialog, setDialog] = useState<"shortcuts" | "about" | null>(null);
   const [renameError, setRenameError] = useNotice();
   const message = notice ?? renameError;
+  const { embedded } = useEmbed();
 
   return (
     <header className="flex flex-col gap-2 border-b border-[var(--border)] px-4 pt-2 pb-2">
@@ -93,6 +95,18 @@ export const EditorHeader = ({
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {actions}
+          {embedded && (
+            <a
+              href={window.location.pathname}
+              target="_blank"
+              rel="noopener"
+              aria-label="In neuem Tab öffnen"
+              title="In neuem Tab öffnen"
+              className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              <ExternalLink size={16} />
+            </a>
+          )}
           {file.onShowVersions && (
             <Button variant="ghost" aria-label="Versionen" onClick={file.onShowVersions}>
               <History size={16} />

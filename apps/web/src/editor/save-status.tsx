@@ -1,6 +1,7 @@
 import { type CoreState, hasUnsavedChanges } from "@schreibzeug/editor-core";
 import { Check, Eye, LoaderCircle, WifiOff } from "lucide-react";
 import { useEffect } from "react";
+import { useReportUnsaved } from "../embed/bridge";
 
 type Status = "loading" | "ready" | "error";
 
@@ -49,6 +50,7 @@ export const SaveStatus = ({ state, failure, saving, saveFailure, readOnly }: Sa
   // What a viewer sees may not be stored yet, but that is for the editors to save.
   const modified = !readOnly && hasUnsavedChanges(state);
   useLeaveWarning(modified);
+  useReportUnsaved(modified);
   return (
     <span
       data-testid="editor-status"

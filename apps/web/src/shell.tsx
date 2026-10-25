@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useAccount, useUser } from "./account/context";
 import { initialsOf } from "./account/initials";
 import { rootLabel, useFiles } from "./api/context";
+import { useEmbed } from "./embed/bridge";
 import { Button } from "./ui/button";
 
 const NavLink = ({
@@ -76,15 +77,19 @@ const AccountBox = () => {
 export const Shell = () => {
   const { info } = useFiles();
   const local = info.mode === "local";
+  // In Kontext's frame Kontext shows the name, the account and the way out.
+  const { embedded } = useEmbed();
   return (
     <div className="flex h-full flex-col md:flex-row">
       <aside className="flex shrink-0 flex-col gap-4 border-b border-[var(--border)] p-3 md:w-60 md:border-r md:border-b-0">
-        <Link to="/" className="flex items-center gap-2 px-1.5 text-[var(--foreground)] no-underline">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
-            <PenLine size={16} />
-          </span>
-          <span className="text-[15px] font-semibold tracking-tight">Schreibzeug</span>
-        </Link>
+        {!embedded && (
+          <Link to="/" className="flex items-center gap-2 px-1.5 text-[var(--foreground)] no-underline">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
+              <PenLine size={16} />
+            </span>
+            <span className="text-[15px] font-semibold tracking-tight">Schreibzeug</span>
+          </Link>
+        )}
         <nav aria-label="Bereiche" className="flex gap-1 md:flex-col">
           <NavLink to="/" icon={<FolderClosed size={16} />}>
             {rootLabel(info)}
@@ -103,7 +108,7 @@ export const Shell = () => {
             </NavLink>
           )}
         </nav>
-        <AccountBox />
+        {!embedded && <AccountBox />}
       </aside>
       <main className="min-h-0 flex-1 overflow-auto">
         <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-4 p-4 md:p-8">

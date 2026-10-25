@@ -123,6 +123,28 @@ export const shares = sqliteTable(
 );
 
 /**
+ * Shares with an address that has no account yet (Kontext shares a document with colleagues who
+ * never opened Dokumente). They become shares when an account with that address appears whose
+ * address the sign-in provider confirmed, never through a sign-up with a password.
+ */
+export const pendingShares = sqliteTable(
+  "pending_shares",
+  {
+    nodeId: text("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: text("role", { enum: SHARE_ROLES }).notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.nodeId, table.email] }),
+    index("pending_shares_email").on(table.email),
+    check("pending_shares_role", sql`${table.role} in ('edit', 'view')`),
+  ],
+);
+
+/**
  * Links that share a node with whoever opens them and has, or creates, an account: accepting one
  * adds a share with its role. A link holds until it expires or its owner deletes it; it also lets
  * someone create an account when sign-up is otherwise closed.

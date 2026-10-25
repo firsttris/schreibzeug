@@ -75,6 +75,19 @@ describe("the local files API", () => {
     expect(response.status).toBe(409);
   });
 
+  it("checks a blank file's name with its extension", async () => {
+    const tooLong = await local.json("/api/files/blank", "POST", {
+      parentId: null,
+      name: "a".repeat(255),
+      format: "docx",
+    });
+    expect(tooLong.status).toBe(400);
+    const longest = await created(
+      await local.json("/api/files/blank", "POST", { parentId: null, name: "a".repeat(250), format: "docx" }),
+    );
+    expect(longest.name).toHaveLength(255);
+  });
+
   it("refuses a name the file list would hide, before touching the disk", async () => {
     await writeFile(join(local.root, "a.docx"), "x");
     const [file] = (await listing()).children;

@@ -148,11 +148,11 @@ export const createLocalApp = ({
       .post("/files/blank", validate("json", createBlankFileSchema), async (c) => {
         const { parentId, name, format } = c.req.valid("json");
         const blank = BLANK_FILES[format];
-        return respond(
-          c,
-          await folder.createFile(parentId, withExtension(name, blank.extension), blank.bytes()),
-          201,
-        );
+        // The name is checked again with its extension: a name of 255 characters must not grow past it.
+        const fullName = nodeNameSchema.safeParse(withExtension(name, blank.extension));
+        if (!fullName.success)
+          return respond(c, fail("invalid", fullName.error.issues[0]?.message ?? "Ungültiger Name."));
+        return respond(c, await folder.createFile(parentId, fullName.data, blank.bytes()), 201);
       })
       // The file as it is on disk now: there are no older versions to ask for.
       .get("/files/:id/content", validate("param", idParam), async (c) => {

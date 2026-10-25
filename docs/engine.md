@@ -83,6 +83,27 @@ on the server as a new version (`PUT /api/files/:id/content`, see [files](files.
 In a shared session it also tells the relay how much of the change log the stored copy holds; see
 [collaboration](collaboration.md#saving).
 
+## Other formats
+
+x2t reads more than the Office formats, and the file list opens those files too:
+
+- **OpenDocument** (.odt, .ods, .odp, as LibreOffice writes them) opens in the editor of its kind and
+  is saved as what it is: x2t reads it into the binary format (`odt → bin`) and writes it back
+  (`bin → odt`), as with a .docx (`OpenOptions.openDocument`, `OPEN_DOCUMENT_FORMAT` in
+  `src/converter.ts`). "Herunterladen" gives the .odt; a spreadsheet can also be downloaded as CSV.
+- **Older formats** (Word, Excel and PowerPoint 97–2003, RTF) x2t reads but does not write; reading
+  a .doc into the binary format stops with error 88, while `doc → docx` works. So Schreibzeug does
+  what Word does with "Konvertieren": the page for such a file (`apps/web/src/editor/convert-page.tsx`)
+  makes a copy in the Office format (`OFFICE_FORMAT_OF_LEGACY`: .doc and .rtf to .docx, .xls to .xlsx,
+  .ppt to .pptx) beside it, under a free name ("Angebot.docx", "Angebot (2).docx"), and opens that;
+  the file itself stays as it is. Someone the file is only shared with gets the copy in their own
+  files.
+
+`e2e/other-formats.spec.ts` edits and saves an .odt, an .ods and an .odp and checks the stored files
+(their `mimetype` part and their text), and opens a .doc, an .rtf, an .xls and a .ppt through their
+copy. LibreOffice reads the stored .odt back with its text. The test files are Schreibzeug's own,
+converted with LibreOffice (`test-files/README.md`).
+
 ## Commands and state
 
 The UI never calls the engine. `editor-core` translates engine events into `EditorState`

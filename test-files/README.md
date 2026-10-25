@@ -13,6 +13,13 @@ belong here; note each file's source below.
 | `formular.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf-engine.spec.ts`, `e2e/pdf.spec.ts`, `e2e/screenshots.shot.ts` |
 | `rechnung.docx` | written by `make.ts` with `rechnung.ts`: Schreibzeug's invoice template filled in (AGPL-3.0, like the repository) | `e2e/e-invoice.spec.ts` |
 | `rechnung.pdf` | written by `make.ts` with `rechnung.ts` in this folder: a ZUGFeRD invoice with its Factur-X XML attached (AGPL-3.0, like the repository) | `e2e/pdf-invoice.spec.ts` |
+| `angebot.odt` | `angebot.docx` converted with LibreOffice 24.2 (`soffice --headless --convert-to odt`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
+| `preise.ods` | `preise.xlsx` converted with LibreOffice 24.2 (`soffice --headless --convert-to ods`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
+| `vortrag.odp` | `vortrag.pptx` converted with LibreOffice 24.2 (`soffice --headless --convert-to odp`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
+| `angebot.doc` | `angebot.docx` converted with LibreOffice 24.2 (`soffice --headless --convert-to doc`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
+| `angebot.rtf` | `angebot.docx` converted with LibreOffice 24.2 (`soffice --headless --convert-to rtf`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
+| `preise.xls` | `preise.xlsx` converted with LibreOffice 24.2 (`soffice --headless --convert-to xls`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
+| `vortrag.ppt` | `vortrag.pptx` converted with LibreOffice 24.2 (`soffice --headless --convert-to ppt`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
 | `anhang.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf.spec.ts` |
 
 `fidelity/` holds documents for the format-fidelity test (`e2e/formats.fidelity.ts`), each with its

@@ -1,8 +1,31 @@
 /** The Office formats the editors open and save. */
 export type OfficeFormat = "docx" | "xlsx" | "pptx";
 
+/** OpenDocument (LibreOffice): x2t reads and writes them, so they are edited and saved as they are. */
+export type OpenDocumentFormat = "odt" | "ods" | "odp";
+
+/** The editor's format and its OpenDocument counterpart. */
+export const OPEN_DOCUMENT_FORMAT: Record<OfficeFormat, OpenDocumentFormat> = {
+  docx: "odt",
+  xlsx: "ods",
+  pptx: "odp",
+};
+
+/**
+ * Older formats x2t reads but does not write (Word 97–2003, RTF, Excel 97–2003, PowerPoint 97–2003);
+ * they are converted into the Office format they belong to, and that copy is edited.
+ */
+export type LegacyFormat = "doc" | "rtf" | "xls" | "ppt";
+
+export const OFFICE_FORMAT_OF_LEGACY: Record<LegacyFormat, OfficeFormat> = {
+  doc: "docx",
+  rtf: "docx",
+  xls: "xlsx",
+  ppt: "pptx",
+};
+
 /** Formats the converter moves between: Office files, CSV, and the engine's own binary format. */
-export type ConvertFormat = OfficeFormat | "csv" | "bin";
+export type ConvertFormat = OfficeFormat | OpenDocumentFormat | LegacyFormat | "csv" | "bin";
 
 /** The images of a document by their file name in its "media" folder, e.g. "image1.png". */
 export type MediaFiles = Record<string, Uint8Array>;

@@ -65,6 +65,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
           csv: kindOf({ kind: "file", name: file.name }) === "csv",
+          openDocument: ["odt", "ods", "odp"].includes(kindOf({ kind: "file", name: file.name })),
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),
         });

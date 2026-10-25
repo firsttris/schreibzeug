@@ -4,7 +4,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type ComponentType, useCallback, useState } from "react";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
-import { kindOf } from "../lib/format";
+import { type EditorOf, editorOf, isLegacyFile, kindOf } from "../lib/format";
+import { ConvertPage } from "./convert-page";
 import type { OpenedFile } from "./opened-file";
 import { PdfView } from "./pdf-view";
 import type { EditorViewProps } from "./props";
@@ -14,12 +15,11 @@ import { useFileActions } from "./use-file-actions";
 import { useSessionFile } from "./use-session-file";
 import { WordView } from "./word-view";
 
-/** The editor view for each kind of file Schreibzeug opens (lib/format.ts isEditable). */
-const VIEWS: Partial<Record<ReturnType<typeof kindOf>, ComponentType<EditorViewProps>>> = {
-  docx: WordView,
-  xlsx: SheetView,
-  csv: SheetView,
-  pptx: SlideView,
+/** The editor view for each editor (lib/format.ts editorOf). */
+const VIEWS: Record<EditorOf, ComponentType<EditorViewProps>> = {
+  word: WordView,
+  sheet: SheetView,
+  slide: SlideView,
   pdf: PdfView,
 };
 
@@ -95,8 +95,12 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
     return created.name;
   };
 
-  const View = VIEWS[kindOf({ kind: "file", name: file.name })];
-  if (!View) return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
+  if (isLegacyFile({ kind: "file", name: file.name })) {
+    return <ConvertPage file={file} name={node?.name ?? file.name} onClose={() => void close()} />;
+  }
+  const editor = editorOf(kindOf({ kind: "file", name: file.name }));
+  if (!editor) return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
+  const View = VIEWS[editor];
   return (
     <>
       <View

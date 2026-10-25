@@ -56,7 +56,11 @@ export {
   type ConvertFormat,
   converterPath,
   createConverter,
+  type LegacyFormat,
+  OFFICE_FORMAT_OF_LEGACY,
   type OfficeFormat,
+  OPEN_DOCUMENT_FORMAT,
+  type OpenDocumentFormat,
   type WorkerLike,
 } from "./converter";
 export {

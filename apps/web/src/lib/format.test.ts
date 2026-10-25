@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { extensionOf, formatChanged, formatSize, isEditable, isOfficeFile, kindOf } from "./format";
+import {
+  editorOf,
+  extensionOf,
+  formatChanged,
+  formatSize,
+  isEditable,
+  isLegacyFile,
+  isOfficeFile,
+  kindOf,
+} from "./format";
 
 describe("formatSize", () => {
   it.each([
@@ -50,5 +59,22 @@ describe("kinds", () => {
   it("tells Office files from PDFs, which make no template", () => {
     expect(isOfficeFile({ kind: "file", name: "a.csv" })).toBe(true);
     expect(isOfficeFile({ kind: "file", name: "a.pdf" })).toBe(false);
+  });
+
+  it("edits OpenDocument files in the editor of their kind, as what they are", () => {
+    expect(editorOf(kindOf({ kind: "file", name: "Brief.ODT" }))).toBe("word");
+    expect(editorOf(kindOf({ kind: "file", name: "a.ods" }))).toBe("sheet");
+    expect(editorOf(kindOf({ kind: "file", name: "a.odp" }))).toBe("slide");
+    expect(isOfficeFile({ kind: "file", name: "a.odt" })).toBe(true);
+  });
+
+  it("opens older formats by a copy in the Office format, not in an editor of their own", () => {
+    for (const name of ["a.doc", "a.rtf", "a.xls", "a.ppt"]) {
+      expect(isLegacyFile({ kind: "file", name })).toBe(true);
+      expect(isEditable({ kind: "file", name })).toBe(true);
+      expect(isOfficeFile({ kind: "file", name })).toBe(false);
+      expect(editorOf(kindOf({ kind: "file", name }))).toBeNull();
+    }
+    expect(isLegacyFile({ kind: "file", name: "a.docx" })).toBe(false);
   });
 });

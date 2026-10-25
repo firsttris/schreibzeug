@@ -9,7 +9,7 @@ import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { WORD_SHORTCUTS } from "./help-dialogs";
 import { LinkDialog } from "./link-dialog";
-import { downloadBytes, fileNameFor, MIME } from "./opened-file";
+import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { RevisionBalloon } from "./revision-balloon";
 import { useCommentsPanel } from "./use-comments-panel";
@@ -45,7 +45,8 @@ export const WordView = ({ file, name, onSave, fileActions, onRename }: EditorVi
       : null;
 
   const download = async () => {
-    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "docx"), MIME.docx);
+    const format = savedFormatOf(file.name, "docx");
+    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, format), MIME[format]);
   };
 
   const context: WordMenuContext = {

@@ -1,6 +1,5 @@
 import { initialSheetState, isOnSheet, openSheetDocument } from "@schreibzeug/editor-core";
 import { useEffect, useRef, useState } from "react";
-import { kindOf } from "../lib/format";
 import { ColumnFilter, useColumnFilter } from "../sheets/column-filter";
 import { DropdownDialog } from "../sheets/dropdown-dialog";
 import { PivotDialog } from "../sheets/pivot-dialog";
@@ -12,7 +11,7 @@ import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { SHEET_SHORTCUTS } from "./help-dialogs";
-import { downloadBytes, fileNameFor, MIME } from "./opened-file";
+import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import {
   CHART_FAILURES,
@@ -61,7 +60,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
   }, [inPivot]);
 
   // A CSV stays one: it is saved and downloaded as the file it is (csv.ts).
-  const format = kindOf({ kind: "file", name: file.name }) === "csv" ? "csv" : "xlsx";
+  const format = savedFormatOf(file.name, "xlsx");
   const download = async () => {
     if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, format), MIME[format]);
   };
@@ -107,7 +106,7 @@ export const SheetView = ({ file, name, onSave, fileActions, onRename }: EditorV
         onDownload={download}
         pdf={chrome.pdf}
         downloads={
-          format === "xlsx" ? [{ label: "Als CSV herunterladen", onSelect: () => void downloadCsv() }] : []
+          format !== "csv" ? [{ label: "Als CSV herunterladen", onSelect: () => void downloadCsv() }] : []
         }
         menus={file.readOnly ? [] : sheetMenus(context)}
         shortcuts={SHEET_SHORTCUTS}

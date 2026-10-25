@@ -8,7 +8,7 @@ import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
 import { SLIDE_SHORTCUTS } from "./help-dialogs";
-import { downloadBytes, fileNameFor, MIME } from "./opened-file";
+import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { type SlideMenuContext, slideContextMenu, slideMenus } from "./slide-menus";
 import { useCommentsPanel } from "./use-comments-panel";
@@ -33,7 +33,8 @@ export const SlideView = ({ file, name, onSave, fileActions, onRename }: EditorV
   const comments = useCommentsPanel(editor, state, file.readOnly, "slide");
 
   const download = async () => {
-    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, "pptx"), MIME.pptx);
+    const format = savedFormatOf(file.name, "pptx");
+    if (editor) downloadBytes((await editor.save()).bytes, fileNameFor(name, format), MIME[format]);
   };
 
   const context: SlideMenuContext = {

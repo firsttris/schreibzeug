@@ -32,7 +32,37 @@ export const formatDay = (iso: string, now: Date = new Date()): string => {
   return (date.getFullYear() === now.getFullYear() ? dayThisYear : dayOtherYear).format(date);
 };
 
-export type FileKind = "docx" | "xlsx" | "pptx" | "csv" | "pdf" | "folder" | "other";
+/** What a file is, by its extension: the formats Schreibzeug opens, a folder, or anything else. */
+export type FileKind =
+  | "docx"
+  | "xlsx"
+  | "pptx"
+  | "csv"
+  | "pdf"
+  | "odt"
+  | "ods"
+  | "odp"
+  | "doc"
+  | "rtf"
+  | "xls"
+  | "ppt"
+  | "folder"
+  | "other";
+
+const KNOWN = new Set<FileKind>([
+  "docx",
+  "xlsx",
+  "pptx",
+  "csv",
+  "pdf",
+  "odt",
+  "ods",
+  "odp",
+  "doc",
+  "rtf",
+  "xls",
+  "ppt",
+]);
 
 export const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -41,22 +71,41 @@ export const extensionOf = (name: string): string => {
 
 export const kindOf = (node: { kind: "folder" | "file"; name: string }): FileKind => {
   if (node.kind === "folder") return "folder";
-  const extension = extensionOf(node.name);
-  return extension === "docx" ||
-    extension === "xlsx" ||
-    extension === "pptx" ||
-    extension === "csv" ||
-    extension === "pdf"
-    ? extension
-    : "other";
+  const extension = extensionOf(node.name) as FileKind;
+  return KNOWN.has(extension) ? extension : "other";
 };
 
-/** Office files: documents, spreadsheets (a CSV opens in the spreadsheet) and presentations. */
+/** The editor a kind of file opens in. */
+export type EditorOf = "word" | "sheet" | "slide" | "pdf";
+
+const EDITOR_OF: Partial<Record<FileKind, EditorOf>> = {
+  docx: "word",
+  odt: "word",
+  xlsx: "sheet",
+  ods: "sheet",
+  csv: "sheet",
+  pptx: "slide",
+  odp: "slide",
+  pdf: "pdf",
+};
+
+export const editorOf = (kind: FileKind): EditorOf | null => EDITOR_OF[kind] ?? null;
+
+/**
+ * Office files: documents, spreadsheets (a CSV opens in the spreadsheet) and presentations, in the
+ * Office formats and in OpenDocument, which are edited and saved as what they are.
+ */
 export const isOfficeFile = (node: { kind: "folder" | "file"; name: string }): boolean => {
-  const kind = kindOf(node);
-  return kind === "docx" || kind === "xlsx" || kind === "pptx" || kind === "csv";
+  const editor = editorOf(kindOf(node));
+  return editor !== null && editor !== "pdf";
 };
 
-/** The kinds Schreibzeug can open in an editor today: the Office files and PDFs. */
+/** Older formats Schreibzeug opens as a copy in the Office format (editor-core OFFICE_FORMAT_OF_LEGACY). */
+export const isLegacyFile = (node: { kind: "folder" | "file"; name: string }): boolean => {
+  const kind = kindOf(node);
+  return kind === "doc" || kind === "rtf" || kind === "xls" || kind === "ppt";
+};
+
+/** The kinds Schreibzeug can open: the Office files, PDFs, and older formats, by a copy. */
 export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean =>
-  isOfficeFile(node) || kindOf(node) === "pdf";
+  isOfficeFile(node) || kindOf(node) === "pdf" || isLegacyFile(node);

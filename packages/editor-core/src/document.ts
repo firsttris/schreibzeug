@@ -1,13 +1,15 @@
 import type { CollabChannel } from "./collab";
-import type {
-  ApplyPdfChanges,
-  Convert,
-  Converted,
-  FontFile,
-  MediaFiles,
-  OfficeFormat,
-  RenderPdf,
-  WritePdfA,
+import {
+  type ApplyPdfChanges,
+  type Convert,
+  type Converted,
+  type FontFile,
+  type MediaFiles,
+  type OfficeFormat,
+  OPEN_DOCUMENT_FORMAT,
+  type OpenDocumentFormat,
+  type RenderPdf,
+  type WritePdfA,
 } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
 import { CSV_DELIMITER_CODES, type CsvDelimiter, detectDelimiter, encodeCsv } from "./csv";
@@ -38,6 +40,11 @@ export type OpenOptions = {
   lang?: string;
   /** The file is a CSV, not an .xlsx: it is read and saved as one (csv.ts). Spreadsheets only. */
   csv?: boolean;
+  /**
+   * The file is the editor's OpenDocument format (.odt, .ods, .odp), not its Office format: x2t
+   * reads it and writes it back as one, so the file keeps its format.
+   */
+  openDocument?: boolean;
   /** Red underlines for misspelled words (spelling.ts); on unless switched off. */
   spellCheck?: boolean;
   /** "view" opens the document read-only: for someone it is shared with to look at. */
@@ -91,7 +98,9 @@ export type OpenedDocument<S extends CoreState> = {
 export type DocumentFormat = OfficeFormat | "pdf";
 
 /** The format of the file itself: the editor's, or a CSV with its delimiter (csv.ts). */
-type FileFormat = { format: DocumentFormat } | { format: "csv"; delimiter: CsvDelimiter };
+type FileFormat =
+  | { format: DocumentFormat | OpenDocumentFormat }
+  | { format: "csv"; delimiter: CsvDelimiter };
 
 /**
  * The file in the engine's format. x2t reads a CSV into an .xlsx only (to the engine's binary it
@@ -107,6 +116,16 @@ const toBinary = async (
   const delimiter = CSV_DELIMITER_CODES[file.delimiter];
   const workbook = await options.convert(options.bytes, "csv", "xlsx", undefined, delimiter);
   return options.convert(workbook.bytes, "xlsx", "bin");
+};
+
+/** What the file is, as it is read and saved: the editor's format, a CSV, or OpenDocument. */
+const fileFormatOf = (
+  options: Pick<OpenOptions, "bytes" | "csv" | "openDocument">,
+  format: DocumentFormat,
+): FileFormat => {
+  if (options.csv) return { format: "csv", delimiter: detectDelimiter(options.bytes) };
+  if (options.openDocument && format !== "pdf") return { format: OPEN_DOCUMENT_FORMAT[format] };
+  return { format };
 };
 
 /** The sheet as a CSV file, written here rather than by x2t (csv.ts says why). */
@@ -325,9 +344,7 @@ export const openDocument = <
   binding: EditorBinding<W, Events, Api, S, E, Parts>,
 ): Promise<OpenedDocument<S> & Parts> => {
   const store = createStore<S>(binding.initialState);
-  const file: FileFormat = options.csv
-    ? { format: "csv", delimiter: detectDelimiter(options.bytes) }
-    : { format: binding.format };
+  const file = fileFormatOf(options, binding.format);
   const dispatch = (event: E | CoreEvent) =>
     store.set((state) => (isCoreEvent(event) ? reduceCore(state, event) : binding.reduce(state, event as E)));
 

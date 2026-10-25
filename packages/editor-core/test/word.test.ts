@@ -376,6 +376,18 @@ describe("openWordDocument", () => {
     expect(new TextDecoder().decode(conversion?.bytes)).toBe(engine.api().nativeFile);
   });
 
+  it("reads and saves an OpenDocument text as .odt, so it keeps its format", async () => {
+    const engine = createFakeEngine();
+    const converter = fakeConverter();
+    const opening = openWordDocument(engine.window, optionsWith(converter.convert, { openDocument: true }));
+    await flush();
+    engine.api().emit("asc_onDocumentContentReady");
+    const editor = await opening;
+    expect(converter.conversions[0]).toMatchObject({ from: "odt", to: "bin" });
+    await editor.save();
+    expect(converter.conversions.at(-1)).toMatchObject({ from: "bin", to: "odt" });
+  });
+
   it("reads the modified flag from the engine, since the event carries none", async () => {
     const { engine, editor } = await openReady();
     engine.api().modified = true;

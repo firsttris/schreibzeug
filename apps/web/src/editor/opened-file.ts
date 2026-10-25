@@ -1,4 +1,5 @@
-import type { CollabChannel, DocumentFormat, ImageStore } from "@schreibzeug/editor-core";
+import type { CollabChannel, DocumentFormat, ImageStore, OpenDocumentFormat } from "@schreibzeug/editor-core";
+import { kindOf } from "../lib/format";
 
 export type OpenedFile = {
   name: string;
@@ -11,8 +12,14 @@ export type OpenedFile = {
   images?: ImageStore;
 };
 
-export const MIME: Record<DocumentFormat | "csv", string> = {
+/** The formats a file is saved and downloaded in. */
+export type SavedFormat = DocumentFormat | OpenDocumentFormat | "csv";
+
+export const MIME: Record<SavedFormat, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  odt: "application/vnd.oasis.opendocument.text",
+  ods: "application/vnd.oasis.opendocument.spreadsheet",
+  odp: "application/vnd.oasis.opendocument.presentation",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   csv: "text/csv",
@@ -20,7 +27,16 @@ export const MIME: Record<DocumentFormat | "csv", string> = {
 };
 
 /** Keeps the name the user knows and makes sure it ends in the format's extension. */
-export const fileNameFor = (name: string, format: DocumentFormat | "csv"): string =>
+/**
+ * The format the open file is saved in: its own when that is OpenDocument or CSV (they keep their
+ * format), else the editor's.
+ */
+export const savedFormatOf = (name: string, editorFormat: DocumentFormat): SavedFormat => {
+  const kind = kindOf({ kind: "file", name });
+  return kind === "odt" || kind === "ods" || kind === "odp" || kind === "csv" ? kind : editorFormat;
+};
+
+export const fileNameFor = (name: string, format: SavedFormat): string =>
   new RegExp(`\\.${format}$`, "i").test(name) ? name : `${name.replace(/\.[^.]*$/, "")}.${format}`;
 
 export const downloadBytes = (bytes: Uint8Array, name: string, mime: string): void => {

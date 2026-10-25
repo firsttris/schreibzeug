@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
+    "@schreibzeug/einvoice": "workspace:*",
     "@schreibzeug/files-api": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
+    "@schreibzeug/pdf-sign": "workspace:*",
+    "pdfjs-dist": "6.4.299",
     "zod": "4.6.7"
   }
 }

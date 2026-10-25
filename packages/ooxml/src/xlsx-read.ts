@@ -1,8 +1,8 @@
 import { strFromU8, unzipSync } from "fflate";
 
 /*
- * The values of a workbook's first sheet as text, the way the sheet shows them in German: what a
- * mail merge takes its recipients from. SpreadsheetML (ECMA-376 Part 1, 18): the sheet's cells
+ * The values of a workbook's sheets as text, the way the sheet shows them in German: what a mail
+ * merge takes its recipients from, and what the MCP server reads out. SpreadsheetML (ECMA-376 Part 1, 18): the sheet's cells
  * (18.3.1.4) hold numbers, shared strings (18.4), inline strings, booleans or cached formula
  * results; a number with a date format (18.8.30, built-in ids 14–22) is a date, counted in days
  * from 30 December 1899.
@@ -65,21 +65,8 @@ const columnOf = (reference: string): number =>
 
 const partPath = (target: string): string => (target.startsWith("/") ? target.slice(1) : `xl/${target}`);
 
-/** The first sheet's values, row by row, as text; trailing empty rows and cells left out. */
-export const xlsxRows = (xlsx: Uint8Array): string[][] => {
-  const files = unzipSync(xlsx);
-  const part = (path: string) => (files[path] ? strFromU8(files[path]) : "");
-  const sheetTag = /<sheet\b[^>]*>/.exec(part("xl/workbook.xml"))?.[0] ?? "";
-  const relationId = attribute(sheetTag, "r:id");
-  const relation = [...part("xl/_rels/workbook.xml.rels").matchAll(/<Relationship\b[^>]*>/g)]
-    .map(([tag]) => tag)
-    .find((tag) => attribute(tag, "Id") === relationId);
-  const sheet = part(partPath(attribute(relation ?? "", "Target") ?? "worksheets/sheet1.xml"));
-  const shared = [...part("xl/sharedStrings.xml").matchAll(/<si>([\s\S]*?)<\/si>/g)].map((match) =>
-    textOf(match[1] ?? ""),
-  );
-  const dates = dateStyles(part("xl/styles.xml"));
-
+/** The values of one sheet, row by row, as text; trailing empty rows and cells left out. */
+const sheetRows = (sheet: string, shared: string[], dates: boolean[]): string[][] => {
   const rows: string[][] = [];
   for (const [, rowAttributes = "", rowXml = ""] of sheet.matchAll(/<row\b([^>]*)>([\s\S]*?)<\/row>/g)) {
     const rowIndex = Number(attribute(rowAttributes, "r") ?? rows.length + 1) - 1;
@@ -116,3 +103,31 @@ export const xlsxRows = (xlsx: Uint8Array): string[][] => {
     return trimmed;
   });
 };
+
+/** One sheet of a workbook: its name and its values as text. */
+export type SheetRows = { name: string; rows: string[][] };
+
+/** Every sheet of a workbook, in the order of its tabs, with its values as text. */
+export const xlsxSheets = (xlsx: Uint8Array): SheetRows[] => {
+  const files = unzipSync(xlsx);
+  const part = (path: string) => (files[path] ? strFromU8(files[path]) : "");
+  const relations = [...part("xl/_rels/workbook.xml.rels").matchAll(/<Relationship\b[^>]*>/g)].map(
+    ([tag]) => tag,
+  );
+  const shared = [...part("xl/sharedStrings.xml").matchAll(/<si>([\s\S]*?)<\/si>/g)].map((match) =>
+    textOf(match[1] ?? ""),
+  );
+  const dates = dateStyles(part("xl/styles.xml"));
+  return [...part("xl/workbook.xml").matchAll(/<sheet\b[^>]*>/g)].map(([sheetTag], index) => {
+    const relationId = attribute(sheetTag, "r:id");
+    const relation = relations.find((tag) => attribute(tag, "Id") === relationId);
+    const target = attribute(relation ?? "", "Target") ?? `worksheets/sheet${index + 1}.xml`;
+    return {
+      name: unescapeXml(attribute(sheetTag, "name") ?? `Tabelle${index + 1}`),
+      rows: sheetRows(part(partPath(target)), shared, dates),
+    };
+  });
+};
+
+/** The first sheet's values, row by row, as text: what a mail merge takes its recipients from. */
+export const xlsxRows = (xlsx: Uint8Array): string[][] => xlsxSheets(xlsx)[0]?.rows ?? [];

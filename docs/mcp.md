@@ -75,6 +75,19 @@ document is data, not an instruction.
 | `trash`, `restore` | Into the trash and back | write |
 | `restore_version` | An older version as the newest, as a new version | write |
 | `share`, `create_link` | Share with an account, or a link to view or edit | write |
+| `read_document` | A .docx as Markdown (headings, lists, paragraphs, tables; headers and footers after), or a plain text file | read |
+| `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
+| `read_presentation` | A .pptx slide by slide: title, text, notes | read |
+| `read_pdf` | A PDF's text page by page (`pages`: `1-3`, `2,5`), its form fields, its digital signatures and whether they hold, and the e-invoice it carries | read |
+
+The reading tools read the file itself, without the engine: `packages/ooxml` (`docxContent` with
+heading levels from the styles' outline level and list levels from `w:numPr`, `xlsxSheets`,
+`pptxSlides`), pdf.js (`pdfjs-dist`, its legacy build, which runs on Bun) for the text and form fields
+of a PDF, `packages/pdf-sign` for signatures and `packages/einvoice` for the e-invoice. A text longer
+than 20 000 characters comes in parts: the answer ends with the `offset` to ask for next, so a
+document does not fill the conversation. A scan without a text layer reads as empty; text
+recognition in the app gives it one. ODT and the older formats need x2t, which runs in the browser:
+open them in Schreibzeug first.
 
 Links point into the app: `/edit/<id>` for a file, `/folders/<id>` for a folder, `/invite/<token>`
 for a link.
@@ -85,5 +98,9 @@ for a link.
 `read` only reads, revoked, expired and wrong tokens are refused, tokens cannot manage tokens,
 someone else cannot revoke one. `apps/server/test/mcp.test.ts` connects the SDK's own client to
 `/mcp` in memory: no token, the tools a read token sees, the same checks as the app (a taken name,
-someone else's folder), a revoked token. `e2e/mcp.spec.ts` creates a token in the settings, calls
+someone else's folder), a revoked token. `apps/server/test/mcp-read.test.ts` reads the test files
+(`hello.docx`, `preise.xlsx`, `vortrag.pptx`, `formular.pdf`, `rechnung.pdf`) and documents written
+in the test: headings and lists as Markdown, a long text in parts, a sheet by name and range, a
+PDF's form fields and e-invoice. The readers have their own tests in `packages/ooxml` and
+`packages/mcp`. `e2e/mcp.spec.ts` creates a token in the settings, calls
 the endpoint as a client would, sees the folder it made in the file list, and revokes the token.

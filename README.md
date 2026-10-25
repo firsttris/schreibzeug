@@ -18,8 +18,8 @@ A modern interface on the Euro-Office engine: your files stay real Office files,
 > layouts, shapes and text boxes, designs, transitions, speaker notes, text formatting, lists, images, menus and PDF, and PDFs: fill in forms, notes, text boxes, highlight, underline and strike out,
 > drawing, shapes, signing by hand or digitally with your own certificate, text recognition (OCR) for scans, the e-invoice of a ZUGFeRD PDF shown and its XML to download, blacking out, turning, adding and removing pages, appending another PDF and saving pages apart, saved as PDF again or as PDF/A for archiving. OpenDocument files (.odt, .ods, .odp) are edited and saved as what they are; older Word, Excel and PowerPoint files and RTF open as a copy in the Office format. All four save on their own, every save a new version, and several people can edit the
 > same file at once, PDFs included. All without a document server. Claude Code and other MCP clients
-> work in your files with a personal access token: list, search, rename, move, share, versions and trash
-> ([MCP server](https://firsttris.github.io/schreibzeug/mcp/)). A desktop app for Windows, macOS and Linux
+> work in your files with a personal access token: list, search, read documents, spreadsheets,
+> presentations and PDFs, rename, move, share, versions and trash ([MCP server](https://firsttris.github.io/schreibzeug/mcp/)). A desktop app for Windows, macOS and Linux
 > works on the files in the computer's documents folder (or another folder) without any server, or
 > opens a Schreibzeug server in a window of its own (builds not signed yet).
 

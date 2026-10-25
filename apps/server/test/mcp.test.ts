@@ -1,13 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { createdAccessTokenSchema, nodeSchema } from "@schreibzeug/files-api";
+import { nodeSchema } from "@schreibzeug/files-api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startServer, type TestServer } from "./harness";
-
-/*
- * The MCP endpoint with the SDK's own client over Streamable HTTP, through the server in memory:
- * the client's fetch goes to `mcp.request`, as a real one would go over the network.
- */
+import { call, connect as connectTo, tokenFor as makeToken, ORIGIN } from "./mcp-client";
 
 let server: TestServer;
 let anna: string;
@@ -17,35 +11,8 @@ beforeAll(async () => {
 });
 afterAll(() => server?.stop());
 
-const tokenFor = async (cookie: string, scope: "read" | "write") => {
-  const reply = await server.app.request("/api/tokens", {
-    method: "POST",
-    headers: { cookie, "content-type": "application/json" },
-    body: JSON.stringify({ name: "Claude Code", scope }),
-  });
-  return createdAccessTokenSchema.parse(await reply.json()).token;
-};
-
-const ORIGIN = "https://office.example.org";
-
-const connect = async (token: string) => {
-  const transport = new StreamableHTTPClientTransport(new URL(`${ORIGIN}/mcp`), {
-    requestInit: { headers: { authorization: `Bearer ${token}` } },
-    fetch: (input, init) =>
-      Promise.resolve(server.mcp.request(input instanceof Request ? input : String(input), init)),
-  });
-  const client = new Client({ name: "test", version: "1.0.0" });
-  // The SDK's types assume exactOptionalPropertyTypes off (sessionId?: string on the transport).
-  await client.connect(transport as Parameters<Client["connect"]>[0]);
-  return client;
-};
-
-/** The text a tool answered, and whether it was an error. */
-const call = async (client: Client, name: string, args: Record<string, unknown> = {}) => {
-  const result = await client.callTool({ name, arguments: args });
-  const [first] = result.content as { type: string; text: string }[];
-  return { text: first?.text ?? "", isError: result.isError === true };
-};
+const tokenFor = (cookie: string, scope: "read" | "write") => makeToken(server, cookie, scope);
+const connect = (token: string) => connectTo(server, token);
 
 const folder = async (cookie: string, name: string) =>
   nodeSchema.parse(

@@ -2,9 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { type AnyTool, registerTools, type ToolContext } from "./tool";
 import { FILE_TOOLS } from "./tools/files";
+import { READ_TOOLS } from "./tools/read";
 
 /** Every tool, in the order a client lists them. */
-export const TOOLS: readonly AnyTool[] = [...FILE_TOOLS];
+export const TOOLS: readonly AnyTool[] = [...FILE_TOOLS, ...READ_TOOLS];
 
 const INSTRUCTIONS = `Schreibzeug ist eine Office-Suite: Ordner, Word-, Excel- und PowerPoint-Dateien, PDFs.
 Du arbeitest mit den Rechten des Nutzers, dem der Zugangsschlüssel gehört.

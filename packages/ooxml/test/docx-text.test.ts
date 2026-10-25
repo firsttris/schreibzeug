@@ -1,11 +1,47 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { blocksOf, docx, docxContent, paragraphXml, TEMPLATES } from "../src";
+import { blocksOf, docx, docxContent, headingStyles, paragraphXml, TEMPLATES } from "../src";
 
 const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
 const cell = (text: string) => `<w:tc><w:p><w:r><w:t>${text}</w:t></w:r></w:p></w:tc>`;
 
 describe("docx text", () => {
+  it("marks headings by their style and list items by their level", () => {
+    const styles = `<w:styles ${W}>
+      <w:style w:type="paragraph" w:styleId="Berschrift1"><w:name w:val="heading 1"/><w:pPr><w:outlineLvl w:val="0"/></w:pPr></w:style>
+      <w:style w:type="paragraph" w:styleId="Eigene"><w:name w:val="Meine Überschrift"/><w:pPr><w:outlineLvl w:val="2"/></w:pPr></w:style>
+      <w:style w:type="paragraph" w:styleId="Titel"><w:name w:val="Title"/></w:style>
+      <w:style w:type="character" w:styleId="Fett"><w:name w:val="heading 4"/></w:style>
+    </w:styles>`;
+    const headings = headingStyles(styles);
+    expect(headings).toEqual(
+      new Map([
+        ["Berschrift1", 1],
+        ["Eigene", 3],
+        ["Titel", 1],
+      ]),
+    );
+    const paragraph = (properties: string, text: string) =>
+      `<w:p><w:pPr>${properties}</w:pPr><w:r><w:t>${text}</w:t></w:r></w:p>`;
+    const xml = `<w:body ${W}>
+      ${paragraph('<w:pStyle w:val="Titel"/>', "Angebot")}
+      ${paragraph('<w:pStyle w:val="Eigene"/>', "Leistungen")}
+      ${paragraph('<w:pStyle w:val="Heading2"/>', "Ohne styles.xml")}
+      ${paragraph('<w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>', "Punkt")}
+      ${paragraph('<w:numPr><w:ilvl w:val="1"/><w:numId w:val="3"/></w:numPr>', "Unterpunkt")}
+      ${paragraph('<w:numPr><w:numId w:val="0"/></w:numPr>', "Keine Liste mehr")}
+      ${paragraph("", "Text")}</w:body>`;
+    expect(blocksOf(xml, headings)).toEqual([
+      { type: "paragraph", text: "Angebot", heading: 1 },
+      { type: "paragraph", text: "Leistungen", heading: 3 },
+      { type: "paragraph", text: "Ohne styles.xml", heading: 2 },
+      { type: "paragraph", text: "Punkt", list: 0 },
+      { type: "paragraph", text: "Unterpunkt", list: 1 },
+      { type: "paragraph", text: "Keine Liste mehr" },
+      { type: "paragraph", text: "Text" },
+    ]);
+  });
+
   it("reads paragraphs with their runs, tabs, breaks and escaped characters", () => {
     const xml = `<w:body ${W}><w:p><w:r><w:t xml:space="preserve">Rechnung </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>A &amp; B</w:t></w:r></w:p>
       <w:p><w:r><w:t>eins</w:t><w:tab/><w:t>zwei</w:t><w:br/><w:t>drei</w:t></w:r></w:p><w:p/><w:p><w:pPr/></w:p></w:body>`;

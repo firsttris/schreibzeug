@@ -1,6 +1,6 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { xlsx, xlsxRows } from "../src";
+import { xlsx, xlsxRows, xlsxSheets } from "../src";
 
 describe("xlsxRows", () => {
   it("reads the sheets the package writes, formulas as their values where cached", () => {
@@ -49,6 +49,33 @@ describe("xlsxRows", () => {
       [],
       ["Frau Müller", "WAHR", "23.10.2026", "15.03.2023"],
       ["Name!"],
+    ]);
+  });
+});
+
+describe("xlsxSheets", () => {
+  it("reads every sheet by its name, in the order of the tabs", () => {
+    const bytes = xlsx([
+      {
+        name: "Preise & Mengen",
+        rows: [
+          ["Artikel", "Preis"],
+          ["Stift", 1.5],
+        ],
+      },
+      { name: "Leer", rows: [] },
+      { name: "Notizen", rows: [["Hallo"]] },
+    ]);
+    expect(xlsxSheets(bytes)).toEqual([
+      {
+        name: "Preise & Mengen",
+        rows: [
+          ["Artikel", "Preis"],
+          ["Stift", "1,5"],
+        ],
+      },
+      { name: "Leer", rows: [] },
+      { name: "Notizen", rows: [["Hallo"]] },
     ]);
   });
 });

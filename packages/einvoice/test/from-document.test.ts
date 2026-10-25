@@ -198,6 +198,19 @@ describe("the details", () => {
   });
 });
 
+describe("the seller's VAT ID", () => {
+  const vatIdOf = (text: string) =>
+    draftFromDocument({ body: [], headers: [], footers: [p(text)] }).draft.seller.vatId;
+
+  it("ends where its country's format does, not in the next word", () => {
+    expect(vatIdOf("USt-IdNr. DE123456789 Amtsgericht Dresden HRB 1")).toBe("DE123456789");
+    expect(vatIdOf("USt-IdNr.: DE 123 456 789 · IBAN DE02 1203 0000 0000 2020 51")).toBe("DE123456789");
+    expect(vatIdOf("USt-Id ATU12345678 Firmenbuch")).toBe("ATU12345678");
+    expect(vatIdOf("USt-IdNr. FRXX123456789 Paris")).toBe("FRXX123456789");
+    expect(vatIdOf("USt-IdNr. DE12345 Amtsgericht")).toBeUndefined();
+  });
+});
+
 describe("the table of invoice lines", () => {
   const linesOf = (rows: string[][]) =>
     draftFromDocument({ body: [{ type: "table", rows }], headers: [], footers: [] }).draft.lines;

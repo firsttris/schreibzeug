@@ -65,13 +65,37 @@ const TAX_RATE =
   /(?:Umsatzsteuer|USt\.?|MwSt\.?|Mehrwertsteuer)\s*(\d{1,2}(?:,\d+)?)\s*%|(\d{1,2}(?:,\d+)?)\s*%\s*(?:USt|MwSt|Umsatzsteuer|Mehrwertsteuer)/i;
 const SMALL_BUSINESS = /§\s*19\s*UStG|Kleinunternehmer/i;
 const TOTAL = /Rechnungsbetrag|Gesamtbetrag|Summe\s+brutto|Bruttobetrag|Gesamtsumme|Endbetrag|zu\s+zahlen/i;
-const VAT_ID = /USt-?Id(?:\.|-)?(?:Nr\.?)?\s*:?\s*([A-Z]{2}(?:\s?[\dA-Z]){8,12})/i;
+/** After a space only digits go on ("DE 123 456 789"), so the next word is not taken along. */
+const VAT_ID = /USt-?Id(?:\.|-)?(?:Nr\.?)?\s*:?\s*([A-Z]{2}\s?[\dA-Z]+(?:\s\d[\dA-Z]*)*)/i;
 const TAX_NUMBER = /Steuer(?:nummer|-?Nr\.?)\s*:?\s*(\d[\d/ ]{7,}\d)/i;
 const IBAN = /IBAN\s*:?\s*([A-Z]{2}\d{2}(?:\s?[A-Z\d]){11,30})/i;
 const BIC = /BIC\s*:?\s*([A-Z]{6}[A-Z\d]{2}(?:[A-Z\d]{3})?)\b/i;
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/;
 const POSTCODE_CITY = /^(?:D-)?(\d{5})\s+(.+)$/;
 const STREET = /^\D.*\s\d+\s?[a-z]?(?:\s?-\s?\d+)?$/i;
+
+/** The VAT ID formats with a fixed length, as the European Commission's VIES lists them. */
+const VAT_ID_FORMATS: Record<string, RegExp> = {
+  AT: /^ATU\d{8}/,
+  BE: /^BE[01]\d{9}/,
+  DE: /^DE\d{9}/,
+  DK: /^DK\d{8}/,
+  FI: /^FI\d{8}/,
+  IT: /^IT\d{11}/,
+  LU: /^LU\d{8}/,
+  NL: /^NL\d{9}B\d{2}/,
+  PL: /^PL\d{10}/,
+  SE: /^SE\d{12}/,
+};
+
+/** The VAT ID in the text, as long as its country's format says, or 8 to 12 characters after it. */
+const vatIdIn = (text: string): string | undefined => {
+  const found = real(VAT_ID.exec(text)?.[1])?.replace(/\s+/g, "").toUpperCase();
+  if (!found) return undefined;
+  const format = VAT_ID_FORMATS[found.slice(0, 2)];
+  if (format) return format.exec(found)?.[0];
+  return found.length >= 10 && found.length <= 14 ? found : undefined;
+};
 
 /** The IBAN in the text, cut back until its check digits hold ("… 2020 51 BIC" holds without " BIC"). */
 const ibanIn = (text: string): string | undefined => {
@@ -252,7 +276,7 @@ export const draftFromDocument = (document: DocumentText): DocumentPrefill => {
   const sellerFound = first(sellerLines, addressInLine);
   const seller: DraftSeller = {
     ...party({ ...emptyParty() }, sellerFound),
-    vatId: first(sellerLines, after(VAT_ID))?.replace(/\s+/g, "").toUpperCase(),
+    vatId: first(sellerLines, vatIdIn),
     taxNumber: first(sellerLines, after(TAX_NUMBER)),
     email: first(sellerLines, (text) => EMAIL.exec(text)?.[0]),
     iban: first(sellerLines, ibanIn),

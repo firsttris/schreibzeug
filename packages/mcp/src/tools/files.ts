@@ -17,6 +17,14 @@ import { defineTool } from "../tool";
 const id = nodeIdSchema.describe("Die ID der Datei oder des Ordners");
 const nodes = nodeSchema.array();
 
+/** Who a node is shared with; "pending" marks an address without an account yet, which waits for it. */
+const presentShare = ({ name, email, role, pending }: z.infer<typeof shareSchema>) => ({
+  name,
+  email,
+  role,
+  ...(pending ? { pending } : {}),
+});
+
 /** Folders and files: what the file list of the app does, through the same API. */
 export const listFolder = defineTool({
   name: "list_folder",
@@ -85,9 +93,7 @@ export const getFile = defineTool({
         mime: value.mime,
         createdAt: value.createdAt,
         path: path.length > 0 ? path.join(" / ") : "Meine Dateien",
-        ...(shares?.ok
-          ? { sharedWith: shares.value.map(({ name, email, role }) => ({ name, email, role })) }
-          : {}),
+        ...(shares?.ok ? { sharedWith: shares.value.map(presentShare) } : {}),
       }),
     );
   },
@@ -209,7 +215,7 @@ export const share = defineTool({
   name: "share",
   title: "Teilen",
   description:
-    "Teilt eine Datei oder einen Ordner mit dem Konto hinter einer E-Mail-Adresse, zum Ansehen („view“) oder Bearbeiten („edit“). Nur der Besitzer darf das.",
+    "Teilt eine Datei oder einen Ordner mit dem Konto hinter einer E-Mail-Adresse, zum Ansehen („view“) oder Bearbeiten („edit“). Nur der Besitzer darf das. Hat die Adresse noch kein Konto, wartet die Freigabe darauf („pending“), wo der Server das kennt.",
   input: {
     id,
     email: z.email().describe("Die E-Mail-Adresse des Kontos"),
@@ -219,7 +225,7 @@ export const share = defineTool({
   run: async ({ api }, { id, email, role }) =>
     mapOutcome(
       await json(api(`/api/nodes/${id}/shares`, withJson("PUT", { email, role })), shareSchema.array()),
-      (list) => asText({ sharedWith: list.map(({ name, email, role }) => ({ name, email, role })) }),
+      (list) => asText({ sharedWith: list.map(presentShare) }),
     ),
 });
 

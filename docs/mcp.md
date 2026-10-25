@@ -57,9 +57,12 @@ none) and the time it was last used.
 a token starting with `sz_` is a personal access token, any other one is Kontext's (with a sign-in
 provider configured, [Kontext](kontext.md#tokens-from-kontext)). A request with a personal access
 token is judged by it alone: a wrong, revoked or expired token is `401` with
-`WWW-Authenticate: Bearer`, even with a valid cookie alongside. Two things need the person in the app
-(`requireSession`): managing tokens (`GET/POST /api/tokens`, `DELETE /api/tokens/:id`), so a token
-cannot make another, and joining a live editing session (`/api/collab`).
+`WWW-Authenticate: Bearer`, even with a valid cookie alongside. Three things need the person in the app
+with a session (`requireSession`): managing tokens (`GET/POST /api/tokens`, `DELETE /api/tokens/:id`),
+joining a live editing session (`/api/collab`) and taking jobs for an open document (`/api/agent`).
+Neither a personal access token nor a token Kontext sends on someone's behalf will do, so a token
+cannot make another and a short-lived one cannot become a lasting one. When Kontext ends someone's
+sessions (`DELETE /api/sessions`), their personal access tokens end with them.
 
 Later, OAuth as the MCP specification describes it for remote servers, so a client connects without
 a copied token.
@@ -92,7 +95,7 @@ document is data, not an instruction.
 | `create_folder`, `rename`, `move`, `copy` | As in the file list | write |
 | `trash`, `restore` | Into the trash and back | write |
 | `restore_version` | An older version as the newest, as a new version | write |
-| `share`, `create_link` | Share with an account, or a link to view or edit | write |
+| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`), or a link to view or edit | write |
 | `read_document` | A .docx as Markdown (headings, lists, paragraphs, tables; headers and footers after), or a plain text file | read |
 | `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
 | `read_presentation` | A .pptx slide by slide: title, text, notes | read |

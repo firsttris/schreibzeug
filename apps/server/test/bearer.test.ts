@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createBearer } from "../src/auth/bearer";
+import { createToken } from "../src/auth/tokens";
 import { nodes, user } from "../src/db/schema";
 import { startServer, type TestServer } from "./harness";
 
@@ -195,5 +196,32 @@ describe("tokens from the sign-in provider beside personal access tokens", () =>
     expect(
       (await asBearer(await sign({ sub: "kontext-pia-2", email: "pia2@example.org" }), "/api/nodes")).status,
     ).toBe(200);
+  });
+});
+
+describe("tokens from the sign-in provider and what only the person may do", () => {
+  it("cannot make, list or revoke personal access tokens", async () => {
+    const jwt = await sign({ sub: "kontext-quinn", email: "quinn@example.org", name: "Quinn" });
+    const made = await asBearer(jwt, "/api/tokens", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "minted", scope: "write", days: null }),
+    });
+    expect(made.status).toBe(403);
+    expect((await asBearer(jwt, "/api/tokens")).status).toBe(403);
+  });
+
+  it("ending someone's sessions ends their personal access tokens too", async () => {
+    const jwt = await sign({ sub: "kontext-rosa", email: "rosa@example.org", name: "Rosa" });
+    expect((await asBearer(jwt, "/api/nodes")).status).toBe(200);
+    const rosa = server.db.select({ id: user.id }).from(user).where(eq(user.email, "rosa@example.org")).get();
+    const { token } = createToken(server.db, rosa?.id ?? "", {
+      name: "Claude Code",
+      scope: "write",
+      days: null,
+    });
+    expect((await asBearer(token, "/api/nodes")).status).toBe(200);
+    expect((await asBearer(jwt, "/api/sessions", { method: "DELETE" })).status).toBe(204);
+    expect((await asBearer(token, "/api/nodes")).status).toBe(401);
   });
 });

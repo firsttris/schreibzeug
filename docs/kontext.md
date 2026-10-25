@@ -82,8 +82,8 @@ under a colleague's address is refused, and so is a new person at Kontext who go
 colleague's address; the first account made from a token takes over the files from before there
 were accounts, as at a sign-up.
 
-`DELETE /api/sessions` with such a token signs that person out everywhere here (their sessions go;
-an open editor keeps its connection until it reloads). Kontext calls it when someone leaves the
+`DELETE /api/sessions` with such a token signs that person out everywhere here (their sessions and their
+personal access tokens for MCP clients, [MCP server](mcp.md#access-tokens), go; an open editor keeps its connection until it reloads). Kontext calls it when someone leaves the
 company or is locked, so Dokumente closes with Kontext. For someone without an account here it does
 nothing and makes none.
 

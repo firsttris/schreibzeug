@@ -5,11 +5,14 @@ import { type Auth, type SessionUser, sessionUser } from "./auth";
 import type { Bearer } from "./bearer";
 import { TOKEN_PREFIX, type TokenAccess, verifyToken } from "./tokens";
 
+/** How a request was signed in: a session cookie, a personal access token, or the sign-in provider. */
+export type SignedInBy = "session" | "token" | "provider";
+
 /**
- * What routes behind `requireUser` find on the context: the user, and the personal access token
- * the request came with, if it came with one instead of a session.
+ * What routes behind `requireUser` find on the context: the user, how they signed in, and the
+ * personal access token the request came with, if it came with one.
  */
-export type AuthEnv = { Variables: { user: SessionUser; token?: TokenAccess } };
+export type AuthEnv = { Variables: { user: SessionUser; via?: SignedInBy; token?: TokenAccess } };
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 
@@ -42,18 +45,26 @@ export const requireUser = (auth: Auth, db: Database, bearer?: Bearer) =>
         return refuse(c, 403, "Dieser Zugangsschlüssel darf nur lesen.");
       }
       c.set("user", access.user);
+      c.set("via", "token");
       c.set("token", access);
       return next();
     }
+    const byProvider = Boolean(bearer && token);
     const user = bearer && token ? await bearer.person(token) : await sessionUser(auth, c.req.raw.headers);
     if (!user) return refuse(c, 401, "Bitte melde dich an.");
     c.set("user", user);
+    c.set("via", byProvider ? "provider" : "session");
     await next();
   });
 
-/** For what only the person themselves may do, in the app: managing tokens, joining a live session. */
+/**
+ * For what only the person themselves may do, in the app with a session: managing tokens, joining
+ * a live session, taking jobs for an open document. Neither a personal access token nor a token
+ * the sign-in provider sends on someone's behalf will do: else a five-minute token from Kontext
+ * could make a lasting one.
+ */
 export const requireSession = createMiddleware<AuthEnv>(async (c, next) => {
-  if (c.var.token)
+  if (c.var.via !== "session")
     return refuse(c, 403, "Das geht nur angemeldet in der App, nicht mit einem Zugangsschlüssel.");
   await next();
 });

@@ -82,3 +82,34 @@ describe("the MCP endpoint", () => {
     await expect(call(client, "list_folder")).rejects.toThrow();
   });
 });
+
+describe("sharing over MCP with someone who has no account yet", () => {
+  it("says the share is only pending", async () => {
+    const pending = await startServer({ pendingShares: true });
+    try {
+      const carla = await pending.signUp("Carla");
+      const client = await connectTo(pending, await makeToken(pending, carla, "write"));
+      const created = JSON.parse((await call(client, "create_folder", { name: "Geteilt" })).text) as {
+        id: string;
+      };
+      const shared = await call(client, "share", {
+        id: created.id,
+        email: "nobody@example.org",
+        role: "edit",
+      });
+      expect(JSON.parse(shared.text)).toEqual({
+        sharedWith: [
+          { name: "nobody@example.org", email: "nobody@example.org", role: "edit", pending: true },
+        ],
+      });
+      const file = JSON.parse((await call(client, "get_file", { id: created.id })).text) as {
+        sharedWith: unknown;
+      };
+      expect(file.sharedWith).toEqual([
+        { name: "nobody@example.org", email: "nobody@example.org", role: "edit", pending: true },
+      ]);
+    } finally {
+      await pending.stop();
+    }
+  });
+});

@@ -1,7 +1,7 @@
 import { and, count, eq } from "drizzle-orm";
 import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import type { Database } from "../db/database";
-import { account, session, user } from "../db/schema";
+import { accessTokens, account, session, user } from "../db/schema";
 import { adoptOwnerless } from "../files/repository";
 import { claimPendingShares } from "../files/shares";
 import type { SessionUser } from "./auth";
@@ -129,8 +129,8 @@ const claimsOf = async (
 
 /**
  * Tokens from the sign-in provider: `person` checks one and gives the person it is for (null for a
- * token that does not hold), `endSessions` signs that person out everywhere here (Kontext, when
- * someone leaves or is locked): "ended", "unknown" for someone without an account here (none is
+ * token that does not hold), `endSessions` signs that person out everywhere here, their personal
+ * access tokens included (Kontext, when someone leaves or is locked): "ended", "unknown" for someone without an account here (none is
  * made for that), or "refused".
  */
 export const createBearer = ({
@@ -151,7 +151,11 @@ export const createBearer = ({
       if (!claims) return "refused";
       const person = personOf(db, providerId, claims.subject, claims.email, claims.name, false);
       if (!person) return "unknown";
-      db.delete(session).where(eq(session.userId, person.id)).run();
+      // Signed out everywhere: the personal access tokens (tokens.ts) end with the sessions.
+      db.transaction((tx) => {
+        tx.delete(session).where(eq(session.userId, person.id)).run();
+        tx.delete(accessTokens).where(eq(accessTokens.userId, person.id)).run();
+      });
       return "ended";
     },
   };

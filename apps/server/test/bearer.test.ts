@@ -176,3 +176,24 @@ describe("the first account", () => {
     }
   });
 });
+
+describe("tokens from the sign-in provider beside personal access tokens", () => {
+  it("are told apart by the prefix: sz_ is a personal access token, anything else Kontext's", async () => {
+    const cookie = await server.signUp("Pia", "pia@example.org");
+    await createFolder(cookie, "Pias Ordner");
+    const reply = await server.app.request("/api/tokens", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ name: "Claude Code", scope: "read" }),
+    });
+    const { token } = (await reply.json()) as { token: string };
+    expect(await namesAt(token)).toEqual(["Pias Ordner"]);
+    // A read token stays read-only, and a wrong one is refused, not handed to the provider.
+    expect((await asBearer(token, "/api/folders", { method: "POST" })).status).toBe(403);
+    expect((await asBearer("sz_falsch", "/api/nodes")).status).toBe(401);
+    // Kontext's tokens still count as before.
+    expect(
+      (await asBearer(await sign({ sub: "kontext-pia-2", email: "pia2@example.org" }), "/api/nodes")).status,
+    ).toBe(200);
+  });
+});

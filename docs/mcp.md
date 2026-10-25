@@ -20,8 +20,8 @@ holds, and create it. The token is shown once, with the command for Claude Code:
 claude mcp add --transport http schreibzeug https://<server>/mcp --header "Authorization: Bearer sz_…"
 ```
 
-`SCHREIBZEUG_PUBLIC_URL` sets the address the tools put into links (e.g.
-`https://office.example.org`); without it they use the address the request came to, honouring
+`SCHREIBZEUG_URL`, the server's address (also the sign-in callback's base, [Kontext](kontext.md)),
+is what the tools put into links (e.g. `https://office.example.org`); without it they use the address the request came to, honouring
 `X-Forwarded-Proto` and `X-Forwarded-Host` behind a reverse proxy. In development the Vite server
 forwards `/mcp` to the API server like `/api`.
 
@@ -53,8 +53,10 @@ none) and the time it was last used.
 | `read` | Only `GET` requests, and not the links of a node (`GET /api/nodes/:id/invites`, `refuseReadToken`): their secret would let another account edit; over MCP it does not even see the tools that write |
 | `write` | What its user may do |
 
-`requireUser` (`src/auth/middleware.ts`) takes a session cookie or `Authorization: Bearer <token>`. A
-request with that header is judged by it alone: a wrong, revoked or expired token is `401` with
+`requireUser` (`src/auth/middleware.ts`) takes a session cookie or `Authorization: Bearer <token>`;
+a token starting with `sz_` is a personal access token, any other one is Kontext's (with a sign-in
+provider configured, [Kontext](kontext.md#tokens-from-kontext)). A request with a personal access
+token is judged by it alone: a wrong, revoked or expired token is `401` with
 `WWW-Authenticate: Bearer`, even with a valid cookie alongside. Two things need the person in the app
 (`requireSession`): managing tokens (`GET/POST /api/tokens`, `DELETE /api/tokens/:id`), so a token
 cannot make another, and joining a live editing session (`/api/collab`).

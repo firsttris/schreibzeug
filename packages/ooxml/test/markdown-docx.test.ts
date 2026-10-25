@@ -122,6 +122,17 @@ describe("Markdown as CommonMark reads it", () => {
     });
   });
 
+  it("keeps an indented continuation line in its item, so the numbering goes on", () => {
+    expect(markdownBlocks("1. First\n   more about it\n2. Second\n")).toEqual([
+      { type: "item", ordered: true, level: 0, text: "First more about it", list: 1 },
+      { type: "item", ordered: true, level: 0, text: "Second", list: 1 },
+    ]);
+    const document = part(markdownDocx("1. First\n   more about it\n2. Second\n"), "word/document.xml");
+    expect(new Set([...document.matchAll(/<w:numId w:val="(\d+)"\/>/g)].map((m) => m[1]))).toEqual(
+      new Set(["2"]),
+    );
+  });
+
   it("strips closing hashes only after a space", () => {
     expect(markdownBlocks("## Using C#")).toEqual([{ type: "heading", level: 2, text: "Using C#" }]);
     expect(markdownBlocks("## Titel ##")).toEqual([{ type: "heading", level: 2, text: "Titel" }]);

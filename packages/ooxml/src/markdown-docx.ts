@@ -103,6 +103,16 @@ const cellsOf = (line: string): string[] =>
     .split(/(?<!\\)\|/)
     .map((cell) => cell.trim().replace(/\\\|/g, "|"));
 
+/** Whether a line starts a block of its own instead of continuing the paragraph before it. */
+const startsBlock = (line: string, next: string): boolean =>
+  line.trim() === "" ||
+  HEADING.test(line) ||
+  ITEM.test(line) ||
+  FENCE.test(line) ||
+  RULE.test(line) ||
+  line.trimStart().startsWith(">") ||
+  (line.includes("|") && TABLE_DIVIDER.test(next));
+
 /** Markdown's blocks, line by line. Lists are numbered by `list`, so each numbered list starts at 1. */
 export const markdownBlocks = (markdown: string): Block[] => {
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
@@ -114,8 +124,14 @@ export const markdownBlocks = (markdown: string): Block[] => {
     const line = lines[index] ?? "";
     const next = lines[index + 1] ?? "";
     const item = ITEM.exec(line);
-    if (!item) inList = inList && line.trim() === "" && ITEM.test(next);
+    const last = blocks.at(-1);
+    // An indented line right after an item continues its text (CommonMark 5.2), so the list goes on.
+    const continued = inList && last?.type === "item" && /^\s/.test(line) && !startsBlock(line, next);
+    if (!item && !continued) inList = inList && line.trim() === "" && ITEM.test(next);
     if (line.trim() === "") {
+      index += 1;
+    } else if (continued) {
+      last.text += ` ${line.trim()}`;
       index += 1;
     } else if (FENCE.test(line)) {
       const fence = FENCE.exec(line)?.[1] ?? "```";
@@ -167,17 +183,7 @@ export const markdownBlocks = (markdown: string): Block[] => {
       index += 1;
       while (index < lines.length) {
         const candidate = lines[index] ?? "";
-        const following = lines[index + 1] ?? "";
-        if (
-          candidate.trim() === "" ||
-          HEADING.test(candidate) ||
-          ITEM.test(candidate) ||
-          FENCE.test(candidate) ||
-          RULE.test(candidate) ||
-          candidate.trimStart().startsWith(">") ||
-          (candidate.includes("|") && TABLE_DIVIDER.test(following))
-        )
-          break;
+        if (startsBlock(candidate, lines[index + 1] ?? "")) break;
         text.push(candidate.trim());
         index += 1;
       }

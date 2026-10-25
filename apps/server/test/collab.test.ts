@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createHub } from "../src/collab/hub";
-import { createSession, type Outgoing, RESTORE_CODE, receive, type Session } from "../src/collab/session";
+import {
+  createSession,
+  disconnect,
+  type Outgoing,
+  RESTORE_CODE,
+  receive,
+  type Session,
+} from "../src/collab/session";
 
 const FILE = "8c2a5f8e-6a43-4f0b-9a55-0d6f0a3b1e11";
 const NOW = 1_800_000_000_000;
@@ -268,6 +275,59 @@ describe("collaboration session", () => {
         message: { type: "error", description: "Restore error. Document modified.", code: RESTORE_CODE },
       },
     ]);
+  });
+
+  it("leaves a text lock someone took meanwhile to them when its former holder returns", () => {
+    const { session: held } = run([
+      ["a", auth("anna")],
+      ["b", auth("ben")],
+      ["b", { type: "getLock", block: ["p1"] }],
+    ]);
+    const { session } = run(
+      [
+        ["a", { type: "getLock", block: ["p1"] }],
+        ["b2", auth("ben", { sessionId: "b", user: { id: "ben", indexUser: 2 }, block: ["p1"] })],
+      ],
+      disconnect(held, "b", NOW).session,
+    );
+    expect(session.locks.p1).toMatchObject({ user: "anna1" });
+    expect(session.participants.map((p) => p.id)).toEqual(["anna1", "ben2"]);
+  });
+
+  it("sends a returning spreadsheet client away when a block it held is someone else's now", () => {
+    const block = (guid: string) => ({
+      guid,
+      sheetId: "1",
+      type: 1,
+      subType: null,
+      rangeOrObjectId: { c1: 0, r1: 0, c2: 3, r2: 3 },
+    });
+    const { session: left } = run([
+      ["a", auth("anna", { editorType: 1 })],
+      ["b", auth("ben", { editorType: 1 })],
+    ]);
+    const { session, log } = run(
+      [
+        ["a", { type: "getLock", block: [block("ga")] }],
+        [
+          "b2",
+          auth("ben", {
+            editorType: 1,
+            sessionId: "b",
+            user: { id: "ben", indexUser: 2 },
+            block: [block("gb"), block("ga")],
+          }),
+        ],
+      ],
+      disconnect(left, "b", NOW).session,
+    );
+    expect(log[1]?.out).toEqual([
+      {
+        to: "self",
+        message: { type: "error", description: "Restore error. Locks not checked.", code: RESTORE_CODE },
+      },
+    ]);
+    expect(session.locks).toEqual({ ga: expect.objectContaining({ user: "anna1" }) });
   });
 });
 

@@ -7,7 +7,7 @@
  * The messages are the ones sdkjs speaks with the Document Server (sdkjs common/docscoapi.js
  * `_onServerMessage`, server DocService/sources/DocsCoServer.js); docs/collaboration.md lists them.
  */
-import { acquireLocks, EDITOR_TYPE, type Locks, lockKey, locksForAuth } from "./locks";
+import { acquireLocks, EDITOR_TYPE, type Locks, locksForAuth, tryLocks } from "./locks";
 
 export type Participant = {
   /** Our connection id; sdkjs sees it as the session id. */
@@ -122,8 +122,9 @@ export const RESTORE_CODE = 4004;
 /**
  * A client that lost its connection comes back with its old session id. That works only if
  * nobody else changed the document meanwhile: the last change by someone else must be the one the
- * client last saw (`lastOtherSaveTime`, compared in whole seconds like DocsCoServer). Then it keeps
- * its user id and its locks; otherwise it gets an error and has to open the document again.
+ * client last saw (`lastOtherSaveTime`, compared in whole seconds like DocsCoServer), and the
+ * blocks it held may be taken again. Then it keeps its user id and its locks; otherwise it gets an
+ * error and has to open the document again (DocsCoServer.js auth, "Restore error. …").
  */
 const restore = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
   const { idOriginal, username } = readUser(data);
@@ -146,14 +147,20 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
     indexUser,
     view: isViewer(data),
   };
+  // The blocks it held go through the same check as a getLock (DocsCoServer getLock with
+  // bIsRestore): someone else's lock stays theirs, and a refused one ends the restore.
   const blocks = Array.isArray(data.block) ? data.block : [];
-  const restoredLocks = Object.fromEntries(
-    blocks.map((block) => [lockKey(block), { time: now, user: id, block }]),
-  );
+  const locks = blocks.length ? tryLocks(session.locks, blocks, id, now, session.editorType) : session.locks;
+  if (!locks) {
+    return {
+      session,
+      out: [self({ type: "error", description: "Restore error. Locks not checked.", code: RESTORE_CODE })],
+    };
+  }
   const next: Session = {
     ...session,
     nextIndexUser: Math.max(session.nextIndexUser, indexUser + 1),
-    locks: { ...session.locks, ...restoredLocks },
+    locks,
     participants: [...session.participants.filter((p) => p.id !== id), participant],
   };
   return {

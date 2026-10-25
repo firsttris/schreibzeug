@@ -82,7 +82,10 @@ engine starts its `Disconnect` action and takes no edits (`common/apiBase.js`
 `CoAuthoringApi.onDisconnect`); the editor's status line says "Verbindung unterbrochen" until the
 action ends. The engine comes back with its old session id. The relay restores the session if
 nobody else changed the document meanwhile (the last change by someone else is the one the client
-last saw, `lastOtherSaveTime`); otherwise it answers with error 4004 and the document has to be
+last saw, `lastOtherSaveTime`) and the blocks the engine still holds pass the same check as a
+`getLock`: a text lock someone else took meanwhile stays theirs, and a spreadsheet or slide block
+the editor's rule refuses ends the restore ("Restore error. Locks not checked.", DocsCoServer.js
+`auth` with `getLock(…, true)`). Otherwise it answers with error 4004 and the document has to be
 opened again. If the relay started a new session at another version, the channel tells the engine
 the reconnect failed.
 

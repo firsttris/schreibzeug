@@ -120,6 +120,8 @@ export const markdownBlocks = (markdown: string): Block[] => {
   const blocks: Block[] = [];
   let lists = 0;
   let inList = false;
+  /** The marker columns of the items the next one may be nested in, outermost first. */
+  let parents: number[] = [];
   let index = 0;
   while (index < lines.length) {
     const line = lines[index] ?? "";
@@ -149,15 +151,22 @@ export const markdownBlocks = (markdown: string): Block[] => {
       index += 1;
     } else if (item) {
       const [, indent = "", marker = "-", text = ""] = item;
-      if (!inList) lists += 1;
+      const column = indent.replace(/\t/g, "    ").length;
+      if (!inList) {
+        lists += 1;
+        parents = [];
+      }
       inList = true;
+      // An item is nested in each open one whose marker stands left of its own, however far.
+      parents = parents.filter((parent) => parent < column);
       blocks.push({
         type: "item",
         ordered: /\d/.test(marker),
-        level: Math.min(8, Math.floor(indent.replace(/\t/g, "    ").length / 2)),
+        level: Math.min(8, parents.length),
         text,
         list: lists,
       });
+      parents.push(column);
       index += 1;
     } else if (line.includes("|") && TABLE_DIVIDER.test(next)) {
       const rows = [cellsOf(line)];

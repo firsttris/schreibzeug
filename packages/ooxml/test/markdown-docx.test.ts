@@ -133,6 +133,13 @@ describe("Markdown as CommonMark reads it", () => {
     );
   });
 
+  it("nests a list one level per parent item, whatever the indent", () => {
+    const levels = (markdown: string) =>
+      markdownBlocks(markdown).map((block) => (block.type === "item" ? block.level : -1));
+    expect(levels("- a\n    - b\n        - c\n    - d\n- e\n")).toEqual([0, 1, 2, 1, 0]);
+    expect(levels("1. a\n   - b\n2. c\n")).toEqual([0, 1, 0]);
+  });
+
   it("keeps balanced parentheses in a link target", () => {
     expect(inlineSegments("[Foo](https://en.wikipedia.org/wiki/Foo_(bar)) und (mehr)")).toEqual([
       { text: "Foo", link: "https://en.wikipedia.org/wiki/Foo_(bar)" },

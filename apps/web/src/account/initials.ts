@@ -4,5 +4,6 @@ export const initialsOf = (name: string): string =>
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
+    // The first code point, not the first UTF-16 unit, which may be half a surrogate pair ("𝓐").
+    .map((part) => [...part][0]?.toUpperCase() ?? "")
     .join("");

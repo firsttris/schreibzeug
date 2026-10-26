@@ -46,6 +46,13 @@ describe("the toolbar's Markdown", () => {
     expect(run(toggleInline("strikethrough"), "a «b» c")).toBe("a ~~«b»~~ c");
   });
 
+  it("takes the marks away also with the cursor or selection on them", () => {
+    expect(run(toggleInline("strong"), "**fett**|")).toBe("fett|");
+    expect(run(toggleInline("strong"), "**fett**| x")).toBe("fett| x");
+    expect(run(toggleInline("strong"), "«**fett**»")).toBe("«fett»");
+    expect(run(toggleInline("emphasis"), "a *b|* c")).toBe("a b| c");
+  });
+
   it("puts the cursor between the marks when nothing is selected", () => {
     expect(run(toggleInline("strong"), "Text |")).toBe("Text **|**");
   });

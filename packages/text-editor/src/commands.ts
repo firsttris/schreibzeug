@@ -48,8 +48,8 @@ export const toggleInline =
             { from: inside.to - size, to: inside.to },
           ],
           range: EditorSelection.range(
-            Math.max(inside.from, range.from - size),
-            Math.max(inside.from, range.to - size),
+            withoutMarks(range.from, inside, size),
+            withoutMarks(range.to, inside, size),
           ),
         };
       }
@@ -62,6 +62,13 @@ export const toggleInline =
       };
     });
   };
+
+/** Where a position is once both marks of the span [from, to] (each `size` long) are gone. */
+const withoutMarks = (position: number, { from, to }: { from: number; to: number }, size: number) => {
+  const beforeOpen = Math.min(Math.max(position - from, 0), size);
+  const beforeClose = Math.min(Math.max(position - (to - size), 0), size);
+  return position - beforeOpen - beforeClose;
+};
 
 /** The node of that name around the range, from its opening mark to its closing one. */
 const enclosing = (state: EditorState, from: number, to: number, name: string) => {

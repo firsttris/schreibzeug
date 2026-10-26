@@ -1,0 +1,25 @@
+name: Bump version
+
+# Actions → Bump version → Run workflow: raises the version in package.json and the desktop app,
+# commits "Release vX.Y.Z", tags it and starts release.yml on the tag (firsttris/workflows
+# bump-version.yml). This keeps package.json and the desktop app's files at the same version.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        options: [patch, minor, major, prepatch, preminor, premajor, prerelease]
+        default: patch
+
+jobs:
+  bump:
+    uses: firsttris/workflows/.github/workflows/bump-version.yml@v1
+    with:
+      bump: ${{ inputs.bump }}
+      # One version for the image and the desktop app; Cargo.lock goes with Cargo.toml.
+      extra-files: |
+        apps/desktop/package.json
+        apps/desktop/src-tauri/Cargo.toml
+    permissions:
+      contents: write
+      actions: write

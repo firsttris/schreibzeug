@@ -1,24 +1,46 @@
 name: Release
 
-# A version tag publishes the image (docker/Dockerfile) after the checks: the web app with its
-# engine and the server, e.g. for Kontext's deploy/compose.yaml. The engine's font tool is a
-# Linux x86_64 binary, so the image is for amd64.
+# A version tag vX.Y.Z (from Actions → Bump version, or `bun run release:minor` on a checkout)
+# publishes a release: the Docker image (docker/Dockerfile) with the web app, its engine and the
+# server, e.g. for Kontext's deploy/compose.yaml, and the GitHub release with the desktop app's
+# installers attached. The engine's font tool is a Linux x86_64 binary, so the image is for amd64.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
 
 jobs:
+  # A release commit only changes version numbers: main's green CI run of the commit before counts.
+  tested:
+    uses: firsttris/workflows/.github/workflows/tested-on-main.yml@v1
+    permissions:
+      actions: read
+      contents: read
+
   checks:
+    needs: tested
+    if: needs.tested.outputs.tested != 'true'
     uses: ./.github/workflows/ci.yml
 
+  desktop:
+    needs: [tested, checks]
+    # The checks either passed or were not needed
+    if: ${{ !cancelled() && needs.tested.result == 'success' && needs.checks.result != 'failure' }}
+    uses: ./.github/workflows/desktop.yml
+    permissions:
+      contents: read
+
   docker:
-    needs: checks
+    needs: [tested, checks, desktop]
+    if: ${{ !cancelled() && needs.tested.result == 'success' && needs.checks.result != 'failure' && needs.desktop.result == 'success' }}
     uses: firsttris/workflows/.github/workflows/docker-release.yml@v1
     with:
       image: tristanteu/schreibzeug
       description: Office files in the browser – documents, spreadsheets, presentations and PDFs, self-hosted
       ghcr: true
+      platforms: linux/amd64
+      # The installers of desktop.yml, attached to the GitHub release
+      release-artifact: schreibzeug-desktop
     secrets: inherit
     permissions:
       contents: write

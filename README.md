@@ -68,7 +68,7 @@ docker build -f docker/Dockerfile -t tristanteu/schreibzeug .
 ```
 
 Settings, reverse proxy, backups and updates are in the [installation guide](https://firsttris.github.io/schreibzeug/installation.html).
-The desktop app is described under [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html).
+The desktop app is described under [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html); its installers for Windows, macOS and Linux are attached to every [release](https://github.com/firsttris/schreibzeug/releases).
 
 ## ✨ Features
 

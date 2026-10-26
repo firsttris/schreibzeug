@@ -123,8 +123,9 @@ fonts is for later.
 Linux needs WebKitGTK and its tooling (`libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
 librsvg2-dev`, Tauri's prerequisites). The workflow **Actions → Desktop app** builds the web app once on Linux and then all
 three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
-by hand it keeps them as artifacts; a tag `desktop-v<version>` also attaches them to a draft
-release. The version comes from `apps/desktop/package.json`.
+by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
+[Development](development.md#releases)) builds them too and attaches them to the GitHub release. The
+version comes from `apps/desktop/package.json`, which the bump keeps at the version of the release.
 
 The builds are not signed yet. Windows SmartScreen shows "unknown publisher" (More info → Run
 anyway), and macOS Gatekeeper refuses to open the app until it is opened once with right click →

@@ -134,8 +134,8 @@ fonts is for later.
 
 Linux needs GTK 4.14 or newer (`libgtk-4-dev librsvg2-dev`; Ubuntu 24.04, Debian 13); Chromium
 (CEF, about 1 GB) is downloaded by the first build, to `CEF_PATH` if set. The workflow **Actions → Desktop app** builds the web app once on Linux and then all
-three platforms: .deb and .rpm (the AppImage is left out while Tauri 3 alpha's bundler cannot
-pack CEF into it); .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
+three platforms: AppImage, .deb and .rpm (these fail for now: Tauri 3 alpha's bundler copies
+libEGL.so and libGLESv2.so from CEF, which CEF 154 no longer ships on Linux); .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
 by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
 [Development](development.md#releases)) builds them too and attaches them to the GitHub release. The
 version comes from `apps/desktop/package.json`, which the bump keeps at the version of the release.

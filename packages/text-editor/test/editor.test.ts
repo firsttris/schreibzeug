@@ -48,6 +48,11 @@ describe("the text editor", () => {
     expect(parent.querySelector(".cm-live")).not.toBeNull();
   });
 
+  it("opens a link whose title goes over two lines, showing that title", () => {
+    const { parent } = open('Siehe [a](https://e.org "erste\nzweite") hier\n\nAnders');
+    expect(parent.querySelector(".cm-content")?.textContent).toContain("zweite");
+  });
+
   it("shows the plain text with its marks in the source view", () => {
     const { editor, parent } = open("# Titel");
     editor.setMode("source");

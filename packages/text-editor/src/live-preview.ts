@@ -142,7 +142,9 @@ const decorationsOf = (view: EditorView): DecorationSet => {
           return;
         const end =
           node.name === "HeaderMark" || node.name === "QuoteMark" ? spaceAfter(state, node.to) : node.to;
-        if (end > node.from) ranges.push(Decoration.replace({}).range(node.from, end));
+        // A plugin may not hide a line break (a link's title over two lines): such a mark stays.
+        const oneLine = state.doc.lineAt(node.from).number === state.doc.lineAt(end).number;
+        if (end > node.from && oneLine) ranges.push(Decoration.replace({}).range(node.from, end));
       },
     });
   }

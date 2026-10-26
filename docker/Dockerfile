@@ -2,6 +2,11 @@
 # image, run by Bun. The engine comes from the pinned Euro-Office release (engine/engine.json);
 # its font tool is a Linux x86_64 binary, so the image is built for amd64.
 FROM docker.io/oven/bun:1.4 AS build
+# engine/scripts/prepare.ts unpacks the Document Server package with ar and tar (xz) and the x2t
+# WebAssembly build with unzip; the bun image has none of them.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends binutils xz-utils unzip \
+  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
 RUN bun install --frozen-lockfile \

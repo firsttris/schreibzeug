@@ -104,6 +104,32 @@ describe("sharing", () => {
     expect((await call(`/api/nodes/${folder.id}/shares`, guest)).status).toBe(403);
   });
 
+  it("lets someone renaming a node shared alone learn nothing about the names next to it", async () => {
+    const { owner, guest, guestEmail } = await people("R");
+    const folder = await createFolder(owner, "Privat");
+    const hidden = await createDocument(owner, "Geheim", folder.id);
+    const file = await createDocument(owner, "Offen", folder.id);
+    const top = await createDocument(owner, "Oben", null);
+    await createDocument(owner, "Versteckt", null);
+    await share(owner, file.id, guestEmail, "edit");
+    await share(owner, top.id, guestEmail, "edit");
+    const rename = (id: string, name: string) => call(`/api/nodes/${id}`, guest, json("PATCH", { name }));
+
+    // A hidden sibling's name and a free one get the same answer.
+    for (const [id, taken, free] of [
+      [file.id, hidden.name, "Frei.docx"],
+      [top.id, "Versteckt.docx", "Frei.docx"],
+    ] as const) {
+      for (const name of [taken, free]) {
+        const reply = await rename(id, name);
+        expect(reply.status).toBe(403);
+        expect(await reply.json()).toMatchObject({ error: { kind: "forbidden" } });
+      }
+    }
+    // Only the case changes: no other name is involved.
+    expect((await rename(file.id, "OFFEN.docx")).status).toBe(200);
+  });
+
   it("gives what an editor creates in a shared folder to the folder's owner", async () => {
     const { owner, guest, guestEmail } = await people("C");
     const folder = await createFolder(owner, "Gemeinsam");

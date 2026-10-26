@@ -24,13 +24,11 @@ const name = (attributes: forge.pki.Certificate["subject"]) =>
   String(attributes.getField("CN")?.value ?? attributes.getField("O")?.value ?? "Unbekannt");
 
 /**
- * The text of a string in the signature dictionary near the position, e.g. /Reason: a literal
- * string with its escapes, or a hex string as signPdf writes them (ISO 32000-1 7.3.4).
+ * The text of a string in the signature dictionary's text, e.g. /Reason: a literal string with
+ * its escapes, or a hex string as signPdf writes them (ISO 32000-1 7.3.4).
  */
-const dictionaryString = (text: string, from: number, to: number, key: string): string | null => {
-  const match = new RegExp(`/${key}\\s*(?:\\(((?:\\\\.|[^\\\\)])*)\\)|<([0-9A-Fa-f\\s]*)>)`).exec(
-    text.slice(from, to),
-  );
+const dictionaryString = (dictionary: string, key: string): string | null => {
+  const match = new RegExp(`/${key}\\s*(?:\\(((?:\\\\.|[^\\\\)])*)\\)|<([0-9A-Fa-f\\s]*)>)`).exec(dictionary);
   const [, literal, hex] = match ?? [];
   if (literal !== undefined) return PDFString.of(literal).decodeText();
   if (hex !== undefined) return PDFHexString.of(hex.replace(/\s/g, "")).decodeText();
@@ -139,37 +137,82 @@ const withoutPadding = (bytes: string): string => {
   return bytes.slice(0, 2 + count + contentLength);
 };
 
-/** Every signature in the PDF, in file order, each checked. */
+/** At most this many signatures are checked: a few /ByteRange entries must not cost a lot of work. */
+export const MAX_SIGNATURES = 32;
+/** The largest /Contents read, in bytes: room for a PAdES signature with its certificates. */
+const MAX_CONTENTS_BYTES = 128 * 1024;
+
+const UNREADABLE = "Die Signatur lässt sich nicht lesen.";
+const UNSIGNED_DATA = "Neben der Signatur stehen ungeprüfte Daten.";
+
+type Checked = ReturnType<typeof checkPkcs7>;
+const refused = (problem: string): Checked => ({
+  certificate: undefined,
+  intact: false,
+  problem,
+  signedAt: null,
+});
+
+/**
+ * A ByteRange as signers write it (ISO 32000-1 12.8.1): from the start of the file up to the
+ * /Contents string and from its end on, inside the file, with a gap of bounded size.
+ */
+const isSaneRange = ([a, b, c, d]: ByteRange, size: number): boolean =>
+  a === 0 && b > 0 && c > b && c - b <= 2 * MAX_CONTENTS_BYTES + 2 && c + d <= size;
+
+/**
+ * The signature in the gap, or why it cannot hold: the gap is exactly one hex string, and after
+ * the DER signature it holds only zero padding, so nothing unsigned can ride along.
+ */
+const signatureInGap = (gap: string): { der: string } | { problem: string } => {
+  if (!/^<(?:[0-9A-Fa-f]{2})*>$/.test(gap)) return { problem: UNREADABLE };
+  const hex = gap.slice(1, -1);
+  const der = withoutPadding(forge.util.hexToBytes(hex));
+  return /^0*$/.test(hex.slice(2 * der.length)) ? { der } : { problem: UNSIGNED_DATA };
+};
+
+/** The signature dictionary's text without the gap: only what the signature covers. */
+const signedDictionary = (text: string, matchIndex: number, [, b, c, d]: ByteRange): string => {
+  const start = text.lastIndexOf("<<", matchIndex);
+  const found = text.indexOf(">>", c);
+  const end = found < 0 ? c : Math.min(found, c + d);
+  return text.slice(Math.min(start < 0 ? b : start, b), b) + text.slice(c, end);
+};
+
+const checkOne = (pdf: Uint8Array, text: string, matchIndex: number, range: ByteRange): SignatureCheck => {
+  const sane = isSaneRange(range, pdf.length);
+  const inGap = sane ? signatureInGap(text.slice(range[1], range[2])) : { problem: UNREADABLE };
+  let checked: Checked;
+  try {
+    checked = "der" in inGap ? checkPkcs7(inGap.der, signedBytes(pdf, range)) : refused(inGap.problem);
+  } catch {
+    checked = refused(UNREADABLE);
+  }
+  const { certificate } = checked;
+  const dictionary = sane ? signedDictionary(text, matchIndex, range) : "";
+  return {
+    signer: certificate ? name(certificate.subject) : "Unbekannt",
+    signedAt: checked.signedAt,
+    reason: dictionaryString(dictionary, "Reason"),
+    location: dictionaryString(dictionary, "Location"),
+    issuer: certificate ? name(certificate.issuer) : "Unbekannt",
+    selfSigned: certificate ? certificate.isIssuer(certificate) : false,
+    intact: checked.intact,
+    coversWholeFile: range[2] + range[3] === pdf.length,
+    problem: checked.problem,
+  };
+};
+
+/**
+ * Every signature in the PDF, in file order, each checked, at most MAX_SIGNATURES. A ByteRange
+ * that is not one a signer writes counts as an unreadable signature, before any of it is decoded.
+ */
 export const checkSignatures = (pdf: Uint8Array): SignatureCheck[] => {
   const text = latin1(pdf);
-  return [...text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g)].map((match) => {
-    const range = match.slice(1, 5).map(Number) as ByteRange;
-    const [, length, second] = range;
-    const der = withoutPadding(forge.util.hexToBytes(text.slice(length + 1, second - 1)));
-    const dictionaryStart = text.lastIndexOf("<<", match.index ?? 0);
-    const dictionaryEnd = text.indexOf(">>", second);
-    let checked: ReturnType<typeof checkPkcs7>;
-    try {
-      checked = checkPkcs7(der, signedBytes(pdf, range));
-    } catch {
-      checked = {
-        certificate: undefined,
-        intact: false,
-        problem: "Die Signatur lässt sich nicht lesen.",
-        signedAt: null,
-      };
-    }
-    const { certificate } = checked;
-    return {
-      signer: certificate ? name(certificate.subject) : "Unbekannt",
-      signedAt: checked.signedAt,
-      reason: dictionaryString(text, dictionaryStart, dictionaryEnd, "Reason"),
-      location: dictionaryString(text, dictionaryStart, dictionaryEnd, "Location"),
-      issuer: certificate ? name(certificate.issuer) : "Unbekannt",
-      selfSigned: certificate ? certificate.isIssuer(certificate) : false,
-      intact: checked.intact,
-      coversWholeFile: range[2] + range[3] === pdf.length,
-      problem: checked.problem,
-    };
-  });
+  const checks: SignatureCheck[] = [];
+  for (const match of text.matchAll(/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g)) {
+    if (checks.length >= MAX_SIGNATURES) break;
+    checks.push(checkOne(pdf, text, match.index, match.slice(1, 5).map(Number) as ByteRange));
+  }
+  return checks;
 };

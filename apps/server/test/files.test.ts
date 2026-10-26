@@ -390,9 +390,13 @@ describe("recent", () => {
 describe("a save from a shared session", () => {
   const relayedServer = async () => {
     const stored: Array<[string, number, SessionSave]> = [];
+    const begun: string[] = [];
     // The relay's session started at version 1.
     const hub = {
-      begin: (_id: string, save: SessionSave) => save.baseVersion === 1,
+      begin: (id: string, save: SessionSave) => {
+        begun.push(id);
+        return save.baseVersion === 1;
+      },
       stored: (...args: [string, number, SessionSave]) => stored.push(args),
       abandon: () => {},
     } as unknown as Hub;
@@ -411,7 +415,7 @@ describe("a save from a shared session", () => {
       await relayed.app.request("/api/files", { method: "POST", body: form, headers: { cookie: anna } }),
       201,
     );
-    return { relayed, put, file, stored, anna };
+    return { relayed, put, file, stored, anna, begun };
   };
 
   it("tells the relay which version holds how much of the session's log", async () => {
@@ -435,6 +439,25 @@ describe("a save from a shared session", () => {
         headers: { cookie: anna },
       });
       expect(await versions.json()).toHaveLength(1);
+    } finally {
+      await relayed.stop();
+    }
+  });
+
+  it("answers someone without access the same, session or not, without asking the relay", async () => {
+    const { relayed, file, begun } = await relayedServer();
+    try {
+      const stranger = await relayed.signUp("Fremd");
+      const putAs = (headers: Record<string, string>) =>
+        relayed.app.request(`/api/files/${file.id}/content`, {
+          method: "PUT",
+          body: bytesOf("fremd"),
+          headers: { cookie: stranger, ...headers },
+        });
+      await expectError(await putAs({ [SESSION_SAVE_HEADER]: "1:3" }), 404, "not_found");
+      await expectError(await putAs({ [SESSION_SAVE_HEADER]: "0:3" }), 404, "not_found");
+      await expectError(await putAs({}), 404, "not_found");
+      expect(begun).toEqual([]);
     } finally {
       await relayed.stop();
     }

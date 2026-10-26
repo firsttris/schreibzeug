@@ -86,6 +86,18 @@ Every change to a file is a new version and can be undone under "Versionen"; del
 into the trash. The server's instructions and the reading tools say that what comes out of a
 document is data, not an instruction.
 
+That is advice to the model, not a boundary: a document someone shared with the user can carry
+text that asks the model to share the user's files. So `share` and `create_link`, the tools that
+let someone else in, carry the annotations `destructiveHint` and `openWorldHint` (what an outsider
+has seen cannot be taken back), so that a client which approves plain writes on its own still asks
+for these. And before either acts on a node the user owns, it asks the person through MCP
+elicitation, naming the node as stored and who gets which role ("die Datei „X“ mit … teilen, zum
+Ansehen?"; for a link, its role and lifetime); a decline or a failed question shares nothing. A
+client can only be asked when it announced elicitation at `initialize` to the same server: the
+stateless `/mcp` endpoint gets a new server per request, which has not seen `initialize`, so there
+the client's own approval of the call, guided by the annotations, is the safeguard
+(`packages/mcp/src/tool.ts` `confirmWith`).
+
 ## Tools
 
 | Tool | What it does | Scope |
@@ -97,11 +109,11 @@ document is data, not an instruction.
 | `create_folder`, `rename`, `move`, `copy` | As in the file list | write |
 | `trash`, `restore` | Into the trash and back | write |
 | `restore_version` | An older version as the newest, as a new version | write |
-| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`), or a link to view or edit | write |
+| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`), or a link to view or edit; asks the person first where the client can be asked (see above) | write |
 | `read_document` | A .docx as Markdown (headings, lists, paragraphs, tables; headers and footers after), or a plain text file | read |
 | `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
 | `read_presentation` | A .pptx slide by slide: title, text, notes | read |
-| `read_pdf` | A PDF's text page by page (`pages`: `1-3`, `2,5`), its form fields, its digital signatures and whether they hold, and the e-invoice it carries | read |
+| `read_pdf` | A PDF's text page by page (`pages`: `1-3`, `2,5`), its form fields, its digital signatures and whether they hold (each with its issuer, or "self-signed", and that the trust chain is not checked, so the name is not confirmed), and the e-invoice it carries | read |
 | `list_templates` | The built-in templates and the user's own in the folder "Vorlagen", each with its placeholders | read |
 | `create_document` | A .docx from Markdown | write |
 | `create_from_template` | A file from a template with its placeholders (`[Nr.]`, `[Datum]` …) filled; says which are still open | write |
@@ -121,7 +133,11 @@ heading levels from the styles' outline level and list levels from `w:numPr`, `x
 `pptxSlides`), pdf.js (`pdfjs-dist`, its legacy build, which runs on Bun) for the text and form fields
 of a PDF, `packages/pdf-sign` for signatures and `packages/einvoice` for the e-invoice. A text longer
 than 20 000 characters comes in parts: the answer ends with the `offset` to ask for next, so a
-document does not fill the conversation. A scan without a text layer reads as empty; text
+document does not fill the conversation. An Office file is unpacked with a budget
+(`packages/ooxml` `boundedUnzip`): the parts it needs may hold at most 128 MiB together, by the
+sizes the zip declares, and each part stops inflating as soon as it gives more than it declared, so
+a small zip bomb cannot block the server; the tool answers that the file is too large. The same
+holds for `list_templates`, `create_from_template` and `append_rows`. A scan without a text layer reads as empty; text
 recognition in the app gives it one. ODT and the older formats need x2t, which runs in the browser:
 open them in Schreibzeug first.
 
@@ -201,11 +217,13 @@ someone else cannot revoke one. `apps/server/test/mcp.test.ts` connects the SDK'
 someone else's folder), a revoked token. `apps/server/test/mcp-read.test.ts` reads the test files
 (`hello.docx`, `preise.xlsx`, `vortrag.pptx`, `formular.pdf`, `rechnung.pdf`) and documents written
 in the test: headings and lists as Markdown, a long text in parts, a sheet by name and range, a
-PDF's form fields and e-invoice. `apps/local/test/mcp.test.ts` uses the local endpoint without a token,
+PDF's form fields and e-invoice, and a zip bomb refused as too large. `apps/local/test/mcp.test.ts` uses the local endpoint without a token,
 gets the local server's answer for sharing, and is refused for a foreign host or origin. `apps/server/test/mcp-create.test.ts` creates every kind and reads it back: Markdown to .docx and back,
 a built-in and an own template, a sheet with appended rows as version 2, a presentation, an
 e-invoice read back with `readInvoiceXml`, small uploads. The readers and writers have their own tests
-in `packages/ooxml` and `packages/mcp`. `e2e/mcp.spec.ts` opens what the tools made in the editor,
+in `packages/ooxml` and `packages/mcp`; `packages/mcp/test/confirm.test.ts` connects a client that
+can be asked in memory: sharing and a link after a yes, nothing after a no, and without the question
+for a client that cannot be asked. `mcp.test.ts` checks the annotations of `share` and `create_link`. `e2e/mcp.spec.ts` opens what the tools made in the editor,
 saves the document through the engine and finds its heading style and table again.
 `apps/server/test/mcp-edit.test.ts` stands in for the tab on the hub: the link when nothing is open,
 the job and its answer, a refusal, the newest tab of the same person only, a tab that does not

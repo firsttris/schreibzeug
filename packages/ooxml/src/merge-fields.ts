@@ -1,4 +1,5 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { strFromU8, strToU8, zipSync } from "fflate";
+import { boundedUnzip } from "./unzip";
 import { escapeXml } from "./zip";
 
 /*
@@ -44,7 +45,7 @@ const PARTS = /^word\/(?:document|header\d*|footer\d*)\.xml$/;
 export const simplifyMergeFields = (docx: Uint8Array): Uint8Array => {
   let files: Record<string, Uint8Array>;
   try {
-    files = unzipSync(docx);
+    files = boundedUnzip(docx);
   } catch {
     return docx;
   }

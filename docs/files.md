@@ -62,7 +62,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 |---|---|
 | `GET /nodes?parent=root\|<id>` | A folder: the folder, its path from the root (for a shared folder, from the folder that was shared), its children (folders first, by name) |
 | `GET /nodes/:id` | One node |
-| `PATCH /nodes/:id` | Rename (`name`) and/or move (`parentId`) |
+| `PATCH /nodes/:id` | Rename (`name`; needs edit and the folder it lies in, [sharing](accounts.md#sharing)) and/or move (`parentId`, owner only) |
 | `POST /nodes/:id/trash` | Move into the trash |
 | `POST /nodes/:id/restore` | Bring back from the trash |
 | `GET /trash`, `GET /recent` | What is in the trash; files by last change (both only the user's own) |
@@ -80,7 +80,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
 | `POST /files/blank` | New empty file (`parentId`, `name`, `format`: `docx`, `xlsx` or `pptx`) |
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version, as a download (`Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`) |
-| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone), see [collaboration](collaboration.md#saving) |
+| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone; the edit role is checked first, so someone without it gets 404/403 whatever the session's state), see [collaboration](collaboration.md#saving) |
 | `GET /files/:id/versions` | All versions, newest first |
 | `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
 | `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash; with `X-Content-Type-Options: nosniff` |

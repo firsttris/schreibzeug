@@ -1,4 +1,5 @@
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8 } from "fflate";
+import { boundedUnzip } from "./unzip";
 
 /*
  * The text of a presentation, slide by slide (ECMA-376 Part 1, 19): the order of the slides is
@@ -70,7 +71,7 @@ const relationsOf = (
 
 /** The text of every slide, in the order of the presentation. */
 export const pptxSlides = (pptx: Uint8Array): SlideText[] => {
-  const files = unzipSync(pptx, { filter: (file) => file.name.startsWith("ppt/") });
+  const files = boundedUnzip(pptx, (name) => name.startsWith("ppt/"));
   const presentation = files["ppt/presentation.xml"];
   if (!presentation) return [];
   const relations = relationsOf(files, "ppt/presentation.xml");

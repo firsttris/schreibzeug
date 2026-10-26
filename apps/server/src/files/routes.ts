@@ -202,8 +202,12 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         });
       })
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
-        const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
+        // Authorize before the relay or the blob store sees anything, so a caller without edit
+        // learns nothing from the file's session state; addVersion checks again after the awaits.
+        const access = repository.requireFile(db, userOf(c), id, "edit");
+        if (!access.ok) return c.json({ error: access.error }, statusOf(access.error.kind));
+        const bytes = new Uint8Array(await c.req.arrayBuffer());
         const content = await store(bytes);
         // From here to `stored` nothing waits, so no other save comes in between.
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));

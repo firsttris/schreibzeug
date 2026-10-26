@@ -50,7 +50,10 @@ or the strongest share on the node or on any folder above it, found with one rec
 
 Everything stays its owner's: what an editor creates in a shared folder belongs to the folder's
 owner, and moving only happens within the owner's own folders. A weaker role than needed answers
-`403 forbidden`. Trash and recent files list only the user's own nodes; "Für mich freigegeben"
+`403 forbidden`. Renaming also needs the folder the node lies in (the top level counts as its
+owner's): names are unique per folder, so a clash would tell someone with a share on a single node
+which names lie next to it. A node shared on its own keeps its name for the other person; only a
+change of case goes through. Trash and recent files list only the user's own nodes; "Für mich freigegeben"
 (`GET /api/shared`) lists what was shared with them, and the path of a shared folder starts at the
 folder that was shared, each folder in it with the role the user has on it.
 

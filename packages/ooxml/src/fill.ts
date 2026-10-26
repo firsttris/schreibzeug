@@ -1,4 +1,5 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { strFromU8, strToU8, zipSync } from "fflate";
+import { boundedUnzip } from "./unzip";
 import { escapeXml } from "./zip";
 
 /*
@@ -43,7 +44,7 @@ export type Filled = {
 /** The placeholders of an Office file, each once, in the order they first appear. */
 export const placeholdersOf = (bytes: Uint8Array): string[] => {
   const found = new Set<string>();
-  for (const [path, data] of Object.entries(unzipSync(bytes))) {
+  for (const [path, data] of Object.entries(boundedUnzip(bytes))) {
     if (!TEXT_PARTS.test(path)) continue;
     for (const [index, piece] of piecesOf(strFromU8(data)).entries()) {
       if (isFormula(index)) continue;
@@ -56,7 +57,7 @@ export const placeholdersOf = (bytes: Uint8Array): string[] => {
 
 /** The file with every "[key]" replaced by its value; keys are given without brackets. */
 export const fillPlaceholders = (bytes: Uint8Array, values: Record<string, string>): Filled => {
-  const files = unzipSync(bytes);
+  const files = boundedUnzip(bytes);
   const used = new Set<string>();
   for (const [path, data] of Object.entries(files)) {
     if (!TEXT_PARTS.test(path)) continue;

@@ -49,6 +49,15 @@ describe("the MCP endpoint", () => {
     expect(readable.map((tool) => tool.name)).not.toContain("create_folder");
     expect(readable.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
     expect(all.find((tool) => tool.name === "trash")?.annotations?.destructiveHint).toBe(true);
+    // Letting someone else in reaches outside and cannot be taken back once they have looked.
+    for (const name of ["share", "create_link"]) {
+      expect(all.find((tool) => tool.name === name)?.annotations).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+    }
+    expect(all.find((tool) => tool.name === "rename")?.annotations?.openWorldHint).toBe(false);
   });
 
   it("acts as the token's user, with the same checks as the app", async () => {

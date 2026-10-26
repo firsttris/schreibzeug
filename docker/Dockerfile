@@ -29,6 +29,11 @@ COPY packages packages
 COPY apps/server apps/server
 RUN bun install --frozen-lockfile --production --ignore-scripts
 COPY --from=build /app/apps/web/dist ./web
+# The server runs as the image's unprivileged user `bun` (uid 1000), which may write only /data.
+# The folder is made and handed to it before VOLUME, so a new volume starts out owned by it; an
+# older volume made by root needs a chown once (docs/installation.md).
+RUN mkdir -p /data && chown bun:bun /data
+USER bun
 VOLUME /data
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s CMD bun -e "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1))"

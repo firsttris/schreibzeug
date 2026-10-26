@@ -38,7 +38,7 @@ Schreibzeug window (Tauri) ┤
   left; the window has no menu bar of its own, only macOS keeps one at the top of the screen. The
   app marks every page it shows (`window.schreibzeugDesktop`), and a command is a navigation to
   `https://desktop.schreibzeug.invalid/<command>`, which the window catches before it loads
-  (`desktop_action`), so neither the local nor a server's pages need native calls for it
+  (`windows.rs` `desktop_action`), so neither the local nor a server's pages need native calls for it
   (`apps/web/src/desktop.ts`).
 - **The local server** (`local.rs`): started on first use with a random key, stopped with the app;
   it also ends when its stdin closes, so a crashed app leaves nothing running. A new folder

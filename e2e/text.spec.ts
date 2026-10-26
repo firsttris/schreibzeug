@@ -97,6 +97,18 @@ test.describe("text files", () => {
     const fileId = openFileId(page);
     await expect(page.getByTestId("text-status")).toContainText("Windows-1252");
     await expect(page.getByTestId("text-status")).toContainText("CRLF");
+
+    // Saving without a change writes nothing.
+    const saves: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "PUT") saves.push(request.url());
+    });
+    await text(page).click();
+    await page.keyboard.press("Control+s");
+    await page.getByRole("button", { name: "Speichern", exact: true }).click();
+    // A save would be under way by now; nothing must have gone out.
+    await page.waitForTimeout(1_000);
+    expect(saves).toEqual([]);
     await expect(
       page.getByRole("toolbar", { name: "Formatierung" }).getByRole("button", { name: "Fett" }),
     ).toHaveCount(0);

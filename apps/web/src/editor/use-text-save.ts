@@ -69,7 +69,8 @@ export const useTextSave = ({
   const running = useRef<Promise<void> | null>(null);
 
   const saveOnce = useCallback(async () => {
-    if (!editor || readOnly) return;
+    // An unchanged file is not written: its bytes stay as they are, also lines that end otherwise.
+    if (!editor || readOnly || !editor.state().modified) return;
     const text = editor.text();
     const encoded = textBytes(text, form);
     if (!encoded.ok) return setFailure(encoded.message);

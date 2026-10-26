@@ -7,6 +7,13 @@ import { defineTool } from "../tool";
 
 const TEXT_EXTENSIONS = [".md", ".txt"] as const;
 
+const concat = (first: Uint8Array, second: Uint8Array) => {
+  const bytes = new Uint8Array(first.length + second.length);
+  bytes.set(first);
+  bytes.set(second, first.length);
+  return bytes;
+};
+
 /**
  * Writes a Markdown note or a text file as the text editor does (apps/web text-view.tsx): in the
  * file's own encoding and line endings, and only over the version it read, so a save someone made
@@ -33,13 +40,17 @@ export const writeText = defineTool({
     if (!content.ok) return content;
     const current = decodeText(content.value);
     const separator = current.text === "" || current.text.endsWith("\n") ? "" : "\n";
-    const next = mode === "append" ? `${current.text}${separator}${text}` : text;
-    const encoded = encodeText(next, current.form);
+    // Appending leaves the bytes there as they are (also lines with another ending than most).
+    const appending = mode === "append";
+    const encoded = encodeText(appending ? `${separator}${text}` : text, {
+      ...current.form,
+      bom: current.form.bom && (!appending || content.value.length === 0),
+    });
     if (!encoded.ok)
       return failure(
         `„${encoded.character}“ lässt sich in der Zeichenkodierung dieser Datei nicht speichern.`,
       );
-    const save = withBytes(encoded.bytes);
+    const save = withBytes(appending ? concat(content.value, encoded.bytes) : encoded.bytes);
     const headers = {
       ...(save.headers as Record<string, string>),
       "if-match": `"${await sha256Hex(content.value)}"`,

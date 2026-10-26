@@ -44,7 +44,10 @@ A `.txt` file opens in the same editor in monospace, without toolbar, preview or
   or CR), also for lines pasted with another one. A new file uses LF.
 
 The status bar shows the cursor, the encoding, the line ending and the kind of file. An unchanged
-text encodes to the same bytes it was read from (`test/codec.test.ts`).
+text with one kind of line ending encodes to the same bytes it was read from
+(`test/codec.test.ts`); in a file whose lines end in different ways, a save gives them all the
+most common ending. That is why an unchanged file is never written: saving without a change stores
+nothing, and `write_text` appends to the bytes as they are.
 
 ## Saving
 

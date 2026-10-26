@@ -1,7 +1,8 @@
 /**
  * A text file's bytes as text and back, in the file's own form: its encoding, whether it starts
- * with a byte order mark, and its line endings. An unchanged text is written back to the same
- * bytes, so a file nobody edited stays what it was ("files are files", CLAUDE.md).
+ * with a byte order mark, and its line endings. An unchanged text with one kind of line ending is
+ * written back to the same bytes; lines that end otherwise than most take the most common ending,
+ * so only a changed file is written at all (apps/web use-text-save.ts, mcp write_text appends).
  */
 
 export type TextEncoding = "utf-8" | "utf-16le" | "utf-16be" | "windows-1252";

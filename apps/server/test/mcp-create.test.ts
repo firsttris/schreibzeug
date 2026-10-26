@@ -188,6 +188,15 @@ describe("creating over MCP", () => {
     expect(await readBack("read_document", note.id)).toBe("- zwei\n");
   });
 
+  it("appends without touching the bytes already there", async () => {
+    // Mostly CRLF, one line with LF only: appending must not rewrite that line.
+    const original = new TextEncoder().encode("a\r\nb\nc\r\n");
+    const file = await upload(server, anna, "gemischt.txt", original);
+    await created("write_text", { id: file.id, text: "d", mode: "append" });
+    const stored = await server.app.request(`/api/files/${file.id}/content`, { headers: { cookie: anna } });
+    expect(new TextDecoder().decode(await stored.arrayBuffer())).toBe("a\r\nb\nc\r\nd");
+  });
+
   it("writes only Markdown notes and text files", async () => {
     const document = await created("create_document", { name: "Brief", markdown: "Hallo" });
     const reply = await call(client, "write_text", { id: document.id, text: "x" });

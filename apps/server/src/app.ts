@@ -10,6 +10,7 @@ import { tokenRoutes } from "./auth/token-routes";
 import type { Hub } from "./collab/hub";
 import { collabRoutes } from "./collab/routes";
 import { type FilesDeps, filesRoutes, invitationRoutes } from "./files/routes";
+import { authBodyLimit, defaultBodyLimit } from "./limits";
 
 export type AppDeps = FilesDeps & {
   auth: Auth;
@@ -48,7 +49,8 @@ export const createApp = ({
     .basePath("/api")
     .get("/health", (c) => c.json({ ok: true }))
     .get("/info", (c) => c.json(info))
-    .on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw))
+    .on(["GET", "POST"], "/auth/*", authBodyLimit, (c) => auth.handler(c.req.raw))
+    .use(defaultBodyLimit)
     .route("/", invitationRoutes(deps))
     .delete("/sessions", async (c) => {
       const token = bearerToken(c.req.raw.headers);

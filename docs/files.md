@@ -56,6 +56,11 @@ All under `/api`; bodies are JSON unless noted. Every route but `/health`, `/inf
 `unauthorized` (401), `forbidden` (403: the role is too weak), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
 `internal` (500).
 
+Only the uploads (`POST /files`, `PUT /files/:id/content`, `POST /files/:id/media`) take bodies up to
+`SCHREIBZEUG_MAX_UPLOAD_MB`. Better Auth's `/auth/*` answers a body over 64 KB with `413` before it
+reads it, and every other route one over 16 MB (`src/limits.ts`): Bun's own limit is sized for the
+uploads, and Better Auth reads a JSON body whole before it checks who is asking.
+
 Every node in an answer carries `role`, what the user may do with it: `owner`, `edit` or `view`.
 
 | Route | What it does |

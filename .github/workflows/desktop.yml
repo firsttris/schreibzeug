@@ -52,7 +52,9 @@ jobs:
           - name: linux
             # GTK 4.14 or newer for the CEF runtime (tauri-winit-gtk4): Ubuntu 24.04
             runner: ubuntu-24.04
-            args: --bundles appimage,deb,rpm
+            # No AppImage for now: Tauri 3 alpha's bundler fails to copy CEF's files into the
+            # AppDir ("Failed to copy cef file libEGL.so to …/AppDir/bin/libEGL.so").
+            args: --bundles deb,rpm
           - name: windows
             runner: windows-latest
             args: --bundles msi,nsis

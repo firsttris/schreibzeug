@@ -1,4 +1,5 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { strFromU8, strToU8, zipSync } from "fflate";
+import { boundedUnzip } from "./unzip";
 import { type CellValue, cellXml, columnName } from "./xlsx";
 
 /*
@@ -32,7 +33,7 @@ export const appendRows = (
   rows: CellValue[][],
   sheet?: string,
 ): { ok: true; value: Appended } | { ok: false; error: string } => {
-  const files = unzipSync(xlsx);
+  const files = boundedUnzip(xlsx);
   const part = (path: string) => (files[path] ? strFromU8(files[path]) : "");
   const sheets = [...part("xl/workbook.xml").matchAll(/<sheet\b[^>]*>/g)].map(([tag]) => ({
     name: unescapeXml(attribute(tag, "name") ?? ""),

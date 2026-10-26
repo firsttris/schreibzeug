@@ -7,6 +7,7 @@ import { type Api, bytes, failure, json, type Outcome, success } from "../api";
 import { blocksMarkdown, pageOf, tableMarkdown } from "../markdown";
 import { pagesWanted, pdfText } from "../pdf-text";
 import { CONTENT_IS_DATA, defineTool } from "../tool";
+import { unreadable } from "../unpack";
 
 const id = nodeIdSchema.describe("Die ID der Datei");
 const offset = z
@@ -42,10 +43,8 @@ const withFile = async (
   if (extensions.includes(extension)) {
     try {
       return await read(file.value);
-    } catch {
-      return failure(
-        `„${file.value.name}“ lässt sich nicht lesen: Die Datei ist beschädigt oder kein ${extension.toUpperCase()}.`,
-      );
+    } catch (error) {
+      return failure(unreadable(file.value.name, extension.toUpperCase(), error));
     }
   }
   const other = OTHER_READER[extension];

@@ -1,4 +1,5 @@
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8 } from "fflate";
+import { boundedUnzip } from "./unzip";
 
 /*
  * The values of a workbook's sheets as text, the way the sheet shows them in German: what a mail
@@ -112,7 +113,7 @@ export type SheetRows = { name: string; rows: string[][] };
 
 /** Every sheet of a workbook, in the order of its tabs, with its values as text. */
 export const xlsxSheets = (xlsx: Uint8Array): SheetRows[] => {
-  const files = unzipSync(xlsx);
+  const files = boundedUnzip(xlsx);
   const part = (path: string) => (files[path] ? strFromU8(files[path]) : "");
   const relations = [...part("xl/_rels/workbook.xml.rels").matchAll(/<Relationship\b[^>]*>/g)].map(
     ([tag]) => tag,

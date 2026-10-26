@@ -13,6 +13,7 @@ import { z } from "zod";
 import { type Api, bytes, failure, json, mapOutcome, success, withBytes, withFile } from "../api";
 import { asText, presentNode } from "../present";
 import { defineTool, type ToolContext } from "../tool";
+import { unpacking } from "../unpack";
 
 const parentId = nodeIdSchema
   .nullable()
@@ -162,11 +163,10 @@ export const listTemplates = defineTool({
     const own = await Promise.all(
       (await ownTemplates(api)).map(async (node) => {
         const content = await bytes(api(`/api/files/${node.id}/content`));
-        return {
-          template: node.id,
-          name: node.name,
-          placeholders: content.ok ? placeholdersOf(content.value) : [],
-        };
+        const found = content.ok
+          ? unpacking(node.name, "Office-Dokument", () => placeholdersOf(content.value))
+          : null;
+        return { template: node.id, name: node.name, placeholders: found?.ok ? found.value : [] };
       }),
     );
     return success(asText({ builtIn, own }));
@@ -196,7 +196,11 @@ export const createFromTemplate = defineTool({
       ? success({ format: builtIn.format as string, bytes: builtIn.bytes() })
       : await ownTemplate(context.api, input.template);
     if (!source.ok) return source;
-    const { bytes: filled, missing, left } = fillPlaceholders(source.value.bytes, input.values);
+    const result = unpacking(input.template, "Office-Dokument", () =>
+      fillPlaceholders(source.value.bytes, input.values),
+    );
+    if (!result.ok) return result;
+    const { bytes: filled, missing, left } = result.value;
     return store(context, withExtension(input.name, source.value.format), filled, input.parentId, {
       ...(missing.length > 0 ? { notInTemplate: missing } : {}),
       stillToFill: left,
@@ -241,7 +245,9 @@ export const appendRows = defineTool({
       return failure("Zeilen anhängen geht nur an .xlsx-Tabellen.");
     const content = await bytes(api(`/api/files/${id}/content`));
     if (!content.ok) return content;
-    const appended = appendToSheet(content.value, rows, sheet);
+    const unpacked = unpacking(node.value.name, "XLSX", () => appendToSheet(content.value, rows, sheet));
+    if (!unpacked.ok) return unpacked;
+    const appended = unpacked.value;
     if (!appended.ok) return failure(appended.error);
     const { sheet: sheetName, firstRow, lastRow } = appended.value;
     return mapOutcome(

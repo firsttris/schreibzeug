@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { docx, paragraphXml, xlsx } from "@schreibzeug/ooxml";
+import { docx, MAX_UNZIPPED_BYTES, paragraphXml, xlsx } from "@schreibzeug/ooxml";
+import { zipSync } from "fflate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startServer, type TestServer } from "./harness";
 import { call, connect, tokenFor, upload } from "./mcp-client";
@@ -95,6 +96,21 @@ describe("reading over MCP", () => {
     expect((await call(client, "read_pdf", { id: await uploaded("anhang.pdf"), pages: "x" })).isError).toBe(
       true,
     );
+  });
+
+  it("refuses an archive that claims more than it may inflate to, without inflating it", async () => {
+    // A small .docx whose central directory declares a part of 4 GiB: a zip bomb's signature.
+    const bomb = zipSync({ "word/document.xml": new Uint8Array(1024) });
+    const view = new DataView(bomb.buffer);
+    const header = bomb.findLastIndex(
+      (_, at) => at + 4 <= bomb.length && view.getUint32(at, true) === 0x02014b50,
+    );
+    view.setUint32(header + 24, 0xfffffff0, true);
+    const id = await uploaded("bombe.docx", bomb);
+    expect(await call(client, "read_document", { id })).toEqual({
+      isError: true,
+      text: `„bombe.docx“ ist entpackt größer als ${MAX_UNZIPPED_BYTES / 1024 / 1024} MB; das liest dieses Werkzeug nicht. Öffne die Datei in Schreibzeug.`,
+    });
   });
 
   it("says which tool reads a file of another kind", async () => {

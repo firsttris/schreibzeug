@@ -121,7 +121,11 @@ heading levels from the styles' outline level and list levels from `w:numPr`, `x
 `pptxSlides`), pdf.js (`pdfjs-dist`, its legacy build, which runs on Bun) for the text and form fields
 of a PDF, `packages/pdf-sign` for signatures and `packages/einvoice` for the e-invoice. A text longer
 than 20 000 characters comes in parts: the answer ends with the `offset` to ask for next, so a
-document does not fill the conversation. A scan without a text layer reads as empty; text
+document does not fill the conversation. An Office file is unpacked with a budget
+(`packages/ooxml` `boundedUnzip`): the parts it needs may hold at most 128 MiB together, by the
+sizes the zip declares, and each part stops inflating as soon as it gives more than it declared, so
+a small zip bomb cannot block the server; the tool answers that the file is too large. The same
+holds for `list_templates`, `create_from_template` and `append_rows`. A scan without a text layer reads as empty; text
 recognition in the app gives it one. ODT and the older formats need x2t, which runs in the browser:
 open them in Schreibzeug first.
 
@@ -201,7 +205,7 @@ someone else cannot revoke one. `apps/server/test/mcp.test.ts` connects the SDK'
 someone else's folder), a revoked token. `apps/server/test/mcp-read.test.ts` reads the test files
 (`hello.docx`, `preise.xlsx`, `vortrag.pptx`, `formular.pdf`, `rechnung.pdf`) and documents written
 in the test: headings and lists as Markdown, a long text in parts, a sheet by name and range, a
-PDF's form fields and e-invoice. `apps/local/test/mcp.test.ts` uses the local endpoint without a token,
+PDF's form fields and e-invoice, and a zip bomb refused as too large. `apps/local/test/mcp.test.ts` uses the local endpoint without a token,
 gets the local server's answer for sharing, and is refused for a foreign host or origin. `apps/server/test/mcp-create.test.ts` creates every kind and reads it back: Markdown to .docx and back,
 a built-in and an own template, a sheet with appended rows as version 2, a presentation, an
 e-invoice read back with `readInvoiceXml`, small uploads. The readers and writers have their own tests

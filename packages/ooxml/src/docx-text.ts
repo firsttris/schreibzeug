@@ -1,4 +1,5 @@
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8 } from "fflate";
+import { boundedUnzip } from "./unzip";
 
 /**
  * A paragraph's text, or a table as rows of cell texts (a cell's paragraphs joined by "\n"). A
@@ -142,9 +143,7 @@ const partsLike = (
 
 /** The text of a .docx: its body, headers and footers, as paragraphs and tables. */
 export const docxContent = (docx: Uint8Array): DocxContent => {
-  const files = unzipSync(docx, {
-    filter: (file) => file.name.startsWith("word/") && file.name.endsWith(".xml"),
-  });
+  const files = boundedUnzip(docx, (name) => name.startsWith("word/") && name.endsWith(".xml"));
   const styles = files["word/styles.xml"];
   const headings = styles ? headingStyles(strFromU8(styles)) : new Map<string, number>();
   return {

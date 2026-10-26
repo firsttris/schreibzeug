@@ -111,12 +111,24 @@ const personOf = (
 ) =>
   db.transaction((tx): SessionUser | null => {
     const linked = tx
-      .select({ id: user.id, name: user.name, email: user.email })
+      .select({ id: user.id, name: user.name, email: user.email, verified: user.emailVerified })
       .from(account)
       .innerJoin(user, eq(user.id, account.userId))
       .where(and(eq(account.providerId, providerId), eq(account.accountId, subject)))
       .get();
-    if (linked || !create) return linked ?? null;
+    if (linked) {
+      // An account made from a token that did not vouch for the address is confirmed by the first
+      // one that does, as a sign-in through the provider would (oauth2/link-account.mjs).
+      if (verified && !linked.verified && linked.email === email) {
+        tx.update(user)
+          .set({ emailVerified: true, updatedAt: new Date() })
+          .where(eq(user.id, linked.id))
+          .run();
+        claimPendingShares(tx, linked.id, email);
+      }
+      return { id: linked.id, name: linked.name, email: linked.email };
+    }
+    if (!create) return null;
     const now = new Date();
     const link = (userId: string) =>
       tx

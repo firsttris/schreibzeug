@@ -82,7 +82,8 @@ keeps), else by address, else creates them; the request then has exactly that pe
 By address only as Better Auth links a sign-in: the account's address must be confirmed, the
 token must confirm it as well (`email_verified: true`), and the account must not belong to another
 `sub` already. A new account made from a token has its address confirmed, and gets what was shared
-with it, only with `email_verified: true` too. An account someone registered with a password
+with it, only with `email_verified: true` too; one made unconfirmed is confirmed, and gets what
+waited for its address, by the first later token that says so. An account someone registered with a password
 under a colleague's address is refused, and so is a new person at Kontext who got a former
 colleague's address; the first account made from a token takes over the files from before there
 were accounts, as at a sign-up.

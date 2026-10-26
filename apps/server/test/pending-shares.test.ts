@@ -95,6 +95,30 @@ describe("shares with an address that has no account yet", () => {
     ]);
   });
 
+  it("hold once a later token confirms the address of an account made unconfirmed", async () => {
+    const owner = await server.signUp("Lea", "lea@example.org");
+    const file = await documentOf(owner, "Plan");
+    await call(
+      `/api/nodes/${file.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "max@example.org", role: "view" }),
+    );
+    const first = await tokenFor("kontext-max", "max@example.org", false);
+    expect(await sharedWith(asBearer(first))).toEqual([]);
+    // Max confirms his address at Kontext; its tokens now say so.
+    const confirmed = await tokenFor("kontext-max", "max@example.org", true);
+    expect((await sharedWith(asBearer(confirmed))).map((node) => node.id)).toEqual([file.id]);
+    // And a share made after that goes straight to the account.
+    const later = await documentOf(owner, "Später");
+    await call(
+      `/api/nodes/${later.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "max@example.org", role: "view" }),
+    );
+    expect(await sharesOf(owner, later.id)).toMatchObject([{ email: "max@example.org" }]);
+    expect((await sharesOf(owner, later.id))[0]?.pending).toBeUndefined();
+  });
+
   it("never go to a sign-up with a password", async () => {
     const owner = await server.signUp("Ole", "ole@example.org");
     const file = await documentOf(owner, "Vertrag");

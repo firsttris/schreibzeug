@@ -72,9 +72,24 @@ Someone who may only look at the file joins as a viewer: the hub sets `mode: "vi
 `auth` and ignores what would change the document, also the locks a viewer announces when it
 reconnects ([sharing](accounts.md#sharing)).
 
+Access is checked when a connection opens and again whenever it may have changed: after a share is
+put or removed, and after a file or folder is moved, trashed or restored, the file routes have the
+hub check every open connection (`hub.ts` `revalidate`, through `src/sockets.ts`). Whoever lost the
+file, and an editor who may now only look, is sent away as DocsCoServer drops a connection whose
+rights changed: the engine gets `drop` with sdkjs's code `accessDeny` and stops reconnecting, the
+connection leaves the session at once, and the socket closes with 4403. The editor shows the
+engine's error; opened again, the document comes as the role now allows. The jobs socket of the
+[MCP server](mcp.md#editing-in-the-open-tab) is checked the same way.
+
+A connection also ends with the sign-in session it was opened with: on sign-out, a revoked session,
+a password change that signs out the other devices, or Kontext signing the person out everywhere
+([accounts](accounts.md)), the engine gets `drop` with `sessionAbsolute` and the socket closes with
+4401.
+
 The hub (`hub.ts`) keeps one session per file in memory and delivers the answers;
 `routes.ts` does the WebSocket upgrade with Hono on Bun. Malformed messages close the socket with
-code 4400, an unknown file with 4404.
+code 4400, an unknown file with 4404, lost access with 4403, an ended sign-in with 4401 (`src/collab/limits.ts`
+`SOCKET_CLOSE`).
 
 ## Losing the connection
 
@@ -93,6 +108,12 @@ the editor's rule refuses ends the restore ("Restore error. Locks not checked.",
 opened again. If the relay started a new session at another version, the channel tells the engine
 the reconnect failed.
 
+The relay records with each session id it gives out the account and the user index it came with.
+Only that account may come back with the id, and it gets that index again; the index the engine
+announces is ignored, and only a fresh `auth` moves the session's next index on. The engine
+prefixes every object it creates with its index (`common/editorscommon.js` `CIdCounter`), so two
+people with one index would create objects with the same ids.
+
 ## Saving
 
 The session lives only in the server's memory. It ends with the last person leaving once a stored
@@ -106,6 +127,15 @@ anything (`hub.ts` `begin`) and the last person leaving ends the session only wh
 holds the whole log and no save is under way: one landing later is the newest version and may hold
 less. A session whose log a late save completed stays until the next person or a restore. A server restart loses what no stored version holds. So the editor saves on
 its own.
+
+A session nobody is in waits an hour (`IDLE_SESSION_MS` in `hub.ts`); then it ends, and changes no
+stored version holds are gone, as after a restart. A client that lost its connection gives up long
+before. The log has a ceiling too (`src/collab/limits.ts`): 100,000 changes or 64 MiB. A change
+past it is not taken; the relay sends the engine `drop` (sdkjs `c_oCloseCode.drop`), which
+disconnects for good and stays in view mode with the download still possible. The server takes
+WebSocket messages up to 8 MiB (`maxPayloadLength` in `main.ts`) and closes the socket on a larger
+one; the engine splits its changes into messages of about 1.5 MiB (`common/docscoapi.js`
+`websocketMaxPayloadSize`).
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The
@@ -144,7 +174,8 @@ for while one runs follows it. Each save is a version, so a session leaves sever
 ## Tests
 
 `apps/server/test/collab.test.ts` covers the session functions and the hub, `locks.test.ts` the
-locks,
+locks, `collab-limits.test.ts` the log's ceiling and the end of idle sessions,
+`collab-revocation.test.ts` closing sockets when access or the sign-in ends,
 `packages/editor-core/test` the channel, the socket stand-in and the save counting.
 `e2e/collaboration.spec.ts` opens the same file in two browser contexts: both type and see each
 other's text; one loses its connection, waits for it to come back and edits on; a change is stored

@@ -10,6 +10,7 @@ import { tokenRoutes } from "./auth/token-routes";
 import type { Hub } from "./collab/hub";
 import { collabRoutes } from "./collab/routes";
 import { type FilesDeps, filesRoutes, invitationRoutes } from "./files/routes";
+import { bindSignInSession, openSockets } from "./sockets";
 
 export type AppDeps = FilesDeps & {
   auth: Auth;
@@ -43,8 +44,10 @@ export const createApp = ({
   bearer,
   agent = createAgentHub(),
   ...deps
-}: AppDeps) =>
-  new Hono<AuthEnv>()
+}: AppDeps) => {
+  // A socket is checked when it opens; after a change to who may open what, the open ones again.
+  const sockets = openSockets({ db: deps.db, ...(collab ? { collab: collab.hub } : {}), agent, log });
+  return new Hono<AuthEnv>()
     .basePath("/api")
     .get("/health", (c) => c.json({ ok: true }))
     .get("/info", (c) => c.json(info))
@@ -59,10 +62,10 @@ export const createApp = ({
     })
     .use(requireUser(auth, deps.db, bearer))
     .route("/", tokenRoutes(deps))
-    .route("/", filesRoutes({ ...deps, relay: collab?.hub }))
+    .route("/", filesRoutes({ ...deps, relay: collab?.hub, onAccessChange: sockets.accessChanged }))
     .route("/", agentRoutes({ db: deps.db, hub: agent }))
-    .use("/collab/*", requireSession)
-    .use("/agent/*", requireSession)
+    .use("/collab/*", requireSession, bindSignInSession(auth))
+    .use("/agent/*", requireSession, bindSignInSession(auth))
     .route("/", collab ? collabRoutes(collab) : new Hono<AuthEnv>())
     .route(
       "/",
@@ -74,6 +77,7 @@ export const createApp = ({
       log("[api]", error);
       return c.json({ error: { kind: "internal" as const, message: "Interner Fehler." } }, 500);
     });
+};
 
 /** The route types the web app's `hc` client is built from. */
 export type AppType = ReturnType<typeof createApp>;

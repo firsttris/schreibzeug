@@ -27,7 +27,12 @@ found", the same as one that does not exist. Names are unique per owner at the t
 The collaboration relay needs a session too: the WebSocket upgrade carries the cookie. Every
 connection is checked against the file, also when the file's session is already open, and the
 relay replaces the user that the engine announces in `auth` with the signed-in one, so names at
-cursors and on comments are real.
+cursors and on comments are real. The socket stays bound to the sign-in session it came with
+(`src/sockets.ts`): when that session ends (sign-out, a revoked session, a password change that
+signs out the other devices; Better Auth's `databaseHooks.session.delete`), or Kontext signs the
+person out everywhere, the relay and the jobs socket close the person's sockets (code 4401) and the
+engine shows that the session ended. A change to shares, the trash or a move checks every open
+socket against the file again ([collaboration](collaboration.md#messages)).
 
 ## Sharing
 

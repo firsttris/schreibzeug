@@ -42,6 +42,11 @@ export type FilesDeps = {
   pendingShares?: boolean;
   /** The collaboration relay, told of saves from its sessions (collab/hub.ts). */
   relay?: SessionSaves | undefined;
+  /**
+   * Who may open what may have changed (a share, the trash, a move): the open editors' sockets are
+   * checked again (app.ts).
+   */
+  onAccessChange?: () => void;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -94,7 +99,20 @@ export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
     respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
   );
 
-export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, relay }: FilesDeps) => {
+export const filesRoutes = ({
+  db,
+  blobs,
+  maxUploadBytes,
+  pendingShares = false,
+  relay,
+  onAccessChange = () => {},
+}: FilesDeps) => {
+  /** A result of a change to who may open what; once it is done, the open sockets are checked. */
+  const accessChanged = <T>(result: Result<T>): Result<T> => {
+    if (result.ok) onAccessChange();
+    return result;
+  };
+
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -139,13 +157,14 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
           ...(name === undefined ? {} : { name }),
           ...(parentId === undefined ? {} : { parentId }),
         };
-        return respond(c, repository.updateNode(db, userOf(c), c.req.valid("param").id, update), toFileNode);
+        const updated = repository.updateNode(db, userOf(c), c.req.valid("param").id, update);
+        return respond(c, accessChanged(updated), toFileNode);
       })
       .post("/nodes/:id/trash", validate("param", idParam), async (c) =>
-        respond(c, repository.trashNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+        respond(c, accessChanged(repository.trashNode(db, userOf(c), c.req.valid("param").id)), toFileNode),
       )
       .post("/nodes/:id/restore", validate("param", idParam), async (c) =>
-        respond(c, repository.restoreNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+        respond(c, accessChanged(repository.restoreNode(db, userOf(c), c.req.valid("param").id)), toFileNode),
       )
       .get("/trash", async (c) => c.json(repository.listTrash(db, userOf(c)).map(toFileNode)))
       .get("/recent", async (c) => c.json(repository.listRecent(db, userOf(c)).map(toFileNode)))
@@ -270,9 +289,11 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
       .put("/nodes/:id/shares", validate("param", idParam), validate("json", putShareSchema), async (c) =>
         respond(
           c,
-          shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json"), {
-            pending: pendingShares,
-          }),
+          accessChanged(
+            shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json"), {
+              pending: pendingShares,
+            }),
+          ),
           (list) => list,
         ),
       )
@@ -281,7 +302,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         validate("param", z.object({ id: nodeIdSchema, userId: z.string().min(1) })),
         async (c) => {
           const { id, userId } = c.req.valid("param");
-          return respond(c, shares.removeShare(db, userOf(c), id, userId), (list) => list);
+          return respond(c, accessChanged(shares.removeShare(db, userOf(c), id, userId)), (list) => list);
         },
       )
       .get("/nodes/:id/invites", refuseReadToken, validate("param", idParam), (c) =>

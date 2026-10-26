@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
 import { z } from "zod";
 import type { AuthEnv } from "../auth/middleware";
+import { SOCKET_CLOSE } from "../collab/limits";
 import type { Database } from "../db/database";
 import { requireFile } from "../files/repository";
 import { statusOf } from "../result";
@@ -80,15 +81,19 @@ export const agentSocketRoutes = ({
     upgradeWebSocket((c) => {
       const fileId = c.req.param("fileId") ?? "";
       const userId = c.var.user.id;
+      const session = c.var.signInSession;
       let tabId: string | null = null;
       return {
         onOpen: (_event, ws) => {
           const valid = nodeIdSchema.safeParse(fileId).success;
           if (!valid || !requireFile(db, userId, fileId, "edit").ok) {
-            ws.close(4404, "Unknown file");
+            ws.close(SOCKET_CLOSE.notFound, "Unknown file");
             return;
           }
-          tabId = hub.join(userId, fileId, (job) => ws.send(JSON.stringify(job)));
+          tabId = hub.join(userId, fileId, (job) => ws.send(JSON.stringify(job)), {
+            close: (code, reason) => ws.close(code, reason),
+            session,
+          });
         },
         onMessage: (event) => {
           const reply = parse(event.data);

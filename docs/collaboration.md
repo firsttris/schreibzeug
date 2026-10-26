@@ -93,6 +93,12 @@ the editor's rule refuses ends the restore ("Restore error. Locks not checked.",
 opened again. If the relay started a new session at another version, the channel tells the engine
 the reconnect failed.
 
+The relay records with each session id it gives out the account and the user index it came with.
+Only that account may come back with the id, and it gets that index again; the index the engine
+announces is ignored, and only a fresh `auth` moves the session's next index on. The engine
+prefixes every object it creates with its index (`common/editorscommon.js` `CIdCounter`), so two
+people with one index would create objects with the same ids.
+
 ## Saving
 
 The session lives only in the server's memory. It ends with the last person leaving once a stored

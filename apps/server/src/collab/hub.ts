@@ -5,6 +5,7 @@ import {
   disconnect,
   hasUnsavedChanges,
   type Incoming,
+  type Issued,
   licenseMessage,
   markSaved,
   type Outgoing,
@@ -84,7 +85,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
    * may restore into the next session at that version (DocsCoServer refuses a restore only for a
    * changed document or locks, DocsCoServer.js auth).
    */
-  const ended = new Map<string, { ids: string[]; version: number; baseVersion: number }>();
+  const ended = new Map<string, { ids: Issued[]; version: number; baseVersion: number }>();
   /** How many sessions each file has had in this process: which one a session is. */
   const generations = new Map<string, number>();
 
@@ -128,7 +129,11 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     const session = sessions.get(fileId);
     if (!session || membersOf(fileId).length > 0 || hasUnsavedChanges(session) || saving.has(fileId)) return;
     // Without a change everyone's copy is the version; with one, only those there to the end.
-    const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
+    const left = leftSinceChange.get(fileId) ?? [];
+    const whole =
+      session.changes.length === 0
+        ? session.issued
+        : session.issued.filter(({ sessionId }) => left.includes(sessionId));
     ended.set(fileId, {
       ids: whole.slice(-ENDED_IDS_KEPT),
       version: storedAt.get(fileId) ?? session.baseVersion,
@@ -145,7 +150,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     generations.set(fileId, (generations.get(fileId) ?? 0) + 1);
     storedAt.set(fileId, version);
     leftSinceChange.set(fileId, []);
-    return { ...createSession(fileId, version), sessionIds: last?.version === version ? last.ids : [] };
+    return { ...createSession(fileId, version), issued: last?.version === version ? last.ids : [] };
   };
 
   return {

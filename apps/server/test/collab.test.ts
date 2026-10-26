@@ -294,6 +294,34 @@ describe("collaboration session", () => {
     ]);
   });
 
+  it("gives a returning client the index it was given, whatever it announces, and moves no counter", () => {
+    const { session, log } = run([
+      ["a", auth("anna")],
+      ["b", auth("ben", { mode: "view" })],
+      ["b2", auth("ben", { sessionId: "b", user: { id: "ben", indexUser: 2 ** 53 }, mode: "view" })],
+      ["c", auth("carl")],
+    ]);
+    expect(log[2]?.out[0]?.message).toMatchObject({ type: "auth", indexUser: 2 });
+    expect(log[3]?.out[1]?.message).toMatchObject({ type: "auth", indexUser: 3 });
+    expect(session.participants.map((p) => p.id)).toEqual(["anna1", "ben2", "carl3"]);
+    expect(session.nextIndexUser).toBe(4);
+  });
+
+  it("sends away a client that comes back with a session id given to another account", () => {
+    const { session, log } = run([
+      ["a", auth("anna")],
+      ["b", auth("ben")],
+      ["b2", auth("ben", { sessionId: "a", user: { id: "ben" }, lastOtherSaveTime: 0 })],
+    ]);
+    expect(log[2]?.out).toEqual([
+      {
+        to: "self",
+        message: { type: "error", description: "Restore error. Session ended.", code: RESTORE_CODE },
+      },
+    ]);
+    expect(session.participants.map((p) => p.id)).toEqual(["anna1", "ben2"]);
+  });
+
   it("leaves a text lock someone took meanwhile to them when its former holder returns", () => {
     const { session: held } = run([
       ["a", auth("anna")],

@@ -67,6 +67,8 @@ const children = (node: SyntaxNode): SyntaxNode[] => {
 
 export const markdownHtml = (text: string): string => {
   const slice = (from: number, to: number) => text.slice(from, to);
+  /** Inside a link's or image's text, where an address is text, not another link. */
+  let inLabel = 0;
 
   /** The node's text with its children rendered and the syntax between them left out. */
   const inline = (node: SyntaxNode, from = node.from, to = node.to): string => {
@@ -77,7 +79,9 @@ export const markdownHtml = (text: string): string => {
       html += escapeHtml(slice(at, child.from));
       // A bare address is text GFM made a link of; inside a link it is the link's target.
       const bareUrl = child.name === "URL" && !LINKS.has(node.name);
-      html += MARKS.has(child.name) && !bareUrl ? "" : render(child);
+      if (inLabel > 0 && (child.name === "URL" || child.name === "Autolink"))
+        html += escapeHtml(slice(child.from, child.to).replace(/^<|>$/g, ""));
+      else html += MARKS.has(child.name) && !bareUrl ? "" : render(child);
       at = child.to;
     }
     return html + escapeHtml(slice(at, to));
@@ -147,12 +151,17 @@ export const markdownHtml = (text: string): string => {
         return "<hr>";
       case "Link":
       case "Image": {
-        const url = children(node).find((child) => child.name === "URL");
+        const marks = children(node).filter((child) => child.name === "LinkMark");
+        const [open, close] = marks;
+        // The target follows "](": an address in the text before it is part of the text.
+        const url = children(node).find((child) => child.name === "URL" && child.from >= (close?.to ?? 0));
         const href = url ? safeUrl(slice(url.from, url.to).replace(/^<|>$/g, "")) : null;
-        const firstMark = children(node).find((child) => child.name === "LinkMark");
-        const close = children(node).filter((child) => child.name === "LinkMark")[1];
-        const label = firstMark && close ? inline(node, firstMark.to, close.from) : inline(node);
-        if (node.name === "Image") return href ? `<img src="${escapeHtml(href)}" alt="${label}">` : label;
+        inLabel++;
+        const label = open && close ? inline(node, open.to, close.from) : inline(node);
+        inLabel--;
+        // An image's text is an attribute: the text alone, no markup (escaped already).
+        if (node.name === "Image")
+          return href ? `<img src="${escapeHtml(href)}" alt="${label.replace(/<[^>]*>/g, "")}">` : label;
         return href
           ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`
           : label;

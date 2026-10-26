@@ -35,4 +35,20 @@ describe("the split view's preview", () => {
       '<a href="https://example.org" target="_blank" rel="noopener noreferrer">https://example.org</a>',
     );
   });
+
+  it("keeps an image's text in its alt attribute as plain text, with nothing that could close it", () => {
+    const html = markdownHtml("![<https://e.com/x/onerror=alert(1)//>](nope.png)");
+    const image = new DOMParser().parseFromString(html, "text/html").querySelector("img");
+    expect(image?.getAttributeNames().sort()).toEqual(["alt", "src"]);
+    expect(image?.getAttribute("alt")).toBe("https://e.com/x/onerror=alert(1)//");
+  });
+
+  it("links to the target after the text, also when the text holds an address", () => {
+    expect(markdownHtml("[see https://a.com](https://b.com)")).toBe(
+      '<p><a href="https://b.com" target="_blank" rel="noopener noreferrer">see https://a.com</a></p>',
+    );
+    expect(markdownHtml("![a https://x.com/p](x.png)")).toBe(
+      '<p><img src="x.png" alt="a https://x.com/p"></p>',
+    );
+  });
 });

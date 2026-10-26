@@ -7,6 +7,7 @@ import { createBearer } from "./auth/bearer";
 import { loadSecret } from "./auth/secret";
 import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
+import { MAX_MESSAGE_BYTES } from "./collab/limits";
 import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
 import { roleOf } from "./files/access";
@@ -76,7 +77,8 @@ if (webDir) site.route("/", webRoutes(webDir, { embedOrigin }));
 const server = Bun.serve({
   port,
   fetch: site.fetch,
-  websocket,
+  // A larger message closes the socket (code 1009); an engine's change batches stay far below.
+  websocket: { ...websocket, maxPayloadLength: MAX_MESSAGE_BYTES },
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,
 });
 console.log(`Schreibzeug server on http://localhost:${server.port}`);

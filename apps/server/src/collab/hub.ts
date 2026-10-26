@@ -29,6 +29,24 @@ export type HubDeps = {
    */
   access: (fileId: string, userId: string) => Promise<FileAccess | null>;
   now?: () => number;
+  /** How long a session nobody is in waits with changes no version holds (IDLE_SESSION_MS). */
+  idleMs?: number;
+  /** Runs `run` after `ms`; returns what cancels it. */
+  setTimer?: (run: () => void, ms: number) => () => void;
+};
+
+/**
+ * How long a session nobody is in keeps changes no stored version holds, for a client to restore
+ * them or the next person to save them. A client that lost its connection gives up after a few
+ * minutes (editor-core collab.ts); after that the changes would only hold memory.
+ */
+export const IDLE_SESSION_MS = 60 * 60 * 1000;
+
+/** A timer that does not keep the process alive. */
+const unrefTimer = (run: () => void, ms: number) => {
+  const timer = setTimeout(run, ms) as unknown as { unref?: () => void };
+  timer.unref?.();
+  return () => clearTimeout(timer as unknown as number);
 };
 
 type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send };
@@ -69,7 +87,12 @@ const ENDED_IDS_KEPT = 50;
  * unless a newer version was stored meanwhile.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
-export const createHub = ({ access, now = Date.now }: HubDeps) => {
+export const createHub = ({
+  access,
+  now = Date.now,
+  idleMs = IDLE_SESSION_MS,
+  setTimer = unrefTimer,
+}: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
   /**
@@ -121,13 +144,49 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     else saving.delete(fileId);
   };
 
+  /** Of each session nobody is in, what cancels its wait (`waitIdle`). */
+  const idleTimers = new Map<string, () => void>();
+  const stopIdle = (fileId: string) => {
+    idleTimers.get(fileId)?.();
+    idleTimers.delete(fileId);
+  };
+
+  const forget = (fileId: string) => {
+    sessions.delete(fileId);
+    storedAt.delete(fileId);
+    leftSinceChange.delete(fileId);
+    stopIdle(fileId);
+  };
+
+  /**
+   * A session nobody is in waits IDLE_SESSION_MS for someone; then it ends, with changes no stored
+   * version holds lost, unless a save is still under way.
+   */
+  const waitIdle = (fileId: string) => {
+    stopIdle(fileId);
+    const expire = () => {
+      idleTimers.delete(fileId);
+      const session = sessions.get(fileId);
+      if (!session || membersOf(fileId).length > 0) return;
+      if (saving.has(fileId)) waitIdle(fileId);
+      else if (hasUnsavedChanges(session)) forget(fileId);
+      else settle(fileId);
+    };
+    idleTimers.set(fileId, setTimer(expire, idleMs));
+  };
+
   /**
    * When the last person leaves, the session ends if a stored version holds its whole log and no
    * save is under way (one that lands later would be the newest version, and may hold less).
+   * Otherwise it waits (`waitIdle`).
    */
   const settle = (fileId: string) => {
     const session = sessions.get(fileId);
-    if (!session || membersOf(fileId).length > 0 || hasUnsavedChanges(session) || saving.has(fileId)) return;
+    if (!session || membersOf(fileId).length > 0) return;
+    if (hasUnsavedChanges(session) || saving.has(fileId)) {
+      waitIdle(fileId);
+      return;
+    }
     // Without a change everyone's copy is the version; with one, only those there to the end.
     const left = leftSinceChange.get(fileId) ?? [];
     const whole =
@@ -139,9 +198,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       version: storedAt.get(fileId) ?? session.baseVersion,
       baseVersion: session.baseVersion,
     });
-    sessions.delete(fileId);
-    storedAt.delete(fileId);
-    leftSinceChange.delete(fileId);
+    forget(fileId);
   };
 
   const startSession = (fileId: string, version: number): Session => {
@@ -163,6 +220,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       const allowed = await access(fileId, user.id);
       if (allowed === null) return null;
       const { version } = allowed;
+      stopIdle(fileId);
       // A version stored from outside while a kept session waited (a restored version, an upload)
       // is newer than the session's changes: it wins, as it would have without the session.
       if (membersOf(fileId).length === 0 && storedAt.get(fileId) !== version) sessions.delete(fileId);

@@ -7,7 +7,11 @@
  * The messages are the ones sdkjs speaks with the Document Server (sdkjs common/docscoapi.js
  * `_onServerMessage`, server DocService/sources/DocsCoServer.js); docs/collaboration.md lists them.
  */
+import { dropMessage, ENGINE_CLOSE, withinLimits } from "./limits";
 import { acquireLocks, EDITOR_TYPE, type Locks, locksForAuth, tryLocks } from "./locks";
+
+/** Why an engine is sent away whose session's log is full (limits.ts). */
+export const LOG_FULL = "Session log full. Save the document and open it again.";
 
 export type Participant = {
   /** Our connection id; sdkjs sees it as the session id. */
@@ -320,6 +324,9 @@ export const saveChanges = (session: Session, connectionId: string, data: Incomi
     useridoriginal: participant.idOriginal,
   }));
   const changes = [...kept, ...added];
+  // A log past its ceiling takes nothing more: the engine is sent away, keeps its copy to download,
+  // and whoever opens the file next starts from the newest stored version.
+  if (!withinLimits(changes)) return { session, out: [self(dropMessage(ENGINE_CLOSE.drop, LOG_FULL))] };
   // Changes sent again replace the old ones; a save holding the old ones no longer counts for them.
   const savedIndex = Math.min(session.savedIndex, kept.length);
   const changesIndex = deleteIndex === -1 && data.startSaveChanges ? startIndex : -1;

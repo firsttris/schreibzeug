@@ -113,6 +113,15 @@ holds the whole log and no save is under way: one landing later is the newest ve
 less. A session whose log a late save completed stays until the next person or a restore. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
+A session nobody is in waits an hour (`IDLE_SESSION_MS` in `hub.ts`); then it ends, and changes no
+stored version holds are gone, as after a restart. A client that lost its connection gives up long
+before. The log has a ceiling too (`src/collab/limits.ts`): 100,000 changes or 64 MiB. A change
+past it is not taken; the relay sends the engine `drop` (sdkjs `c_oCloseCode.drop`), which
+disconnects for good and stays in view mode with the download still possible. The server takes
+WebSocket messages up to 8 MiB (`maxPayloadLength` in `main.ts`) and closes the socket on a larger
+one; the engine splits its changes into messages of about 1.5 MiB (`common/docscoapi.js`
+`websocketMaxPayloadSize`).
+
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
 new version. All copies hold the same content, so one person's save stores everyone's changes. The
 saving editor sends with the upload the header `x-schreibzeug-session-save: b:n`: its copy comes

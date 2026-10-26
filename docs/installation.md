@@ -65,7 +65,7 @@ All settings are environment variables (`apps/server/src/config.ts`); the image 
 |---|---|---|
 | `SCHREIBZEUG_DATA_DIR` | `data` | The data folder: database, file contents, secret |
 | `PORT` | `3000` | The port the server listens on |
-| `SCHREIBZEUG_URL` | – | The address people open, e.g. `https://office.example.org`: the base of the sign-in through Kontext (required with `OIDC_*`), the audience of Kontext's tokens, and the links the MCP tools give |
+| `SCHREIBZEUG_URL` | – | The address people open, e.g. `https://office.example.org`: the base of the sign-in through Kontext (required with `OIDC_*`), the audience of Kontext's tokens, the links the MCP tools give, and the origin the browser's changes must come from. Set it behind an HTTPS proxy: the server itself sees `http://`, so without it the browser's `https://` origin is refused |
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` | The largest file that can be uploaded or saved |
 | `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies (at least 32 characters); without it one is generated and kept in the data folder |
 | `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account |

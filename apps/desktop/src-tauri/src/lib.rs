@@ -8,9 +8,10 @@ mod downloads;
 mod local;
 mod settings;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 #[cfg(target_os = "macos")]
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::webview::{DownloadEvent, NewWindowResponse};
@@ -41,9 +42,6 @@ fn desktop_action(url: &Url) -> Option<&str> {
         _ => None,
     }
 }
-
-/// The start page the app opened with, for going back to the choice.
-struct StartPage(Url);
 
 /// The local server, once started, and the key it was given.
 struct LocalState {
@@ -97,6 +95,19 @@ fn save_download(app: &AppHandle, event: DownloadEvent<'_>) -> bool {
 
 static WINDOWS: AtomicUsize = AtomicUsize::new(0);
 
+/// The start page's address, as the main window first loaded it. Asked for right after the window
+/// is built, CEF has no URL yet (no page loaded), so it is taken from the first page load instead.
+static START: OnceLock<Url> = OnceLock::new();
+
+/// The page each window shows, by label, kept from its page loads. on_new_window reads this instead
+/// of the window's url(): a blocking webview getter in that callback can deadlock CEF's UI thread
+/// (tauri-runtime-cef, NewWindowOpener::source_url).
+static PAGES: OnceLock<Mutex<HashMap<String, Url>>> = OnceLock::new();
+
+fn pages() -> &'static Mutex<HashMap<String, Url>> {
+    PAGES.get_or_init(Default::default)
+}
+
 /// A window of the app, with its handling of new windows and downloads.
 fn open_window(app: &AppHandle, label: &str, url: WebviewUrl) -> tauri::Result<WebviewWindow> {
     let handle = app.clone();
@@ -110,20 +121,18 @@ fn open_window(app: &AppHandle, label: &str, url: WebviewUrl) -> tauri::Result<W
         .initialization_script(DESKTOP_SCRIPT)
         .on_navigation(move |url| match desktop_action(url) {
             Some(action) => {
-                if let Some(start) = commands.try_state::<StartPage>() {
-                    // Not from inside the callback: the command may navigate this very window.
-                    let (app, action, start) =
-                        (commands.clone(), action.to_owned(), start.0.clone());
-                    tauri::async_runtime::spawn(async move { on_menu(&app, &action, &start) });
-                }
+                // Not from inside the callback: the command may navigate this very window.
+                let (app, action) = (commands.clone(), action.to_owned());
+                tauri::async_runtime::spawn(async move { on_menu(&app, &action) });
                 false
             }
             None => true,
         })
         .on_new_window(move |url, _features| {
-            let here = handle
-                .get_webview_window(&opener)
-                .and_then(|window| window.url().ok());
+            let here = pages()
+                .lock()
+                .ok()
+                .and_then(|pages| pages.get(&opener).cloned());
             if here.is_some_and(|here| same_origin(&here, &url)) {
                 let app = handle.clone();
                 // Not from inside the callback: building a window there can deadlock (Windows).
@@ -137,6 +146,15 @@ fn open_window(app: &AppHandle, label: &str, url: WebviewUrl) -> tauri::Result<W
             NewWindowResponse::Deny
         })
         .on_download(move |_webview, event| save_download(&downloads, event))
+        .on_page_load(move |window, payload| {
+            let url = payload.url().clone();
+            if window.label() == MAIN_WINDOW {
+                let _ = START.set(url.clone());
+            }
+            if let Ok(mut pages) = pages().lock() {
+                pages.insert(window.label().to_owned(), url);
+            }
+        })
         .build()
 }
 
@@ -327,7 +345,10 @@ fn start_page(start: &Url, error: Option<&str>) -> String {
     url.to_string()
 }
 
-fn on_menu(app: &AppHandle, id: &str, start: &Url) {
+fn on_menu(app: &AppHandle, id: &str) {
+    let Some(start) = START.get() else {
+        return;
+    };
     let app = app.clone();
     match id {
         CHOOSE_SERVER => navigate_main(&app, &start_page(start, None)),
@@ -380,19 +401,16 @@ pub fn run() {
             choose_folder
         ])
         .setup(|app| {
-            let window = open_window(
+            open_window(
                 app.handle(),
                 MAIN_WINDOW,
                 WebviewUrl::App("index.html".into()),
             )?;
-            let start = window.url()?;
             #[cfg(target_os = "macos")]
             {
-                let menu_start = start.clone();
                 app.handle().set_menu(menu(app.handle())?)?;
-                app.on_menu_event(move |app, event| on_menu(app, event.id().as_ref(), &menu_start));
+                app.on_menu_event(|app, event| on_menu(app, event.id().as_ref()));
             }
-            app.manage(StartPage(start));
             Ok(())
         })
         .build(tauri::generate_context!())

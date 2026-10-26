@@ -5,6 +5,7 @@ import {
   activeMarks,
   blockAt,
   insertLink,
+  insertRule,
   insertTable,
   setBlock,
   type TextCommand,
@@ -100,6 +101,12 @@ describe("the toolbar's Markdown", () => {
     expect(run(insertLink("https://example.org/a b"), "|")).toBe(
       "[https://example.org/a b](https://example.org/a%20b)|",
     );
+  });
+
+  it("puts a rule under a paragraph without making the paragraph a heading", () => {
+    expect(run(insertRule, "Absatz\n|")).toBe("Absatz\n\n---\n|");
+    expect(run(insertRule, "Absatz|")).toBe("Absatz\n\n---\n|");
+    expect(run(insertRule, "|")).toBe("---\n|");
   });
 
   it("inserts a table on lines of its own, with the first cell selected", () => {

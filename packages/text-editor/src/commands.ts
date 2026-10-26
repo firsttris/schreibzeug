@@ -212,7 +212,9 @@ export const insertTable =
 /** A horizontal rule on a line of its own. */
 export const insertRule: TextCommand = (state) => {
   const line = state.doc.lineAt(state.selection.main.head);
-  const insert = line.text.trim() === "" ? "---\n" : "\n\n---\n";
+  // Right under a paragraph "---" would make it a heading (setext): a blank line goes first.
+  const afterText = line.number > 1 && state.doc.line(line.number - 1).text.trim() !== "";
+  const insert = line.text.trim() === "" ? `${afterText ? "\n" : ""}---\n` : "\n\n---\n";
   const at = line.text.trim() === "" ? line.from : line.to;
   return {
     changes: { from: at, to: line.text.trim() === "" ? line.to : at, insert },

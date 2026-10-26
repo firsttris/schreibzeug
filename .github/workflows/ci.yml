@@ -71,9 +71,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      # From the Actions cache: the runners' Ubuntu mirror is at times very slow (firsttris/workflows)
+      - uses: firsttris/workflows/actions/apt-install@v1
+        with:
+          packages: libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
       # tauri-build checks that what tauri.conf.json bundles exists: the start page (frontendDist),
       # the local server (externalBin) and the web app (resources). Stand-ins do for these checks.
       - run: |

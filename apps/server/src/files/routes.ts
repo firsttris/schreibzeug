@@ -6,8 +6,9 @@ import {
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
+  SESSION_GONE,
   SESSION_SAVE_HEADER,
-  type SessionSave,
+  type SessionSaves,
   sessionSaveOf,
   updateNodeSchema,
 } from "@schreibzeug/files-api";
@@ -39,8 +40,8 @@ export type FilesDeps = {
   maxUploadBytes: number;
   /** Shares may wait for an address without an account (a sign-in provider confirms addresses). */
   pendingShares?: boolean;
-  /** A save from a shared session stored a version (collab/hub.ts `stored`). */
-  onStored?: ((fileId: string, version: number, save: SessionSave) => void) | undefined;
+  /** The collaboration relay, told of saves from its sessions (collab/hub.ts). */
+  relay?: SessionSaves | undefined;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -93,7 +94,7 @@ export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
     respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
   );
 
-export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, onStored }: FilesDeps) => {
+export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, relay }: FilesDeps) => {
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -202,10 +203,21 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
-        const saved = repository.addVersion(db, userOf(c), id, await store(bytes));
+        const content = await store(bytes);
+        // From here to `stored` nothing waits, so no other save comes in between.
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
+        if (sessionSave && relay && !relay.begin(id, sessionSave))
+          return respond(c, fail("conflict", SESSION_GONE), toFileNode);
+        let saved: ReturnType<typeof repository.addVersion>;
+        try {
+          saved = repository.addVersion(db, userOf(c), id, content);
+        } catch (error) {
+          if (sessionSave) relay?.abandon(id); // a begun save always ends (hub.ts `begin`)
+          throw error;
+        }
         const version = saved.ok ? saved.value.node.version : null;
-        if (version !== null && sessionSave !== null) onStored?.(id, version, sessionSave);
+        if (sessionSave && version !== null) relay?.stored(id, version, sessionSave);
+        else if (sessionSave) relay?.abandon(id);
         return respond(c, saved, toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever

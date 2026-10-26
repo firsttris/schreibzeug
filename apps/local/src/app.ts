@@ -4,6 +4,7 @@ import {
   createFolderSchema,
   nodeIdSchema,
   nodeNameSchema,
+  SESSION_GONE,
   SESSION_SAVE_HEADER,
   type ServerInfo,
   sessionSaveOf,
@@ -24,6 +25,7 @@ import type { UpgradeWebSocket } from "hono/ws";
 import { z } from "zod";
 import type { Folder } from "./folder";
 import { requireToken, unlock } from "./gate";
+import { createSessionBases } from "./session-bases";
 
 /** The one person using the computer, in place of an account. */
 export type LocalUser = { id: string; name: string };
@@ -61,6 +63,7 @@ const uploadForm = z.object({
   file: z.instanceof(File, { message: "Keine Datei im Upload." }),
 });
 const mediaParam = z.object({ id: nodeIdSchema, name: z.string().max(100) });
+const versionQuery = z.object({ version: z.coerce.number().int().positive().optional() });
 
 const BLANK_FILES = {
   docx: { extension: ".docx", bytes: blankDocx },
@@ -71,6 +74,7 @@ const BLANK_FILES = {
 const withExtension = (name: string, extension: string) =>
   name.toLowerCase().endsWith(extension) ? name : `${name}${extension}`;
 
+const NO_SUCH_VERSION = "Diese Version der Datei gibt es auf diesem Computer nicht mehr.";
 const UNAVAILABLE = "Das gibt es nur auf einem Schreibzeug-Server, nicht für Dateien auf diesem Computer.";
 
 /**
@@ -88,6 +92,13 @@ export const createLocalApp = ({
   collab,
   log = console.error,
 }: LocalDeps) => {
+  const sessionBases = createSessionBases((fileId) => {
+    const session = collab?.hub.session(fileId);
+    const generation = collab?.hub.generation(fileId);
+    return session && generation !== undefined
+      ? { generation, baseVersion: session.baseVersion, changes: session.changes.length }
+      : undefined;
+  });
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -156,11 +167,14 @@ export const createLocalApp = ({
           return respond(c, fail("invalid", fullName.error.issues[0]?.message ?? "Ungültiger Name."));
         return respond(c, await folder.createFile(parentId, fullName.data, blank.bytes()), 201);
       })
-      // The file as it is on disk now: there are no older versions to ask for.
-      .get("/files/:id/content", validate("param", idParam), async (c) => {
-        const read = await folder.read(c.req.valid("param").id);
+      // The file as it is on disk now, or the version an editing session started at (sessionBases).
+      .get("/files/:id/content", validate("param", idParam), validate("query", versionQuery), async (c) => {
+        const { id } = c.req.valid("param");
+        const read = await folder.read(id);
         if (!read.ok) return respond(c, read);
-        const { node, bytes } = read.value;
+        const { node } = read.value;
+        const bytes = sessionBases.bytesOf(id, c.req.valid("query").version, node.version, read.value.bytes);
+        if (!bytes) return respond(c, fail("not_found", NO_SUCH_VERSION));
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": node.mime ?? "application/octet-stream",
           "content-disposition": contentDisposition(node.name),
@@ -171,10 +185,18 @@ export const createLocalApp = ({
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
-        const written = await folder.write(id, bytes);
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
-        if (written.ok && written.value.version !== null && sessionSave !== null)
-          collab?.hub.stored(id, written.value.version, sessionSave);
+        const relay = sessionSave ? collab?.hub : undefined;
+        if (sessionSave && relay && !relay.begin(id, sessionSave))
+          return respond(c, fail("conflict", SESSION_GONE));
+        // Until the save is stored or abandoned, its session does not end (hub.ts `begin`).
+        const written = await folder.write(id, bytes).catch((error: unknown) => {
+          if (sessionSave) relay?.abandon(id);
+          throw error;
+        });
+        const version = written.ok ? written.value.version : null;
+        if (sessionSave && version !== null) relay?.stored(id, version, sessionSave);
+        else if (sessionSave) relay?.abandon(id);
         return respond(c, written);
       })
       .post("/files/:id/copy", validate("param", idParam), async (c) =>

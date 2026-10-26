@@ -101,7 +101,10 @@ editor saved can restore it, and whoever opens the file next opens the session's
 the log and saves it. A version stored meanwhile from outside the session (a restored version, an
 upload, an MCP edit) is newer than the waiting changes and wins: the next person opens it, as
 without the session. A save of the session's own, one that landed after its editor's connection
-dropped, does not count as from outside. A server restart loses what no stored version holds. So the editor saves on
+dropped, does not count as from outside. The file route announces a save before it stores
+anything (`hub.ts` `begin`) and the last person leaving ends the session only when a stored version
+holds the whole log and no save is under way: one landing later is the newest version and may hold
+less. A session whose log a late save completed stays until the next person or a restore. A server restart loses what no stored version holds. So the editor saves on
 its own.
 
 Saving works as without collaboration: the editor converts its copy to .docx and stores it as a
@@ -109,7 +112,11 @@ new version. All copies hold the same content, so one person's save stores every
 saving editor sends with the upload the header `x-schreibzeug-session-save: b:n`: its copy comes
 from the session that started at version `b` and holds the first `n` changes of its log. The file
 route tells the relay (`hub.ts` `stored`), also when the editor's connection dropped meanwhile; a
-version stored without the header, or from a session that is gone, is from outside. Versions are
+version stored without the header is from outside. A save whose copy is known to be old is refused with 409 before it stores
+anything, since as the newest version it would lose changes: one from a session other than the
+file's session open now, or from a session that ended with its log stored. After a server restart
+the relay knows neither, and the save is stored: the editor's copy may be the only one of its
+changes. Versions are
 numbered as they are stored, so the newest one's index is what is stored, also when it is lower
 than an earlier one's (a slower save that started before a faster one). The relay sends
 `{"type":"schreibzeug:saved","index":n}` with it to everyone (and to everyone joining later), so

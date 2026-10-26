@@ -353,6 +353,7 @@ describe("collaboration hub", () => {
   const BEN = { id: "ben", name: "Ben" };
 
   /** `editors` may edit FILE, at version 3 unless `stored` moves on; `viewers` may look at it. */
+  /** `editors` may edit FILE, at version 3 unless `stored` moves on; `viewers` may look at it. */
   const setup = (editors: string[] = ["anna", "ben"], viewers: string[] = [], stored = { version: 3 }) => {
     const hub = createHub({
       access: async (id, userId) => {
@@ -460,7 +461,8 @@ describe("collaboration hub", () => {
     expect(next.messages.find((m) => m.type === "authChanges")?.changes).toEqual([]);
   });
 
-  it("keeps a session whose own save landed after the drop, with what that save lacks", async () => {
+  /** Anna sends c1 and c2, her connection drops, then her save of c1 lands as version 4. */
+  const lateSave = async () => {
     const stored = { version: 3 };
     const { hub, join } = setup(undefined, undefined, stored);
     const a = await join(ANNA);
@@ -474,8 +476,78 @@ describe("collaboration hub", () => {
       });
     }
     hub.close(a.id); // c1 and c2 unsaved: the session is kept
-    stored.version = 4; // Anna's autosave of c1 lands after the drop, saying so (SESSION_SAVE_HEADER)
+    stored.version = 4;
     hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
+    const back = await join(ANNA);
+    hub.message(back.id, auth("anna", { sessionId: a.id, user: { indexUser: 1 }, lastOtherSaveTime: 0 }));
+    return { hub, back };
+  };
+
+  it("keeps a session whose own save landed after the drop, and lets its editor restore", async () => {
+    const { hub, back } = await lateSave();
+    expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
+    expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
+      type: "auth",
+    });
+    expect(hub.session(FILE)?.savedIndex).toBe(1);
+  });
+
+  it("takes only saves from the session open now for its own", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    expect(hub.begin(FILE, { baseVersion: 2, index: 1 })).toBe(false);
+    // A file the relay knows no session of (after a restart, say): the editor's copy is stored.
+    expect(hub.begin("another-file", { baseVersion: 3, index: 1 })).toBe(true);
+    hub.abandon("another-file");
+    expect(hub.begin(FILE, { baseVersion: 3, index: 1 })).toBe(true);
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
+    hub.close(a.id); // everything stored: the session ends
+    // A slower save of the same session, landing now, would make an older copy the newest version.
+    expect(hub.begin(FILE, { baseVersion: 3, index: 0 })).toBe(false);
+  });
+
+  it("does not end a session while a save of it is under way", async () => {
+    const { hub, join } = setup();
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1","c2"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    expect(hub.begin(FILE, { baseVersion: 3, index: 1 })).toBe(true); // a slow save of c1
+    expect(hub.begin(FILE, { baseVersion: 3, index: 2 })).toBe(true); // a faster one of c1, c2
+    hub.stored(FILE, 4, { baseVersion: 3, index: 2 });
+    hub.close(a.id); // the whole log is stored, but the slow save is still coming
+    hub.stored(FILE, 5, { baseVersion: 3, index: 1 }); // the newest version lacks c2
+    expect(hub.session(FILE)?.savedIndex).toBe(1);
+    hub.abandon(FILE); // (nothing left under way)
+  });
+
+  it("lets an editor restore whose save landed after its connection dropped", async () => {
+    const stored = { version: 3 };
+    const { hub, join } = setup(undefined, undefined, stored);
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.message(a.id, {
+      type: "saveChanges",
+      changes: '["c1"]',
+      startSaveChanges: true,
+      endSaveChanges: true,
+    });
+    expect(hub.begin(FILE, { baseVersion: 3, index: 1 })).toBe(true);
+    hub.close(a.id); // the save is under way
+    stored.version = 4;
+    hub.stored(FILE, 4, { baseVersion: 3, index: 1 }); // it holds the whole log
 
     const back = await join(ANNA);
     expect(back.messages[0]).toEqual({ type: "schreibzeug:session", baseVersion: 3 });
@@ -483,7 +555,6 @@ describe("collaboration hub", () => {
     expect(back.messages.find((m) => m.type === "auth" || m.type === "error")).toMatchObject({
       type: "auth",
     });
-    expect(hub.session(FILE)?.savedIndex).toBe(1);
   });
 
   it("takes a late save of a session that is gone for one from outside", async () => {

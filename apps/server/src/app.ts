@@ -59,7 +59,7 @@ export const createApp = ({
     })
     .use(requireUser(auth, deps.db, bearer))
     .route("/", tokenRoutes(deps))
-    .route("/", filesRoutes({ ...deps, onStored: collab?.hub.stored }))
+    .route("/", filesRoutes({ ...deps, relay: collab?.hub }))
     .route("/", agentRoutes({ db: deps.db, hub: agent }))
     .use("/collab/*", requireSession)
     .use("/agent/*", requireSession)

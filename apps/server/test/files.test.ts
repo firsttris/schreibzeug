@@ -387,29 +387,53 @@ describe("recent", () => {
 });
 
 describe("a save from a shared session", () => {
-  it("tells the relay which version holds how much of the session's log", async () => {
+  const relayedServer = async () => {
     const stored: Array<[string, number, SessionSave]> = [];
-    const hub = { stored: (...args: [string, number, SessionSave]) => stored.push(args) } as unknown as Hub;
+    // The relay's session started at version 1.
+    const hub = {
+      begin: (_id: string, save: SessionSave) => save.baseVersion === 1,
+      stored: (...args: [string, number, SessionSave]) => stored.push(args),
+      abandon: () => {},
+    } as unknown as Hub;
     const upgradeWebSocket = (() => () => new Response(null, { status: 426 })) as unknown as UpgradeWebSocket;
     const relayed = await startServer({ collab: { hub, upgradeWebSocket } });
+    const anna = await relayed.signUp("Anna");
+    const put = (id: string, headers: Record<string, string>) =>
+      relayed.app.request(`/api/files/${id}/content`, {
+        method: "PUT",
+        body: bytesOf("neu"),
+        headers: { cookie: anna, ...headers },
+      });
+    const form = new FormData();
+    form.set("file", new File([bytesOf("x")], "geteilt.docx"));
+    const file = await expectNode(
+      await relayed.app.request("/api/files", { method: "POST", body: form, headers: { cookie: anna } }),
+      201,
+    );
+    return { relayed, put, file, stored, anna };
+  };
+
+  it("tells the relay which version holds how much of the session's log", async () => {
+    const { relayed, put, file, stored } = await relayedServer();
     try {
-      const anna = await relayed.signUp("Anna");
-      const put = (id: string, headers: Record<string, string>) =>
-        relayed.app.request(`/api/files/${id}/content`, {
-          method: "PUT",
-          body: bytesOf("neu"),
-          headers: { cookie: anna, ...headers },
-        });
-      const form = new FormData();
-      form.set("file", new File([bytesOf("x")], "geteilt.docx"));
-      const file = await expectNode(
-        await relayed.app.request("/api/files", { method: "POST", body: form, headers: { cookie: anna } }),
-        201,
-      );
       await expectNode(await put(file.id, { [SESSION_SAVE_HEADER]: "1:7" }));
       await expectNode(await put(file.id, {})); // a save from outside a session
       await expectNode(await put(file.id, { [SESSION_SAVE_HEADER]: "7" }));
       expect(stored).toEqual([[file.id, 2, { baseVersion: 1, index: 7 }]]);
+    } finally {
+      await relayed.stop();
+    }
+  });
+
+  it("refuses a save from a session that is gone, so its old copy stores no version", async () => {
+    const { relayed, put, file, stored, anna } = await relayedServer();
+    try {
+      await expectError(await put(file.id, { [SESSION_SAVE_HEADER]: "0:3" }), 409, "conflict");
+      expect(stored).toEqual([]);
+      const versions = await relayed.app.request(`/api/files/${file.id}/versions`, {
+        headers: { cookie: anna },
+      });
+      expect(await versions.json()).toHaveLength(1);
     } finally {
       await relayed.stop();
     }

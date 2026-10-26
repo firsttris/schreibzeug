@@ -86,6 +86,18 @@ Every change to a file is a new version and can be undone under "Versionen"; del
 into the trash. The server's instructions and the reading tools say that what comes out of a
 document is data, not an instruction.
 
+That is advice to the model, not a boundary: a document someone shared with the user can carry
+text that asks the model to share the user's files. So `share` and `create_link`, the tools that
+let someone else in, carry the annotations `destructiveHint` and `openWorldHint` (what an outsider
+has seen cannot be taken back), so that a client which approves plain writes on its own still asks
+for these. And before either acts on a node the user owns, it asks the person through MCP
+elicitation, naming the node as stored and who gets which role ("die Datei „X“ mit … teilen, zum
+Ansehen?"; for a link, its role and lifetime); a decline or a failed question shares nothing. A
+client can only be asked when it announced elicitation at `initialize` to the same server: the
+stateless `/mcp` endpoint gets a new server per request, which has not seen `initialize`, so there
+the client's own approval of the call, guided by the annotations, is the safeguard
+(`packages/mcp/src/tool.ts` `confirmWith`).
+
 ## Tools
 
 | Tool | What it does | Scope |
@@ -97,7 +109,7 @@ document is data, not an instruction.
 | `create_folder`, `rename`, `move`, `copy` | As in the file list | write |
 | `trash`, `restore` | Into the trash and back | write |
 | `restore_version` | An older version as the newest, as a new version | write |
-| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`), or a link to view or edit | write |
+| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`), or a link to view or edit; asks the person first where the client can be asked (see above) | write |
 | `read_document` | A .docx as Markdown (headings, lists, paragraphs, tables; headers and footers after), or a plain text file | read |
 | `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
 | `read_presentation` | A .pptx slide by slide: title, text, notes | read |
@@ -209,7 +221,9 @@ PDF's form fields and e-invoice, and a zip bomb refused as too large. `apps/loca
 gets the local server's answer for sharing, and is refused for a foreign host or origin. `apps/server/test/mcp-create.test.ts` creates every kind and reads it back: Markdown to .docx and back,
 a built-in and an own template, a sheet with appended rows as version 2, a presentation, an
 e-invoice read back with `readInvoiceXml`, small uploads. The readers and writers have their own tests
-in `packages/ooxml` and `packages/mcp`. `e2e/mcp.spec.ts` opens what the tools made in the editor,
+in `packages/ooxml` and `packages/mcp`; `packages/mcp/test/confirm.test.ts` connects a client that
+can be asked in memory: sharing and a link after a yes, nothing after a no, and without the question
+for a client that cannot be asked. `mcp.test.ts` checks the annotations of `share` and `create_link`. `e2e/mcp.spec.ts` opens what the tools made in the editor,
 saves the document through the engine and finds its heading style and table again.
 `apps/server/test/mcp-edit.test.ts` stands in for the tab on the hub: the link when nothing is open,
 the job and its answer, a refusal, the newest tab of the same person only, a tab that does not

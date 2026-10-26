@@ -1,4 +1,5 @@
 import {
+  type FileNode,
   folderListingSchema,
   inviteSchema,
   nodeIdSchema,
@@ -10,9 +11,9 @@ import {
   versionSchema,
 } from "@schreibzeug/files-api";
 import { z } from "zod";
-import { json, mapOutcome, withJson } from "../api";
+import { failure, json, mapOutcome, type Outcome, withJson } from "../api";
 import { asText, presentNode, presentVersion } from "../present";
-import { defineTool } from "../tool";
+import { defineTool, type RunContext } from "../tool";
 
 const id = nodeIdSchema.describe("Die ID der Datei oder des Ordners");
 const nodes = nodeSchema.array();
@@ -211,6 +212,27 @@ export const restoreVersion = defineTool({
     ),
 });
 
+const roleText = (role: z.infer<typeof shareRoleSchema>) =>
+  role === "edit" ? "zum Bearbeiten" : "zum Ansehen";
+const DECLINED = "Du hast das abgelehnt; es wurde nichts freigegeben.";
+
+/**
+ * Asks the person, not the model, before something is opened to others: text the model read in a
+ * document could ask it to share. The question names the node, as stored, and who gets what.
+ * Only the owner may share, so for anyone else the API's refusal comes without a question.
+ */
+const confirmFirst = async (
+  { api, confirm }: RunContext,
+  id: string,
+  question: (node: FileNode) => string,
+): Promise<Outcome<FileNode>> => {
+  const node = await json(api(`/api/nodes/${id}`), nodeSchema);
+  if (!node.ok || node.value.role !== "owner") return node;
+  return (await confirm(question(node.value))) === "declined" ? failure(DECLINED) : node;
+};
+
+const kindText = (node: FileNode) => (node.kind === "folder" ? "den Ordner" : "die Datei");
+
 export const share = defineTool({
   name: "share",
   title: "Teilen",
@@ -222,11 +244,22 @@ export const share = defineTool({
     role: shareRoleSchema.describe("„view“ zum Ansehen, „edit“ zum Bearbeiten"),
   },
   writes: true,
-  run: async ({ api }, { id, email, role }) =>
-    mapOutcome(
-      await json(api(`/api/nodes/${id}/shares`, withJson("PUT", { email, role })), shareSchema.array()),
+  grantsAccess: true,
+  run: async (context, { id, email, role }) => {
+    const asked = await confirmFirst(
+      context,
+      id,
+      (node) => `Schreibzeug: ${kindText(node)} „${node.name}“ mit ${email} teilen, ${roleText(role)}?`,
+    );
+    if (!asked.ok) return asked;
+    return mapOutcome(
+      await json(
+        context.api(`/api/nodes/${id}/shares`, withJson("PUT", { email, role })),
+        shareSchema.array(),
+      ),
       (list) => asText({ sharedWith: list.map(presentShare) }),
-    ),
+    );
+  },
 });
 
 export const createLink = defineTool({
@@ -243,12 +276,25 @@ export const createLink = defineTool({
       .describe("Gültigkeit in Tagen"),
   },
   writes: true,
-  run: async ({ api, origin }, { id, role, days }) =>
-    mapOutcome(
-      await json(api(`/api/nodes/${id}/invites`, withJson("POST", { role, days })), inviteSchema),
+  grantsAccess: true,
+  run: async (context, { id, role, days }) => {
+    const asked = await confirmFirst(
+      context,
+      id,
+      (node) =>
+        `Schreibzeug: einen Link ${node.kind === "folder" ? "zum Ordner" : "zur Datei"} „${node.name}“ erstellen, ${days} ${days === 1 ? "Tag" : "Tage"} gültig? Jeder, der den Link öffnet, bekommt Zugriff ${roleText(role)}.`,
+    );
+    if (!asked.ok) return asked;
+    return mapOutcome(
+      await json(context.api(`/api/nodes/${id}/invites`, withJson("POST", { role, days })), inviteSchema),
       (invite) =>
-        asText({ link: `${origin}/invite/${invite.token}`, role: invite.role, expiresAt: invite.expiresAt }),
-    ),
+        asText({
+          link: `${context.origin}/invite/${invite.token}`,
+          role: invite.role,
+          expiresAt: invite.expiresAt,
+        }),
+    );
+  },
 });
 
 export const FILE_TOOLS = [

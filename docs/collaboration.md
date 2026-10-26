@@ -112,9 +112,11 @@ new version. All copies hold the same content, so one person's save stores every
 saving editor sends with the upload the header `x-schreibzeug-session-save: b:n`: its copy comes
 from the session that started at version `b` and holds the first `n` changes of its log. The file
 route tells the relay (`hub.ts` `stored`), also when the editor's connection dropped meanwhile; a
-version stored without the header is from outside. A save from a session that is not the file's
-session now (one that ended or was dropped) is refused with 409
-before it stores anything: its copy is old, and as the newest version it would lose changes. Versions are
+version stored without the header is from outside. A save whose copy is known to be old is refused with 409 before it stores
+anything, since as the newest version it would lose changes: one from a session other than the
+file's session open now, or from a session that ended with its log stored. After a server restart
+the relay knows neither, and the save is stored: the editor's copy may be the only one of its
+changes. Versions are
 numbered as they are stored, so the newest one's index is what is stored, also when it is lower
 than an earlier one's (a slower save that started before a faster one). The relay sends
 `{"type":"schreibzeug:saved","index":n}` with it to everyone (and to everyone joining later), so

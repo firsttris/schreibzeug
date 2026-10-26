@@ -94,7 +94,10 @@ export const createLocalApp = ({
 }: LocalDeps) => {
   const sessionBases = createSessionBases((fileId) => {
     const session = collab?.hub.session(fileId);
-    return session && { baseVersion: session.baseVersion, changes: session.changes.length };
+    const generation = collab?.hub.generation(fileId);
+    return session && generation !== undefined
+      ? { generation, baseVersion: session.baseVersion, changes: session.changes.length }
+      : undefined;
   });
   const limit = bodyLimit({
     maxSize: maxUploadBytes,

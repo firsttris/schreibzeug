@@ -5,9 +5,10 @@
  * they are served while that version is still the file on disk, for as long as the session lasts.
  */
 export const createSessionBases = (
-  sessionOf: (fileId: string) => { baseVersion: number; changes: number } | undefined,
+  sessionOf: (fileId: string) => { generation: number; baseVersion: number; changes: number } | undefined,
 ) => {
-  const kept = new Map<string, { version: number; bytes: Uint8Array }>();
+  // By session, not by version: another program's write keeps the version number (folder.ts).
+  const kept = new Map<string, { generation: number; version: number; bytes: Uint8Array }>();
   return {
     /**
      * The bytes of the version asked for (none: the newest), or null when this folder no longer
@@ -21,20 +22,20 @@ export const createSessionBases = (
     ): Uint8Array | null => {
       const session = sessionOf(fileId);
       const base = session?.baseVersion;
-      if (base === undefined) kept.delete(fileId);
+      if (kept.get(fileId)?.generation !== session?.generation) kept.delete(fileId);
       if (asked === undefined || asked === current) {
         // Taken once, at the session's first load, before any save of it: a read racing a save
         // may get the saved bytes still under the old version number.
-        if (base !== undefined && base === current && kept.get(fileId)?.version !== base)
-          kept.set(fileId, { version: base, bytes: onDisk });
+        if (session && base === current && !kept.has(fileId))
+          kept.set(fileId, { generation: session.generation, version: session.baseVersion, bytes: onDisk });
         return onDisk;
       }
       const held = kept.get(fileId);
       if (held && held.version === asked && base === asked) return held.bytes;
       // Written from outside before the session's first load: with no change made yet, the file
       // as it is now is as good a start, for everyone joining.
-      if (base === asked && session?.changes === 0 && !held) {
-        kept.set(fileId, { version: base, bytes: onDisk });
+      if (session && base === asked && session.changes === 0 && !held) {
+        kept.set(fileId, { generation: session.generation, version: session.baseVersion, bytes: onDisk });
         return onDisk;
       }
       return null;

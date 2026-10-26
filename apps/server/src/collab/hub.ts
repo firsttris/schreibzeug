@@ -84,7 +84,9 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
    * may restore into the next session at that version (DocsCoServer refuses a restore only for a
    * changed document or locks, DocsCoServer.js auth).
    */
-  const ended = new Map<string, { ids: string[]; version: number }>();
+  const ended = new Map<string, { ids: string[]; version: number; baseVersion: number }>();
+  /** How many sessions each file has had in this process: which one a session is. */
+  const generations = new Map<string, number>();
 
   const membersOf = (fileId: string) =>
     [...connections.entries()].filter(([, connection]) => connection.fileId === fileId);
@@ -130,6 +132,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     ended.set(fileId, {
       ids: whole.slice(-ENDED_IDS_KEPT),
       version: storedAt.get(fileId) ?? session.baseVersion,
+      baseVersion: session.baseVersion,
     });
     sessions.delete(fileId);
     storedAt.delete(fileId);
@@ -139,6 +142,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
   const startSession = (fileId: string, version: number): Session => {
     const last = ended.get(fileId);
     ended.delete(fileId);
+    generations.set(fileId, (generations.get(fileId) ?? 0) + 1);
     storedAt.set(fileId, version);
     leftSinceChange.set(fileId, []);
     return { ...createSession(fileId, version), sessionIds: last?.version === version ? last.ids : [] };
@@ -187,11 +191,17 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     },
 
     /**
-     * A save from a shared session starts (files-api SessionSaves): whether it comes from the
-     * file's session open now. Until it is stored or abandoned, that session does not end.
+     * A save from a shared session starts (files-api SessionSaves): false when its copy is known
+     * to be old. Until it is stored or abandoned, the file's session does not end.
      */
     begin: (fileId: string, { baseVersion }: SessionSave): boolean => {
-      if (sessions.get(fileId)?.baseVersion !== baseVersion) return false;
+      const session = sessions.get(fileId);
+      // Old for sure: another session is open, or the one it comes from ended with its log stored.
+      // Without either (the server restarted), the editor's copy may be the only one of its changes.
+      const old = session
+        ? session.baseVersion !== baseVersion
+        : ended.get(fileId)?.baseVersion === baseVersion;
+      if (old) return false;
       saving.set(fileId, (saving.get(fileId) ?? 0) + 1);
       return true;
     },
@@ -213,6 +223,10 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
 
     /** For tests and diagnostics: the session of a file, if one is open. */
     session: (fileId: string): Session | undefined => sessions.get(fileId),
+
+    /** Which of the file's sessions in this process is open, if one is: 1 for the first. */
+    generation: (fileId: string): number | undefined =>
+      sessions.has(fileId) ? generations.get(fileId) : undefined,
   };
 };
 

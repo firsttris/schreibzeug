@@ -504,7 +504,9 @@ describe("collaboration hub", () => {
       endSaveChanges: true,
     });
     expect(hub.begin(FILE, { baseVersion: 2, index: 1 })).toBe(false);
-    expect(hub.begin("another-file", { baseVersion: 3, index: 1 })).toBe(false);
+    // A file the relay knows no session of (after a restart, say): the editor's copy is stored.
+    expect(hub.begin("another-file", { baseVersion: 3, index: 1 })).toBe(true);
+    hub.abandon("another-file");
     expect(hub.begin(FILE, { baseVersion: 3, index: 1 })).toBe(true);
     hub.stored(FILE, 4, { baseVersion: 3, index: 1 });
     hub.close(a.id); // everything stored: the session ends

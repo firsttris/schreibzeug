@@ -19,11 +19,13 @@ const id = nodeIdSchema.describe("Die ID der Datei oder des Ordners");
 const nodes = nodeSchema.array();
 
 /** Who a node is shared with; "pending" marks an address without an account yet, which waits for it. */
-const presentShare = ({ name, email, role, pending }: z.infer<typeof shareSchema>) => ({
+const presentShare = ({ name, email, role, pending, unverified }: z.infer<typeof shareSchema>) => ({
   name,
   email,
   role,
   ...(pending ? { pending } : {}),
+  // Whoever signed up with the address has not confirmed it (docs/accounts.md, Sharing).
+  ...(unverified ? { unverified } : {}),
 });
 
 /** Folders and files: what the file list of the app does, through the same API. */

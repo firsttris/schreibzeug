@@ -122,3 +122,23 @@ describe("sharing over MCP with someone who has no account yet", () => {
     }
   });
 });
+
+describe("sharing over MCP on a server without confirmed addresses", () => {
+  it("says the person's address is not confirmed", async () => {
+    const plain = await startServer();
+    try {
+      const anna = await plain.signUp("Anna");
+      await plain.signUp("Ben");
+      const client = await connectTo(plain, await makeToken(plain, anna, "write"));
+      const created = JSON.parse((await call(client, "create_folder", { name: "Geteilt" })).text) as {
+        id: string;
+      };
+      const shared = await call(client, "share", { id: created.id, email: "ben@example.org", role: "view" });
+      expect(JSON.parse(shared.text)).toEqual({
+        sharedWith: [{ name: "Ben", email: "ben@example.org", role: "view", unverified: true }],
+      });
+    } finally {
+      await plain.stop();
+    }
+  });
+});

@@ -109,7 +109,7 @@ the client's own approval of the call, guided by the annotations, is the safegua
 | `create_folder`, `rename`, `move`, `copy` | As in the file list | write |
 | `trash`, `restore` | Into the trash and back | write |
 | `restore_version` | An older version as the newest, as a new version | write |
-| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`), or a link to view or edit; asks the person first where the client can be asked (see above) | write |
+| `share`, `create_link` | Share with an account (or, with Kontext, an address that has none yet: the share is marked `pending`; an account whose address nobody confirmed is marked `unverified`), or a link to view or edit; asks the person first where the client can be asked (see above) | write |
 | `read_document` | A .docx as Markdown (headings, lists, paragraphs, tables; headers and footers after), or a plain text file | read |
 | `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
 | `read_presentation` | A .pptx slide by slide: title, text, notes | read |

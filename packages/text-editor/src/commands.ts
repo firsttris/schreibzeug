@@ -181,7 +181,12 @@ export const insertLink =
   (state) =>
     state.changeByRange((range) => {
       const label = text || state.sliceDoc(range.from, range.to) || url;
-      const insert = `[${label}](${url.replace(/[()\s]/g, encodeURIComponent)})`;
+      // Brackets in the text and parentheses or blanks in the address would end the link early.
+      const target = url.replace(
+        /[()<>\s]/g,
+        (character) => `%${character.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+      );
+      const insert = `[${label.replace(/[[\]\\]/g, "\\$&")}](${target})`;
       return {
         changes: { from: range.from, to: range.to, insert },
         range: EditorSelection.cursor(range.from + insert.length),

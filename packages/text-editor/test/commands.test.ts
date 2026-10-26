@@ -13,6 +13,7 @@ import {
   toggleLinePrefix,
   toggleTask,
 } from "../src/commands";
+import { markdownHtml } from "../src/preview";
 
 /** A state from text where "|" marks the cursor or "«" … "»" the selection. */
 const stateOf = (marked: string) => {
@@ -107,6 +108,14 @@ describe("the toolbar's Markdown", () => {
     expect(run(insertRule, "Absatz\n|")).toBe("Absatz\n\n---\n|");
     expect(run(insertRule, "Absatz|")).toBe("Absatz\n\n---\n|");
     expect(run(insertRule, "|")).toBe("---\n|");
+  });
+
+  it("keeps the whole address and text in a link, also with brackets in them", () => {
+    expect(run(insertLink("https://e.org/a)b"), "|")).toBe("[https://e.org/a)b](https://e.org/a%29b)|");
+    expect(run(insertLink("https://e.org"), "«a]b»")).toBe("[a\\]b](https://e.org)|");
+    expect(markdownHtml("[a\\]b](https://e.org/a%29b)")).toBe(
+      '<p><a href="https://e.org/a%29b" target="_blank" rel="noopener noreferrer">a]b</a></p>',
+    );
   });
 
   it("inserts a table on lines of its own, with the first cell selected", () => {

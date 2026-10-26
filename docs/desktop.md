@@ -141,11 +141,22 @@ fonts is for later.
 
 Linux needs GTK 4.14 or newer (`libgtk-4-dev librsvg2-dev`; Ubuntu 24.04, Debian 13); Chromium
 (CEF, about 1 GB) is downloaded by the first build, to `CEF_PATH` if set. The workflow **Actions → Desktop app** builds the web app once on Linux and then all
-three platforms: AppImage, .deb and .rpm (these fail for now: Tauri 3 alpha's bundler copies
-libEGL.so and libGLESv2.so from CEF, which CEF 154 no longer ships on Linux); .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
+three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
 by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
 [Development](development.md#releases)) builds them too and attaches them to the GitHub release. The
 version comes from `apps/desktop/package.json`, which the bump keeps at the version of the release.
+
+### Patched Tauri CLI
+
+Temporary, until Tauri fixes it ([#12](https://github.com/firsttris/schreibzeug/issues/12)): the
+bundler of Tauri 3 alpha copies `libEGL.so` and `libGLESv2.so` from CEF into every Linux package,
+and CEF 154 no longer ships them, so every Linux package fails. On Linux,
+`apps/desktop/scripts/tauri.ts` therefore builds the Tauri CLI of the version in `package.json` from
+Tauri's sources with `apps/desktop/patches/*.patch` applied (once, into
+`src-tauri/target/patched-cli/`), and `bun run tauri …`, `desktop:dev` and `desktop:build` use it;
+Windows and macOS use the published CLI. The script stops when a patch no longer applies to a new
+version: then check whether that release fixes it and remove the patch as described in
+`apps/desktop/patches/README.md`.
 
 The builds are not signed yet. Windows SmartScreen shows "unknown publisher" (More info → Run
 anyway), and macOS Gatekeeper refuses to open the app until it is opened once with right click →

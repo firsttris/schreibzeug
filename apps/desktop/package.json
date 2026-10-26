@@ -8,9 +8,9 @@
   "scripts": {
     "start:dev": "vite",
     "start:build": "vite build",
-    "tauri": "tauri",
-    "desktop:dev": "tauri dev",
-    "desktop:build": "tauri build",
+    "tauri": "bun scripts/tauri.ts",
+    "desktop:dev": "bun scripts/tauri.ts dev",
+    "desktop:build": "bun scripts/tauri.ts build",
     "sidecar": "bun scripts/sidecar.ts"
   },
   "devDependencies": {

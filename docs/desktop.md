@@ -56,6 +56,13 @@ Linux packages about 170 MB larger. Only one engine can be in a Linux build (Web
 builds on GTK 3, CEF on GTK 4), so the folder dialog there goes through the XDG desktop portal
 (the desktop's own dialog) instead of GTK 3. Tauri 3 and its CEF runtime are alpha releases.
 
+Chromium as CEF builds it talks to Google on its own: secure DNS probes, sign-in state, search,
+the translation model, network time and component updates. The app switches all of that off
+(`runtime()` in `src-tauri/src/lib.rs`); a net log of the app (`--log-net-log`) then shows only
+requests to the app's own pages and server. In the Linux packages the bundler moves the app's binary
+to `/usr/share/Schreibzeug/` and leaves the local server in `/usr/bin/`; the app looks in both places
+(`local.rs`).
+
 ## Files on this computer
 
 `apps/local` is a small server for working without a Schreibzeug server: it speaks the part of the

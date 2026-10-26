@@ -5,7 +5,7 @@
 //! outlives a crashed app.
 
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
@@ -121,9 +121,37 @@ pub fn start(config: &Config) -> Result<Running, String> {
     }
 }
 
+/// The local server (externalBin): next to the app, or, in the Linux packages with CEF, in the
+/// usr/bin beside the usr/share/<product> folder the bundler moves the app's binary to
+/// (tauri-bundler, bundle/linux/debian.rs and rpm.rs: "we may have to copy all binaries").
+pub fn server_binary(exe: &Path, exists: impl Fn(&Path) -> bool) -> PathBuf {
+    let name = format!("schreibzeug-local{}", std::env::consts::EXE_SUFFIX);
+    let beside = exe.with_file_name(&name);
+    let packaged = exe
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .map(|usr| usr.join("bin").join(&name));
+    match packaged {
+        Some(packaged) if !exists(&beside) && exists(&packaged) => packaged,
+        _ => beside,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn finds_the_local_server_beside_the_app_or_in_the_package_bin() {
+        let name = format!("schreibzeug-local{}", std::env::consts::EXE_SUFFIX);
+        let exe = Path::new("/usr/share/Schreibzeug/schreibzeug-desktop");
+        let packaged = Path::new("/usr/bin").join(&name);
+        assert_eq!(server_binary(exe, |path| path == packaged), packaged);
+        let beside = Path::new("/usr/share/Schreibzeug").join(&name);
+        assert_eq!(server_binary(exe, |_| true), beside);
+        assert_eq!(server_binary(exe, |_| false), beside);
+    }
 
     #[test]
     fn reads_the_address_from_the_ready_line() {

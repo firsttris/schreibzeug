@@ -1,161 +1,30 @@
 //! The Schreibzeug desktop app: a window that works on files on this computer (through the local server,
 //! local.rs) or shows a Schreibzeug server's own web app. Downloads go to the download folder, a page of
 //! the same app that opens a new window gets one of the app's own, other links go to the system's
-//! browser, and the app's own menu (in the page, see desktop_action) switches between this computer
-//! and a server; only macOS keeps a menu bar of its own, at the top of the screen.
+//! browser, and the app's own menu (in the page, see windows.rs desktop_action) switches between
+//! this computer and a server; only macOS keeps a menu bar of its own, at the top of the screen.
 
 mod downloads;
 mod local;
 mod settings;
+mod windows;
 
-use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 #[cfg(target_os = "macos")]
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::webview::{DownloadEvent, NewWindowResponse};
-use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_opener::OpenerExt;
 
 const MAIN_WINDOW: &str = "main";
 const WORK_LOCALLY: &str = "work-locally";
 const CHOOSE_FOLDER: &str = "choose-folder";
 const CHOOSE_SERVER: &str = "choose-server";
 
-/// Where the web app sends the window for a command of the app ("Ordner wählen …"): never a real
-/// page (.invalid is reserved), caught before it loads. A plain navigation needs no native calls,
-/// which the server's pages do not get.
-const ACTION_HOST: &str = "desktop.schreibzeug.invalid";
-
-/// Tells the web app it runs in the desktop app, so it offers the commands of the menu.
-const DESKTOP_SCRIPT: &str = "window.schreibzeugDesktop = true;";
-
-/// The command a navigation asks for, or None for a page to load.
-fn desktop_action(url: &Url) -> Option<&str> {
-    if url.scheme() != "https" || url.host_str() != Some(ACTION_HOST) {
-        return None;
-    }
-    match url.path().trim_start_matches('/') {
-        action @ (WORK_LOCALLY | CHOOSE_FOLDER | CHOOSE_SERVER) => Some(action),
-        _ => None,
-    }
-}
-
 /// The local server, once started, and the key it was given.
 struct LocalState {
     token: String,
     running: Mutex<Option<local::Running>>,
-}
-
-/// Only web and mail addresses leave the app, for the system to open.
-fn is_openable(url: &Url) -> bool {
-    matches!(url.scheme(), "http" | "https" | "mailto")
-}
-
-fn open_outside(app: &AppHandle, url: &Url) {
-    if is_openable(url) {
-        let _ = app.opener().open_url(url.as_str(), None::<&str>);
-    }
-}
-
-/// A page of the same server: the app opens it in a window of its own, where the session holds.
-fn same_origin(a: &Url, b: &Url) -> bool {
-    a.scheme() == b.scheme()
-        && a.host_str() == b.host_str()
-        && a.port_or_known_default() == b.port_or_known_default()
-}
-
-/// The download folder; on Linux without a configured one (XDG user dirs) "Downloads" at home.
-fn download_folder(app: &AppHandle) -> Option<PathBuf> {
-    let paths = app.path();
-    let folder = paths
-        .download_dir()
-        .or_else(|_| paths.home_dir().map(|home| home.join("Downloads")))
-        .ok()?;
-    std::fs::create_dir_all(&folder).ok()?;
-    Some(folder)
-}
-
-fn save_download(app: &AppHandle, event: DownloadEvent<'_>) -> bool {
-    if let DownloadEvent::Requested { url, destination } = event {
-        let Some(folder) = download_folder(app) else {
-            return true;
-        };
-        let suggested = destination
-            .file_name()
-            .and_then(|name| name.to_str())
-            .map(str::to_owned);
-        let name = downloads::file_name(suggested.as_deref(), url.path());
-        *destination = downloads::free_path(&folder, &name, |path| path.exists());
-    }
-    true
-}
-
-static WINDOWS: AtomicUsize = AtomicUsize::new(0);
-
-/// The start page's address, as the main window first loaded it. Asked for right after the window
-/// is built, CEF has no URL yet (no page loaded), so it is taken from the first page load instead.
-static START: OnceLock<Url> = OnceLock::new();
-
-/// The page each window shows, by label, kept from its page loads. on_new_window reads this instead
-/// of the window's url(): a blocking webview getter in that callback can deadlock CEF's UI thread
-/// (tauri-runtime-cef, NewWindowOpener::source_url).
-static PAGES: OnceLock<Mutex<HashMap<String, Url>>> = OnceLock::new();
-
-fn pages() -> &'static Mutex<HashMap<String, Url>> {
-    PAGES.get_or_init(Default::default)
-}
-
-/// A window of the app, with its handling of new windows and downloads.
-fn open_window(app: &AppHandle, label: &str, url: WebviewUrl) -> tauri::Result<WebviewWindow> {
-    let handle = app.clone();
-    let downloads = app.clone();
-    let commands = app.clone();
-    let opener = label.to_owned();
-    WebviewWindowBuilder::new(app, label, url)
-        .title("Schreibzeug")
-        .inner_size(1280.0, 860.0)
-        .min_inner_size(800.0, 560.0)
-        .initialization_script(DESKTOP_SCRIPT)
-        .on_navigation(move |url| match desktop_action(url) {
-            Some(action) => {
-                // Not from inside the callback: the command may navigate this very window.
-                let (app, action) = (commands.clone(), action.to_owned());
-                tauri::async_runtime::spawn(async move { on_menu(&app, &action) });
-                false
-            }
-            None => true,
-        })
-        .on_new_window(move |url, _features| {
-            let here = pages()
-                .lock()
-                .ok()
-                .and_then(|pages| pages.get(&opener).cloned());
-            if here.is_some_and(|here| same_origin(&here, &url)) {
-                let app = handle.clone();
-                // Not from inside the callback: building a window there can deadlock (Windows).
-                tauri::async_runtime::spawn(async move {
-                    let label = format!("window-{}", WINDOWS.fetch_add(1, Ordering::Relaxed));
-                    let _ = open_window(&app, &label, WebviewUrl::External(url));
-                });
-            } else {
-                open_outside(&handle, &url);
-            }
-            NewWindowResponse::Deny
-        })
-        .on_download(move |_webview, event| save_download(&downloads, event))
-        .on_page_load(move |window, payload| {
-            let url = payload.url().clone();
-            if window.label() == MAIN_WINDOW {
-                let _ = START.set(url.clone());
-            }
-            if let Ok(mut pages) = pages().lock() {
-                pages.insert(window.label().to_owned(), url);
-            }
-        })
-        .build()
 }
 
 /// The system's documents folder; at home "Documents" where none is configured, else home itself.
@@ -190,9 +59,8 @@ fn local_config(app: &AppHandle, token: &str) -> Result<local::Config, String> {
     let documents = documents_folder(app)?;
     let root = local_folder_path(app)?;
     let paths = app.path();
-    let binary = std::env::current_exe()
-        .map_err(|error| error.to_string())?
-        .with_file_name(format!("schreibzeug-local{}", std::env::consts::EXE_SUFFIX));
+    let exe = std::env::current_exe().map_err(|error| error.to_string())?;
+    let binary = local::server_binary(&exe, |path| path.is_file());
     Ok(local::Config {
         binary,
         root_name: settings::folder_name(&root, &documents),
@@ -346,7 +214,7 @@ fn start_page(start: &Url, error: Option<&str>) -> String {
 }
 
 fn on_menu(app: &AppHandle, id: &str) {
-    let Some(start) = START.get() else {
+    let Some(start) = windows::start_page() else {
         return;
     };
     let app = app.clone();
@@ -374,9 +242,44 @@ fn on_menu(app: &AppHandle, id: &str) {
 }
 
 /// The browser engine: Chromium (CEF) on Linux, the system's webview elsewhere (Cargo.toml).
+///
+/// Chromium as built by CEF talks to Google on its own. A net log of the app (`--log-net-log`)
+/// showed dns.google (secure DNS probes), accounts.google.com/ListAccounts (sign-in state),
+/// www.google.com/async (search), www.gstatic.com (the translation model), clients2.google.com
+/// (network time) and update.googleapis.com (component updates). The app only shows its own pages
+/// and a Schreibzeug server's, so each is switched off, and Google's sign-in, search, update and
+/// translation-model addresses point to a closed local port. Switches need their dashes: without them and a value the runtime appends
+/// them as plain arguments, which Chromium ignores (tauri-runtime-cef, append_command_line_args).
 #[cfg(target_os = "linux")]
 fn runtime() -> tauri_runtime_cef::Cef {
-    tauri_runtime_cef::Cef::default()
+    const NOWHERE: &str = "http://127.0.0.1:9";
+    const OFF: [&str; 6] = [
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--disable-domain-reliability",
+        "--disable-sync",
+        "--no-default-browser-check",
+        "--no-pings",
+    ];
+    let elsewhere = [
+        ("--gaia-url", NOWHERE.to_owned()),
+        ("--google-base-url", NOWHERE.to_owned()),
+        ("--component-updater", format!("url-source={NOWHERE}")),
+        ("--translate-ranker-model-url", NOWHERE.to_owned()),
+    ];
+    let cef = tauri_runtime_cef::Cef::default()
+        .profile_preference("safebrowsing.enabled", false)
+        .profile_preference("signin.allowed", false)
+        .profile_preference("translate.enabled", false)
+        .global_preference("dns_over_https.mode", "off")
+        .spell_checking(false)
+        .disable_features(["DnsOverHttps", "NetworkTimeServiceQuerying"]);
+    let cef = OFF.into_iter().fold(cef, |cef, switch| {
+        cef.command_line_arg(switch, None::<String>)
+    });
+    elsewhere.into_iter().fold(cef, |cef, (switch, value)| {
+        cef.command_line_arg(switch, Some(value))
+    })
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -401,7 +304,7 @@ pub fn run() {
             choose_folder
         ])
         .setup(|app| {
-            open_window(
+            windows::open_window(
                 app.handle(),
                 MAIN_WINDOW,
                 WebviewUrl::App("index.html".into()),
@@ -433,48 +336,6 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn opens_pages_of_the_same_server_in_the_app() {
-        let here = Url::parse("http://127.0.0.1:4100/folders/x").unwrap();
-        assert!(same_origin(
-            &here,
-            &Url::parse("http://127.0.0.1:4100/edit/y").unwrap()
-        ));
-        assert!(!same_origin(
-            &here,
-            &Url::parse("http://127.0.0.1:4101/edit/y").unwrap()
-        ));
-        assert!(!same_origin(
-            &here,
-            &Url::parse("https://example.org/").unwrap()
-        ));
-    }
-
-    #[test]
-    fn catches_the_commands_of_the_app_and_nothing_else() {
-        let url = |text: &str| Url::parse(text).unwrap();
-        assert_eq!(
-            desktop_action(&url("https://desktop.schreibzeug.invalid/choose-folder")),
-            Some(CHOOSE_FOLDER)
-        );
-        assert_eq!(
-            desktop_action(&url("https://desktop.schreibzeug.invalid/work-locally")),
-            Some(WORK_LOCALLY)
-        );
-        assert_eq!(
-            desktop_action(&url("https://desktop.schreibzeug.invalid/other")),
-            None
-        );
-        assert_eq!(
-            desktop_action(&url("http://desktop.schreibzeug.invalid/choose-server")),
-            None
-        );
-        assert_eq!(
-            desktop_action(&url("https://example.org/choose-folder")),
-            None
-        );
-    }
 
     #[test]
     fn goes_back_to_the_choice_with_the_error() {

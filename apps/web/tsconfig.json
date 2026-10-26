@@ -27,6 +27,9 @@
       "path": "../../packages/pdf-sign"
     },
     {
+      "path": "../../packages/text-editor"
+    },
+    {
       "path": "../../apps/server"
     }
   ]

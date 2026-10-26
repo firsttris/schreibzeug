@@ -1,7 +1,8 @@
 import type { Stats } from "node:fs";
 import { copyFile, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import { copyName, type FileNode, type FolderListing } from "@schreibzeug/files-api";
+import { CHANGED_SINCE, copyName, type FileNode, type FolderListing } from "@schreibzeug/files-api";
+import { sha256Of } from "@schreibzeug/server/blobs";
 import { mimeOf } from "@schreibzeug/server/files/mime";
 import { fail, ok, type Result } from "@schreibzeug/server/result";
 import type { Ids } from "./ids";
@@ -72,6 +73,19 @@ export const createFolder = ({ root: rootFolder, ids, trash, versions = new Map(
   };
 
   const versionOf = (id: string) => versions.get(id) ?? 1;
+
+  /** One write of a file at a time, in the order they came. */
+  const writing = new Map<string, Promise<unknown>>();
+  const inTurn = <T>(id: string, write: () => Promise<T>): Promise<T> => {
+    const next = (writing.get(id) ?? Promise.resolve()).catch(() => {}).then(write);
+    writing.set(id, next);
+    void next
+      .finally(() => {
+        if (writing.get(id) === next) writing.delete(id);
+      })
+      .catch(() => {});
+    return next;
+  };
 
   const toNode = (path: string, stats: Stats): FileNode => {
     const id = ids.idOf(path);
@@ -244,14 +258,22 @@ export const createFolder = ({ root: rootFolder, ids, trash, versions = new Map(
       return ok({ node, bytes: new Uint8Array(await readFile(target)) });
     },
 
-    write: async (id: string, bytes: Uint8Array): Promise<Result<FileNode>> => {
-      const found = await findKind(id, "file");
-      const target = found.ok ? absolute(found.value.path) : null;
-      if (!found.ok || !target) return found.ok ? fail("not_found", NOT_FOUND) : found;
-      await writeWhole(target, bytes);
-      versions.set(id, versionOf(id) + 1);
-      return nodeAt(found.value.path);
-    },
+    /**
+     * Overwrites the file. With `over`, only while the file on disk is still those bytes (their
+     * SHA-256, files-api ifMatchOf), also when another program wrote it meanwhile; saves of one
+     * file take turns so two of them cannot both pass that check.
+     */
+    write: (id: string, bytes: Uint8Array, over: string | null = null): Promise<Result<FileNode>> =>
+      inTurn(id, async () => {
+        const found = await findKind(id, "file");
+        const target = found.ok ? absolute(found.value.path) : null;
+        if (!found.ok || !target) return found.ok ? fail("not_found", NOT_FOUND) : found;
+        if (over !== null && sha256Of(await readFile(target)) !== over)
+          return fail("conflict", CHANGED_SINCE);
+        await writeWhole(target, bytes);
+        versions.set(id, versionOf(id) + 1);
+        return nodeAt(found.value.path);
+      }),
 
     copy: async (id: string): Promise<Result<FileNode>> => {
       const found = await findKind(id, "file");

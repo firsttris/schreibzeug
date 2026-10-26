@@ -78,9 +78,9 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /invites/:token/accept` | Accept a link: a share with its role, never weaker than one the user has |
 | `POST /folders` | New folder (`parentId`, `name`) |
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
-| `POST /files/blank` | New empty file (`parentId`, `name`, `format`: `docx`, `xlsx` or `pptx`) |
+| `POST /files/blank` | New file (`parentId`, `name`, `format`: `docx`, `xlsx`, `pptx`, or `md` and `txt`, which are empty) |
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
-| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone), see [collaboration](collaboration.md#saving) |
+| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone), see [collaboration](collaboration.md#saving). With `If-Match: "<sha256>"` only while the newest version's content has that SHA-256, else 409 (the text editor, [Markdown and text files](text.md#saving)); a malformed one is 400 |
 | `GET /files/:id/versions` | All versions, newest first |
 | `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
 | `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash |

@@ -1,8 +1,8 @@
-import type { CoreState, DocumentFormat } from "@schreibzeug/editor-core";
 import { ArrowLeft, Download, ExternalLink, History, Save, Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useEmbed } from "../embed/bridge";
 import { FileBadge } from "../files/file-badge";
+import type { FileKind } from "../lib/format";
 import { Button } from "../ui/button";
 import type { MenuItem } from "../ui/menu";
 import { type Menu, MenuBar } from "../ui/menu-bar";
@@ -10,13 +10,14 @@ import { useNotice } from "../ui/use-notice";
 import { type FileActions, fileMenu, helpMenu, type PdfActions } from "./file-menu";
 import { FileTitle } from "./file-title";
 import { AboutDialog, type Shortcut, ShortcutsDialog } from "./help-dialogs";
-import { SaveStatus } from "./save-status";
+import { type DocumentStatus, SaveStatus } from "./save-status";
 import type { DocumentSave } from "./use-document-save";
 
 export type EditorHeaderProps = {
   name: string;
-  format: DocumentFormat;
-  state: CoreState;
+  /** The badge in front of the name. */
+  format: FileKind;
+  document: DocumentStatus;
   /** Why the editor could not open, if it could not. */
   failure: string | null;
   saving: DocumentSave;
@@ -49,7 +50,7 @@ export type EditorHeaderProps = {
 export const EditorHeader = ({
   name,
   format,
-  state,
+  document,
   failure,
   saving: { save, saving, failure: saveFailure },
   ready,
@@ -81,7 +82,7 @@ export const EditorHeader = ({
           <div className="flex min-w-0 items-center gap-3">
             <FileTitle name={name} onRename={readOnly ? undefined : onRename} onError={setRenameError} />
             <SaveStatus
-              state={state}
+              document={document}
               failure={failure}
               saving={saving}
               saveFailure={saveFailure}

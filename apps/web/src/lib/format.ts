@@ -53,6 +53,8 @@ export type FileKind =
   | "rtf"
   | "xls"
   | "ppt"
+  | "md"
+  | "txt"
   | "folder"
   | "other";
 
@@ -69,6 +71,8 @@ const KNOWN = new Set<FileKind>([
   "rtf",
   "xls",
   "ppt",
+  "md",
+  "txt",
 ]);
 
 export const extensionOf = (name: string): string => {
@@ -82,8 +86,8 @@ export const kindOf = (node: { kind: "folder" | "file"; name: string }): FileKin
   return KNOWN.has(extension) ? extension : "other";
 };
 
-/** The editor a kind of file opens in. */
-export type EditorOf = "word" | "sheet" | "slide" | "pdf";
+/** The editor a kind of file opens in; "text" is Markdown and plain text (packages/text-editor). */
+export type EditorOf = "word" | "sheet" | "slide" | "pdf" | "text";
 
 const EDITOR_OF: Partial<Record<FileKind, EditorOf>> = {
   docx: "word",
@@ -94,6 +98,8 @@ const EDITOR_OF: Partial<Record<FileKind, EditorOf>> = {
   pptx: "slide",
   odp: "slide",
   pdf: "pdf",
+  md: "text",
+  txt: "text",
 };
 
 export const editorOf = (kind: FileKind): EditorOf | null => EDITOR_OF[kind] ?? null;
@@ -104,8 +110,12 @@ export const editorOf = (kind: FileKind): EditorOf | null => EDITOR_OF[kind] ?? 
  */
 export const isOfficeFile = (node: { kind: "folder" | "file"; name: string }): boolean => {
   const editor = editorOf(kindOf(node));
-  return editor !== null && editor !== "pdf";
+  return editor !== null && editor !== "pdf" && editor !== "text";
 };
+
+/** Markdown and plain text, opened in the text editor rather than the engine. */
+export const isTextFile = (node: { kind: "folder" | "file"; name: string }): boolean =>
+  editorOf(kindOf(node)) === "text";
 
 /** Older formats Schreibzeug opens as a copy in the Office format (editor-core OFFICE_FORMAT_OF_LEGACY). */
 export const isLegacyFile = (node: { kind: "folder" | "file"; name: string }): boolean => {
@@ -113,6 +123,6 @@ export const isLegacyFile = (node: { kind: "folder" | "file"; name: string }): b
   return kind === "doc" || kind === "rtf" || kind === "xls" || kind === "ppt";
 };
 
-/** The kinds Schreibzeug can open: the Office files, PDFs, and older formats, by a copy. */
+/** The kinds Schreibzeug can open: the Office files, PDFs, text files, and older formats, by a copy. */
 export const isEditable = (node: { kind: "folder" | "file"; name: string }): boolean =>
-  isOfficeFile(node) || kindOf(node) === "pdf" || isLegacyFile(node);
+  isOfficeFile(node) || kindOf(node) === "pdf" || isTextFile(node) || isLegacyFile(node);

@@ -165,4 +165,44 @@ describe("creating over MCP", () => {
     expect((await call(client, "upload_file", { name: "a.txt" })).isError).toBe(true);
     expect((await call(client, "upload_file", { name: "b.bin", base64: "%%%" })).isError).toBe(true);
   });
+
+  it("writes a note's text in the file's own form, and appends to it", async () => {
+    // A Windows file: Windows-1252, CRLF ("Grüße\r\n").
+    const original = new Uint8Array([0x47, 0x72, 0xfc, 0xdf, 0x65, 0x0d, 0x0a]);
+    const file = await upload(server, anna, "Gruß.txt", original);
+    await created("write_text", { id: file.id, text: "Tschüß", mode: "append" });
+    const stored = await server.app.request(`/api/files/${file.id}/content`, { headers: { cookie: anna } });
+    expect([...new Uint8Array(await stored.arrayBuffer())]).toEqual([
+      ...original,
+      0x54,
+      0x73,
+      0x63,
+      0x68,
+      0xfc,
+      0xdf,
+    ]);
+
+    const note = await created("upload_file", { name: "liste.md", text: "- eins\n" });
+    const replaced = await created("write_text", { id: note.id, text: "- zwei\n" });
+    expect(replaced.version).toBe(2);
+    expect(await readBack("read_document", note.id)).toBe("- zwei\n");
+  });
+
+  it("appends without touching the bytes already there", async () => {
+    // Mostly CRLF, one line with LF only: appending must not rewrite that line.
+    const original = new TextEncoder().encode("a\r\nb\nc\r\n");
+    const file = await upload(server, anna, "gemischt.txt", original);
+    await created("write_text", { id: file.id, text: "d", mode: "append" });
+    const stored = await server.app.request(`/api/files/${file.id}/content`, { headers: { cookie: anna } });
+    expect(new TextDecoder().decode(await stored.arrayBuffer())).toBe("a\r\nb\nc\r\nd");
+  });
+
+  it("writes only Markdown notes and text files", async () => {
+    const document = await created("create_document", { name: "Brief", markdown: "Hallo" });
+    const reply = await call(client, "write_text", { id: document.id, text: "x" });
+    expect(reply).toEqual({
+      isError: true,
+      text: "write_text schreibt nur Markdown-Notizen (.md) und Textdateien (.txt).",
+    });
+  });
 });

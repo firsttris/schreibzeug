@@ -1,56 +1,61 @@
 import type { FileNode, SessionSave } from "@schreibzeug/files-api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { type ComponentType, useCallback, useState } from "react";
+import { type ComponentType, lazy, Suspense, useCallback, useState } from "react";
+import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
-import { useReportTitle } from "../embed/bridge";
-import { type EditorOf, editorOf, isLegacyFile, kindOf } from "../lib/format";
+import { type EditorOf, editorOf, isLegacyFile, isTextFile, kindOf } from "../lib/format";
 import { ConvertPage } from "./convert-page";
 import type { OpenedFile } from "./opened-file";
+import { Failure, Loading } from "./page-states";
 import { PdfView } from "./pdf-view";
 import type { EditorViewProps } from "./props";
 import { SheetView } from "./sheet-view";
 import { SlideView } from "./slide-view";
-import { useFileActions } from "./use-file-actions";
+import { useEditorPage } from "./use-editor-page";
 import { useSessionFile } from "./use-session-file";
 import { WordView } from "./word-view";
 
+/** CodeMirror and its Markdown come with the first text file opened, not with every page. */
+const TextPage = lazy(() => import("./text-page").then(({ TextPage }) => ({ default: TextPage })));
+
 /** The editor view for each editor (lib/format.ts editorOf). */
-const VIEWS: Record<EditorOf, ComponentType<EditorViewProps>> = {
+const VIEWS: Record<Exclude<EditorOf, "text">, ComponentType<EditorViewProps>> = {
   word: WordView,
   sheet: SheetView,
   slide: SlideView,
   pdf: PdfView,
 };
 
-const Failure = ({ message }: { message: string }) => (
-  <div role="alert" className="flex flex-col items-start gap-3 p-8 text-sm">
-    <p className="m-0">{message}</p>
-    <Link to="/">Zu meinen Dateien</Link>
-  </div>
-);
-
-/** Opens a file from the server in its editing session and saves it back as a new version. */
+/**
+ * Opens a file from the server: a text file in the text editor, which saves it whole, anything
+ * else in its editing session, which saves it back as a new version.
+ */
 export const EditPage = ({ fileId }: { fileId: string }) => {
   const { queries } = useFiles();
+  const { data, error } = useQuery(queries.node(fileId));
+  // Once known, a failed refresh of the node (lists refresh after every save) keeps the editor open.
+  if (!data) return error ? <Failure message={messageOf(error)} /> : <Loading />;
+  return isTextFile(data) ? (
+    <Suspense fallback={<Loading />}>
+      <TextPage fileId={fileId} node={data} />
+    </Suspense>
+  ) : (
+    <SessionPage fileId={fileId} node={data} />
+  );
+};
+
+const SessionPage = ({ fileId, node }: { fileId: string; node: FileNode }) => {
   const [generation, setGeneration] = useState(0);
-  const node = useQuery(queries.node(fileId));
   const opened = useSessionFile(fileId, generation);
 
-  if (opened.status === "loading") {
-    return (
-      <p role="status" className="m-0 p-8 text-sm text-[var(--muted-foreground)]">
-        Lädt …
-      </p>
-    );
-  }
+  if (opened.status === "loading") return <Loading />;
   if (opened.status === "error") return <Failure message={opened.message} />;
   return (
     <OpenedPage
       fileId={fileId}
       file={opened.file}
-      node={node.data}
+      node={node}
       // The restored version becomes the newest; open it in place of what the editor shows.
       onRestored={() => setGeneration((current) => current + 1)}
     />
@@ -65,9 +70,8 @@ type OpenedPageProps = {
 };
 
 const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
-  const { queries, commands } = useFiles();
+  const { commands } = useFiles();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const store = useCallback(
     async (bytes: Uint8Array, session?: SessionSave) => {
       await commands.save(fileId, bytes, session);
@@ -75,33 +79,22 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
     },
     [commands, fileId, queryClient],
   );
-
-  // Back to the folder the file is in; someone it was shared with on its own cannot open that
-  // folder, so they go back to what was shared with them.
-  const close = async () => {
-    const { parentId } = file;
-    if (!parentId) return navigate({ to: file.owned ? "/" : "/shared" });
-    const folder = await queryClient.fetchQuery(queries.folder(parentId)).catch(() => null);
-    return folder
-      ? navigate({ to: "/folders/$folderId", params: { folderId: parentId } })
-      : navigate({ to: "/shared" });
-  };
-  useReportTitle(node?.name ?? file.name);
-  const { actions, onRename, dialogs } = useFileActions({ node, onClose: () => void close(), onRestored });
-  const createFile = async (name: string, bytes: Uint8Array, type: string) => {
-    const created = await commands.upload(
-      file.owned ? file.parentId : null,
-      new File([bytes as BlobPart], name, { type }),
-    );
-    await refreshFiles(queryClient);
-    return created.name;
-  };
+  const page = useEditorPage({
+    name: file.name,
+    node,
+    parentId: file.parentId,
+    owned: file.owned,
+    onRestored,
+  });
+  const createFile = async (name: string, bytes: Uint8Array, type: string) =>
+    (await page.createFile(name, bytes, type)).name;
 
   if (isLegacyFile({ kind: "file", name: file.name })) {
-    return <ConvertPage file={file} name={node?.name ?? file.name} onClose={() => void close()} />;
+    return <ConvertPage file={file} name={node?.name ?? file.name} onClose={() => void page.close()} />;
   }
   const editor = editorOf(kindOf({ kind: "file", name: file.name }));
-  if (!editor) return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
+  if (!editor || editor === "text")
+    return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
   const View = VIEWS[editor];
   return (
     <>
@@ -110,8 +103,8 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
         fileId={fileId}
         name={node?.name ?? file.name}
         onSave={store}
-        fileActions={actions}
-        onRename={onRename}
+        fileActions={page.actions}
+        onRename={page.onRename}
         onCreateFile={createFile}
         folderId={file.owned ? file.parentId : null}
         onReplace={async (bytes) => {
@@ -119,7 +112,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
           onRestored();
         }}
       />
-      {dialogs}
+      {page.dialogs}
     </>
   );
 };

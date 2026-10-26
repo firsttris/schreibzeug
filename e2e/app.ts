@@ -91,9 +91,11 @@ const NAME_LABELS = {
   Dokument: "Name des Dokuments",
   Tabelle: "Name der Tabelle",
   Präsentation: "Name der Präsentation",
+  "Notiz (Markdown)": "Name der Notiz",
+  Textdatei: "Name der Textdatei",
 } as const;
 
-/** "Neu" → Dokument, Tabelle or Präsentation, named, created and opened. */
+/** "Neu" → Dokument, Tabelle, Präsentation, Notiz or Textdatei, named, created and opened. */
 export const createFile = async (page: Page, kind: keyof typeof NAME_LABELS, name: string) => {
   await page.getByRole("button", { name: "Neu", exact: true }).click();
   await page.getByRole("menuitem", { name: kind }).click();

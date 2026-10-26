@@ -1,6 +1,8 @@
 import {
+  CHANGED_SINCE,
   type FileNode,
   folderListingSchema,
+  ifMatchHeader,
   nodeSchema,
   SESSION_SAVE_HEADER,
   type SessionSave,
@@ -271,6 +273,20 @@ describe("files", () => {
     expect(Object.keys(zip)).toContain("ppt/slides/slide1.xml");
   });
 
+  it("creates an empty Markdown note and an empty text file", async () => {
+    const note = await expectNode(
+      await api.files.blank.$post({ json: { name: "Notizen", parentId: null, format: "md" } }),
+      201,
+    );
+    expect(note).toMatchObject({ name: "Notizen.md", mime: "text/markdown", size: 0, version: 1 });
+    expect((await (await content(note.id)).arrayBuffer()).byteLength).toBe(0);
+    const text = await expectNode(
+      await api.files.blank.$post({ json: { name: "liesmich.txt", parentId: null, format: "txt" } }),
+      201,
+    );
+    expect(text).toMatchObject({ name: "liesmich.txt", mime: "text/plain" });
+  });
+
   it("refuses a blank file whose name grows too long with its extension", async () => {
     await expectError(
       await api.files.blank.$post({ json: { name: "a".repeat(255), parentId: null, format: "docx" } }),
@@ -288,6 +304,54 @@ describe("files", () => {
     const box = await folder("Kein Inhalt");
     await expectError(await content(box.id), 400, "invalid");
     await expectError(await save(box.id, "x"), 400, "invalid");
+  });
+});
+
+describe("a save made over a version", () => {
+  const sha256 = (text: string) => new Bun.CryptoHasher("sha256").update(text).digest("hex");
+  const saveOver = (id: string, text: string, over: string) =>
+    server.app.request(`/api/files/${id}/content`, {
+      method: "PUT",
+      body: bytesOf(text),
+      headers: { cookie, "if-match": ifMatchHeader(over) },
+    });
+
+  it("goes through while that version is the newest", async () => {
+    const note = await uploaded("Liste.md", "- eins\n");
+    const saved = await expectNode(await saveOver(note.id, "- eins\n- zwei\n", sha256("- eins\n")));
+    expect(saved.version).toBe(2);
+    const again = await expectNode(await saveOver(note.id, "- drei\n", sha256("- eins\n- zwei\n")));
+    expect(again.version).toBe(3);
+  });
+
+  it("is refused once someone else saved meanwhile, and stores no version", async () => {
+    const note = await uploaded("Geteilt.md", "Anfang");
+    await expectNode(await save(note.id, "Anfang und mehr")); // the other window
+    const refused = await saveOver(note.id, "Anfang, meins", sha256("Anfang"));
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toEqual({ error: { kind: "conflict", message: CHANGED_SINCE } });
+    expect(await (await content(note.id)).text()).toBe("Anfang und mehr");
+    const versions = await api.files[":id"].versions.$get({ param: { id: note.id } });
+    expect(((await versions.json()) as unknown[]).length).toBe(2);
+  });
+
+  it("lets only one of two saves over the same version through", async () => {
+    const note = await uploaded("Zwei Fenster.txt", "x");
+    const replies = await Promise.all([
+      saveOver(note.id, "a", sha256("x")),
+      saveOver(note.id, "b", sha256("x")),
+    ]);
+    expect(replies.map((reply) => reply.status).sort()).toEqual([200, 409]);
+  });
+
+  it("refuses an If-Match that names no version", async () => {
+    const note = await uploaded("Kaputt.txt", "x");
+    const reply = await server.app.request(`/api/files/${note.id}/content`, {
+      method: "PUT",
+      body: bytesOf("y"),
+      headers: { cookie, "if-match": 'W/"irgendwas"' },
+    });
+    await expectError(reply, 400, "invalid");
   });
 });
 

@@ -1,4 +1,4 @@
-import { File, FileSpreadsheet, FileText, Folder, Presentation } from "lucide-react";
+import { File, FileSpreadsheet, FileText, FileType, Folder, NotebookPen, Presentation } from "lucide-react";
 import type { FileKind } from "../lib/format";
 
 const STYLE: Record<FileKind, { className: string; Icon: typeof File; label: string }> = {
@@ -30,6 +30,8 @@ const STYLE: Record<FileKind, { className: string; Icon: typeof File; label: str
     Icon: Presentation,
     label: "PowerPoint 97–2003",
   },
+  md: { className: "bg-[var(--md-muted)] text-[var(--md)]", Icon: NotebookPen, label: "Markdown-Notiz" },
+  txt: { className: "bg-[var(--txt-muted)] text-[var(--txt)]", Icon: FileType, label: "Textdatei" },
   folder: { className: "bg-[var(--muted)] text-[var(--muted-foreground)]", Icon: Folder, label: "Ordner" },
   other: { className: "bg-[var(--muted)] text-[var(--muted-foreground)]", Icon: File, label: "Datei" },
 };

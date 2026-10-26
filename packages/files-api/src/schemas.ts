@@ -166,6 +166,24 @@ export const sessionSaveOf = (header: string | undefined): SessionSave | null =>
   return match ? { baseVersion: Number(match[1]), index: Number(match[2]) } : null;
 };
 
+/**
+ * A save that only goes through over the version it was made from: `If-Match` names that
+ * version's content as its SHA-256 (`"<hex>"`), which the editor computes from the bytes it opened
+ * and saved. Without the header a save always goes through, as before. Used by the text editor,
+ * which has no shared session to merge changes in.
+ */
+export const ifMatchHeader = (sha256: string): string => `"${sha256}"`;
+
+/** The SHA-256 a save says it was made over; null without a header, undefined for a malformed one. */
+export const ifMatchOf = (header: string | undefined): string | null | undefined => {
+  if (header === undefined) return null;
+  return /^"([0-9a-f]{64})"$/.exec(header.trim())?.[1];
+};
+
+/** The answer to a save made over a version that is no longer the newest. */
+export const CHANGED_SINCE =
+  "Die Datei wurde inzwischen gespeichert. Lade die neue Fassung oder speichere eine Kopie.";
+
 /** How long a name may be (nodeNameSchema). */
 const MAX_NAME_LENGTH = 255;
 
@@ -205,7 +223,8 @@ export const createFolderSchema = z.object({
   name: nodeNameSchema,
 });
 
-export const blankFormatSchema = z.enum(["docx", "xlsx", "pptx"]);
+/** The new files "Neu" makes: Office files, a Markdown note and a plain text file. */
+export const blankFormatSchema = z.enum(["docx", "xlsx", "pptx", "md", "txt"]);
 
 export const createBlankFileSchema = z.object({
   parentId: nodeIdSchema.nullable(),

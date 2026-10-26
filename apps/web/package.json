@@ -18,6 +18,7 @@
     "@schreibzeug/ooxml": "workspace:*",
     "@schreibzeug/pdf-ocr": "workspace:*",
     "@schreibzeug/pdf-sign": "workspace:*",
+    "@schreibzeug/text-editor": "workspace:*",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.46",
     "@tesseract.js-data/deu": "1.0.0",

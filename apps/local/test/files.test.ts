@@ -1,9 +1,18 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { type FileNode, folderListingSchema, nodeSchema, serverInfoSchema } from "@schreibzeug/files-api";
+import {
+  CHANGED_SINCE,
+  type FileNode,
+  folderListingSchema,
+  ifMatchHeader,
+  nodeSchema,
+  serverInfoSchema,
+} from "@schreibzeug/files-api";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Local, startLocal } from "./harness";
+
+const sha256 = (text: string) => new Bun.CryptoHasher("sha256").update(text).digest("hex");
 
 let local: Local;
 beforeEach(async () => {
@@ -125,6 +134,39 @@ describe("the local files API", () => {
     const saved = await local.request(`/api/files/${file.id}/content`, { method: "PUT", body: "neu" });
     expect(nodeSchema.parse(await saved.json()).version).toBe(2);
     expect(await readFile(join(local.root, "Notiz.txt"), "utf8")).toBe("neu");
+  });
+
+  it("creates an empty note and an empty text file on disk", async () => {
+    const note = await created(
+      await local.json("/api/files/blank", "POST", { parentId: null, name: "Notizen", format: "md" }),
+    );
+    expect(note).toMatchObject({ name: "Notizen.md", mime: "text/markdown", size: 0 });
+    expect((await readFile(join(local.root, "Notizen.md"))).byteLength).toBe(0);
+    await created(await local.json("/api/files/blank", "POST", { parentId: null, name: "a", format: "txt" }));
+    expect(existsSync(join(local.root, "a.txt"))).toBe(true);
+  });
+
+  it("saves over the bytes it was made from only while the file on disk is still them", async () => {
+    await writeFile(join(local.root, "Liste.md"), "- eins\n");
+    const [file] = (await listing()).children;
+    if (!file) throw new Error("no file");
+    const saveOver = (text: string, over: string) =>
+      local.request(`/api/files/${file.id}/content`, {
+        method: "PUT",
+        body: text,
+        headers: { "if-match": ifMatchHeader(sha256(over)) },
+      });
+
+    expect((await saveOver("- eins\n- zwei\n", "- eins\n")).status).toBe(200);
+    // Another program (or window) writes the file meanwhile.
+    await writeFile(join(local.root, "Liste.md"), "- von außen\n");
+    const refused = await saveOver("- eins\n- zwei\n- drei\n", "- eins\n- zwei\n");
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toEqual({ error: { kind: "conflict", message: CHANGED_SINCE } });
+    expect(await readFile(join(local.root, "Liste.md"), "utf8")).toBe("- von außen\n");
+
+    const both = await Promise.all([saveOver("a", "- von außen\n"), saveOver("b", "- von außen\n")]);
+    expect(both.map((reply) => reply.status).sort()).toEqual([200, 409]);
   });
 
   it("keeps the id through a rename and a move, also for what is in a moved folder", async () => {

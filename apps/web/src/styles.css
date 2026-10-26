@@ -25,6 +25,10 @@
   --pptx-muted: #fff7ed;
   --pdf: #b91c1c;
   --pdf-muted: #fef2f2;
+  --md: #0f766e;
+  --md-muted: #f0fdfa;
+  --txt: #57534e;
+  --txt-muted: #f5f5f4;
 }
 
 :root[data-theme="dark"] {
@@ -43,6 +47,10 @@
   --pptx-muted: #431407;
   --pdf: #f87171;
   --pdf-muted: #450a0a;
+  --md: #2dd4bf;
+  --md-muted: #042f2e;
+  --txt: #d6d3d1;
+  --txt-muted: #292524;
 }
 
 html,

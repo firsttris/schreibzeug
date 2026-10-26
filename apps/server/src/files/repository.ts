@@ -1,4 +1,4 @@
-import { copyName } from "@schreibzeug/files-api";
+import { CHANGED_SINCE, copyName } from "@schreibzeug/files-api";
 import { and, asc, desc, eq, inArray, isNull, max, sql } from "drizzle-orm";
 import type { Queryable } from "../db/database";
 import { type NodeRow, nameKey, nodes, shares, type VersionRow, versions } from "../db/schema";
@@ -202,11 +202,16 @@ export const createFile = (
  * A new version on top of the newest. SQLite writes one transaction at a time, so concurrent saves
  * of one file get consecutive numbers.
  */
+/**
+ * Stores the content as the file's next version. With `over`, only while the newest version's
+ * content is that SHA-256: a save made over an older one fails with a conflict instead.
+ */
 export const addVersion = (
   db: Queryable,
   user: UserId,
   id: string,
   content: StoredContent,
+  over: string | null = null,
 ): Result<Accessible> => {
   const access = requireFile(db, user, id, "edit");
   if (!access.ok) return access;
@@ -222,6 +227,14 @@ export const addVersion = (
       .from(versions)
       .where(eq(versions.fileId, id))
       .get();
+    if (over !== null) {
+      const newest = tx
+        .select({ sha256: versions.sha256 })
+        .from(versions)
+        .where(and(eq(versions.fileId, id), eq(versions.number, latest?.number ?? 0)))
+        .get();
+      if (newest?.sha256 !== over) return fail("conflict", CHANGED_SINCE);
+    }
     const number = (latest?.number ?? 0) + 1;
     tx.insert(versions)
       .values({ fileId: id, number, ...content })

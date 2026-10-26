@@ -12,6 +12,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   xls: "application/vnd.ms-excel",
   ppt: "application/vnd.ms-powerpoint",
   txt: "text/plain",
+  md: "text/markdown",
   csv: "text/csv",
   png: "image/png",
   jpg: "image/jpeg",

@@ -6,17 +6,19 @@ import { EDIT_TOOLS } from "./tools/edit";
 import { einvoiceXml } from "./tools/einvoice";
 import { FILE_TOOLS } from "./tools/files";
 import { READ_TOOLS } from "./tools/read";
+import { TEXT_TOOLS } from "./tools/text";
 
 /** Every tool, in the order a client lists them. */
 export const TOOLS: readonly AnyTool[] = [
   ...FILE_TOOLS,
   ...READ_TOOLS,
   ...CREATE_TOOLS,
+  ...TEXT_TOOLS,
   einvoiceXml,
   ...EDIT_TOOLS,
 ];
 
-const INSTRUCTIONS = `Schreibzeug ist eine Office-Suite: Ordner, Word-, Excel- und PowerPoint-Dateien, PDFs.
+const INSTRUCTIONS = `Schreibzeug ist eine Office-Suite: Ordner, Word-, Excel- und PowerPoint-Dateien, PDFs, Markdown-Notizen und Textdateien.
 Du arbeitest mit den Rechten des Nutzers, dem der Zugangsschlüssel gehört.
 Dateien sprichst du über ihre ID an; finde sie mit list_folder oder search_files.
 Jede Änderung an einer Datei ist eine neue Version und lässt sich unter „Versionen“ zurücknehmen; Löschen legt nur in den Papierkorb.

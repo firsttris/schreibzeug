@@ -98,6 +98,13 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 - **Scans and e-invoices**: text recognition (OCR) makes scans searchable; the e-invoice inside a
   ZUGFeRD PDF is shown and its XML can be downloaded.
 
+### 🗒️ Markdown and text files (.md, .txt)
+
+- **Notes in Markdown**: a live view that shows headings, lists, task boxes and links formatted
+  while the text stays Markdown, or source and preview side by side; a toolbar that writes the marks.
+- **Files stay as they are**: encoding (UTF-8, Windows-1252, UTF-16) and line endings are kept, and
+  a save never overwrites a change someone else saved meanwhile.
+
 ### 📁 Files and teamwork
 
 - **File browser**: folders, drag-and-drop upload, recent files, templates, rename, move and trash.
@@ -187,6 +194,7 @@ The full documentation is at **[firsttris.github.io/schreibzeug](https://firsttr
 | [Files and versions](https://firsttris.github.io/schreibzeug/files.html) | folders, versions, trash, the files API |
 | [Collaboration](https://firsttris.github.io/schreibzeug/collaboration.html) | real-time co-editing without a document server |
 | [PDFs](https://firsttris.github.io/schreibzeug/pdf.html) and [e-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html) | forms, signatures, OCR, ZUGFeRD |
+| [Markdown and text files](https://firsttris.github.io/schreibzeug/text.html) | notes with a live preview, kept byte for byte |
 | [MCP server](https://firsttris.github.io/schreibzeug/mcp.html) | Claude Code and other AI assistants |
 | [Kontext](https://firsttris.github.io/schreibzeug/kontext.html) | sign-in through Kontext, the "Dokumente" module |
 | [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html) | the app for Windows, macOS and Linux |

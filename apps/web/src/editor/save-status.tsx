@@ -34,8 +34,23 @@ const useLeaveWarning = (active: boolean) => {
   }, [active]);
 };
 
+/** What the header says of an open file, whichever editor holds it. */
+export type DocumentStatus = {
+  status: "loading" | "ready" | "error";
+  /** Changes the server does not have yet. */
+  modified: boolean;
+  connected: boolean;
+};
+
+/** An engine editor's state as the header shows it. */
+export const documentStatusOf = (state: CoreState): DocumentStatus => ({
+  status: state.status,
+  modified: hasUnsavedChanges(state),
+  connected: state.document.connected,
+});
+
 export type SaveStatusProps = {
-  state: CoreState;
+  document: DocumentStatus;
   /** Why the editor could not open, if it could not. */
   failure: string | null;
   saving: boolean;
@@ -44,11 +59,11 @@ export type SaveStatusProps = {
 };
 
 /** What happens to the file: opening, saving, saved, connection lost, or only looking. */
-export const SaveStatus = ({ state, failure, saving, saveFailure, readOnly }: SaveStatusProps) => {
-  const status: Status = failure ? "error" : state.status;
-  const { connected } = state.document;
+export const SaveStatus = ({ document, failure, saving, saveFailure, readOnly }: SaveStatusProps) => {
+  const status: Status = failure ? "error" : document.status;
+  const { connected } = document;
   // What a viewer sees may not be stored yet, but that is for the editors to save.
-  const modified = !readOnly && hasUnsavedChanges(state);
+  const modified = !readOnly && document.modified;
   useLeaveWarning(modified);
   useReportUnsaved(modified);
   return (

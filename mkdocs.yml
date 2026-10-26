@@ -30,6 +30,7 @@ nav:
       - Files and versions: files.md
       - Collaboration: collaboration.md
       - PDFs: pdf.md
+      - Markdown and text files: text.md
       - E-invoices: e-invoice.md
       - MCP server (AI assistants): mcp.md
   - Behind it:

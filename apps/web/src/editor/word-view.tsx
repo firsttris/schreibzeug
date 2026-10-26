@@ -14,6 +14,7 @@ import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
 import { RecipientsDialog } from "./recipients-dialog";
 import { RevisionBalloon } from "./revision-balloon";
+import { documentStatusOf } from "./save-status";
 import { useAgent } from "./use-agent";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
@@ -106,7 +107,7 @@ export const WordView = ({
       <EditorHeader
         name={name}
         format="docx"
-        state={state}
+        document={documentStatusOf(state)}
         failure={failure}
         saving={saving}
         ready={editor !== null}

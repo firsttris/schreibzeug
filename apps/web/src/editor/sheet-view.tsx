@@ -13,6 +13,7 @@ import { EditorHeader } from "./editor-header";
 import { SHEET_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { documentStatusOf } from "./save-status";
 import {
   CHART_FAILURES,
   chartItems,
@@ -115,7 +116,7 @@ export const SheetView = ({
       <EditorHeader
         name={name}
         format="xlsx"
-        state={state}
+        document={documentStatusOf(state)}
         failure={failure}
         saving={saving}
         ready={editor !== null}

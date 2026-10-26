@@ -69,6 +69,9 @@ and leaves out what only makes sense with accounts.
   an open document; those routes answer "Das gibt es nur auf einem Schreibzeug-Server"
   (`src/app.ts`). The version number only counts the saves since the server started, which the
   editing session needs.
+- **Markdown and text files** open in the text editor ([Markdown and text files](text.md)): a
+  save goes through only while the file on disk is still the bytes it was made from, so a change
+  by another program (an editor, a sync tool) is not overwritten; the editor asks instead.
 - **Editing** uses the same relay as the server (`apps/server/src/collab`), so two windows on the
   same file edit together. A session opens the version it started at and replays its changes on
   it, also after saves moved the file on; the folder keeps no older versions, so the server keeps

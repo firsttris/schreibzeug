@@ -3,7 +3,7 @@ import { join } from "node:path";
 import forge from "node-forge";
 import { PDFDict, PDFDocument, PDFHexString, PDFName, PDFString } from "pdf-lib";
 import { beforeAll, describe, expect, it } from "vitest";
-import { checkSignatures, readIdentity, type SigningIdentity, signPdf } from "../src";
+import { checkSignatures, MAX_SIGNATURES, readIdentity, type SigningIdentity, signPdf } from "../src";
 import { makeP12 } from "./identity";
 
 const formular = new Uint8Array(readFileSync(join(import.meta.dirname, "../../../test-files/formular.pdf")));
@@ -139,6 +139,46 @@ describe("signPdf and checkSignatures", () => {
     const changed = pdf.slice();
     changed.set(new TextEncoder().encode(hex.padEnd(end - start - 2, "0")), start + 1);
     expect(checkSignatures(changed)[0]).toMatchObject({ intact: true, problem: null });
+  });
+
+  it("refuses anything but zero padding after the signature, and reads the reason only from signed bytes", async () => {
+    const pdf = await signed();
+    const text = new TextDecoder("latin1").decode(pdf);
+    const [, , end = 0] = (/\/ByteRange \[0 (\d+) (\d+) \d+\]/.exec(text) ?? []).map(Number);
+    const plant = (planted: string) => {
+      const changed = pdf.slice();
+      changed.set(new TextEncoder().encode(planted), end - 1 - planted.length);
+      return checkSignatures(changed)[0];
+    };
+    expect(plant("1")).toMatchObject({
+      intact: false,
+      problem: "Neben der Signatur stehen ungeprüfte Daten.",
+    });
+    expect(plant("/Reason (Gefälscht)")).toMatchObject({ intact: false, reason: "Auftrag bestätigt" });
+  });
+
+  it("checks only ByteRanges a signer writes, and only a bounded number of them", () => {
+    const junk = new TextEncoder().encode(
+      `%PDF-1.7\n${"<</ByteRange[0 0 99999999 0]/Reason(x)>>\n".repeat(5000)}%%EOF`,
+    );
+    const started = performance.now();
+    const checks = checkSignatures(junk);
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(checks).toHaveLength(MAX_SIGNATURES);
+    expect(checks.every((check) => !check.intact && check.reason === null)).toBe(true);
+  });
+
+  it("refuses a ByteRange that reaches beyond the file", async () => {
+    const pdf = await signed();
+    // The last length as nines of the same width: the range now ends past the end of the file.
+    const text = new TextDecoder("latin1")
+      .decode(pdf)
+      .replace(
+        /(\/ByteRange \[0 \d+ \d+ )(\d+)\]/,
+        (_, head: string, last: string) => `${head}${"9".repeat(last.length)}]`,
+      );
+    const [check] = checkSignatures(Uint8Array.from(text, (char) => char.charCodeAt(0)));
+    expect(check).toMatchObject({ intact: false, problem: "Die Signatur lässt sich nicht lesen." });
   });
 
   it("finds no signature in an unsigned PDF", () => {

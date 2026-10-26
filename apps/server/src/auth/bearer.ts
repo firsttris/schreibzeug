@@ -34,6 +34,8 @@ export type BearerDeps = {
   providerId: string;
   /** The provider's keys; by default read from its discovery document. */
   keys?: Parameters<typeof jwtVerify>[1];
+  /** Someone was signed out everywhere: their open editors' sockets close (sockets.ts). */
+  onSessionsEnded?: (userId: string) => void;
 };
 
 type Claims = JWTPayload & { email?: unknown; name?: unknown };
@@ -139,6 +141,7 @@ export const createBearer = ({
   audience,
   providerId,
   keys = discoveredKeys(issuer),
+  onSessionsEnded = () => {},
 }: BearerDeps) => {
   const check = { issuer, audience, keys };
   return {
@@ -156,6 +159,7 @@ export const createBearer = ({
         tx.delete(session).where(eq(session.userId, person.id)).run();
         tx.delete(accessTokens).where(eq(accessTokens.userId, person.id)).run();
       });
+      onSessionsEnded(person.id);
       return "ended";
     },
   };

@@ -81,6 +81,7 @@ export const agentSocketRoutes = ({
     upgradeWebSocket((c) => {
       const fileId = c.req.param("fileId") ?? "";
       const userId = c.var.user.id;
+      const session = c.var.signInSession;
       let tabId: string | null = null;
       return {
         onOpen: (_event, ws) => {
@@ -89,12 +90,10 @@ export const agentSocketRoutes = ({
             ws.close(SOCKET_CLOSE.notFound, "Unknown file");
             return;
           }
-          tabId = hub.join(
-            userId,
-            fileId,
-            (job) => ws.send(JSON.stringify(job)),
-            (code, reason) => ws.close(code, reason),
-          );
+          tabId = hub.join(userId, fileId, (job) => ws.send(JSON.stringify(job)), {
+            close: (code, reason) => ws.close(code, reason),
+            session,
+          });
         },
         onMessage: (event) => {
           const reply = parse(event.data);

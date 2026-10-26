@@ -138,9 +138,63 @@ describe("a change to who may open what", () => {
     const collab = socket();
     await hub.open(file.id, { id: guestId, name: "Guest" }, collab.send, collab.close);
     const tab = socket();
-    server.agent.join(guestId, file.id, () => {}, tab.close);
+    server.agent.join(guestId, file.id, () => {}, { close: tab.close });
     return { owner, file, email, guestId, collab, tab };
   };
+
+  /** The guest's editor on the file, opened with the sign-in session behind `cookie`. */
+  const openWith = async (cookie: string, fileId: string) => {
+    const { user, session } = (await (await call("/api/auth/get-session", cookie)).json()) as {
+      user: { id: string };
+      session: { id: string };
+    };
+    const collab = socket();
+    await hub.open(fileId, { id: user.id, name: "Guest", session: session.id }, collab.send, collab.close);
+    const tab = socket();
+    server.agent.join(user.id, fileId, () => {}, { close: tab.close, session: session.id });
+    return { collab, tab };
+  };
+
+  it("closes the sockets a sign-in session opened when it signs out, not those of another", async () => {
+    const owner = await server.signUp("SOwner");
+    const created = await call("/api/files/blank", owner, "POST", {
+      name: "B",
+      parentId: null,
+      format: "docx",
+    });
+    const file = nodeSchema.parse(await created.json());
+    const signIn = await server.app.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "sowner@example.org", password: "geheim-genug" }),
+    });
+    const second = signIn.headers
+      .getSetCookie()
+      .map((cookie) => cookie.split(";")[0])
+      .join("; ");
+    const here = await openWith(owner, file.id);
+    const there = await openWith(second, file.id);
+
+    expect((await call("/api/auth/sign-out", owner, "POST", {})).status).toBe(200);
+    expect(here.collab.closed).toEqual([[SOCKET_CLOSE.signedOut, "Signed out"]]);
+    expect(here.collab.messages.at(-1)).toMatchObject({ type: "drop", code: ENGINE_CLOSE.sessionAbsolute });
+    expect(here.tab.closed).toEqual([[SOCKET_CLOSE.signedOut, "Signed out"]]);
+    expect([there.collab.closed, there.tab.closed]).toEqual([[], []]);
+
+    // Signing out the others (a password change does the same) ends the rest.
+    const third = await server.app.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "sowner@example.org", password: "geheim-genug" }),
+    });
+    const current = third.headers
+      .getSetCookie()
+      .map((cookie) => cookie.split(";")[0])
+      .join("; ");
+    expect((await call("/api/auth/revoke-other-sessions", current, "POST", {})).status).toBe(200);
+    expect(there.collab.closed).toEqual([[SOCKET_CLOSE.signedOut, "Signed out"]]);
+    expect(there.tab.closed).toEqual([[SOCKET_CLOSE.signedOut, "Signed out"]]);
+  });
 
   it("closes the editor sockets of someone whose share is removed", async () => {
     const { owner, file, guestId, collab, tab } = await sharedFile("R");

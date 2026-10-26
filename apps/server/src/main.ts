@@ -1,6 +1,7 @@
 import { join, resolve } from "node:path";
 import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
+import { createAgentHub } from "./agent/hub";
 import { createApp } from "./app";
 import { createAuth, OIDC_PROVIDER } from "./auth/auth";
 import { createBearer } from "./auth/bearer";
@@ -12,6 +13,7 @@ import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
 import { roleOf } from "./files/access";
 import { mcpRoutes } from "./mcp";
+import { openSockets } from "./sockets";
 import { webRoutes } from "./web";
 
 const config = readConfig(process.env);
@@ -36,14 +38,6 @@ const {
 const { db, close } = connect(join(resolve(dataDir), "schreibzeug.db"));
 migrateDatabase(db);
 
-const auth = createAuth({
-  db,
-  secret: await loadSecret(authSecret, join(resolve(dataDir), "auth-secret")),
-  openSignup,
-  trustedOrigins,
-  baseUrl: publicUrl,
-  oidc,
-});
 const hub = createHub({
   access: async (fileId, userId) => {
     const found = roleOf(db, userId, fileId);
@@ -52,9 +46,22 @@ const hub = createHub({
       : null;
   },
 });
+const agent = createAgentHub();
+// Ending a sign-in closes the editors' sockets it opened (sockets.ts).
+const sockets = openSockets({ db, collab: hub, agent });
+const auth = createAuth({
+  db,
+  secret: await loadSecret(authSecret, join(resolve(dataDir), "auth-secret")),
+  openSignup,
+  trustedOrigins,
+  baseUrl: publicUrl,
+  oidc,
+  onSessionEnded: sockets.sessionEnded,
+});
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 const app = createApp({
   auth,
+  agent,
   db,
   blobs: createBlobStore(join(resolve(dataDir), "blobs")),
   maxUploadBytes,
@@ -62,7 +69,15 @@ const app = createApp({
   collab: { hub, upgradeWebSocket },
   // Kontext's tokens name this server's address, so they need it (SCHREIBZEUG_URL).
   ...(oidc && publicUrl
-    ? { bearer: createBearer({ db, issuer: oidc.issuer, audience: publicUrl, providerId: OIDC_PROVIDER }) }
+    ? {
+        bearer: createBearer({
+          db,
+          issuer: oidc.issuer,
+          audience: publicUrl,
+          providerId: OIDC_PROVIDER,
+          onSessionsEnded: sockets.userSignedOut,
+        }),
+      }
     : {}),
   info: {
     mode: "server",

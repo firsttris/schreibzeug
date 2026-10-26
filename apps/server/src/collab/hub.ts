@@ -17,8 +17,11 @@ import {
 /** Sends one message to one connection. */
 export type Send = (message: Record<string, unknown>) => void;
 
-/** Who is connected, as the server knows them from the session. */
-export type HubUser = { id: string; name: string };
+/**
+ * Who is connected, as the server knows them from the session, and the id of that sign-in session:
+ * when it ends, the connection does.
+ */
+export type HubUser = { id: string; name: string; session?: string };
 
 /** What the user may do with a file: its newest version, and whether they may change it. */
 export type FileAccess = { version: number; role: "owner" | "edit" | "view" };
@@ -237,6 +240,13 @@ export const createHub = ({
     connection.close(socketCode, reason);
   };
 
+  /** Sends away the connections whose sign-in ended (sdkjs shows "session expired"). */
+  const signOut = (which: (connection: Connection) => boolean) => {
+    for (const [id, connection] of [...connections]) {
+      if (which(connection)) eject(id, ENGINE_CLOSE.sessionAbsolute, SOCKET_CLOSE.signedOut, "Signed out");
+    }
+  };
+
   return {
     /**
      * A new connection to a file. It first learns the version to open (our own `schreibzeug:session`
@@ -296,6 +306,12 @@ export const createHub = ({
       });
       await Promise.all(checks);
     },
+
+    /** A sign-in session ended (signed out, revoked): its connections are sent away. */
+    closeSession: (sessionId: string) => signOut(({ user }) => user.session === sessionId),
+
+    /** All of a user's sessions ended (Kontext's lockout, bearer.ts): their connections are sent away. */
+    closeUser: (userId: string) => signOut(({ user }) => user.id === userId),
 
     /**
      * A save from a shared session starts (files-api SessionSaves): false when its copy is known

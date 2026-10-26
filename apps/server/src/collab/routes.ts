@@ -27,8 +27,10 @@ export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSo
     "/collab/:fileId",
     upgradeWebSocket((c) => {
       const fileId = c.req.param("fileId") ?? "";
-      // Checked by requireUser before the upgrade: the WebSocket carries the session cookie.
+      // Checked by requireUser before the upgrade: the WebSocket carries the session cookie. The
+      // hub closes the connection when that session ends or the user loses the file.
       const { id, name } = c.var.user;
+      const session = c.var.signInSession;
       let connectionId: Promise<string | null> = Promise.resolve(null);
       const send = (ws: WSContext) => (message: Record<string, unknown>) => ws.send(JSON.stringify(message));
       return {
@@ -38,7 +40,7 @@ export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSo
             return;
           }
           const close = (code: number, reason: string) => ws.close(code, reason);
-          connectionId = hub.open(fileId, { id, name }, send(ws), close).then((connection) => {
+          connectionId = hub.open(fileId, { id, name, session }, send(ws), close).then((connection) => {
             if (connection === null) ws.close(CLOSE.notFound, "Unknown file");
             return connection;
           });

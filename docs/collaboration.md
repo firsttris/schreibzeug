@@ -74,16 +74,21 @@ reconnects ([sharing](accounts.md#sharing)).
 
 Access is checked when a connection opens and again whenever it may have changed: after a share is
 put or removed, and after a file or folder is moved, trashed or restored, the file routes have the
-hub check every open connection (`hub.ts` `revalidate`, called from `app.ts`). Whoever lost the
+hub check every open connection (`hub.ts` `revalidate`, through `src/sockets.ts`). Whoever lost the
 file, and an editor who may now only look, is sent away as DocsCoServer drops a connection whose
 rights changed: the engine gets `drop` with sdkjs's code `accessDeny` and stops reconnecting, the
 connection leaves the session at once, and the socket closes with 4403. The editor shows the
 engine's error; opened again, the document comes as the role now allows. The jobs socket of the
 [MCP server](mcp.md#editing-in-the-open-tab) is checked the same way.
 
+A connection also ends with the sign-in session it was opened with: on sign-out, a revoked session,
+a password change that signs out the other devices, or Kontext signing the person out everywhere
+([accounts](accounts.md)), the engine gets `drop` with `sessionAbsolute` and the socket closes with
+4401.
+
 The hub (`hub.ts`) keeps one session per file in memory and delivers the answers;
 `routes.ts` does the WebSocket upgrade with Hono on Bun. Malformed messages close the socket with
-code 4400, an unknown file with 4404, lost access with 4403 (`src/collab/limits.ts`
+code 4400, an unknown file with 4404, lost access with 4403, an ended sign-in with 4401 (`src/collab/limits.ts`
 `SOCKET_CLOSE`).
 
 ## Losing the connection
@@ -169,7 +174,8 @@ for while one runs follows it. Each save is a version, so a session leaves sever
 ## Tests
 
 `apps/server/test/collab.test.ts` covers the session functions and the hub, `locks.test.ts` the
-locks,
+locks, `collab-limits.test.ts` the log's ceiling and the end of idle sessions,
+`collab-revocation.test.ts` closing sockets when access or the sign-in ends,
 `packages/editor-core/test` the channel, the socket stand-in and the save counting.
 `e2e/collaboration.spec.ts` opens the same file in two browser contexts: both type and see each
 other's text; one loses its connection, waits for it to come back and edits on; a change is stored

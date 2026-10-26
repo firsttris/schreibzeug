@@ -9,7 +9,17 @@ export type SendJob = (job: AgentJob) => void;
 /** Closes a tab's socket. */
 export type CloseTab = (code: number, reason: string) => void;
 
-type Tab = { userId: string; fileId: string; send: SendJob; close: CloseTab; since: number };
+/** How a tab's socket closes, and the sign-in session it opened with: when that ends, so does the tab. */
+export type TabSocket = { close?: CloseTab; session?: string };
+
+type Tab = {
+  userId: string;
+  fileId: string;
+  send: SendJob;
+  close: CloseTab;
+  session: string | undefined;
+  since: number;
+};
 type Pending = { tabId: string; finish: (result: Result<string>) => void };
 
 /** How long a tab has for a job; the engine is quick, a person may still be asked to agree. */
@@ -49,9 +59,9 @@ export const createAgentHub = ({ timeoutMs = JOB_TIMEOUT_MS, now = Date.now } = 
 
   return {
     /** A tab with the file open; returns its id. */
-    join: (userId: string, fileId: string, send: SendJob, close: CloseTab = () => {}): string => {
+    join: (userId: string, fileId: string, send: SendJob, { close = () => {}, session }: TabSocket = {}) => {
       const id = randomUUID();
-      tabs.set(id, { userId, fileId, send, close, since: now() });
+      tabs.set(id, { userId, fileId, send, close, session, since: now() });
       return id;
     },
 
@@ -63,6 +73,14 @@ export const createAgentHub = ({ timeoutMs = JOB_TIMEOUT_MS, now = Date.now } = 
      */
     revalidate: (mayEdit: (userId: string, fileId: string) => boolean) =>
       closeWhere((tab) => !mayEdit(tab.userId, tab.fileId), SOCKET_CLOSE.revoked, "Access revoked"),
+
+    /** A sign-in session ended (signed out, revoked): its tabs are sent away. */
+    closeSession: (sessionId: string) =>
+      closeWhere((tab) => tab.session === sessionId, SOCKET_CLOSE.signedOut, "Signed out"),
+
+    /** All of a user's sessions ended (Kontext's lockout, bearer.ts): their tabs are sent away. */
+    closeUser: (userId: string) =>
+      closeWhere((tab) => tab.userId === userId, SOCKET_CLOSE.signedOut, "Signed out"),
 
     /** The tab's answer to a job it was given. */
     reply: (tabId: string, reply: AgentReply) => {

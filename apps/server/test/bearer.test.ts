@@ -4,6 +4,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createBearer } from "../src/auth/bearer";
 import { createToken } from "../src/auth/tokens";
+import { SOCKET_CLOSE } from "../src/collab/limits";
 import { nodes, user } from "../src/db/schema";
 import { startServer, type TestServer } from "./harness";
 
@@ -28,7 +29,8 @@ beforeAll(async () => {
       .setExpirationTime("5m")
       .sign(privateKey);
   server = await startServer({
-    bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+    bearer: (db, onSessionsEnded) =>
+      createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys, onSessionsEnded }),
   });
 });
 afterAll(() => server?.stop());
@@ -154,6 +156,16 @@ describe("ending someone's sessions (DELETE /api/sessions)", () => {
     const stranger = await sign({ sub: "kontext-fremd", email: "fremd@example.org" });
     expect((await asBearer(stranger, "/api/sessions", { method: "DELETE" })).status).toBe(204);
     expect(server.db.select().from(user).where(eq(user.email, "fremd@example.org")).get()).toBeUndefined();
+  });
+
+  it("closes the person's open editor sockets too", async () => {
+    const token = await sign({ sub: "kontext-vera", email: "vera@example.org" });
+    expect((await asBearer(token, "/api/nodes")).status).toBe(200);
+    const vera = server.db.select().from(user).where(eq(user.email, "vera@example.org")).get();
+    const closed: number[] = [];
+    server.agent.join(vera?.id ?? "", crypto.randomUUID(), () => {}, { close: (code) => closed.push(code) });
+    expect((await asBearer(token, "/api/sessions", { method: "DELETE" })).status).toBe(204);
+    expect(closed).toEqual([SOCKET_CLOSE.signedOut]);
   });
 });
 

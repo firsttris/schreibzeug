@@ -22,6 +22,8 @@ export type AuthDeps = {
   baseUrl?: string | undefined;
   /** Signing in through another service (Kontext); email and password stay. */
   oidc?: OidcConfig | undefined;
+  /** A session ended (sign-out, revoked, password changed): its open editors' sockets close (sockets.ts). */
+  onSessionEnded?: (ended: { id: string; userId: string }) => void;
 };
 
 /** The provider id of the sign-in through another service; its callback is /api/auth/callback/oidc. */
@@ -71,7 +73,15 @@ const userCount = (db: Database): number => db.select({ value: count() }).from(s
  * trusted, whatever host name it is reached by; Better Auth checks the Origin header against
  * that (api/middlewares/origin-check.mjs validateOrigin).
  */
-export const createAuth = ({ db, secret, openSignup, trustedOrigins = [], baseUrl, oidc }: AuthDeps) =>
+export const createAuth = ({
+  db,
+  secret,
+  openSignup,
+  trustedOrigins = [],
+  baseUrl,
+  oidc,
+  onSessionEnded = () => {},
+}: AuthDeps) =>
   betterAuth({
     secret,
     ...(baseUrl ? { baseURL: baseUrl } : {}),
@@ -90,6 +100,11 @@ export const createAuth = ({ db, secret, openSignup, trustedOrigins = [], baseUr
     account: { accountLinking: { enabled: true, trustedProviders: [OIDC_PROVIDER] } },
     plugins: oidc ? [oidcPlugin(oidc)] : [],
     databaseHooks: {
+      // Every way a session ends deletes its row through the internal adapter, which runs this
+      // hook per session (better-auth db/internal-adapter.mjs deleteSession, deleteSessions,
+      // deleteUserSessions): sign-out, revoke-session(s), revoke-other-sessions, a password change
+      // that revokes the others, an expired session found by getSession.
+      session: { delete: { after: async (ended) => onSessionEnded(ended) } },
       account: {
         create: {
           // One person at the provider per account: an address given to someone new at Kontext (a

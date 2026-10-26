@@ -66,7 +66,15 @@ const app = createApp({
   trustedOrigins: [...(publicUrl ? [new URL(publicUrl).origin] : []), ...trustedOrigins],
   // Kontext's tokens name this server's address, so they need it (SCHREIBZEUG_URL).
   ...(oidc && publicUrl
-    ? { bearer: createBearer({ db, issuer: oidc.issuer, audience: publicUrl, providerId: OIDC_PROVIDER }) }
+    ? {
+        bearer: createBearer({
+          db,
+          issuer: oidc.issuer,
+          audience: publicUrl,
+          clientId: oidc.clientId,
+          providerId: OIDC_PROVIDER,
+        }),
+      }
     : {}),
   info: {
     mode: "server",

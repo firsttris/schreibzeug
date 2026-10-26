@@ -7,6 +7,7 @@ import { startServer, type TestServer } from "./harness";
 
 const ISSUER = "https://kontext.example.org/api/auth";
 const AUDIENCE = "https://dokumente.example.org";
+const CLIENT_ID = "schreibzeug";
 
 let server: TestServer;
 let tokenFor: (sub: string, email: string, verified?: boolean) => Promise<string>;
@@ -19,11 +20,13 @@ beforeAll(async () => {
       .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
       .setIssuer(ISSUER)
       .setAudience(AUDIENCE)
+      .setIssuedAt()
       .setExpirationTime("5m")
       .sign(privateKey);
   server = await startServer({
     pendingShares: true,
-    bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+    bearer: (db) =>
+      createBearer({ db, issuer: ISSUER, audience: AUDIENCE, clientId: CLIENT_ID, providerId: "oidc", keys }),
   });
 });
 afterAll(() => server?.stop());

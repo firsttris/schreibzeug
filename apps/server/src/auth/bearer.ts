@@ -32,13 +32,48 @@ export type BearerDeps = {
   issuer: string;
   /** This server's address (SCHREIBZEUG_URL), the audience the tokens name. */
   audience: string;
+  /** This server's client id at the provider (OIDC_CLIENT_ID): a token made for another client is refused. */
+  clientId: string;
   /** The provider id the sign-in keeps accounts under (auth.ts OIDC_PROVIDER). */
   providerId: string;
   /** The provider's keys; by default read from its discovery document. */
   keys?: Parameters<typeof jwtVerify>[1];
 };
 
-type Claims = JWTPayload & { email?: unknown; name?: unknown; email_verified?: unknown };
+type Claims = JWTPayload & {
+  email?: unknown;
+  name?: unknown;
+  email_verified?: unknown;
+  azp?: unknown;
+  client_id?: unknown;
+};
+
+/**
+ * What a token must be to hold: signed with the provider's private key (no `HS*` or `none`, which a
+ * key set could be talked into), with an expiry, and not older than this, whatever its `exp` says.
+ * Kontext's tokens last five minutes (server/documents/schreibzeug.ts in Kontext).
+ */
+const VERIFY = {
+  algorithms: [
+    "EdDSA",
+    "Ed25519",
+    "ES256",
+    "ES384",
+    "ES512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "PS256",
+    "PS384",
+    "PS512",
+  ],
+  requiredClaims: ["exp", "iat", "sub"],
+  maxTokenAge: "10m",
+};
+
+/** A token names the client it was made for in `azp` or `client_id`, if at all: it must be this one. */
+const madeFor = (claims: Claims, clientId: string) =>
+  [claims.azp, claims.client_id].every((client) => client === undefined || client === clientId);
 
 /** The provider's keys, found through its discovery document (read once, again after a failure). */
 const discoveredKeys = (issuer: string) => {
@@ -124,11 +159,16 @@ const personOf = (
 /** The verified claims of a token: who it is for, or null for a token that does not hold. */
 const claimsOf = async (
   token: string,
-  { issuer, audience, keys }: Required<Pick<BearerDeps, "issuer" | "audience" | "keys">>,
+  {
+    issuer,
+    audience,
+    clientId,
+    keys,
+  }: Required<Pick<BearerDeps, "issuer" | "audience" | "clientId" | "keys">>,
 ) => {
-  const verified = await jwtVerify<Claims>(token, keys, { issuer, audience }).catch(() => null);
+  const verified = await jwtVerify<Claims>(token, keys, { issuer, audience, ...VERIFY }).catch(() => null);
   const claims = verified?.payload;
-  if (!claims?.sub || typeof claims.email !== "string") return null;
+  if (!claims?.sub || typeof claims.email !== "string" || !madeFor(claims, clientId)) return null;
   const email = claims.email.toLowerCase();
   const name = typeof claims.name === "string" && claims.name ? claims.name : email;
   return { subject: claims.sub, email, name, verified: claims.email_verified === true };
@@ -144,10 +184,11 @@ export const createBearer = ({
   db,
   issuer,
   audience,
+  clientId,
   providerId,
   keys = discoveredKeys(issuer),
 }: BearerDeps) => {
-  const check = { issuer, audience, keys };
+  const check = { issuer, audience, clientId, keys };
   return {
     person: async (token: string): Promise<SessionUser | null> => {
       const claims = await claimsOf(token, check);

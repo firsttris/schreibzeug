@@ -9,6 +9,7 @@ import { startServer, type TestServer } from "./harness";
 
 const ISSUER = "https://kontext.example.org/api/auth";
 const AUDIENCE = "https://dokumente.example.org";
+const CLIENT_ID = "schreibzeug";
 
 let server: TestServer;
 let keys: ReturnType<typeof createLocalJWKSet>;
@@ -16,19 +17,24 @@ let sign: (
   claims: Record<string, unknown>,
   options?: { audience?: string; issuer?: string },
 ) => Promise<string>;
+let privateKey: CryptoKey;
 
 beforeAll(async () => {
-  const { publicKey, privateKey } = await generateKeyPair("EdDSA", { crv: "Ed25519" });
+  const pair = await generateKeyPair("EdDSA", { crv: "Ed25519" });
+  const { publicKey } = pair;
+  privateKey = pair.privateKey;
   keys = createLocalJWKSet({ keys: [{ ...(await exportJWK(publicKey)), kid: "k1", alg: "EdDSA" }] });
   sign = (claims, { audience = AUDIENCE, issuer = ISSUER } = {}) =>
     new SignJWT({ email_verified: true, ...claims })
       .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
       .setIssuer(issuer)
       .setAudience(audience)
+      .setIssuedAt()
       .setExpirationTime("5m")
       .sign(privateKey);
   server = await startServer({
-    bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+    bearer: (db) =>
+      createBearer({ db, issuer: ISSUER, audience: AUDIENCE, clientId: CLIENT_ID, providerId: "oidc", keys }),
   });
 });
 afterAll(() => server?.stop());
@@ -134,6 +140,27 @@ describe("tokens from the sign-in provider", () => {
       expect((await asBearer(token, "/api/nodes")).status).toBe(401);
     }
   });
+
+  it("are refused when made for another client, without an expiry, or too old", async () => {
+    const claims = { sub: "kontext-jonas", email: "jonas@example.org", email_verified: true };
+    const unsigned = () =>
+      new SignJWT(claims)
+        .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
+        .setIssuer(ISSUER)
+        .setAudience(AUDIENCE);
+    for (const token of [
+      await sign({ ...claims, azp: "anderer-client" }),
+      await sign({ ...claims, client_id: "anderer-client" }),
+      await unsigned().setIssuedAt().sign(privateKey),
+      await unsigned()
+        .setIssuedAt(Math.floor(Date.now() / 1000) - 3600)
+        .setExpirationTime("1d")
+        .sign(privateKey),
+    ]) {
+      expect((await asBearer(token, "/api/nodes")).status).toBe(401);
+    }
+    expect((await asBearer(await sign({ ...claims, azp: CLIENT_ID }), "/api/nodes")).status).toBe(200);
+  });
 });
 
 describe("the sign-in through the provider", () => {
@@ -207,7 +234,15 @@ describe("ending someone's sessions (DELETE /api/sessions)", () => {
 describe("the first account", () => {
   it("takes over the files from before accounts also when a token makes it", async () => {
     const fresh = await startServer({
-      bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+      bearer: (db) =>
+        createBearer({
+          db,
+          issuer: ISSUER,
+          audience: AUDIENCE,
+          clientId: CLIENT_ID,
+          providerId: "oidc",
+          keys,
+        }),
     });
     try {
       fresh.db

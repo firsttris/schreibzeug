@@ -74,7 +74,10 @@ server calls Schreibzeug's API itself, never through the browser. It sends
 `Authorization: Bearer <token>`: a JWT Kontext signs with its provider keys for one person, valid
 for five minutes, with Kontext as issuer and `SCHREIBZEUG_URL` as audience. An id token names the
 client id as audience and is refused. `apps/server/src/auth/bearer.ts` checks it against the keys
-from the provider's discovery document and finds the person by `sub` (the account the sign-in
+from the provider's discovery document, signed with an asymmetric algorithm (EdDSA, ES*, RS*, PS*),
+with `sub`, `iat` and `exp` and no older than ten minutes; a token that names a client (`azp` or
+`client_id`) must name `OIDC_CLIENT_ID`, so a token the provider made for another client is refused.
+It finds the person by `sub` (the account the sign-in
 keeps), else by address, else creates them; the request then has exactly that person's rights.
 By address only as Better Auth links a sign-in: the account's address must be confirmed, the
 token must confirm it as well (`email_verified: true`), and the account must not belong to another

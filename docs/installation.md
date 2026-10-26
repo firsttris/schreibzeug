@@ -58,7 +58,7 @@ All settings are environment variables (`apps/server/src/config.ts`); the image 
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` | The largest file that can be uploaded or saved |
 | `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies (at least 32 characters); without it one is generated and kept in the data folder |
 | `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account |
-| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas (the desktop app) |
+| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in and, with a session, change things, separated by commas (the desktop app) |
 | `SCHREIBZEUG_TRUSTED_PROXIES` | – | The reverse proxies in front of the server, as the server sees them: IP addresses or CIDR ranges, separated by commas ([below](#behind-a-reverse-proxy)) |
 | `SCHREIBZEUG_WEB_DIR` | – | The built web app to serve beside the API (set in the image) |
 | `SCHREIBZEUG_EMBED_ORIGIN` | – | The one site that may show Schreibzeug in a frame ([Kontext](kontext.md)) |

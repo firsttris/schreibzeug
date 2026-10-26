@@ -20,6 +20,17 @@ each sign-in replace the other's, since cookies know no ports. Better Auth check
 trusted origins; Schreibzeug trusts its own origin, whatever host name the server is reached by, and
 the ones in `SCHREIBZEUG_TRUSTED_ORIGINS` (the desktop app, later).
 
+The rest of the API checks the same for requests that come with the session cookie: what changes
+something (every method but `GET`, `HEAD` and `OPTIONS`) and the WebSocket upgrades of the relay
+(`/api/collab`) and of the editor jobs (`/api/agent`) must come from the request's own origin,
+`SCHREIBZEUG_URL` or `SCHREIBZEUG_TRUSTED_ORIGINS`, else the answer is `403`
+(`src/auth/origin.ts`). The cookie is `SameSite=Lax`, so the browser also sends it from another
+origin of the same site, such as another subdomain beside Kontext or another port of the host;
+without the check, a page there could upload, trash or join a live session as the person. Without
+an `Origin` header the browser's `Sec-Fetch-Site` decides; a request with neither comes from no
+page. Personal access tokens and Kontext's tokens are not checked: a browser never sends them by
+itself.
+
 Every node has an `owner_id`. Every query in `src/files/repository.ts` takes the signed-in user and
 asks `src/files/access.ts` what they may do with the node; a file they have no access to is "not
 found", the same as one that does not exist. Names are unique per owner at the top level.
@@ -79,7 +90,7 @@ others' changes as they come.
 |---|---|---|
 | `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account. Otherwise only the first account can be created there. |
 | `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies, at least 32 characters. Without it the server generates one on first start and keeps it in `SCHREIBZEUG_DATA_DIR/auth-secret` (mode 600). |
-| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas. |
+| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in and, with a session, change things, separated by commas. |
 | `SCHREIBZEUG_TRUSTED_PROXIES` | – | The reverse proxies in front of the server (addresses or CIDR ranges). Sign-in and sign-up allow a few tries per client in ten seconds; a client is the connection's address, behind these proxies the first forwarded address that is not one of them, never an `X-Forwarded-For` a client sends itself (`src/auth/client-ip.ts`, [installation](installation.md#behind-a-reverse-proxy)). |
 
 The first account takes over the files from before there were accounts (nodes without an owner),

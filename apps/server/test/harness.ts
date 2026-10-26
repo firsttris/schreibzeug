@@ -27,6 +27,7 @@ export const startServer = async ({
   pendingShares = false,
   collab,
   rateLimit,
+  trustedOrigins,
 }: {
   bearer?: (db: Database) => Bearer;
   pendingShares?: boolean;
@@ -34,6 +35,8 @@ export const startServer = async ({
   collab?: AppDeps["collab"];
   /** Better Auth's rate limit, which is off outside production. */
   rateLimit?: boolean;
+  /** Origins besides the request's own that may change things with a session. */
+  trustedOrigins?: string[];
 } = {}) => {
   const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
   const connection = connect(join(dataDir, "schreibzeug.db"));
@@ -55,6 +58,7 @@ export const startServer = async ({
     maxUploadBytes: MAX_UPLOAD_BYTES,
     pendingShares,
     ...(collab ? { collab } : {}),
+    ...(trustedOrigins ? { trustedOrigins } : {}),
     log: () => {},
   });
 

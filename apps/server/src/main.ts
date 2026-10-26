@@ -62,6 +62,8 @@ const app = createApp({
   maxUploadBytes,
   pendingShares: Boolean(oidc),
   collab: { hub, upgradeWebSocket },
+  // Behind a proxy that does not pass the Host on, the request's own origin is not the public one.
+  trustedOrigins: [...(publicUrl ? [new URL(publicUrl).origin] : []), ...trustedOrigins],
   // Kontext's tokens name this server's address, so they need it (SCHREIBZEUG_URL).
   ...(oidc && publicUrl
     ? { bearer: createBearer({ db, issuer: oidc.issuer, audience: publicUrl, providerId: OIDC_PROVIDER }) }

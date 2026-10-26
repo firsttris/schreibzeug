@@ -1,7 +1,9 @@
+import { nodeSchema } from "@schreibzeug/files-api";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLIENT_IP_HEADER, clientAddressOf, markClientAddress } from "../src/auth/client-ip";
 import { AUTH_BODY_BYTES, DEFAULT_BODY_BYTES } from "../src/limits";
 import { startServer, type TestServer } from "./harness";
+import { tokenFor } from "./mcp-client";
 
 let server: TestServer;
 beforeAll(async () => {
@@ -80,5 +82,64 @@ describe("the address the sign-in rate limit counts", () => {
     } finally {
       await limited.stop();
     }
+  });
+});
+
+describe("the origin of what changes something with a session", () => {
+  const SIBLING = "http://evil.localhost";
+  const createFolder = (headers: Record<string, string>, name: string) =>
+    server.app.request("/api/folders", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify({ name, parentId: null }),
+    });
+  const upgrade = (path: string, headers: Record<string, string>) =>
+    server.app.request(path, { headers: { upgrade: "websocket", connection: "Upgrade", ...headers } });
+
+  it("lets the server's own pages and clients without a page through", async () => {
+    const cookie = await server.signUp("Tara");
+    expect((await createFolder({ cookie, origin: "http://localhost" }, "Eigene Seite")).status).toBe(201);
+    expect((await createFolder({ cookie, "sec-fetch-site": "same-origin" }, "Ohne Origin")).status).toBe(201);
+    expect((await createFolder({ cookie }, "Skript")).status).toBe(201);
+  });
+
+  it("refuses another origin of the same site, also for the WebSocket upgrades", async () => {
+    const cookie = await server.signUp("Ulf");
+    const folder = nodeSchema.parse(await (await createFolder({ cookie }, "Bleibt")).json());
+    const trash = await server.app.request(`/api/nodes/${folder.id}/trash`, {
+      method: "POST",
+      headers: { cookie, origin: SIBLING },
+    });
+    expect(trash.status).toBe(403);
+    expect(await trash.json()).toMatchObject({ error: { kind: "forbidden" } });
+    expect((await createFolder({ cookie, "sec-fetch-site": "same-site" }, "Fremd")).status).toBe(403);
+    expect((await createFolder({ cookie, origin: "null" }, "Fremd")).status).toBe(403);
+    for (const path of [`/api/collab/${folder.id}`, `/api/agent/${folder.id}`]) {
+      expect((await upgrade(path, { cookie, origin: SIBLING })).status).toBe(403);
+      expect((await upgrade(path, { cookie, origin: "http://localhost" })).status).not.toBe(403);
+    }
+    // Reading is not refused: another origin cannot read the answer anyway (no CORS).
+    expect((await server.app.request("/api/nodes", { headers: { cookie, origin: SIBLING } })).status).toBe(
+      200,
+    );
+  });
+
+  it("trusts the configured origins, and does not ask tokens where they come from", async () => {
+    const trusting = await startServer({ trustedOrigins: ["tauri://localhost"] });
+    try {
+      const cookie = await trusting.signUp("Vera");
+      const reply = await trusting.app.request("/api/folders", {
+        method: "POST",
+        headers: { cookie, origin: "tauri://localhost", "content-type": "application/json" },
+        body: JSON.stringify({ name: "Desktop", parentId: null }),
+      });
+      expect(reply.status).toBe(201);
+    } finally {
+      await trusting.stop();
+    }
+    const cookie = await server.signUp("Wim");
+    const token = await tokenFor(server, cookie, "write");
+    const reply = await createFolder({ authorization: `Bearer ${token}`, origin: SIBLING }, "Mit Schlüssel");
+    expect(reply.status).toBe(201);
   });
 });

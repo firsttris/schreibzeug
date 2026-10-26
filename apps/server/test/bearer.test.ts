@@ -21,7 +21,7 @@ beforeAll(async () => {
   const { publicKey, privateKey } = await generateKeyPair("EdDSA", { crv: "Ed25519" });
   keys = createLocalJWKSet({ keys: [{ ...(await exportJWK(publicKey)), kid: "k1", alg: "EdDSA" }] });
   sign = (claims, { audience = AUDIENCE, issuer = ISSUER } = {}) =>
-    new SignJWT(claims)
+    new SignJWT({ email_verified: true, ...claims })
       .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
       .setIssuer(issuer)
       .setAudience(audience)
@@ -103,6 +103,26 @@ describe("tokens from the sign-in provider", () => {
     expect(await namesAt(token)).toEqual(["Rechnung.pdf"]);
   });
 
+  it("confirm an address only with email_verified: true", async () => {
+    const cookie = await server.signUp("Nora", "nora@example.org");
+    await createFolder(cookie, "Noras");
+    server.db.update(user).set({ emailVerified: true }).where(eq(user.email, "nora@example.org")).run();
+    for (const emailVerified of [false, "true", undefined]) {
+      const token = await sign({
+        sub: "kontext-nora",
+        email: "nora@example.org",
+        email_verified: emailVerified,
+      });
+      expect((await asBearer(token, "/api/nodes")).status).toBe(401);
+    }
+    // Someone new gets an account, but its address stays unconfirmed.
+    const token = await sign({ sub: "kontext-olaf", email: "olaf@example.org", email_verified: false });
+    expect((await asBearer(token, "/api/nodes")).status).toBe(200);
+    expect(server.db.select().from(user).where(eq(user.email, "olaf@example.org")).get()?.emailVerified).toBe(
+      false,
+    );
+  });
+
   it("are refused for another audience or issuer, without a subject, and as id tokens", async () => {
     const claims = { sub: "kontext-jonas", email: "jonas@example.org" };
     for (const token of [
@@ -117,15 +137,42 @@ describe("tokens from the sign-in provider", () => {
 });
 
 describe("the sign-in through the provider", () => {
+  it("does not confirm an address the provider does not vouch for", async () => {
+    const cookie = await server.signUp("Paul", "paul@example.org");
+    const context = await server.auth.$context;
+    const userId = (await server.auth.api.getSession({ headers: new Headers({ cookie }) }))?.user.id ?? "";
+    const idToken = await sign(
+      { sub: "kontext-paul", email: "paul@example.org", email_verified: false },
+      { audience: "schreibzeug" },
+    );
+    await context.internalAdapter.linkAccount({
+      providerId: "oidc",
+      accountId: "kontext-paul",
+      userId,
+      idToken,
+    });
+    expect(server.db.select().from(user).where(eq(user.id, userId)).get()?.emailVerified).toBe(false);
+  });
+
   it("links one subject per account: an address given to someone new does not take it over", async () => {
     const cookie = await server.signUp("Max", "max@example.org");
     const context = await server.auth.$context;
     const session = await server.auth.api.getSession({ headers: new Headers({ cookie }) });
     const userId = session!.user.id;
+    // The provider's id token, as Better Auth stores it with the account it links.
+    const idToken = await sign(
+      { sub: "kontext-max-1", email: "max@example.org" },
+      { audience: "schreibzeug" },
+    );
     expect(
-      await context.internalAdapter.linkAccount({ providerId: "oidc", accountId: "kontext-max-1", userId }),
+      await context.internalAdapter.linkAccount({
+        providerId: "oidc",
+        accountId: "kontext-max-1",
+        userId,
+        idToken,
+      }),
     ).toBeTruthy();
-    // Linking it marks the address as confirmed (Better Auth links only the same address).
+    // Linking it marks the address as confirmed when the provider confirms it.
     expect(server.db.select().from(user).where(eq(user.id, userId)).get()?.emailVerified).toBe(true);
     expect(
       await context.internalAdapter.linkAccount({ providerId: "oidc", accountId: "kontext-max-2", userId }),

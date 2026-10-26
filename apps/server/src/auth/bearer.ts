@@ -19,10 +19,12 @@ import type { SessionUser } from "./auth";
  * like on their first sign-in through it.
  *
  * By address only under Better Auth's own rule for linking (oauth2/link-account.mjs
- * handleOAuthUserInfo, `requireLocalEmailVerified`): the account's address must be confirmed. An
- * account someone registered with a password under a colleague's address never gets that
- * colleague's identity, and an account the provider knows under another subject (an address given
- * to someone new) is not handed on. Such a token is refused, as Better Auth refuses the sign-in.
+ * handleOAuthUserInfo, `requireLocalEmailVerified`): the account's address must be confirmed, and
+ * the token must confirm it too (`email_verified: true`). An account someone registered with a
+ * password under a colleague's address never gets that colleague's identity, and an account the
+ * provider knows under another subject (an address given to someone new) is not handed on. Such a
+ * token is refused, as Better Auth refuses the sign-in. Without `email_verified: true` a new
+ * account's address stays unconfirmed and gets nothing that was shared with it.
  */
 export type BearerDeps = {
   db: Database;
@@ -36,7 +38,7 @@ export type BearerDeps = {
   keys?: Parameters<typeof jwtVerify>[1];
 };
 
-type Claims = JWTPayload & { email?: unknown; name?: unknown };
+type Claims = JWTPayload & { email?: unknown; name?: unknown; email_verified?: unknown };
 
 /** The provider's keys, found through its discovery document (read once, again after a failure). */
 const discoveredKeys = (issuer: string) => {
@@ -56,7 +58,11 @@ const discoveredKeys = (issuer: string) => {
   };
 };
 
-/** The person behind a provider's subject: by the linked account, else by address, else new. */
+/**
+ * The person behind a provider's subject: by the linked account, else by address, else new. By
+ * address only when the provider confirms it (`verified`, the token's `email_verified: true`); a
+ * new account has its address confirmed, and gets what was shared with it, only then too.
+ */
 const personOf = (
   db: Database,
   providerId: string,
@@ -64,6 +70,7 @@ const personOf = (
   email: string,
   name: string,
   create: boolean,
+  verified = false,
 ) =>
   db.transaction((tx): SessionUser | null => {
     const linked = tx
@@ -97,20 +104,20 @@ const personOf = (
         .from(account)
         .where(and(eq(account.userId, known.id), eq(account.providerId, providerId)))
         .get();
-      if (!known.verified || elsewhere) return null;
+      if (!verified || !known.verified || elsewhere) return null;
       link(known.id);
       claimPendingShares(tx, known.id, email);
       return { id: known.id, name: known.name, email: known.email };
     }
     const person = { id: crypto.randomUUID(), name, email };
     tx.insert(user)
-      .values({ ...person, emailVerified: true, createdAt: now, updatedAt: now })
+      .values({ ...person, emailVerified: verified, createdAt: now, updatedAt: now })
       .run();
     link(person.id);
     // As at a sign-up (auth.ts): the first account takes over the files from before accounts, and
     // the address the provider vouches for gets what was shared with it.
     if ((tx.select({ value: count() }).from(user).get()?.value ?? 0) === 1) adoptOwnerless(tx, person.id);
-    claimPendingShares(tx, person.id, email);
+    if (verified) claimPendingShares(tx, person.id, email);
     return person;
   });
 
@@ -124,7 +131,7 @@ const claimsOf = async (
   if (!claims?.sub || typeof claims.email !== "string") return null;
   const email = claims.email.toLowerCase();
   const name = typeof claims.name === "string" && claims.name ? claims.name : email;
-  return { subject: claims.sub, email, name };
+  return { subject: claims.sub, email, name, verified: claims.email_verified === true };
 };
 
 /**
@@ -144,7 +151,9 @@ export const createBearer = ({
   return {
     person: async (token: string): Promise<SessionUser | null> => {
       const claims = await claimsOf(token, check);
-      return claims && personOf(db, providerId, claims.subject, claims.email, claims.name, true);
+      return (
+        claims && personOf(db, providerId, claims.subject, claims.email, claims.name, true, claims.verified)
+      );
     },
     endSessions: async (token: string): Promise<"ended" | "unknown" | "refused"> => {
       const claims = await claimsOf(token, check);

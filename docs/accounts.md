@@ -102,8 +102,9 @@ with the address of an existing account gets that account when its address is co
 Auth's account linking with Kontext as a trusted provider, `requireLocalEmailVerified`). An account
 with a password has an address nobody confirmed: Better Auth answers `account_not_linked`, the
 sign-in page says so, and signing in with the password links Kontext right after (`linkSocial`,
-only for the same address). Then the address counts as confirmed and what was shared with it
-waits no longer. One account has one person at Kontext: a second `sub` is not linked (the account
+only for the same address). When Kontext confirms the address (`email_verified: true` in its id
+token or userinfo, nothing else counts), it counts as confirmed and what was shared with it waits
+no longer; an address the provider does not confirm stays unconfirmed and gets nothing by it. One account has one person at Kontext: a second `sub` is not linked (the account
 hook in `src/auth/auth.ts`), so an address given to someone new does not hand on the former
 person's files. From then on the account is found by Kontext's `sub`, so a changed address keeps
 it. The variables are in [Schreibzeug in Kontext](kontext.md#settings).

@@ -76,8 +76,10 @@ for five minutes, with Kontext as issuer and `SCHREIBZEUG_URL` as audience. An i
 client id as audience and is refused. `apps/server/src/auth/bearer.ts` checks it against the keys
 from the provider's discovery document and finds the person by `sub` (the account the sign-in
 keeps), else by address, else creates them; the request then has exactly that person's rights.
-By address only as Better Auth links a sign-in: the account's address must be confirmed, and the
-account must not belong to another `sub` already. An account someone registered with a password
+By address only as Better Auth links a sign-in: the account's address must be confirmed, the
+token must confirm it as well (`email_verified: true`), and the account must not belong to another
+`sub` already. A new account made from a token has its address confirmed, and gets what was shared
+with it, only with `email_verified: true` too. An account someone registered with a password
 under a colleague's address is refused, and so is a new person at Kontext who got a former
 colleague's address; the first account made from a token takes over the files from before there
 were accounts, as at a sign-up.

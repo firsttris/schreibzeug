@@ -1,16 +1,22 @@
 name: CI
 
+# The header as in firsttris/workflows ("CI in every project").
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
   pull_request:
-  workflow_dispatch:
-  # The release runs the same checks before the image (release.yml).
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  # The release runs the same checks before publishing, unless main already ran them (release.yml).
   workflow_call:
+  workflow_dispatch:
 
+# A new push to a pull request cancels its outdated run; runs on main and tags finish, so a release
+# can count main's run (tested-on-main).
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -21,6 +27,8 @@ env:
 jobs:
   # Stage 1: format, lint, types
   static:
+    # Draft pull requests do not build; "Ready for review" starts the run
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,6 +42,8 @@ jobs:
 
   # Stages 2 and 3: unit and integration tests (Vitest)
   unit:
+    # Draft pull requests do not build; "Ready for review" starts the run
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -46,6 +56,8 @@ jobs:
 
   # The desktop app's Rust side (apps/desktop/src-tauri): format, lints, tests
   desktop:
+    # Draft pull requests do not build; "Ready for review" starts the run
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     defaults:
@@ -73,9 +85,13 @@ jobs:
 
   # The engine (sdkjs, fonts) from the pinned Euro-Office release, cached by its spec
   engine:
+    # Draft pull requests do not build; "Ready for review" starts the run
+    if: ${{ !github.event.pull_request.draft }}
     uses: ./.github/workflows/engine.yml
 
   playwright-image:
+    # Draft pull requests do not build; "Ready for review" starts the run
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:

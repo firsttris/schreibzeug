@@ -139,6 +139,16 @@ describe("readConfig", () => {
     });
   });
 
+  it("needs the public address for the sign-in through Kontext", () => {
+    const config = readConfig({
+      OIDC_ISSUER: "https://kontext.example.org/api/auth",
+      OIDC_CLIENT_ID: "schreibzeug",
+      OIDC_CLIENT_SECRET: "geheim",
+    });
+    expect(config.ok).toBe(false);
+    expect(config.ok ? "" : config.error).toContain("SCHREIBZEUG_URL");
+  });
+
   it("reports what is wrong", () => {
     const config = readConfig({ PORT: "kein Port" });
     expect(config.ok).toBe(false);

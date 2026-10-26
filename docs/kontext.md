@@ -107,14 +107,16 @@ Kontext.
 
 | Variable | |
 |---|---|
-| `SCHREIBZEUG_URL` | Where browsers reach Schreibzeug (`https://dokumente.firma.de`): Better Auth's base URL (the callback) and the audience of Kontext's tokens. Without it no tokens are taken |
+| `SCHREIBZEUG_URL` | Where browsers reach Schreibzeug (`https://dokumente.firma.de`): Better Auth's base URL (the callback) and the audience of Kontext's tokens. Required with the OIDC settings: the server does not start without it, so the callback never follows the `Host` a request names |
 | `OIDC_ISSUER` | The provider's issuer, for Kontext `https://kontext.firma.de/api/auth` |
 | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | As registered at the provider; Kontext: `schreibzeug` and its `SCHREIBZEUG_CLIENT_SECRET` |
 | `OIDC_NAME` | The name on the button, default `Kontext` |
 | `SCHREIBZEUG_EMBED_ORIGIN` | The one origin that may show Schreibzeug in a frame (`https://kontext.firma.de`) |
 
 Sign-in through the provider needs issuer, client id and secret; without them it is email and
-password only. Kontext's `deploy/compose.yaml` runs Schreibzeug with the profile `documents`, from
+password only. With them it needs `SCHREIBZEUG_URL` as well, or the server does not start: else
+Better Auth would take its base URL, and with it the sign-in's `redirect_uri`, from the `Host` of
+each request (`apps/server/src/config.ts`). Kontext's `deploy/compose.yaml` runs Schreibzeug with the profile `documents`, from
 the image `tristanteu/schreibzeug` (`docker/Dockerfile`; **Release** publishes it on Docker Hub
 and GHCR when a `v*` tag is pushed, [installation](installation.md)).
 

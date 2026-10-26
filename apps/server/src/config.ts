@@ -106,6 +106,16 @@ export const readConfig = (env: Record<string, string | undefined>) => {
   const parsed = configSchema.safeParse(env);
   if (!parsed.success) return { ok: false as const, error: z.prettifyError(parsed.error) };
   const value = parsed.data;
+  const oidc = oidcOf(value);
+  // Without it Better Auth takes its base URL, and so the sign-in's redirect_uri, from the Host
+  // header of each request (better-auth utils/url.mjs getBaseURL): anyone could name their own.
+  if (oidc && !value.SCHREIBZEUG_URL) {
+    return {
+      ok: false as const,
+      error:
+        "Signing in through OIDC (OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET) needs SCHREIBZEUG_URL, the address people open.",
+    };
+  }
   const config: Config = {
     dataDir: value.SCHREIBZEUG_DATA_DIR,
     port: value.PORT,
@@ -117,7 +127,7 @@ export const readConfig = (env: Record<string, string | undefined>) => {
     webDir: value.SCHREIBZEUG_WEB_DIR,
     publicUrl: value.SCHREIBZEUG_URL,
     embedOrigin: value.SCHREIBZEUG_EMBED_ORIGIN && new URL(value.SCHREIBZEUG_EMBED_ORIGIN).origin,
-    oidc: oidcOf(value),
+    oidc,
   };
   return { ok: true as const, value: config };
 };

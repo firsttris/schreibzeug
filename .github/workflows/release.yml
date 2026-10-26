@@ -1,6 +1,6 @@
 name: Release
 
-# A version tag vX.Y.Z (from Actions → Bump version, or `bun run release:minor` on a checkout)
+# A version tag vX.Y.Z (from Actions → Bump version, which keeps all version files in step)
 # publishes a release: the Docker image (docker/Dockerfile) with the web app, its engine and the
 # server, e.g. for Kontext's deploy/compose.yaml, and the GitHub release with the desktop app's
 # installers attached. The engine's font tool is a Linux x86_64 binary, so the image is for amd64.
@@ -22,10 +22,8 @@ jobs:
     if: needs.tested.outputs.tested != 'true'
     uses: ./.github/workflows/ci.yml
 
+  # Built while the checks run; nothing is published unless they pass (docker needs both).
   desktop:
-    needs: [tested, checks]
-    # The checks either passed or were not needed
-    if: ${{ !cancelled() && needs.tested.result == 'success' && needs.checks.result != 'failure' }}
     uses: ./.github/workflows/desktop.yml
     permissions:
       contents: read

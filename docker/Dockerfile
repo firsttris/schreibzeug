@@ -8,10 +8,14 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends binutils xz-utils unzip \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+# The engine first, in a layer of its own: it changes only with engine/ (a pinned release), so the
+# release reuses it from the build cache instead of downloading 632 MB and generating the fonts
+# again. The download it unpacked is dropped, so the cache holds only engine/dist.
+COPY engine engine
+RUN bun engine/scripts/prepare.ts && rm -rf engine/.cache
+# .dockerignore leaves out every dist/, so engine/dist stays as prepared.
 COPY . .
-RUN bun install --frozen-lockfile \
-  && bun engine/scripts/prepare.ts \
-  && bun run build
+RUN bun install --frozen-lockfile && bun run build
 
 FROM docker.io/oven/bun:1.4-slim
 WORKDIR /app

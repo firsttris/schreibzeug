@@ -39,7 +39,8 @@ A release is a button: **Actions → Bump version → Run workflow**, with `patc
 `v0.2.0`). It raises the version in `package.json`, `apps/desktop/package.json` and
 `apps/desktop/src-tauri/Cargo.toml` (with `Cargo.lock`), commits "Release vX.Y.Z" on `main`, tags
 it and starts `release.yml` on the tag. That workflow skips the checks when `main`'s CI already
-passed on the commit before the release commit, builds the desktop app, publishes the Docker image
+passed on the commit before the release commit (so wait for `main`'s CI after a merge, or the
+release runs the checks again), builds the desktop app meanwhile, publishes the Docker image
 and creates the GitHub release with the installers attached. The shared workflows come from
 [firsttris/workflows](https://github.com/firsttris/workflows) (`bump-version.yml`,
 `tested-on-main.yml`, `docker-release.yml`).

@@ -1,7 +1,8 @@
 //! The Schreibzeug desktop app: a window that works on files on this computer (through the local server,
 //! local.rs) or shows a Schreibzeug server's own web app. Downloads go to the download folder, a page of
 //! the same app that opens a new window gets one of the app's own, other links go to the system's
-//! browser, and the menu switches between this computer and a server.
+//! browser, and the app's own menu (in the page, see desktop_action) switches between this computer
+//! and a server; only macOS keeps a menu bar of its own, at the top of the screen.
 
 mod downloads;
 mod local;
@@ -10,6 +11,7 @@ mod settings;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
+#[cfg(target_os = "macos")]
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::webview::{DownloadEvent, NewWindowResponse};
 use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -20,6 +22,28 @@ const MAIN_WINDOW: &str = "main";
 const WORK_LOCALLY: &str = "work-locally";
 const CHOOSE_FOLDER: &str = "choose-folder";
 const CHOOSE_SERVER: &str = "choose-server";
+
+/// Where the web app sends the window for a command of the app ("Ordner wählen …"): never a real
+/// page (.invalid is reserved), caught before it loads. A plain navigation needs no native calls,
+/// which the server's pages do not get.
+const ACTION_HOST: &str = "desktop.schreibzeug.invalid";
+
+/// Tells the web app it runs in the desktop app, so it offers the commands of the menu.
+const DESKTOP_SCRIPT: &str = "window.schreibzeugDesktop = true;";
+
+/// The command a navigation asks for, or None for a page to load.
+fn desktop_action(url: &Url) -> Option<&str> {
+    if url.scheme() != "https" || url.host_str() != Some(ACTION_HOST) {
+        return None;
+    }
+    match url.path().trim_start_matches('/') {
+        action @ (WORK_LOCALLY | CHOOSE_FOLDER | CHOOSE_SERVER) => Some(action),
+        _ => None,
+    }
+}
+
+/// The start page the app opened with, for going back to the choice.
+struct StartPage(Url);
 
 /// The local server, once started, and the key it was given.
 struct LocalState {
@@ -77,11 +101,25 @@ static WINDOWS: AtomicUsize = AtomicUsize::new(0);
 fn open_window(app: &AppHandle, label: &str, url: WebviewUrl) -> tauri::Result<WebviewWindow> {
     let handle = app.clone();
     let downloads = app.clone();
+    let commands = app.clone();
     let opener = label.to_owned();
     WebviewWindowBuilder::new(app, label, url)
         .title("Schreibzeug")
         .inner_size(1280.0, 860.0)
         .min_inner_size(800.0, 560.0)
+        .initialization_script(DESKTOP_SCRIPT)
+        .on_navigation(move |url| match desktop_action(url) {
+            Some(action) => {
+                if let Some(start) = commands.try_state::<StartPage>() {
+                    // Not from inside the callback: the command may navigate this very window.
+                    let (app, action, start) =
+                        (commands.clone(), action.to_owned(), start.0.clone());
+                    tauri::async_runtime::spawn(async move { on_menu(&app, &action, &start) });
+                }
+                false
+            }
+            None => true,
+        })
         .on_new_window(move |url, _features| {
             let here = handle
                 .get_webview_window(&opener)
@@ -236,6 +274,9 @@ async fn choose_folder(app: AppHandle) -> Result<Option<String>, String> {
         .map(|folder| folder.map(|folder| folder.display().to_string()))
 }
 
+/// macOS has its menu bar at the top of the screen, and copy and paste need its "Bearbeiten";
+/// elsewhere the window's own bar would only repeat the app's title.
+#[cfg(target_os = "macos")]
 fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let locally = MenuItem::with_id(app, WORK_LOCALLY, "Auf diesem Computer", true, None::<&str>)?;
     let folder = MenuItem::with_id(app, CHOOSE_FOLDER, "Ordner wählen …", true, None::<&str>)?;
@@ -321,7 +362,6 @@ pub fn run() {
             token,
             running: Mutex::new(None),
         })
-        .menu(menu)
         .invoke_handler(tauri::generate_handler![
             open_local,
             local_folder,
@@ -334,7 +374,13 @@ pub fn run() {
                 WebviewUrl::App("index.html".into()),
             )?;
             let start = window.url()?;
-            app.on_menu_event(move |app, event| on_menu(app, event.id().as_ref(), &start));
+            #[cfg(target_os = "macos")]
+            {
+                let menu_start = start.clone();
+                app.handle().set_menu(menu(app.handle())?)?;
+                app.on_menu_event(move |app, event| on_menu(app, event.id().as_ref(), &menu_start));
+            }
+            app.manage(StartPage(start));
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -373,6 +419,31 @@ mod tests {
             &here,
             &Url::parse("https://example.org/").unwrap()
         ));
+    }
+
+    #[test]
+    fn catches_the_commands_of_the_app_and_nothing_else() {
+        let url = |text: &str| Url::parse(text).unwrap();
+        assert_eq!(
+            desktop_action(&url("https://desktop.schreibzeug.invalid/choose-folder")),
+            Some(CHOOSE_FOLDER)
+        );
+        assert_eq!(
+            desktop_action(&url("https://desktop.schreibzeug.invalid/work-locally")),
+            Some(WORK_LOCALLY)
+        );
+        assert_eq!(
+            desktop_action(&url("https://desktop.schreibzeug.invalid/other")),
+            None
+        );
+        assert_eq!(
+            desktop_action(&url("http://desktop.schreibzeug.invalid/choose-server")),
+            None
+        );
+        assert_eq!(
+            desktop_action(&url("https://example.org/choose-folder")),
+            None
+        );
     }
 
     #[test]

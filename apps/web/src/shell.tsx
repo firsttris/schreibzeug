@@ -1,12 +1,46 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Clock, FolderClosed, LogOut, PenLine, Settings, Trash2, Users } from "lucide-react";
+import {
+  Clock,
+  EllipsisVertical,
+  FolderClosed,
+  LogOut,
+  PenLine,
+  Settings,
+  Trash2,
+  Users,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useAccount, useUser } from "./account/context";
 import { initialsOf } from "./account/initials";
 import { rootLabel, useFiles } from "./api/context";
+import { inDesktopApp, runDesktopCommand } from "./desktop";
 import { useEmbed } from "./embed/bridge";
 import { Button } from "./ui/button";
+import { MenuButton } from "./ui/menu";
+
+/** What the desktop app's menu bar held: where the window works. */
+const DesktopMenu = ({ local }: { local: boolean }) => (
+  <div className="ml-auto">
+    <MenuButton
+      label="Arbeitsort"
+      variant="ghost"
+      up
+      align="right"
+      groups={[
+        [
+          ...(local
+            ? []
+            : [{ label: "Auf diesem Computer", onSelect: () => runDesktopCommand("work-locally") }]),
+          { label: "Ordner wählen …", onSelect: () => runDesktopCommand("choose-folder") },
+          { label: "Mit Server verbinden …", onSelect: () => runDesktopCommand("choose-server") },
+        ],
+      ]}
+    >
+      <EllipsisVertical size={16} />
+    </MenuButton>
+  </div>
+);
 
 const NavLink = ({
   to,
@@ -55,10 +89,11 @@ const AccountBox = () => {
           {local ? "Auf diesem Computer" : user.email}
         </span>
       </span>
+      {inDesktopApp() && <DesktopMenu local={local} />}
       {!local && (
         <Button
           variant="ghost"
-          className="ml-auto"
+          className={inDesktopApp() ? "" : "ml-auto"}
           aria-label="Abmelden"
           title="Abmelden"
           onClick={() => void signOut()}

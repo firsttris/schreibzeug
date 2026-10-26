@@ -33,8 +33,13 @@ Schreibzeug window (Tauri) ┤
   home where Linux has none configured) without overwriting a file (`downloads.rs`). A page of the
   same server that opens a new window (a new or copied document) gets a window of the app, where
   the session holds; any other link (Strg+click on a link in a document) opens in the system's
-  browser, for http, https and mailto only. The menu "Schreibzeug" has "Auf diesem Computer", "Ordner
-  wählen …" and "Mit Server verbinden …" (back to the start page).
+  browser, for http, https and mailto only. "Auf diesem Computer", "Ordner wählen …" and "Mit
+  Server verbinden …" (back to the start page) are in the ⋮ menu beside the name at the bottom
+  left; the window has no menu bar of its own, only macOS keeps one at the top of the screen. The
+  app marks every page it shows (`window.schreibzeugDesktop`), and a command is a navigation to
+  `https://desktop.schreibzeug.invalid/<command>`, which the window catches before it loads
+  (`desktop_action`), so neither the local nor a server's pages need native calls for it
+  (`apps/web/src/desktop.ts`).
 - **The local server** (`local.rs`): started on first use with a random key, stopped with the app;
   it also ends when its stdin closes, so a crashed app leaves nothing running. A new folder
   restarts it and closes the windows that showed the old one. The folder is kept in `settings.json`

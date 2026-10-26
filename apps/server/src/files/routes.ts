@@ -195,6 +195,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": file.mime ?? "application/octet-stream",
           "content-disposition": contentDisposition(file.name),
+          "x-content-type-options": "nosniff",
           etag: `"${version.sha256}"`,
           "x-schreibzeug-version": String(version.number),
           "cache-control": "no-store",
@@ -244,6 +245,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
           return c.json({ error: { kind: "not_found" as const, message: NO_SUCH_IMAGE } }, 404);
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": media.type.mime,
+          "x-content-type-options": "nosniff",
           "cache-control": "private, max-age=31536000, immutable",
         });
       })

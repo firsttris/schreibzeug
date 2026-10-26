@@ -57,6 +57,7 @@ describe("images of a document", () => {
     const served = await call(`/api/files/${file.id}/media/${name}`, owner);
     expect(served.status).toBe(200);
     expect(served.headers.get("content-type")).toBe("image/png");
+    expect(served.headers.get("x-content-type-options")).toBe("nosniff");
     expect(new Uint8Array(await served.arrayBuffer())).toEqual(PNG);
 
     await call(

@@ -141,6 +141,7 @@ describe("files", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe(DOCX);
     expect(response.headers.get("x-schreibzeug-version")).toBe("1");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(await response.text()).toBe("Inhalt");
   });
 

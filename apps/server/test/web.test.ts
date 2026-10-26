@@ -26,6 +26,7 @@ describe("the web app beside the API", () => {
     expect(script.status).toBe(200);
     expect(await script.text()).toBe("window.engine = true;");
     expect(script.headers.get("content-type")).toContain("javascript");
+    expect(script.headers.get("x-content-type-options")).toBe("nosniff");
     const page = await site.request("/edit/8c2a5f8e-6a43-4f0b-9a55-0d6f0a3b1e11");
     expect(await page.text()).toContain("<title>Schreibzeug</title>");
   });

@@ -79,11 +79,11 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /folders` | New folder (`parentId`, `name`) |
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
 | `POST /files/blank` | New empty file (`parentId`, `name`, `format`: `docx`, `xlsx` or `pptx`) |
-| `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
+| `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version, as a download (`Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`) |
 | `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone), see [collaboration](collaboration.md#saving) |
 | `GET /files/:id/versions` | All versions, newest first |
 | `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
-| `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash |
+| `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash; with `X-Content-Type-Options: nosniff` |
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |
@@ -123,7 +123,7 @@ needs nothing of its own for it and an own template stays as it is.
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` |
 | `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
 | `SCHREIBZEUG_URL`, `SCHREIBZEUG_EMBED_ORIGIN`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_NAME` | see [Schreibzeug in Kontext](kontext.md#settings) |
-| `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
+| `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API (every file with `X-Content-Type-Options: nosniff`, so a browser never takes it for another type); the [desktop app](desktop.md) opens that address |
 
 The image `tristanteu/schreibzeug` (`docker/Dockerfile`) has the server and the built web app with
 its engine, with the data in `/data` (`SCHREIBZEUG_WEB_DIR=/app/web`, port 3000). **Actions →

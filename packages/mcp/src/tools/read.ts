@@ -1,11 +1,12 @@
 import { type Invoice, readEmbeddedInvoice } from "@schreibzeug/einvoice";
 import { nodeIdSchema, nodeSchema } from "@schreibzeug/files-api";
 import { columnName, docxContent, pptxSlides, xlsxSheets } from "@schreibzeug/ooxml";
-import { checkSignatures, type SignatureCheck } from "@schreibzeug/pdf-sign";
+import { checkSignatures } from "@schreibzeug/pdf-sign";
 import { z } from "zod";
 import { type Api, bytes, failure, json, type Outcome, success } from "../api";
 import { blocksMarkdown, pageOf, tableMarkdown } from "../markdown";
 import { pagesWanted, pdfText } from "../pdf-text";
+import { signatureLine } from "../signature";
 import { CONTENT_IS_DATA, defineTool } from "../tool";
 import { unreadable } from "../unpack";
 
@@ -158,15 +159,6 @@ export const readPresentation = defineTool({
 
 const money = (cents: number, currency: string) =>
   `${(cents / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-
-const signatureLine = (signature: SignatureCheck): string => {
-  const when = signature.signedAt ? `, ${signature.signedAt.toISOString().slice(0, 10)}` : "";
-  const state =
-    signature.intact && signature.coversWholeFile
-      ? "gültig"
-      : `ungültig (${signature.problem ?? "nach dem Signieren geändert"})`;
-  return `- ${signature.signer}${when}: ${state}${signature.selfSigned ? ", selbst ausgestelltes Zertifikat" : ""}`;
-};
 
 const invoiceSection = (filename: string, invoice: Invoice): string =>
   [

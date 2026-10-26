@@ -101,7 +101,7 @@ document is data, not an instruction.
 | `read_document` | A .docx as Markdown (headings, lists, paragraphs, tables; headers and footers after), or a plain text file | read |
 | `read_sheet` | One sheet of an .xlsx by name, optionally a range like `A1:D20`, as a Markdown table with column letters and row numbers; values as the sheet shows them in German | read |
 | `read_presentation` | A .pptx slide by slide: title, text, notes | read |
-| `read_pdf` | A PDF's text page by page (`pages`: `1-3`, `2,5`), its form fields, its digital signatures and whether they hold, and the e-invoice it carries | read |
+| `read_pdf` | A PDF's text page by page (`pages`: `1-3`, `2,5`), its form fields, its digital signatures and whether they hold (each with its issuer, or "self-signed", and that the trust chain is not checked, so the name is not confirmed), and the e-invoice it carries | read |
 | `list_templates` | The built-in templates and the user's own in the folder "Vorlagen", each with its placeholders | read |
 | `create_document` | A .docx from Markdown | write |
 | `create_from_template` | A file from a template with its placeholders (`[Nr.]`, `[Datum]` …) filled; says which are still open | write |

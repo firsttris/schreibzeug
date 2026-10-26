@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { unzipSync } from "fflate";
-import { collectErrors, createDocument, expectEditorReady, rename, row, save } from "./app";
+import { collectErrors, createDocument, createFile, expectEditorReady, rename, row, save } from "./app";
 import { E2E_LOCAL_ROOT, E2E_LOCAL_TOKEN, E2E_LOCAL_URL } from "./local";
 
 test.use({ baseURL: E2E_LOCAL_URL });
@@ -42,6 +42,31 @@ test.describe("files on this computer", () => {
     await expect(file).toBeVisible();
     await expect(file.getByRole("button", { name: `${name}.txt teilen` })).toHaveCount(0);
     await expect(file.getByRole("button", { name: `Versionen von ${name}.txt` })).toHaveCount(0);
+  });
+
+  test("writes a note into the folder on disk, and asks when another program changed it", async ({
+    page,
+  }, testInfo) => {
+    const name = folderName(testInfo.title);
+    await openOwnFolder(page, name);
+    await createFile(page, "Notiz (Markdown)", "Einkauf");
+    const path = join(E2E_LOCAL_ROOT, name, "Einkauf.md");
+    const text = page.getByTestId("text-editor").locator(".cm-content");
+    await text.click();
+    await page.keyboard.type("- Milch");
+    const status = page.getByTestId("editor-status");
+    await expect(status).toHaveText("Gespeichert");
+    expect(await readFile(path, "utf8")).toBe("- Milch");
+
+    // Another program writes the file while it is open here.
+    await writeFile(path, "- Brot\n");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("Eier");
+    await expect(page.getByRole("dialog", { name: "Inzwischen geändert" })).toBeVisible();
+    expect(await readFile(path, "utf8")).toBe("- Brot\n");
+    await page.getByRole("button", { name: "Neue Fassung laden" }).click();
+    await expect(text).toContainText("Brot");
+    await expect(text).not.toContainText("Milch");
   });
 
   test("creates a document in the folder on disk and saves into it", async ({ page }, testInfo) => {

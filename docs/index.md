@@ -3,7 +3,8 @@
 Schreibzeug is a self-hosted, open-source office suite: documents, spreadsheets, presentations and
 PDFs, edited together in real time in the browser or in a desktop app for Windows, macOS and Linux.
 It uses the Euro-Office engine (the open-source fork of ONLYOFFICE) without a document server, and
-it keeps your files as what they are: .docx, .xlsx, .pptx, .odt, .ods, .odp and .pdf.
+it keeps your files as what they are: .docx, .xlsx, .pptx, .odt, .ods, .odp and .pdf, and Markdown
+notes and text files (.md, .txt).
 
 ![The Schreibzeug editor with a Word document open, toolbar above the page](screenshots/editor-light.png)
 
@@ -23,6 +24,7 @@ it keeps your files as what they are: .docx, .xlsx, .pptx, .odt, .ods, .odp and 
 | [Files and versions](files.md) | folders, uploads, versions, trash, search and the files API |
 | [Collaboration](collaboration.md) | several people in one file, through the server's relay |
 | [PDFs](pdf.md) | forms, notes, signatures, OCR, pages, PDF/A |
+| [Markdown and text files](text.md) | notes with a live preview, kept in their own encoding and line endings |
 | [E-invoices](e-invoice.md) | ZUGFeRD and Factur-X: reading them, making them from an invoice |
 | [MCP server](mcp.md) | Claude Code and other AI assistants in your files |
 

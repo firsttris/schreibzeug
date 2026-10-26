@@ -10,6 +10,7 @@ import { EditorHeader } from "./editor-header";
 import { SLIDE_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
+import { documentStatusOf } from "./save-status";
 import { type SlideMenuContext, slideContextMenu, slideMenus } from "./slide-menus";
 import { useAgent } from "./use-agent";
 import { useCommentsPanel } from "./use-comments-panel";
@@ -74,7 +75,7 @@ export const SlideView = ({
       <EditorHeader
         name={name}
         format="pptx"
-        state={state}
+        document={documentStatusOf(state)}
         failure={failure}
         saving={saving}
         ready={editor !== null}

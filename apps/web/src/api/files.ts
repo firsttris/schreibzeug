@@ -3,6 +3,7 @@ import {
   type CreateInvite,
   type FileNode,
   folderListingSchema,
+  ifMatchHeader,
   invitationSchema,
   inviteSchema,
   mediaSchema,
@@ -131,6 +132,23 @@ export const fileCommands = (api: ApiClient) => ({
               "content-type": "application/octet-stream",
               ...(session ? { [SESSION_SAVE_HEADER]: sessionSaveHeader(session) } : {}),
             },
+          },
+        },
+      ),
+      nodeSchema,
+    ),
+  /**
+   * Saves only over the version whose content has that SHA-256: a conflict (409, CHANGED_SINCE)
+   * when someone saved in between (the text editor, files-api ifMatchOf).
+   */
+  saveOver: (id: string, bytes: Uint8Array, sha256: string) =>
+    expectJson(
+      api.files[":id"].content.$put(
+        { param: { id } },
+        {
+          init: {
+            body: bytes as BodyInit,
+            headers: { "content-type": "application/octet-stream", "if-match": ifMatchHeader(sha256) },
           },
         },
       ),

@@ -1,0 +1,272 @@
+/* The text editor (packages/text-editor): CodeMirror in Schreibzeug's look. The classes come from
+   editor.ts (highlight style, cm-live / cm-source) and live-preview.ts (lines, bullets, tasks). */
+
+.text-editor .cm-editor {
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.text-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.text-editor .cm-scroller {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.text-editor .cm-content {
+  caret-color: var(--foreground);
+  padding: 2rem 0 4rem;
+}
+
+/* The live view reads like a page: one column of a comfortable width. */
+.text-editor-live .cm-content {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding-inline: 1.5rem;
+}
+
+/* Source and plain text: monospace, with the marks in grey. */
+.text-editor-source .cm-scroller,
+.text-editor-split .cm-scroller,
+.text-editor-plain .cm-scroller {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.text-editor-source .cm-content,
+.text-editor-split .cm-content,
+.text-editor-plain .cm-content {
+  padding: 1.5rem 1.75rem 4rem;
+}
+
+.text-editor-split {
+  background: var(--muted);
+  border-right: 1px solid var(--border);
+}
+
+.text-editor-split .cm-editor {
+  background: var(--muted);
+}
+
+/* More specific than CodeMirror's own theme (.ͼ1.cm-focused > .cm-scroller > …), no !important. */
+.text-editor .cm-editor .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.text-editor .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+  background: color-mix(in srgb, var(--md) 22%, transparent);
+}
+
+.text-editor .cm-cursor {
+  border-left-color: var(--foreground);
+}
+
+.text-editor .cm-placeholder {
+  color: var(--muted-foreground);
+}
+
+/* Markdown, in every view */
+.cm-md-strong {
+  font-weight: 650;
+}
+.cm-md-em {
+  font-style: italic;
+}
+.cm-md-strike {
+  text-decoration: line-through;
+  color: var(--muted-foreground);
+}
+.cm-md-code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+.cm-live .cm-md-code {
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.cm-md-link {
+  color: var(--docx);
+}
+.cm-md-url,
+.cm-md-mark {
+  color: var(--muted-foreground);
+}
+.cm-source .cm-md-h1,
+.cm-source .cm-md-h2,
+.cm-source .cm-md-h3 {
+  color: var(--md);
+}
+
+/* The live view: lines look like what they are. */
+.cm-live .cm-md-h1 {
+  font-size: 1.75em;
+  font-weight: 700;
+  line-height: 1.3;
+  padding-top: 0.4em;
+}
+.cm-live .cm-md-h2 {
+  font-size: 1.35em;
+  font-weight: 650;
+  padding-top: 0.6em;
+}
+.cm-live .cm-md-h3 {
+  font-size: 1.15em;
+  font-weight: 600;
+  padding-top: 0.5em;
+}
+.cm-live .cm-md-h4,
+.cm-live .cm-md-h5,
+.cm-live .cm-md-h6 {
+  font-weight: 600;
+}
+.cm-live .cm-md-quote {
+  border-left: 3px solid var(--border);
+  padding-left: 14px;
+  color: var(--muted-foreground);
+}
+.cm-live .cm-md-code-block,
+.cm-live .cm-md-table {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  background: var(--muted);
+}
+.cm-live .cm-md-task-done {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+.cm-md-bullet {
+  display: inline-block;
+  width: 0.4em;
+  height: 0.4em;
+  margin: 0 0.35em 0.15em 0.2em;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+.cm-md-task {
+  width: 1em;
+  height: 1em;
+  margin: 0 0.25em 0 0;
+  vertical-align: -0.12em;
+  accent-color: var(--md);
+  cursor: pointer;
+}
+
+/* The search panel at the top, in the toolbar's look */
+.text-editor .cm-panels {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--border);
+  font-family: var(--font-sans);
+}
+.text-editor .cm-panel.cm-search input,
+.text-editor .cm-panel.cm-search button {
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.text-editor .cm-searchMatch {
+  background: color-mix(in srgb, var(--pptx) 25%, transparent);
+}
+
+/* The split view's preview */
+.text-preview {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.text-preview > :first-child {
+  margin-top: 0;
+}
+/* Tailwind's preflight takes headings, lists and margins away; the preview gives them back. */
+.text-preview h1,
+.text-preview h2,
+.text-preview h3,
+.text-preview h4 {
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 1.2em 0 0.4em;
+}
+.text-preview h1 {
+  font-size: 1.6em;
+}
+.text-preview h2 {
+  font-size: 1.25em;
+}
+.text-preview h3 {
+  font-size: 1.1em;
+}
+.text-preview p,
+.text-preview ul,
+.text-preview ol,
+.text-preview table,
+.text-preview blockquote,
+.text-preview pre {
+  margin: 0 0 0.8em;
+}
+.text-preview ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+.text-preview ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.text-preview li > p {
+  margin: 0;
+}
+.text-preview hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
+.text-preview a {
+  color: var(--docx);
+}
+.text-preview code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.text-preview pre {
+  background: var(--muted);
+  border-radius: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+}
+.text-preview pre code {
+  background: none;
+  padding: 0;
+}
+.text-preview blockquote {
+  margin: 0;
+  border-left: 3px solid var(--border);
+  padding-left: 14px;
+  color: var(--muted-foreground);
+}
+.text-preview table {
+  border-collapse: collapse;
+}
+.text-preview th,
+.text-preview td {
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  text-align: left;
+}
+.text-preview th {
+  background: var(--muted);
+}
+.text-preview li.task {
+  list-style: none;
+  margin-left: -1.3em;
+}
+.text-preview img {
+  max-width: 100%;
+}

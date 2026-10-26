@@ -1,4 +1,5 @@
-import type { OfficeFormat } from "@schreibzeug/editor-core";
+import type { BlankFormat } from "@schreibzeug/files-api";
+import { NEW_FILE_GROUPS, NEW_FILES } from "../files/new-files";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 
@@ -9,18 +10,12 @@ import type { Menu } from "../ui/menu-bar";
  */
 export type FileActions = {
   /** Opens the name dialog for a new file of this format, in a new tab. */
-  onNew: (format: OfficeFormat) => void;
+  onNew: (format: BlankFormat) => void;
   onCopy: () => void;
   onShare?: (() => void) | undefined;
   onShowVersions?: (() => void) | undefined;
   onClose: () => void;
 };
-
-const NEW_ITEMS: Array<{ format: OfficeFormat; label: string }> = [
-  { format: "docx", label: "Neues Dokument" },
-  { format: "xlsx", label: "Neue Tabelle" },
-  { format: "pptx", label: "Neue Präsentation" },
-];
 
 /**
  * What the open document offers besides the file itself: a PDF to download or print, and a PDF/A
@@ -42,7 +37,9 @@ export const fileMenu = (
 ): Menu => ({
   label: "Datei",
   groups: [
-    NEW_ITEMS.map(({ format, label }) => ({ label, onSelect: () => actions.onNew(format) })),
+    ...NEW_FILE_GROUPS.map((group) =>
+      group.map((format) => ({ label: NEW_FILES[format].title, onSelect: () => actions.onNew(format) })),
+    ),
     [
       { label: "Kopie erstellen", onSelect: actions.onCopy },
       { label: "Herunterladen", onSelect: download, disabled: !ready },

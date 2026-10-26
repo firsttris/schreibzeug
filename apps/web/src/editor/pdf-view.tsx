@@ -18,6 +18,7 @@ import { ScanNotice } from "./ocr-dialog";
 import { downloadBytes, fileNameFor, MIME } from "./opened-file";
 import { type PdfMenuContext, pagesLabel, pdfContextMenu, pdfMenus } from "./pdf-menus";
 import type { EditorViewProps } from "./props";
+import { documentStatusOf } from "./save-status";
 import { SignatureDialog } from "./signature-dialog";
 import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
@@ -155,7 +156,7 @@ export const PdfView = ({
       <EditorHeader
         name={name}
         format="pdf"
-        state={state}
+        document={documentStatusOf(state)}
         failure={failure}
         saving={saving}
         ready={editor !== null}

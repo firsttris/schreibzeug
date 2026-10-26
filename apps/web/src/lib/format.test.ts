@@ -7,6 +7,7 @@ import {
   isEditable,
   isLegacyFile,
   isOfficeFile,
+  isTextFile,
   kindOf,
 } from "./format";
 
@@ -69,6 +70,16 @@ describe("kinds", () => {
     expect(editorOf(kindOf({ kind: "file", name: "a.ods" }))).toBe("sheet");
     expect(editorOf(kindOf({ kind: "file", name: "a.odp" }))).toBe("slide");
     expect(isOfficeFile({ kind: "file", name: "a.odt" })).toBe(true);
+  });
+
+  it("opens Markdown and plain text in the text editor, not as Office files", () => {
+    for (const name of ["Notiz.md", "liesmich.TXT"]) {
+      expect(isTextFile({ kind: "file", name })).toBe(true);
+      expect(isEditable({ kind: "file", name })).toBe(true);
+      expect(isOfficeFile({ kind: "file", name })).toBe(false);
+      expect(editorOf(kindOf({ kind: "file", name }))).toBe("text");
+    }
+    expect(isTextFile({ kind: "file", name: "a.docx" })).toBe(false);
   });
 
   it("opens older formats by a copy in the Office format, not in an editor of their own", () => {

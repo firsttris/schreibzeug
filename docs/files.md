@@ -62,7 +62,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 |---|---|
 | `GET /nodes?parent=root\|<id>` | A folder: the folder, its path from the root (for a shared folder, from the folder that was shared), its children (folders first, by name) |
 | `GET /nodes/:id` | One node |
-| `PATCH /nodes/:id` | Rename (`name`) and/or move (`parentId`) |
+| `PATCH /nodes/:id` | Rename (`name`; needs edit and the folder it lies in, [sharing](accounts.md#sharing)) and/or move (`parentId`, owner only) |
 | `POST /nodes/:id/trash` | Move into the trash |
 | `POST /nodes/:id/restore` | Bring back from the trash |
 | `GET /trash`, `GET /recent` | What is in the trash; files by last change (both only the user's own) |

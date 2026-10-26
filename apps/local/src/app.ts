@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import {
   createBlankFileSchema,
   createFolderSchema,
+  ifMatchOf,
   nodeIdSchema,
   nodeNameSchema,
   SESSION_GONE,
@@ -65,16 +66,21 @@ const uploadForm = z.object({
 const mediaParam = z.object({ id: nodeIdSchema, name: z.string().max(100) });
 const versionQuery = z.object({ version: z.coerce.number().int().positive().optional() });
 
+const empty = () => new Uint8Array();
+
 const BLANK_FILES = {
   docx: { extension: ".docx", bytes: blankDocx },
   xlsx: { extension: ".xlsx", bytes: blankXlsx },
   pptx: { extension: ".pptx", bytes: blankPptx },
+  md: { extension: ".md", bytes: empty },
+  txt: { extension: ".txt", bytes: empty },
 } as const;
 
 const withExtension = (name: string, extension: string) =>
   name.toLowerCase().endsWith(extension) ? name : `${name}${extension}`;
 
 const NO_SUCH_VERSION = "Diese Version der Datei gibt es auf diesem Computer nicht mehr.";
+const BAD_IF_MATCH = "If-Match nennt keine Version (erwartet: SHA-256 in Anführungszeichen).";
 const UNAVAILABLE = "Das gibt es nur auf einem Schreibzeug-Server, nicht für Dateien auf diesem Computer.";
 
 /**
@@ -185,12 +191,14 @@ export const createLocalApp = ({
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
+        const over = ifMatchOf(c.req.header("if-match"));
+        if (over === undefined) return respond(c, fail("invalid", BAD_IF_MATCH));
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
         const relay = sessionSave ? collab?.hub : undefined;
         if (sessionSave && relay && !relay.begin(id, sessionSave))
           return respond(c, fail("conflict", SESSION_GONE));
         // Until the save is stored or abandoned, its session does not end (hub.ts `begin`).
-        const written = await folder.write(id, bytes).catch((error: unknown) => {
+        const written = await folder.write(id, bytes, over).catch((error: unknown) => {
           if (sessionSave) relay?.abandon(id);
           throw error;
         });

@@ -4,6 +4,7 @@ import { createBunWebSocket } from "hono/bun";
 import { createApp } from "./app";
 import { createAuth, OIDC_PROVIDER } from "./auth/auth";
 import { createBearer } from "./auth/bearer";
+import { markClientAddress } from "./auth/client-ip";
 import { loadSecret } from "./auth/secret";
 import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
@@ -26,6 +27,7 @@ const {
   authSecret,
   openSignup,
   trustedOrigins,
+  trustedProxies,
   webDir,
   publicUrl,
   embedOrigin,
@@ -42,6 +44,7 @@ const auth = createAuth({
   trustedOrigins,
   baseUrl: publicUrl,
   oidc,
+  trustedProxies,
 });
 const hub = createHub({
   access: async (fileId, userId) => {
@@ -75,7 +78,9 @@ if (webDir) site.route("/", webRoutes(webDir, { embedOrigin }));
 // Bun's own limit is 128 MB; uploads are bounded by the API's body limit instead.
 const server = Bun.serve({
   port,
-  fetch: site.fetch,
+  // Better Auth counts sign-in tries by this address (auth/client-ip.ts).
+  fetch: (request, bun) =>
+    site.fetch(markClientAddress(request, bun.requestIP(request)?.address, trustedProxies), bun),
   websocket,
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,
 });

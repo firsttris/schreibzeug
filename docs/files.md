@@ -126,7 +126,7 @@ needs nothing of its own for it and an own template stays as it is.
 | `SCHREIBZEUG_DATA_DIR` | `data`: the database `schreibzeug.db`, the blobs in `blobs/`, the generated `auth-secret` |
 | `PORT` | `3000` |
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` |
-| `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
+| `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS`, `SCHREIBZEUG_TRUSTED_PROXIES` | see [accounts](accounts.md) |
 | `SCHREIBZEUG_URL`, `SCHREIBZEUG_EMBED_ORIGIN`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_NAME` | see [Schreibzeug in Kontext](kontext.md#settings) |
 | `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
 

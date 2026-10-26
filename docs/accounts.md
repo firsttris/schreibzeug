@@ -80,6 +80,7 @@ others' changes as they come.
 | `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account. Otherwise only the first account can be created there. |
 | `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies, at least 32 characters. Without it the server generates one on first start and keeps it in `SCHREIBZEUG_DATA_DIR/auth-secret` (mode 600). |
 | `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas. |
+| `SCHREIBZEUG_TRUSTED_PROXIES` | – | The reverse proxies in front of the server (addresses or CIDR ranges). Sign-in and sign-up allow a few tries per client in ten seconds; a client is the connection's address, behind these proxies the first forwarded address that is not one of them, never an `X-Forwarded-For` a client sends itself (`src/auth/client-ip.ts`, [installation](installation.md#behind-a-reverse-proxy)). |
 
 The first account takes over the files from before there were accounts (nodes without an owner),
 so an existing installation keeps its files.

@@ -9,6 +9,7 @@ import * as schema from "../db/schema";
 import { findInvitation } from "../files/invites";
 import { adoptOwnerless } from "../files/repository";
 import { claimPendingShares } from "../files/shares";
+import { CLIENT_IP_HEADER } from "./client-ip";
 
 export type AuthDeps = {
   db: Database;
@@ -22,6 +23,10 @@ export type AuthDeps = {
   baseUrl?: string | undefined;
   /** Signing in through another service (Kontext); email and password stay. */
   oidc?: OidcConfig | undefined;
+  /** The proxies in front of the server, as addresses or CIDR ranges (client-ip.ts). */
+  trustedProxies?: readonly string[];
+  /** Better Auth's rate limit on sign-in and sign-up; absent: on in production only (its default). */
+  rateLimit?: boolean;
 };
 
 /** The provider id of the sign-in through another service; its callback is /api/auth/callback/oidc. */
@@ -71,7 +76,16 @@ const userCount = (db: Database): number => db.select({ value: count() }).from(s
  * trusted, whatever host name it is reached by; Better Auth checks the Origin header against
  * that (api/middlewares/origin-check.mjs validateOrigin).
  */
-export const createAuth = ({ db, secret, openSignup, trustedOrigins = [], baseUrl, oidc }: AuthDeps) =>
+export const createAuth = ({
+  db,
+  secret,
+  openSignup,
+  trustedOrigins = [],
+  baseUrl,
+  oidc,
+  trustedProxies = [],
+  rateLimit,
+}: AuthDeps) =>
   betterAuth({
     secret,
     ...(baseUrl ? { baseURL: baseUrl } : {}),
@@ -82,7 +96,13 @@ export const createAuth = ({ db, secret, openSignup, trustedOrigins = [], baseUr
     telemetry: { enabled: false },
     // Cookies of their own name: beside Kontext on one host (localhost in development and tests),
     // Better Auth's default name would make each sign-in replace the other's (cookies know no ports).
-    advanced: { cookiePrefix: "schreibzeug" },
+    // The rate limit counts each client by the address main.ts writes from the connection
+    // (client-ip.ts), never by a header the client sets.
+    advanced: {
+      cookiePrefix: "schreibzeug",
+      ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER], trustedProxies: [...trustedProxies] },
+    },
+    ...(rateLimit === undefined ? {} : { rateLimit: { enabled: rateLimit } }),
     // Someone who signs in through Kontext with the address of an existing account gets that account
     // when the address is confirmed here (Better Auth's `requireLocalEmailVerified`, on by default).
     // An account with a password is linked from its own session instead (login page: signing in with

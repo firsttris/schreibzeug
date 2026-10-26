@@ -26,16 +26,24 @@ export const startServer = async ({
   bearer,
   pendingShares = false,
   collab,
+  rateLimit,
 }: {
   bearer?: (db: Database) => Bearer;
   pendingShares?: boolean;
   /** The collaboration relay, for the tests of what the file routes tell it. */
   collab?: AppDeps["collab"];
+  /** Better Auth's rate limit, which is off outside production. */
+  rateLimit?: boolean;
 } = {}) => {
   const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
   const connection = connect(join(dataDir, "schreibzeug.db"));
   migrateDatabase(connection.db);
-  const auth = createAuth({ db: connection.db, secret: TEST_SECRET, openSignup: true });
+  const auth = createAuth({
+    db: connection.db,
+    secret: TEST_SECRET,
+    openSignup: true,
+    ...(rateLimit === undefined ? {} : { rateLimit }),
+  });
   // Tabs that take jobs are stood in for by the tests (mcp-edit.test.ts), with a short wait.
   const agent = createAgentHub({ timeoutMs: 1000 });
   const app = createApp({

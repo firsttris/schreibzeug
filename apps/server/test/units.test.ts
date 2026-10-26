@@ -76,8 +76,20 @@ describe("readConfig", () => {
         authSecret: undefined,
         openSignup: false,
         trustedOrigins: [],
+        trustedProxies: [],
       },
     });
+  });
+
+  it("reads the proxies in front of the server, and refuses what is no address", () => {
+    expect(readConfig({ SCHREIBZEUG_TRUSTED_PROXIES: "127.0.0.1, 172.16.0.0/12, ::1" })).toMatchObject({
+      ok: true,
+      value: { trustedProxies: ["127.0.0.1", "172.16.0.0/12", "::1"] },
+    });
+    for (const wrong of ["proxy.local", "10.0.0.0/33", "10.0.0.1/8/1"]) {
+      const config = readConfig({ SCHREIBZEUG_TRUSTED_PROXIES: wrong });
+      expect(config.ok ? "" : config.error).toContain("SCHREIBZEUG_TRUSTED_PROXIES");
+    }
   });
 
   it("reads the account settings", () => {

@@ -14,9 +14,10 @@ type ActionDialog = "rename" | "move" | "versions" | "share";
 /**
  * What one row offers, as far as the user's role allows: renaming needs "edit"; sharing, moving
  * and the trash are the owner's (as the server decides, files/access.ts). Versions are for everyone
- * who may look; restoring one needs "edit" (versions-dialog.tsx).
+ * who may look; restoring one needs "edit" (versions-dialog.tsx). Renaming also needs the folder the
+ * node lies in (files/repository.ts updateNode), which a page of shares by others does not show.
  */
-export const NodeActions = ({ node }: { node: FileNode }) => {
+export const NodeActions = ({ node, renamable = true }: { node: FileNode; renamable?: boolean }) => {
   const { commands, info } = useFiles();
   const [dialog, setDialog] = useState<ActionDialog | null>(null);
   const close = () => setDialog(null);
@@ -34,7 +35,7 @@ export const NodeActions = ({ node }: { node: FileNode }) => {
           <Share2 size={15} />
         </Button>
       )}
-      {editor && (
+      {editor && renamable && (
         <Button variant="ghost" aria-label={`${node.name} umbenennen`} onClick={() => setDialog("rename")}>
           <Pencil size={15} />
         </Button>

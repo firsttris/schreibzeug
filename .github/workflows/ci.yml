@@ -58,8 +58,12 @@ jobs:
   desktop:
     # Draft pull requests do not build; "Ready for review" starts the run
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    # GTK 4.14 or newer for the CEF runtime (tauri-winit-gtk4): Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Chromium (CEF, about 1 GB) is downloaded here once and kept in the Actions cache
+      CEF_PATH: ${{ github.workspace }}/.cef
     defaults:
       run:
         working-directory: apps/desktop/src-tauri
@@ -74,7 +78,12 @@ jobs:
       # From the Actions cache: the runners' Ubuntu mirror is at times very slow (firsttris/workflows)
       - uses: firsttris/workflows/actions/apt-install@v1
         with:
-          packages: libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+          packages: libgtk-4-dev librsvg2-dev
+      - uses: actions/cache@v4
+        with:
+          path: .cef
+          key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: cef-linux-
       # tauri-build checks that what tauri.conf.json bundles exists: the start page (frontendDist),
       # the local server (externalBin) and the web app (resources). Stand-ins do for these checks.
       - run: |

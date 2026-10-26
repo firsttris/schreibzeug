@@ -1,6 +1,6 @@
 # The desktop app
 
-`apps/desktop` is Schreibzeug as a desktop app for Windows, macOS and Linux, built with Tauri 2. It works
+`apps/desktop` is Schreibzeug as a desktop app for Windows, macOS and Linux, built with Tauri 3 (alpha). It works
 in one of two places, chosen on its start page and remembered for the next start:
 
 - **On this computer**: the files in the documents folder (or another folder), through a small
@@ -49,8 +49,12 @@ Schreibzeug window (Tauri) ┤
   `choose_folder`) are the app's own; the pages of a server or of the local server get none
   (`capabilities/default.json` grants only the core defaults to the app's own window content).
 
-The browser engine is the system's: WebView2 (Chromium) on Windows, WebKit on macOS, WebKitGTK on
-Linux. The editors, the converter (WebAssembly) and saving were tried in WebKitGTK 2.52.
+The browser engine is the system's on Windows (WebView2, Chromium) and macOS (WebKit). On Linux the
+app brings Chromium itself (CEF, Tauri 3's `tauri-runtime-cef`) instead of WebKitGTK, which is slow
+with the editors' canvas and differs from the browsers the web app is tested in. That makes the
+Linux packages about 170 MB larger. Only one engine can be in a Linux build (WebKitGTK's runtime
+builds on GTK 3, CEF on GTK 4), so the folder dialog there goes through the XDG desktop portal
+(the desktop's own dialog) instead of GTK 3. Tauri 3 and its CEF runtime are alpha releases.
 
 ## Files on this computer
 
@@ -128,8 +132,8 @@ bun run --filter @schreibzeug/desktop desktop:build   # installers for this mach
 The engine's fonts and the Bun runtime make the installers large (about 200 MB); slimming the
 fonts is for later.
 
-Linux needs WebKitGTK and its tooling (`libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
-librsvg2-dev`, Tauri's prerequisites). The workflow **Actions → Desktop app** builds the web app once on Linux and then all
+Linux needs GTK 4.14 or newer (`libgtk-4-dev librsvg2-dev`; Ubuntu 24.04, Debian 13); Chromium
+(CEF, about 1 GB) is downloaded by the first build, to `CEF_PATH` if set. The workflow **Actions → Desktop app** builds the web app once on Linux and then all
 three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
 by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
 [Development](development.md#releases)) builds them too and attaches them to the GitHub release. The

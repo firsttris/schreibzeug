@@ -277,7 +277,7 @@ async fn choose_folder(app: AppHandle) -> Result<Option<String>, String> {
 /// macOS has its menu bar at the top of the screen, and copy and paste need its "Bearbeiten";
 /// elsewhere the window's own bar would only repeat the app's title.
 #[cfg(target_os = "macos")]
-fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::DynRuntime>> {
     let locally = MenuItem::with_id(app, WORK_LOCALLY, "Auf diesem Computer", true, None::<&str>)?;
     let folder = MenuItem::with_id(app, CHOOSE_FOLDER, "Ordner wählen …", true, None::<&str>)?;
     let server = MenuItem::with_id(
@@ -352,10 +352,22 @@ fn on_menu(app: &AppHandle, id: &str, start: &Url) {
     }
 }
 
+/// The browser engine: Chromium (CEF) on Linux, the system's webview elsewhere (Cargo.toml).
+#[cfg(target_os = "linux")]
+fn runtime() -> tauri_runtime_cef::Cef {
+    tauri_runtime_cef::Cef::default()
+}
+
+#[cfg(not(target_os = "linux"))]
+fn runtime() -> tauri_runtime_wry::Wry {
+    tauri_runtime_wry::Wry::default()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let token = local::new_token().expect("no random numbers for the local server's key");
     let app = tauri::Builder::default()
+        .runtime(runtime())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(LocalState {

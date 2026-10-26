@@ -241,6 +241,8 @@ const createDocInfo = (win: EngineWindow, options: OpenOptions, format: Document
   info.put_Permissions({ edit, download: true, print: true, comment: edit, review: edit });
   info.put_Mode(edit ? "edit" : "view");
   info.put_Lang(options.lang ?? "de");
+  // A document's JS macros never run (document-scripts.ts says why; common/apiBase.js asc_runMacros).
+  info.put_IsEnabledMacroses(false);
   // Fast co-editing, as web-apps chooses by default (documenteditor/mobile Main.jsx coEditMode).
   if (options.collaboration) info.put_CoEditingMode("fast");
   return info;

@@ -4,11 +4,13 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createBearer } from "../src/auth/bearer";
 import { createToken } from "../src/auth/tokens";
+import { SOCKET_CLOSE } from "../src/collab/limits";
 import { nodes, user } from "../src/db/schema";
 import { startServer, type TestServer } from "./harness";
 
 const ISSUER = "https://kontext.example.org/api/auth";
 const AUDIENCE = "https://dokumente.example.org";
+const CLIENT_ID = "schreibzeug";
 
 let server: TestServer;
 let keys: ReturnType<typeof createLocalJWKSet>;
@@ -16,19 +18,32 @@ let sign: (
   claims: Record<string, unknown>,
   options?: { audience?: string; issuer?: string },
 ) => Promise<string>;
+let privateKey: CryptoKey;
 
 beforeAll(async () => {
-  const { publicKey, privateKey } = await generateKeyPair("EdDSA", { crv: "Ed25519" });
+  const pair = await generateKeyPair("EdDSA", { crv: "Ed25519" });
+  const { publicKey } = pair;
+  privateKey = pair.privateKey;
   keys = createLocalJWKSet({ keys: [{ ...(await exportJWK(publicKey)), kid: "k1", alg: "EdDSA" }] });
   sign = (claims, { audience = AUDIENCE, issuer = ISSUER } = {}) =>
-    new SignJWT(claims)
+    new SignJWT({ email_verified: true, ...claims })
       .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
       .setIssuer(issuer)
       .setAudience(audience)
+      .setIssuedAt()
       .setExpirationTime("5m")
       .sign(privateKey);
   server = await startServer({
-    bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+    bearer: (db, onSessionsEnded) =>
+      createBearer({
+        db,
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        clientId: CLIENT_ID,
+        providerId: "oidc",
+        keys,
+        onSessionsEnded,
+      }),
   });
 });
 afterAll(() => server?.stop());
@@ -103,6 +118,26 @@ describe("tokens from the sign-in provider", () => {
     expect(await namesAt(token)).toEqual(["Rechnung.pdf"]);
   });
 
+  it("confirm an address only with email_verified: true", async () => {
+    const cookie = await server.signUp("Nora", "nora@example.org");
+    await createFolder(cookie, "Noras");
+    server.db.update(user).set({ emailVerified: true }).where(eq(user.email, "nora@example.org")).run();
+    for (const emailVerified of [false, "true", undefined]) {
+      const token = await sign({
+        sub: "kontext-nora",
+        email: "nora@example.org",
+        email_verified: emailVerified,
+      });
+      expect((await asBearer(token, "/api/nodes")).status).toBe(401);
+    }
+    // Someone new gets an account, but its address stays unconfirmed.
+    const token = await sign({ sub: "kontext-olaf", email: "olaf@example.org", email_verified: false });
+    expect((await asBearer(token, "/api/nodes")).status).toBe(200);
+    expect(server.db.select().from(user).where(eq(user.email, "olaf@example.org")).get()?.emailVerified).toBe(
+      false,
+    );
+  });
+
   it("are refused for another audience or issuer, without a subject, and as id tokens", async () => {
     const claims = { sub: "kontext-jonas", email: "jonas@example.org" };
     for (const token of [
@@ -114,18 +149,66 @@ describe("tokens from the sign-in provider", () => {
       expect((await asBearer(token, "/api/nodes")).status).toBe(401);
     }
   });
+
+  it("are refused when made for another client, without an expiry, or too old", async () => {
+    const claims = { sub: "kontext-jonas", email: "jonas@example.org", email_verified: true };
+    const unsigned = () =>
+      new SignJWT(claims)
+        .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
+        .setIssuer(ISSUER)
+        .setAudience(AUDIENCE);
+    for (const token of [
+      await sign({ ...claims, azp: "anderer-client" }),
+      await sign({ ...claims, client_id: "anderer-client" }),
+      await unsigned().setIssuedAt().sign(privateKey),
+      await unsigned()
+        .setIssuedAt(Math.floor(Date.now() / 1000) - 3600)
+        .setExpirationTime("1d")
+        .sign(privateKey),
+    ]) {
+      expect((await asBearer(token, "/api/nodes")).status).toBe(401);
+    }
+    expect((await asBearer(await sign({ ...claims, azp: CLIENT_ID }), "/api/nodes")).status).toBe(200);
+  });
 });
 
 describe("the sign-in through the provider", () => {
+  it("does not confirm an address the provider does not vouch for", async () => {
+    const cookie = await server.signUp("Paul", "paul@example.org");
+    const context = await server.auth.$context;
+    const userId = (await server.auth.api.getSession({ headers: new Headers({ cookie }) }))?.user.id ?? "";
+    const idToken = await sign(
+      { sub: "kontext-paul", email: "paul@example.org", email_verified: false },
+      { audience: "schreibzeug" },
+    );
+    await context.internalAdapter.linkAccount({
+      providerId: "oidc",
+      accountId: "kontext-paul",
+      userId,
+      idToken,
+    });
+    expect(server.db.select().from(user).where(eq(user.id, userId)).get()?.emailVerified).toBe(false);
+  });
+
   it("links one subject per account: an address given to someone new does not take it over", async () => {
     const cookie = await server.signUp("Max", "max@example.org");
     const context = await server.auth.$context;
     const session = await server.auth.api.getSession({ headers: new Headers({ cookie }) });
     const userId = session!.user.id;
+    // The provider's id token, as Better Auth stores it with the account it links.
+    const idToken = await sign(
+      { sub: "kontext-max-1", email: "max@example.org" },
+      { audience: "schreibzeug" },
+    );
     expect(
-      await context.internalAdapter.linkAccount({ providerId: "oidc", accountId: "kontext-max-1", userId }),
+      await context.internalAdapter.linkAccount({
+        providerId: "oidc",
+        accountId: "kontext-max-1",
+        userId,
+        idToken,
+      }),
     ).toBeTruthy();
-    // Linking it marks the address as confirmed (Better Auth links only the same address).
+    // Linking it marks the address as confirmed when the provider confirms it.
     expect(server.db.select().from(user).where(eq(user.id, userId)).get()?.emailVerified).toBe(true);
     expect(
       await context.internalAdapter.linkAccount({ providerId: "oidc", accountId: "kontext-max-2", userId }),
@@ -155,12 +238,30 @@ describe("ending someone's sessions (DELETE /api/sessions)", () => {
     expect((await asBearer(stranger, "/api/sessions", { method: "DELETE" })).status).toBe(204);
     expect(server.db.select().from(user).where(eq(user.email, "fremd@example.org")).get()).toBeUndefined();
   });
+
+  it("closes the person's open editor sockets too", async () => {
+    const token = await sign({ sub: "kontext-vera", email: "vera@example.org" });
+    expect((await asBearer(token, "/api/nodes")).status).toBe(200);
+    const vera = server.db.select().from(user).where(eq(user.email, "vera@example.org")).get();
+    const closed: number[] = [];
+    server.agent.join(vera?.id ?? "", crypto.randomUUID(), () => {}, { close: (code) => closed.push(code) });
+    expect((await asBearer(token, "/api/sessions", { method: "DELETE" })).status).toBe(204);
+    expect(closed).toEqual([SOCKET_CLOSE.signedOut]);
+  });
 });
 
 describe("the first account", () => {
   it("takes over the files from before accounts also when a token makes it", async () => {
     const fresh = await startServer({
-      bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+      bearer: (db) =>
+        createBearer({
+          db,
+          issuer: ISSUER,
+          audience: AUDIENCE,
+          clientId: CLIENT_ID,
+          providerId: "oidc",
+          keys,
+        }),
     });
     try {
       fresh.db

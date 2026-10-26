@@ -1,16 +1,20 @@
 import { join, resolve } from "node:path";
 import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
+import { createAgentHub } from "./agent/hub";
 import { createApp } from "./app";
 import { createAuth, OIDC_PROVIDER } from "./auth/auth";
 import { createBearer } from "./auth/bearer";
+import { markClientAddress } from "./auth/client-ip";
 import { loadSecret } from "./auth/secret";
 import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
+import { MAX_MESSAGE_BYTES } from "./collab/limits";
 import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
 import { roleOf } from "./files/access";
 import { mcpRoutes } from "./mcp";
+import { openSockets } from "./sockets";
 import { webRoutes } from "./web";
 
 const config = readConfig(process.env);
@@ -26,6 +30,7 @@ const {
   authSecret,
   openSignup,
   trustedOrigins,
+  trustedProxies,
   webDir,
   publicUrl,
   embedOrigin,
@@ -35,14 +40,6 @@ const {
 const { db, close } = connect(join(resolve(dataDir), "schreibzeug.db"));
 migrateDatabase(db);
 
-const auth = createAuth({
-  db,
-  secret: await loadSecret(authSecret, join(resolve(dataDir), "auth-secret")),
-  openSignup,
-  trustedOrigins,
-  baseUrl: publicUrl,
-  oidc,
-});
 const hub = createHub({
   access: async (fileId, userId) => {
     const found = roleOf(db, userId, fileId);
@@ -51,17 +48,42 @@ const hub = createHub({
       : null;
   },
 });
+const agent = createAgentHub();
+// Ending a sign-in closes the editors' sockets it opened (sockets.ts).
+const sockets = openSockets({ db, collab: hub, agent });
+const auth = createAuth({
+  db,
+  secret: await loadSecret(authSecret, join(resolve(dataDir), "auth-secret")),
+  openSignup,
+  trustedOrigins,
+  baseUrl: publicUrl,
+  oidc,
+  trustedProxies,
+  onSessionEnded: sockets.sessionEnded,
+});
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 const app = createApp({
   auth,
+  agent,
   db,
   blobs: createBlobStore(join(resolve(dataDir), "blobs")),
   maxUploadBytes,
   pendingShares: Boolean(oidc),
   collab: { hub, upgradeWebSocket },
+  // Behind a proxy that does not pass the Host on, the request's own origin is not the public one.
+  trustedOrigins: [...(publicUrl ? [new URL(publicUrl).origin] : []), ...trustedOrigins],
   // Kontext's tokens name this server's address, so they need it (SCHREIBZEUG_URL).
   ...(oidc && publicUrl
-    ? { bearer: createBearer({ db, issuer: oidc.issuer, audience: publicUrl, providerId: OIDC_PROVIDER }) }
+    ? {
+        bearer: createBearer({
+          db,
+          issuer: oidc.issuer,
+          audience: publicUrl,
+          clientId: oidc.clientId,
+          providerId: OIDC_PROVIDER,
+          onSessionsEnded: sockets.userSignedOut,
+        }),
+      }
     : {}),
   info: {
     mode: "server",
@@ -75,8 +97,11 @@ if (webDir) site.route("/", webRoutes(webDir, { embedOrigin }));
 // Bun's own limit is 128 MB; uploads are bounded by the API's body limit instead.
 const server = Bun.serve({
   port,
-  fetch: site.fetch,
-  websocket,
+  // Better Auth counts sign-in tries by this address (auth/client-ip.ts).
+  fetch: (request, bun) =>
+    site.fetch(markClientAddress(request, bun.requestIP(request)?.address, trustedProxies), bun),
+  // A larger message closes the socket (code 1009); an engine's change batches stay far below.
+  websocket: { ...websocket, maxPayloadLength: MAX_MESSAGE_BYTES },
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,
 });
 console.log(`Schreibzeug server on http://localhost:${server.port}`);

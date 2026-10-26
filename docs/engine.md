@@ -43,6 +43,31 @@ The iframe has its own `Object`, `Array` and so on. sdkjs sometimes checks value
 objects made in the app's window. So everything handed to the engine is a primitive, JSON text, or
 an object made with the frame's own constructors (`new win.Asc.asc_CColor(…)`).
 
+### Code in documents does not run
+
+Being same-origin, the frame acts with the signed-in user's session. sdkjs can run code a document
+carries, in closures that hide `window` and `document` but not `parent`, `top`, `fetch` or
+`location` (`common/macros.js` `_safe_eval_closure`, `pdf/src/forms/formActions.js` `EvalScript`).
+Schreibzeug has no macro editor and no plugins, so `src/document-scripts.ts` switches all of it off:
+
+- **JS macros** (text, spreadsheets, presentations): `createDocInfo` sets
+  `put_IsEnabledMacroses(false)`, which `asc_runMacros` (a click on a shape or button bound to a
+  macro) and `asc_runAutostartMacroses` check (`common/apiBase.js`).
+- **Custom functions of a spreadsheet:** the engine evaluates those a file brings on open
+  (`cell/api.js` `_openDocumentEndCallback` → `registerCustomFunctionsLibrary`,
+  `cell/api_plugins.js`) without asking the macro switch, and a co-editor's change can set new ones
+  (`SetCustomFunctions`). `withoutCustomFunctions` replaces that method on the API object.
+- **JavaScript actions of a PDF** (a field's format, keystroke and calculation scripts, link
+  actions): `CActionRunScript` runs them with no switch at all. `silencePdfScripts` lets each
+  action run as an empty script, right before the engine reads the PDF (`beforeOpening` wraps
+  `openDocument`: the PDF code is in `sdk-all.js`, which `sdk-all-min.js` loads only after the API
+  exists, `common/editorscommon.js` `loadSdk`). The action queue goes on as before and the script
+  stays in the file; a field formatted by a script (`AFNumber_Format`) shows the plain value.
+
+`sdk-all.js` cannot be left out of `engine/dist` for this: every editor loads it. Instead
+`engine/scripts/prepare.ts` (`checkScriptHooks`) counts the places these switches rely on in the
+built bundles and stops when an engine update moves one.
+
 ## Why a converter
 
 The engine opens and saves its own binary format ("DOCY", "XLSY", "PPTY"). Reading and writing

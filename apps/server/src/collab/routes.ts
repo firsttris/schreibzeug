@@ -3,10 +3,8 @@ import { Hono } from "hono";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import type { AuthEnv } from "../auth/middleware";
 import type { Hub } from "./hub";
+import { SOCKET_CLOSE as CLOSE } from "./limits";
 import type { Incoming } from "./session";
-
-/** WebSocket close codes in the private range: what went wrong, for the client to show. */
-export const CLOSE = { notFound: 4404, badMessage: 4400 } as const;
 
 const parse = (data: unknown): Incoming | null => {
   if (typeof data !== "string") return null;
@@ -29,8 +27,10 @@ export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSo
     "/collab/:fileId",
     upgradeWebSocket((c) => {
       const fileId = c.req.param("fileId") ?? "";
-      // Checked by requireUser before the upgrade: the WebSocket carries the session cookie.
+      // Checked by requireUser before the upgrade: the WebSocket carries the session cookie. The
+      // hub closes the connection when that session ends or the user loses the file.
       const { id, name } = c.var.user;
+      const session = c.var.signInSession;
       let connectionId: Promise<string | null> = Promise.resolve(null);
       const send = (ws: WSContext) => (message: Record<string, unknown>) => ws.send(JSON.stringify(message));
       return {
@@ -39,7 +39,8 @@ export const collabRoutes = ({ hub, upgradeWebSocket }: { hub: Hub; upgradeWebSo
             ws.close(CLOSE.notFound, "Unknown file");
             return;
           }
-          connectionId = hub.open(fileId, { id, name }, send(ws)).then((connection) => {
+          const close = (code: number, reason: string) => ws.close(code, reason);
+          connectionId = hub.open(fileId, { id, name, session }, send(ws), close).then((connection) => {
             if (connection === null) ws.close(CLOSE.notFound, "Unknown file");
             return connection;
           });

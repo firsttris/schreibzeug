@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { SessionSave } from "@schreibzeug/files-api";
+import { dropMessage, ENGINE_CLOSE, SOCKET_CLOSE } from "./limits";
 import {
   createSession,
   disconnect,
   hasUnsavedChanges,
   type Incoming,
+  type Issued,
   licenseMessage,
   markSaved,
   type Outgoing,
@@ -15,8 +17,11 @@ import {
 /** Sends one message to one connection. */
 export type Send = (message: Record<string, unknown>) => void;
 
-/** Who is connected, as the server knows them from the session. */
-export type HubUser = { id: string; name: string };
+/**
+ * Who is connected, as the server knows them from the session, and the id of that sign-in session:
+ * when it ends, the connection does.
+ */
+export type HubUser = { id: string; name: string; session?: string };
 
 /** What the user may do with a file: its newest version, and whether they may change it. */
 export type FileAccess = { version: number; role: "owner" | "edit" | "view" };
@@ -24,13 +29,34 @@ export type FileAccess = { version: number; role: "owner" | "edit" | "view" };
 export type HubDeps = {
   /**
    * The file outside the trash as the user may use it, or null when they may not open it: every
-   * connection is checked, also to a session that is already open.
+   * connection is checked, also to a session that is already open, and again on `revalidate`.
    */
   access: (fileId: string, userId: string) => Promise<FileAccess | null>;
   now?: () => number;
+  /** How long a session nobody is in waits with changes no version holds (IDLE_SESSION_MS). */
+  idleMs?: number;
+  /** Runs `run` after `ms`; returns what cancels it. */
+  setTimer?: (run: () => void, ms: number) => () => void;
 };
 
-type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send };
+/**
+ * How long a session nobody is in keeps changes no stored version holds, for a client to restore
+ * them or the next person to save them. A client that lost its connection gives up after a few
+ * minutes (editor-core collab.ts); after that the changes would only hold memory.
+ */
+export const IDLE_SESSION_MS = 60 * 60 * 1000;
+
+/** A timer that does not keep the process alive. */
+const unrefTimer = (run: () => void, ms: number) => {
+  const timer = setTimeout(run, ms) as unknown as { unref?: () => void };
+  timer.unref?.();
+  return () => clearTimeout(timer as unknown as number);
+};
+
+/** Closes one connection's socket. */
+export type Close = (code: number, reason: string) => void;
+
+type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send; close: Close };
 
 /**
  * sdkjs announces its user in `auth` (docscoapi.js getAuthCommand). The relay replaces id and name
@@ -68,7 +94,12 @@ const ENDED_IDS_KEPT = 50;
  * unless a newer version was stored meanwhile.
  * Messages are handled one at a time per process, which keeps the order of the change log.
  */
-export const createHub = ({ access, now = Date.now }: HubDeps) => {
+export const createHub = ({
+  access,
+  now = Date.now,
+  idleMs = IDLE_SESSION_MS,
+  setTimer = unrefTimer,
+}: HubDeps) => {
   const sessions = new Map<string, Session>();
   const connections = new Map<string, Connection>();
   /**
@@ -84,7 +115,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
    * may restore into the next session at that version (DocsCoServer refuses a restore only for a
    * changed document or locks, DocsCoServer.js auth).
    */
-  const ended = new Map<string, { ids: string[]; version: number; baseVersion: number }>();
+  const ended = new Map<string, { ids: Issued[]; version: number; baseVersion: number }>();
   /** How many sessions each file has had in this process: which one a session is. */
   const generations = new Map<string, number>();
 
@@ -120,23 +151,61 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     else saving.delete(fileId);
   };
 
+  /** Of each session nobody is in, what cancels its wait (`waitIdle`). */
+  const idleTimers = new Map<string, () => void>();
+  const stopIdle = (fileId: string) => {
+    idleTimers.get(fileId)?.();
+    idleTimers.delete(fileId);
+  };
+
+  const forget = (fileId: string) => {
+    sessions.delete(fileId);
+    storedAt.delete(fileId);
+    leftSinceChange.delete(fileId);
+    stopIdle(fileId);
+  };
+
+  /**
+   * A session nobody is in waits IDLE_SESSION_MS for someone; then it ends, with changes no stored
+   * version holds lost, unless a save is still under way.
+   */
+  const waitIdle = (fileId: string) => {
+    stopIdle(fileId);
+    const expire = () => {
+      idleTimers.delete(fileId);
+      const session = sessions.get(fileId);
+      if (!session || membersOf(fileId).length > 0) return;
+      if (saving.has(fileId)) waitIdle(fileId);
+      else if (hasUnsavedChanges(session)) forget(fileId);
+      else settle(fileId);
+    };
+    idleTimers.set(fileId, setTimer(expire, idleMs));
+  };
+
   /**
    * When the last person leaves, the session ends if a stored version holds its whole log and no
    * save is under way (one that lands later would be the newest version, and may hold less).
+   * Otherwise it waits (`waitIdle`).
    */
   const settle = (fileId: string) => {
     const session = sessions.get(fileId);
-    if (!session || membersOf(fileId).length > 0 || hasUnsavedChanges(session) || saving.has(fileId)) return;
+    if (!session || membersOf(fileId).length > 0) return;
+    if (hasUnsavedChanges(session) || saving.has(fileId)) {
+      waitIdle(fileId);
+      return;
+    }
     // Without a change everyone's copy is the version; with one, only those there to the end.
-    const whole = session.changes.length === 0 ? session.sessionIds : (leftSinceChange.get(fileId) ?? []);
+    const left = leftSinceChange.get(fileId) ?? [];
+    const whole =
+      session.changes.length === 0
+        ? session.issued
+        : session.issued.filter(({ sessionId }) => left.includes(sessionId));
     ended.set(fileId, {
       ids: whole.slice(-ENDED_IDS_KEPT),
       version: storedAt.get(fileId) ?? session.baseVersion,
       baseVersion: session.baseVersion,
     });
-    sessions.delete(fileId);
-    storedAt.delete(fileId);
-    leftSinceChange.delete(fileId);
+    forget(fileId);
   };
 
   const startSession = (fileId: string, version: number): Session => {
@@ -145,7 +214,40 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
     generations.set(fileId, (generations.get(fileId) ?? 0) + 1);
     storedAt.set(fileId, version);
     leftSinceChange.set(fileId, []);
-    return { ...createSession(fileId, version), sessionIds: last?.version === version ? last.ids : [] };
+    const issued = last?.version === version ? last.ids : [];
+    // A restore hands back the index an inherited id had; new joiners must start past all of them.
+    const nextIndexUser = Math.max(1, ...issued.map(({ indexUser }) => indexUser + 1));
+    return { ...createSession(fileId, version), issued, nextIndexUser };
+  };
+
+  /** A connection is gone: its locks are freed, and the session may end. */
+  const leave = (connectionId: string) => {
+    const connection = connections.get(connectionId);
+    if (!connection) return;
+    apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
+    connections.delete(connectionId);
+    leftSinceChange.get(connection.fileId)?.push(connectionId);
+    settle(connection.fileId);
+  };
+
+  /**
+   * Sends a connection away for good: its engine gets `drop` and stops reconnecting (limits.ts
+   * dropMessage), it leaves the session at once, so nothing more reaches it or comes from it, and
+   * its socket closes.
+   */
+  const eject = (connectionId: string, engineCode: number, socketCode: number, reason: string) => {
+    const connection = connections.get(connectionId);
+    if (!connection) return;
+    connection.send(dropMessage(engineCode, reason));
+    leave(connectionId);
+    connection.close(socketCode, reason);
+  };
+
+  /** Sends away the connections whose sign-in ended (sdkjs shows "session expired"). */
+  const signOut = (which: (connection: Connection) => boolean) => {
+    for (const [id, connection] of [...connections]) {
+      if (which(connection)) eject(id, ENGINE_CLOSE.sessionAbsolute, SOCKET_CLOSE.signedOut, "Signed out");
+    }
   };
 
   return {
@@ -154,10 +256,16 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
      * message, before anything sdkjs sees), then gets the license sdkjs waits for after connecting.
      * Returns its id, or null when the file does not exist.
      */
-    open: async (fileId: string, user: HubUser, send: Send): Promise<string | null> => {
+    open: async (
+      fileId: string,
+      user: HubUser,
+      send: Send,
+      close: Close = () => {},
+    ): Promise<string | null> => {
       const allowed = await access(fileId, user.id);
       if (allowed === null) return null;
       const { version } = allowed;
+      stopIdle(fileId);
       // A version stored from outside while a kept session waited (a restored version, an upload)
       // is newer than the session's changes: it wins, as it would have without the session.
       if (membersOf(fileId).length === 0 && storedAt.get(fileId) !== version) sessions.delete(fileId);
@@ -165,7 +273,7 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       const session = sessions.get(fileId) ?? startSession(fileId, version);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
-      connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
+      connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send, close });
       send({ type: "schreibzeug:session", baseVersion: session.baseVersion });
       send(licenseMessage());
       return connectionId;
@@ -181,14 +289,32 @@ export const createHub = ({ access, now = Date.now }: HubDeps) => {
       if (data.type === "saveChanges") leftSinceChange.set(connection.fileId, []);
     },
 
-    close: (connectionId: string) => {
-      const connection = connections.get(connectionId);
-      if (!connection) return;
-      apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
-      connections.delete(connectionId);
-      leftSinceChange.get(connection.fileId)?.push(connectionId);
-      settle(connection.fileId);
+    /** The connection's socket closed. */
+    close: leave,
+
+    /**
+     * Checks every open connection against the files again, after something may have changed who
+     * may open what (a share, the trash, a move): whoever lost the file is sent away, whoever may
+     * now only look too, for their engine to open it again as a viewer (DocsCoServer drops a
+     * connection whose rights changed). Someone who may now edit stays a viewer until they reopen.
+     */
+    revalidate: async (): Promise<void> => {
+      const checks = [...connections.entries()].map(async ([id, { fileId, user }]) => {
+        const allowed = await access(fileId, user.id);
+        const connection = connections.get(id);
+        if (!connection) return;
+        if (allowed === null) eject(id, ENGINE_CLOSE.accessDeny, SOCKET_CLOSE.revoked, "Access revoked");
+        else if (allowed.role === "view" && !connection.viewer)
+          eject(id, ENGINE_CLOSE.accessDeny, SOCKET_CLOSE.revoked, "Access changed to view");
+      });
+      await Promise.all(checks);
     },
+
+    /** A sign-in session ended (signed out, revoked): its connections are sent away. */
+    closeSession: (sessionId: string) => signOut(({ user }) => user.session === sessionId),
+
+    /** All of a user's sessions ended (Kontext's lockout, bearer.ts): their connections are sent away. */
+    closeUser: (userId: string) => signOut(({ user }) => user.id === userId),
 
     /**
      * A save from a shared session starts (files-api SessionSaves): false when its copy is known

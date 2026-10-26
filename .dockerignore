@@ -11,3 +11,6 @@ e2e/.downloads
 e2e/.data
 e2e/.local
 .git
+# Secrets stay out of the build context and the image.
+**/.env
+**/.env.*

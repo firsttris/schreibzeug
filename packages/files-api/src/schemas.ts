@@ -55,6 +55,8 @@ export const shareSchema = z.object({
   role: shareRoleSchema,
   /** Shared with an address that has no account yet; it holds once the person signs in through Kontext. */
   pending: z.boolean().optional(),
+  /** An account whose address nobody confirmed (a sign-up with a password): not known to be the person. */
+  unverified: z.boolean().optional(),
 });
 
 export const putShareSchema = z.object({

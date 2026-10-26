@@ -49,6 +49,15 @@ describe("the MCP endpoint", () => {
     expect(readable.map((tool) => tool.name)).not.toContain("create_folder");
     expect(readable.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
     expect(all.find((tool) => tool.name === "trash")?.annotations?.destructiveHint).toBe(true);
+    // Letting someone else in reaches outside and cannot be taken back once they have looked.
+    for (const name of ["share", "create_link"]) {
+      expect(all.find((tool) => tool.name === name)?.annotations).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+    }
+    expect(all.find((tool) => tool.name === "rename")?.annotations?.openWorldHint).toBe(false);
   });
 
   it("acts as the token's user, with the same checks as the app", async () => {
@@ -110,6 +119,26 @@ describe("sharing over MCP with someone who has no account yet", () => {
       ]);
     } finally {
       await pending.stop();
+    }
+  });
+});
+
+describe("sharing over MCP on a server without confirmed addresses", () => {
+  it("says the person's address is not confirmed", async () => {
+    const plain = await startServer();
+    try {
+      const anna = await plain.signUp("Anna");
+      await plain.signUp("Ben");
+      const client = await connectTo(plain, await makeToken(plain, anna, "write"));
+      const created = JSON.parse((await call(client, "create_folder", { name: "Geteilt" })).text) as {
+        id: string;
+      };
+      const shared = await call(client, "share", { id: created.id, email: "ben@example.org", role: "view" });
+      expect(JSON.parse(shared.text)).toEqual({
+        sharedWith: [{ name: "Ben", email: "ben@example.org", role: "view", unverified: true }],
+      });
+    } finally {
+      await plain.stop();
     }
   });
 });

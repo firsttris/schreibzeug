@@ -7,23 +7,26 @@ import { startServer, type TestServer } from "./harness";
 
 const ISSUER = "https://kontext.example.org/api/auth";
 const AUDIENCE = "https://dokumente.example.org";
+const CLIENT_ID = "schreibzeug";
 
 let server: TestServer;
-let tokenFor: (sub: string, email: string) => Promise<string>;
+let tokenFor: (sub: string, email: string, verified?: boolean) => Promise<string>;
 
 beforeAll(async () => {
   const { publicKey, privateKey } = await generateKeyPair("EdDSA", { crv: "Ed25519" });
   const keys = createLocalJWKSet({ keys: [{ ...(await exportJWK(publicKey)), kid: "k1", alg: "EdDSA" }] });
-  tokenFor = (sub, email) =>
-    new SignJWT({ sub, email, name: email })
+  tokenFor = (sub, email, verified = true) =>
+    new SignJWT({ sub, email, name: email, email_verified: verified })
       .setProtectedHeader({ alg: "EdDSA", kid: "k1" })
       .setIssuer(ISSUER)
       .setAudience(AUDIENCE)
+      .setIssuedAt()
       .setExpirationTime("5m")
       .sign(privateKey);
   server = await startServer({
     pendingShares: true,
-    bearer: (db) => createBearer({ db, issuer: ISSUER, audience: AUDIENCE, providerId: "oidc", keys }),
+    bearer: (db) =>
+      createBearer({ db, issuer: ISSUER, audience: AUDIENCE, clientId: CLIENT_ID, providerId: "oidc", keys }),
   });
 });
 afterAll(() => server?.stop());
@@ -77,6 +80,45 @@ describe("shares with an address that has no account yet", () => {
     expect((await sharesOf(owner, file.id))[0]?.pending).toBeUndefined();
   });
 
+  it("wait for an address the provider does not confirm", async () => {
+    const owner = await server.signUp("Rolf", "rolf@example.org");
+    const file = await documentOf(owner, "Entwurf");
+    await call(
+      `/api/nodes/${file.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "unbestaetigt@example.org", role: "view" }),
+    );
+    const token = await tokenFor("kontext-unbestaetigt", "unbestaetigt@example.org", false);
+    expect(await sharedWith(asBearer(token))).toEqual([]);
+    expect(await sharesOf(owner, file.id)).toMatchObject([
+      { email: "unbestaetigt@example.org", pending: true },
+    ]);
+  });
+
+  it("hold once a later token confirms the address of an account made unconfirmed", async () => {
+    const owner = await server.signUp("Lea", "lea@example.org");
+    const file = await documentOf(owner, "Plan");
+    await call(
+      `/api/nodes/${file.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "max@example.org", role: "view" }),
+    );
+    const first = await tokenFor("kontext-max", "max@example.org", false);
+    expect(await sharedWith(asBearer(first))).toEqual([]);
+    // Max confirms his address at Kontext; its tokens now say so.
+    const confirmed = await tokenFor("kontext-max", "max@example.org", true);
+    expect((await sharedWith(asBearer(confirmed))).map((node) => node.id)).toEqual([file.id]);
+    // And a share made after that goes straight to the account.
+    const later = await documentOf(owner, "Später");
+    await call(
+      `/api/nodes/${later.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "max@example.org", role: "view" }),
+    );
+    expect(await sharesOf(owner, later.id)).toMatchObject([{ email: "max@example.org" }]);
+    expect((await sharesOf(owner, later.id))[0]?.pending).toBeUndefined();
+  });
+
   it("never go to a sign-up with a password", async () => {
     const owner = await server.signUp("Ole", "ole@example.org");
     const file = await documentOf(owner, "Vertrag");
@@ -103,18 +145,34 @@ describe("shares with an address that has no account yet", () => {
       (await call("/api/shared", asBearer(await tokenFor("kontext-bob", "bob@example.org")))).status,
     ).toBe(401);
     expect(await sharesOf(owner, file.id)).toMatchObject([{ email: "bob@example.org", pending: true }]);
-    // Bob connects his account with Kontext from his own session (Better Auth links it).
+    // Bob connects his account with Kontext from his own session (Better Auth links it and keeps
+    // Kontext's id token, which confirms the address).
     const context = await server.auth.$context;
     const session = await server.auth.api.getSession({ headers: new Headers({ cookie: bob }) });
     await context.internalAdapter.linkAccount({
       providerId: "oidc",
       accountId: "kontext-bob",
       userId: session!.user.id,
+      idToken: await tokenFor("kontext-bob", "bob@example.org"),
     });
     expect((await sharedWith(asCookie(bob))).map((node) => node.id)).toEqual([file.id]);
     expect(
       (await sharedWith(asBearer(await tokenFor("kontext-bob", "bob@example.org")))).map((node) => node.id),
     ).toEqual([file.id]);
+  });
+
+  it("wait also when an account with a password has the address already", async () => {
+    const owner = await server.signUp("Eva", "eva@example.org");
+    const squatter = await server.signUp("Kollegin", "kollegin@example.org");
+    const file = await documentOf(owner, "Gehälter");
+    const reply = await call(
+      `/api/nodes/${file.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "kollegin@example.org", role: "edit" }),
+    );
+    expect(reply.status).toBe(200);
+    expect(await sharedWith(asCookie(squatter))).toEqual([]);
+    expect(await sharesOf(owner, file.id)).toMatchObject([{ email: "kollegin@example.org", pending: true }]);
   });
 
   it("can be taken back", async () => {

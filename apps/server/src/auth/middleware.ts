@@ -10,9 +10,12 @@ export type SignedInBy = "session" | "token" | "provider";
 
 /**
  * What routes behind `requireUser` find on the context: the user, how they signed in, and the
- * personal access token the request came with, if it came with one.
+ * personal access token the request came with, if it came with one; on a WebSocket upgrade the id
+ * of the session it came with (app.ts), whose end closes the socket.
  */
-export type AuthEnv = { Variables: { user: SessionUser; via?: SignedInBy; token?: TokenAccess } };
+export type AuthEnv = {
+  Variables: { user: SessionUser; via?: SignedInBy; token?: TokenAccess; signInSession?: string };
+};
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 

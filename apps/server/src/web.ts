@@ -35,6 +35,13 @@ export const webRoutes = (folder: string, { embedOrigin }: { embedOrigin?: strin
     if (c.req.path === "/api" || c.req.path.startsWith("/api/")) return next();
     const file = (await fileIn(root, c.req.path)) ?? join(root, "index.html");
     const body = Bun.file(file);
-    return new Response(body, { headers: { "content-type": body.type, "content-security-policy": policy } });
+    return new Response(body, {
+      // nosniff: a browser takes each file as the type it is served with, never as what it guesses.
+      headers: {
+        "content-type": body.type,
+        "content-security-policy": policy,
+        "x-content-type-options": "nosniff",
+      },
+    });
   });
 };

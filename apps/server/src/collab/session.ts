@@ -7,7 +7,11 @@
  * The messages are the ones sdkjs speaks with the Document Server (sdkjs common/docscoapi.js
  * `_onServerMessage`, server DocService/sources/DocsCoServer.js); docs/collaboration.md lists them.
  */
+import { dropMessage, ENGINE_CLOSE, withinLimits } from "./limits";
 import { acquireLocks, EDITOR_TYPE, type Locks, locksForAuth, tryLocks } from "./locks";
+
+/** Why an engine is sent away whose session's log is full (limits.ts). */
+export const LOG_FULL = "Session log full. Save the document and open it again.";
 
 export type Participant = {
   /** Our connection id; sdkjs sees it as the session id. */
@@ -29,6 +33,12 @@ export type StoredChange = {
   useridoriginal: string;
 };
 
+/**
+ * A session id this session gave out, with whose it is and the index it came with: a client that
+ * comes back with it gets that index again, and only the same account may come back with it.
+ */
+export type Issued = { sessionId: string; account: string; indexUser: number };
+
 export type Session = {
   fileId: string;
   /** The file version every participant opens; the changes apply on top of it. */
@@ -45,7 +55,7 @@ export type Session = {
    * The session ids this session gave out (sdkjs keeps the one from its `auth` answer and comes
    * back with it after a lost connection): a restore with another one belongs to an ended session.
    */
-  sessionIds: string[];
+  issued: Issued[];
 };
 
 export type Recipient = { to: "self" } | { to: "others" } | { to: "all" };
@@ -64,8 +74,14 @@ export const createSession = (fileId: string, baseVersion: number): Session => (
   participants: [],
   nextIndexUser: 1,
   savedIndex: 0,
-  sessionIds: [],
+  issued: [],
 });
+
+/** Records a session id given out; an id is given out once, a repeated `auth` replaces it. */
+const issue = (session: Session, entry: Issued): Issued[] => [
+  ...session.issued.filter((issued) => issued.sessionId !== entry.sessionId),
+  entry,
+];
 
 /** Whether the log holds changes no stored version has: the session must not end yet. */
 export const hasUnsavedChanges = (session: Session): boolean => session.savedIndex < session.changes.length;
@@ -108,7 +124,7 @@ const connectState = (session: Session, now: number): Record<string, unknown> =>
   waitAuth: false,
 });
 
-type AuthUser = { id?: unknown; username?: unknown; indexUser?: unknown };
+type AuthUser = { id?: unknown; username?: unknown };
 
 /** The user as sdkjs announces it in `auth` (docscoapi.js getAuthCommand: user.asc_getId(), …). */
 const readUser = (data: Incoming): { idOriginal: string; username: string } => {
@@ -134,15 +150,18 @@ export const RESTORE_CODE = 4004;
  * error and has to open the document again (DocsCoServer.js auth, "Restore error. …").
  */
 const restore = (session: Session, connectionId: string, data: Incoming, now: number): Step => {
-  if (!session.sessionIds.includes(String(data.sessionId))) {
+  const { idOriginal, username } = readUser(data);
+  // The index is the one given out with the id, never the client's: sdkjs prefixes every object
+  // id with it (common/editorscommon.js CIdCounter), so two people sharing one would collide. Only
+  // the account it was given to gets it back (the hub sets the user id, hub.ts withUser).
+  const issued = session.issued.find((entry) => entry.sessionId === String(data.sessionId));
+  if (!issued || issued.account !== idOriginal) {
     return {
       session,
       out: [self({ type: "error", description: "Restore error. Session ended.", code: RESTORE_CODE })],
     };
   }
-  const { idOriginal, username } = readUser(data);
-  const user = (data.user ?? {}) as AuthUser;
-  const indexUser = typeof user.indexUser === "number" ? user.indexUser : session.nextIndexUser;
+  const { indexUser } = issued;
   const id = `${idOriginal}${indexUser}`;
   const lastOther = [...session.changes].reverse().find((change) => change.user !== id);
   const seen = typeof data.lastOtherSaveTime === "number" ? data.lastOtherSaveTime : 0;
@@ -173,8 +192,7 @@ const restore = (session: Session, connectionId: string, data: Incoming, now: nu
   }
   const next: Session = {
     ...session,
-    nextIndexUser: Math.max(session.nextIndexUser, indexUser + 1),
-    sessionIds: [...session.sessionIds, connectionId],
+    issued: issue(session, { sessionId: connectionId, account: idOriginal, indexUser }),
     locks,
     participants: [...session.participants.filter((p) => p.id !== id), participant],
   };
@@ -219,7 +237,7 @@ export const authenticate = (session: Session, connectionId: string, data: Incom
   const next: Session = {
     ...session,
     nextIndexUser: indexUser + 1,
-    sessionIds: [...session.sessionIds, connectionId],
+    issued: issue(session, { sessionId: connectionId, account: idOriginal, indexUser }),
     participants: [...session.participants.filter((p) => p.connectionId !== connectionId), participant],
     // DocsCoServer keeps the editor type per connection; one file is always in one editor.
     editorType: typeof data.editorType === "number" ? data.editorType : session.editorType,
@@ -306,6 +324,9 @@ export const saveChanges = (session: Session, connectionId: string, data: Incomi
     useridoriginal: participant.idOriginal,
   }));
   const changes = [...kept, ...added];
+  // A log past its ceiling takes nothing more: the engine is sent away, keeps its copy to download,
+  // and whoever opens the file next starts from the newest stored version.
+  if (!withinLimits(changes)) return { session, out: [self(dropMessage(ENGINE_CLOSE.drop, LOG_FULL))] };
   // Changes sent again replace the old ones; a save holding the old ones no longer counts for them.
   const savedIndex = Math.min(session.savedIndex, kept.length);
   const changesIndex = deleteIndex === -1 && data.startSaveChanges ? startIndex : -1;

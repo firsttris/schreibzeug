@@ -74,16 +74,23 @@ server calls Schreibzeug's API itself, never through the browser. It sends
 `Authorization: Bearer <token>`: a JWT Kontext signs with its provider keys for one person, valid
 for five minutes, with Kontext as issuer and `SCHREIBZEUG_URL` as audience. An id token names the
 client id as audience and is refused. `apps/server/src/auth/bearer.ts` checks it against the keys
-from the provider's discovery document and finds the person by `sub` (the account the sign-in
+from the provider's discovery document, signed with an asymmetric algorithm (EdDSA, ES*, RS*, PS*),
+with `sub`, `iat` and `exp` and no older than ten minutes; a token that names a client (`azp` or
+`client_id`) must name `OIDC_CLIENT_ID`, so a token the provider made for another client is refused.
+It finds the person by `sub` (the account the sign-in
 keeps), else by address, else creates them; the request then has exactly that person's rights.
-By address only as Better Auth links a sign-in: the account's address must be confirmed, and the
-account must not belong to another `sub` already. An account someone registered with a password
+By address only as Better Auth links a sign-in: the account's address must be confirmed, the
+token must confirm it as well (`email_verified: true`), and the account must not belong to another
+`sub` already. A new account made from a token has its address confirmed, and gets what was shared
+with it, only with `email_verified: true` too; one made unconfirmed is confirmed, and gets what
+waited for its address, by the first later token that says so. An account someone registered with a password
 under a colleague's address is refused, and so is a new person at Kontext who got a former
 colleague's address; the first account made from a token takes over the files from before there
 were accounts, as at a sign-up.
 
 `DELETE /api/sessions` with such a token signs that person out everywhere here (their sessions and their
-personal access tokens for MCP clients, [MCP server](mcp.md#access-tokens), go; an open editor keeps its connection until it reloads). Kontext calls it when someone leaves the
+personal access tokens for MCP clients, [MCP server](mcp.md#access-tokens), go, and the sockets of their open editors close: the editor stops relaying and shows that the
+session ended). Kontext calls it when someone leaves the
 company or is locked, so Dokumente closes with Kontext. For someone without an account here it does
 nothing and makes none.
 
@@ -107,26 +114,29 @@ Kontext.
 
 | Variable | |
 |---|---|
-| `SCHREIBZEUG_URL` | Where browsers reach Schreibzeug (`https://dokumente.firma.de`): Better Auth's base URL (the callback) and the audience of Kontext's tokens. Without it no tokens are taken |
+| `SCHREIBZEUG_URL` | Where browsers reach Schreibzeug (`https://dokumente.firma.de`): Better Auth's base URL (the callback) and the audience of Kontext's tokens. Required with the OIDC settings: the server does not start without it, so the callback never follows the `Host` a request names |
 | `OIDC_ISSUER` | The provider's issuer, for Kontext `https://kontext.firma.de/api/auth` |
 | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | As registered at the provider; Kontext: `schreibzeug` and its `SCHREIBZEUG_CLIENT_SECRET` |
 | `OIDC_NAME` | The name on the button, default `Kontext` |
 | `SCHREIBZEUG_EMBED_ORIGIN` | The one origin that may show Schreibzeug in a frame (`https://kontext.firma.de`) |
 
 Sign-in through the provider needs issuer, client id and secret; without them it is email and
-password only. Kontext's `deploy/compose.yaml` runs Schreibzeug with the profile `documents`, from
+password only. With them it needs `SCHREIBZEUG_URL` as well, or the server does not start: else
+Better Auth would take its base URL, and with it the sign-in's `redirect_uri`, from the `Host` of
+each request (`apps/server/src/config.ts`). Kontext's `deploy/compose.yaml` runs Schreibzeug with the profile `documents`, from
 the image `tristanteu/schreibzeug` (`docker/Dockerfile`; **Release** publishes it on Docker Hub
 and GHCR when a `v*` tag is pushed, [installation](installation.md)).
 
 ## Tests
 
 `apps/server/test/pending-shares.test.ts`: a share with an address that waits, holds once the
-person comes through Kontext, never goes to a sign-up with a password but holds once that
-account is connected with Kontext, and can be taken back.
+person comes through Kontext, never goes to a sign-up with a password (also one made before the
+share) but holds once that account is connected with Kontext, waits for a token without
+`email_verified`, and can be taken back.
 `apps/server/test/bearer.test.ts`: tokens kept by subject, found by a confirmed address, never
 for a password account under someone else's address or for a second subject, a new account, the
-files from before accounts, ending a person's sessions, refused audience, issuer, subject and
-garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
+files from before accounts, ending a person's sessions, `email_verified`, refused audience, issuer,
+subject, other clients (`azp`, `client_id`), missing expiry, age and garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
 `apps/web/src/embed/messages.test.ts`: origin and window checks, when the app counts as embedded,
 paths and keys. `e2e/kontext.spec.ts` runs against a stand-in for Kontext (`e2e/fake-kontext.ts`:
 discovery, authorize with PKCE and `prompt=none`, token, userinfo, keys, and a page with the frame)

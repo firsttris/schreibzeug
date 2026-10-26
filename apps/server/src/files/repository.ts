@@ -317,6 +317,12 @@ export const copyFile = (db: Queryable, user: UserId, id: string): Result<Access
   return fail("name_taken", NAME_TAKEN);
 };
 
+const RENAME_NEEDS_FOLDER = "Umbenennen geht nur, wo du den Ordner siehst, in dem es liegt.";
+
+/** Whether the user sees the folder a node lies in: the top level only its owner sees. */
+const seesFolder = (db: Queryable, user: UserId, node: NodeRow): boolean =>
+  node.parentId === null ? node.ownerId === user : roleOf(db, user, node.parentId) !== null;
+
 /** True when `folderId` is `id` or lies below it: moving `id` there would make a loop. */
 const isInside = (db: Queryable, folderId: string, id: string): boolean =>
   chainTo(db, folderId).some((node) => node.id === id);
@@ -348,6 +354,11 @@ export const updateNode = (
       }
     }
     const name = update.name ?? node.name;
+    // The unique index also covers siblings the caller cannot see, so a clash would tell a
+    // grantee of this node alone which names lie next to it. Only who sees the folder may rename.
+    if (nameKey(name) !== node.nameKey && !seesFolder(db, user, node)) {
+      return fail("forbidden", RENAME_NEEDS_FOLDER);
+    }
     const updated = db
       .update(nodes)
       .set({ name, nameKey: nameKey(name), parentId, updatedAt: new Date() })

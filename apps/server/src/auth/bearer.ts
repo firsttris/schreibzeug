@@ -19,10 +19,12 @@ import type { SessionUser } from "./auth";
  * like on their first sign-in through it.
  *
  * By address only under Better Auth's own rule for linking (oauth2/link-account.mjs
- * handleOAuthUserInfo, `requireLocalEmailVerified`): the account's address must be confirmed. An
- * account someone registered with a password under a colleague's address never gets that
- * colleague's identity, and an account the provider knows under another subject (an address given
- * to someone new) is not handed on. Such a token is refused, as Better Auth refuses the sign-in.
+ * handleOAuthUserInfo, `requireLocalEmailVerified`): the account's address must be confirmed, and
+ * the token must confirm it too (`email_verified: true`). An account someone registered with a
+ * password under a colleague's address never gets that colleague's identity, and an account the
+ * provider knows under another subject (an address given to someone new) is not handed on. Such a
+ * token is refused, as Better Auth refuses the sign-in. Without `email_verified: true` a new
+ * account's address stays unconfirmed and gets nothing that was shared with it.
  */
 export type BearerDeps = {
   db: Database;
@@ -30,13 +32,50 @@ export type BearerDeps = {
   issuer: string;
   /** This server's address (SCHREIBZEUG_URL), the audience the tokens name. */
   audience: string;
+  /** This server's client id at the provider (OIDC_CLIENT_ID): a token made for another client is refused. */
+  clientId: string;
   /** The provider id the sign-in keeps accounts under (auth.ts OIDC_PROVIDER). */
   providerId: string;
   /** The provider's keys; by default read from its discovery document. */
   keys?: Parameters<typeof jwtVerify>[1];
+  /** Someone was signed out everywhere: their open editors' sockets close (sockets.ts). */
+  onSessionsEnded?: (userId: string) => void;
 };
 
-type Claims = JWTPayload & { email?: unknown; name?: unknown };
+type Claims = JWTPayload & {
+  email?: unknown;
+  name?: unknown;
+  email_verified?: unknown;
+  azp?: unknown;
+  client_id?: unknown;
+};
+
+/**
+ * What a token must be to hold: signed with the provider's private key (no `HS*` or `none`, which a
+ * key set could be talked into), with an expiry, and not older than this, whatever its `exp` says.
+ * Kontext's tokens last five minutes (server/documents/schreibzeug.ts in Kontext).
+ */
+const VERIFY = {
+  algorithms: [
+    "EdDSA",
+    "Ed25519",
+    "ES256",
+    "ES384",
+    "ES512",
+    "RS256",
+    "RS384",
+    "RS512",
+    "PS256",
+    "PS384",
+    "PS512",
+  ],
+  requiredClaims: ["exp", "iat", "sub"],
+  maxTokenAge: "10m",
+};
+
+/** A token names the client it was made for in `azp` or `client_id`, if at all: it must be this one. */
+const madeFor = (claims: Claims, clientId: string) =>
+  [claims.azp, claims.client_id].every((client) => client === undefined || client === clientId);
 
 /** The provider's keys, found through its discovery document (read once, again after a failure). */
 const discoveredKeys = (issuer: string) => {
@@ -56,7 +95,11 @@ const discoveredKeys = (issuer: string) => {
   };
 };
 
-/** The person behind a provider's subject: by the linked account, else by address, else new. */
+/**
+ * The person behind a provider's subject: by the linked account, else by address, else new. By
+ * address only when the provider confirms it (`verified`, the token's `email_verified: true`); a
+ * new account has its address confirmed, and gets what was shared with it, only then too.
+ */
 const personOf = (
   db: Database,
   providerId: string,
@@ -64,15 +107,28 @@ const personOf = (
   email: string,
   name: string,
   create: boolean,
+  verified = false,
 ) =>
   db.transaction((tx): SessionUser | null => {
     const linked = tx
-      .select({ id: user.id, name: user.name, email: user.email })
+      .select({ id: user.id, name: user.name, email: user.email, verified: user.emailVerified })
       .from(account)
       .innerJoin(user, eq(user.id, account.userId))
       .where(and(eq(account.providerId, providerId), eq(account.accountId, subject)))
       .get();
-    if (linked || !create) return linked ?? null;
+    if (linked) {
+      // An account made from a token that did not vouch for the address is confirmed by the first
+      // one that does, as a sign-in through the provider would (oauth2/link-account.mjs).
+      if (verified && !linked.verified && linked.email === email) {
+        tx.update(user)
+          .set({ emailVerified: true, updatedAt: new Date() })
+          .where(eq(user.id, linked.id))
+          .run();
+        claimPendingShares(tx, linked.id, email);
+      }
+      return { id: linked.id, name: linked.name, email: linked.email };
+    }
+    if (!create) return null;
     const now = new Date();
     const link = (userId: string) =>
       tx
@@ -97,34 +153,39 @@ const personOf = (
         .from(account)
         .where(and(eq(account.userId, known.id), eq(account.providerId, providerId)))
         .get();
-      if (!known.verified || elsewhere) return null;
+      if (!verified || !known.verified || elsewhere) return null;
       link(known.id);
       claimPendingShares(tx, known.id, email);
       return { id: known.id, name: known.name, email: known.email };
     }
     const person = { id: crypto.randomUUID(), name, email };
     tx.insert(user)
-      .values({ ...person, emailVerified: true, createdAt: now, updatedAt: now })
+      .values({ ...person, emailVerified: verified, createdAt: now, updatedAt: now })
       .run();
     link(person.id);
     // As at a sign-up (auth.ts): the first account takes over the files from before accounts, and
     // the address the provider vouches for gets what was shared with it.
     if ((tx.select({ value: count() }).from(user).get()?.value ?? 0) === 1) adoptOwnerless(tx, person.id);
-    claimPendingShares(tx, person.id, email);
+    if (verified) claimPendingShares(tx, person.id, email);
     return person;
   });
 
 /** The verified claims of a token: who it is for, or null for a token that does not hold. */
 const claimsOf = async (
   token: string,
-  { issuer, audience, keys }: Required<Pick<BearerDeps, "issuer" | "audience" | "keys">>,
+  {
+    issuer,
+    audience,
+    clientId,
+    keys,
+  }: Required<Pick<BearerDeps, "issuer" | "audience" | "clientId" | "keys">>,
 ) => {
-  const verified = await jwtVerify<Claims>(token, keys, { issuer, audience }).catch(() => null);
+  const verified = await jwtVerify<Claims>(token, keys, { issuer, audience, ...VERIFY }).catch(() => null);
   const claims = verified?.payload;
-  if (!claims?.sub || typeof claims.email !== "string") return null;
+  if (!claims?.sub || typeof claims.email !== "string" || !madeFor(claims, clientId)) return null;
   const email = claims.email.toLowerCase();
   const name = typeof claims.name === "string" && claims.name ? claims.name : email;
-  return { subject: claims.sub, email, name };
+  return { subject: claims.sub, email, name, verified: claims.email_verified === true };
 };
 
 /**
@@ -137,14 +198,18 @@ export const createBearer = ({
   db,
   issuer,
   audience,
+  clientId,
   providerId,
   keys = discoveredKeys(issuer),
+  onSessionsEnded = () => {},
 }: BearerDeps) => {
-  const check = { issuer, audience, keys };
+  const check = { issuer, audience, clientId, keys };
   return {
     person: async (token: string): Promise<SessionUser | null> => {
       const claims = await claimsOf(token, check);
-      return claims && personOf(db, providerId, claims.subject, claims.email, claims.name, true);
+      return (
+        claims && personOf(db, providerId, claims.subject, claims.email, claims.name, true, claims.verified)
+      );
     },
     endSessions: async (token: string): Promise<"ended" | "unknown" | "refused"> => {
       const claims = await claimsOf(token, check);
@@ -156,6 +221,7 @@ export const createBearer = ({
         tx.delete(session).where(eq(session.userId, person.id)).run();
         tx.delete(accessTokens).where(eq(accessTokens.userId, person.id)).run();
       });
+      onSessionsEnded(person.id);
       return "ended";
     },
   };

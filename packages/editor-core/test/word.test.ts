@@ -156,6 +156,11 @@ describe("openWordDocument", () => {
     });
   });
 
+  it("switches off the document's macros", async () => {
+    const { engine } = await openReady();
+    expect(engine.api().docInfo).toMatchObject({ IsEnabledMacroses: false });
+  });
+
   it("opens read-only for someone who may only look", async () => {
     const engine = createFakeEngine();
     const opening = openWordDocument(engine.window, optionsWith(fakeConverter().convert, { mode: "view" }));

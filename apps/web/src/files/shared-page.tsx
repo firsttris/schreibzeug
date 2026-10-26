@@ -19,7 +19,7 @@ export const SharedPage = () => {
       {shared.data && (
         <NodeTable
           nodes={shared.data}
-          actions={(node) => <NodeActions node={node} />}
+          actions={(node) => <NodeActions node={node} renamable={false} />}
           detail={(node) => `von ${node.ownerName} · darf ${ROLE_TEXT[node.role]}`}
           empty="Noch hat niemand etwas mit dir geteilt."
         />

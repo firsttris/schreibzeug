@@ -20,6 +20,15 @@ export const ShareDialog = ({ node, open, onClose }: ShareDialogProps) => (
   </Dialog>
 );
 
+const UNVERIFIED_HINT =
+  "Dieses Konto wurde mit Passwort angelegt; niemand hat bestätigt, dass die Adresse der Person gehört.";
+
+/** The line under a name: the address, and what is not settled about it. */
+export const detailOf = ({ email, pending, unverified }: Share): string => {
+  if (pending) return "Noch ohne Konto: gilt ab der ersten Anmeldung über Kontext";
+  return unverified ? `${email} · Adresse nicht bestätigt` : email;
+};
+
 /** The writes answer with the new list, which replaces the cached one. */
 const useShareMutation = <A extends unknown[]>(id: string, run: (...args: A) => Promise<Share[]>) => {
   const queryClient = useQueryClient();
@@ -117,8 +126,11 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm font-medium">{entry.name}</span>
-                <span className="truncate text-xs text-[var(--muted-foreground)]">
-                  {entry.pending ? "Noch ohne Konto: gilt ab der ersten Anmeldung über Kontext" : entry.email}
+                <span
+                  className="truncate text-xs text-[var(--muted-foreground)]"
+                  title={entry.unverified ? UNVERIFIED_HINT : undefined}
+                >
+                  {detailOf(entry)}
                 </span>
               </span>
               <RoleSelect

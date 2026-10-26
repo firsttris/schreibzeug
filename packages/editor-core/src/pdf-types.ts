@@ -1,3 +1,4 @@
+import type { PdfScriptAction } from "./document-scripts";
 import type {
   CommentApi,
   CommentEventArgs,
@@ -187,5 +188,7 @@ export interface PdfWindow extends EngineWindow {
     /** pdf/src/defines.js */
     BORDER_TYPES: { solid: number };
     FREE_TEXT_INTENT_TYPE: { freeText: number };
+    /** pdf/src/forms/formActions.js: present once sdk-all.js has loaded (document-scripts.ts). */
+    CActionRunScript?: { prototype: PdfScriptAction };
   };
 }

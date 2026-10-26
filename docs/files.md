@@ -56,13 +56,18 @@ All under `/api`; bodies are JSON unless noted. Every route but `/health`, `/inf
 `unauthorized` (401), `forbidden` (403: the role is too weak), `not_a_folder` (422), `name_taken` and `conflict` (409), `too_large` (413),
 `internal` (500).
 
+Only the uploads (`POST /files`, `PUT /files/:id/content`, `POST /files/:id/media`) take bodies up to
+`SCHREIBZEUG_MAX_UPLOAD_MB`. Better Auth's `/auth/*` answers a body over 64 KB with `413` before it
+reads it, and every other route one over 16 MB (`src/limits.ts`): Bun's own limit is sized for the
+uploads, and Better Auth reads a JSON body whole before it checks who is asking.
+
 Every node in an answer carries `role`, what the user may do with it: `owner`, `edit` or `view`.
 
 | Route | What it does |
 |---|---|
 | `GET /nodes?parent=root\|<id>` | A folder: the folder, its path from the root (for a shared folder, from the folder that was shared), its children (folders first, by name) |
 | `GET /nodes/:id` | One node |
-| `PATCH /nodes/:id` | Rename (`name`) and/or move (`parentId`) |
+| `PATCH /nodes/:id` | Rename (`name`; needs edit and the folder it lies in, [sharing](accounts.md#sharing)) and/or move (`parentId`, owner only) |
 | `POST /nodes/:id/trash` | Move into the trash |
 | `POST /nodes/:id/restore` | Bring back from the trash |
 | `GET /trash`, `GET /recent` | What is in the trash; files by last change (both only the user's own) |
@@ -79,11 +84,11 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /folders` | New folder (`parentId`, `name`) |
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
 | `POST /files/blank` | New file (`parentId`, `name`, `format`: `docx`, `xlsx`, `pptx`, or `md` and `txt`, which are empty) |
-| `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
-| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone), see [collaboration](collaboration.md#saving). With `If-Match: "<sha256>"` only while the newest version's content has that SHA-256, else 409 (the text editor, [Markdown and text files](text.md#saving)); a malformed one is 400 |
+| `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version, as a download (`Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`) |
+| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone; the edit role is checked first, so someone without it gets 404/403 whatever the session's state), see [collaboration](collaboration.md#saving). With `If-Match: "<sha256>"` only while the newest version's content has that SHA-256, else 409 (the text editor, [Markdown and text files](text.md#saving)); a malformed one is 400 |
 | `GET /files/:id/versions` | All versions, newest first |
 | `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
-| `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash |
+| `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash; with `X-Content-Type-Options: nosniff` |
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
 | `GET /health` | `{ "ok": true }` |
@@ -121,9 +126,9 @@ needs nothing of its own for it and an own template stays as it is.
 | `SCHREIBZEUG_DATA_DIR` | `data`: the database `schreibzeug.db`, the blobs in `blobs/`, the generated `auth-secret` |
 | `PORT` | `3000` |
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` |
-| `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS` | see [accounts](accounts.md) |
+| `SCHREIBZEUG_OPEN_SIGNUP`, `SCHREIBZEUG_AUTH_SECRET`, `SCHREIBZEUG_TRUSTED_ORIGINS`, `SCHREIBZEUG_TRUSTED_PROXIES` | see [accounts](accounts.md) |
 | `SCHREIBZEUG_URL`, `SCHREIBZEUG_EMBED_ORIGIN`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_NAME` | see [Schreibzeug in Kontext](kontext.md#settings) |
-| `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API; the [desktop app](desktop.md) opens that address |
+| `SCHREIBZEUG_WEB_DIR` | unset: the API only. The built web app (`apps/web/dist`, after `bun run build`) to serve beside it, so one address serves the app and the API (every file with `X-Content-Type-Options: nosniff`, so a browser never takes it for another type); the [desktop app](desktop.md) opens that address |
 
 The image `tristanteu/schreibzeug` (`docker/Dockerfile`) has the server and the built web app with
 its engine, with the data in `/data` (`SCHREIBZEUG_WEB_DIR=/app/web`, port 3000). **Actions →

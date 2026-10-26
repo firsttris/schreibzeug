@@ -43,6 +43,11 @@ export type FilesDeps = {
   pendingShares?: boolean;
   /** The collaboration relay, told of saves from its sessions (collab/hub.ts). */
   relay?: SessionSaves | undefined;
+  /**
+   * Who may open what may have changed (a share, the trash, a move): the open editors' sockets are
+   * checked again (app.ts).
+   */
+  onAccessChange?: () => void;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -101,7 +106,20 @@ export const invitationRoutes = ({ db }: Pick<FilesDeps, "db">) =>
     respond(c, invites.findInvitation(db, c.req.valid("param").token), toInvitation),
   );
 
-export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, relay }: FilesDeps) => {
+export const filesRoutes = ({
+  db,
+  blobs,
+  maxUploadBytes,
+  pendingShares = false,
+  relay,
+  onAccessChange = () => {},
+}: FilesDeps) => {
+  /** A result of a change to who may open what; once it is done, the open sockets are checked. */
+  const accessChanged = <T>(result: Result<T>): Result<T> => {
+    if (result.ok) onAccessChange();
+    return result;
+  };
+
   const limit = bodyLimit({
     maxSize: maxUploadBytes,
     onError: (c) => c.json({ error: { kind: "too_large" as const, message: "Die Datei ist zu groß." } }, 413),
@@ -146,13 +164,14 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
           ...(name === undefined ? {} : { name }),
           ...(parentId === undefined ? {} : { parentId }),
         };
-        return respond(c, repository.updateNode(db, userOf(c), c.req.valid("param").id, update), toFileNode);
+        const updated = repository.updateNode(db, userOf(c), c.req.valid("param").id, update);
+        return respond(c, accessChanged(updated), toFileNode);
       })
       .post("/nodes/:id/trash", validate("param", idParam), async (c) =>
-        respond(c, repository.trashNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+        respond(c, accessChanged(repository.trashNode(db, userOf(c), c.req.valid("param").id)), toFileNode),
       )
       .post("/nodes/:id/restore", validate("param", idParam), async (c) =>
-        respond(c, repository.restoreNode(db, userOf(c), c.req.valid("param").id), toFileNode),
+        respond(c, accessChanged(repository.restoreNode(db, userOf(c), c.req.valid("param").id)), toFileNode),
       )
       .get("/trash", async (c) => c.json(repository.listTrash(db, userOf(c)).map(toFileNode)))
       .get("/recent", async (c) => c.json(repository.listRecent(db, userOf(c)).map(toFileNode)))
@@ -202,17 +221,22 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": file.mime ?? "application/octet-stream",
           "content-disposition": contentDisposition(file.name),
+          "x-content-type-options": "nosniff",
           etag: `"${version.sha256}"`,
           "x-schreibzeug-version": String(version.number),
           "cache-control": "no-store",
         });
       })
       .put("/files/:id/content", limit, validate("param", idParam), async (c) => {
-        const bytes = new Uint8Array(await c.req.arrayBuffer());
         const { id } = c.req.valid("param");
+        // Authorize before the relay or the blob store sees anything, so a caller without edit
+        // learns nothing from the file's session state; addVersion checks again after the awaits.
+        const access = repository.requireFile(db, userOf(c), id, "edit");
+        if (!access.ok) return c.json({ error: access.error }, statusOf(access.error.kind));
         // A save made over a version (files-api ifMatchOf) goes through only while that one is newest.
         const over = ifMatchOf(c.req.header("if-match"));
         if (over === undefined) return respond(c, fail("invalid", BAD_IF_MATCH), toFileNode);
+        const bytes = new Uint8Array(await c.req.arrayBuffer());
         const content = await store(bytes);
         // From here to `stored` nothing waits, so no other save comes in between.
         const sessionSave = sessionSaveOf(c.req.header(SESSION_SAVE_HEADER));
@@ -254,6 +278,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
           return c.json({ error: { kind: "not_found" as const, message: NO_SUCH_IMAGE } }, 404);
         return c.body(bytes as Uint8Array<ArrayBuffer>, 200, {
           "content-type": media.type.mime,
+          "x-content-type-options": "nosniff",
           "cache-control": "private, max-age=31536000, immutable",
         });
       })
@@ -274,9 +299,11 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
       .put("/nodes/:id/shares", validate("param", idParam), validate("json", putShareSchema), async (c) =>
         respond(
           c,
-          shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json"), {
-            pending: pendingShares,
-          }),
+          accessChanged(
+            shares.putShare(db, userOf(c), c.req.valid("param").id, c.req.valid("json"), {
+              pending: pendingShares,
+            }),
+          ),
           (list) => list,
         ),
       )
@@ -285,7 +312,7 @@ export const filesRoutes = ({ db, blobs, maxUploadBytes, pendingShares = false, 
         validate("param", z.object({ id: nodeIdSchema, userId: z.string().min(1) })),
         async (c) => {
           const { id, userId } = c.req.valid("param");
-          return respond(c, shares.removeShare(db, userOf(c), id, userId), (list) => list);
+          return respond(c, accessChanged(shares.removeShare(db, userOf(c), id, userId)), (list) => list);
         },
       )
       .get("/nodes/:id/invites", refuseReadToken, validate("param", idParam), (c) =>

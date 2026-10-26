@@ -73,7 +73,12 @@ file (.p12, .pfx) and its password, in the browser; the certificate never leaves
 
 `checkSignatures` reads every signature of a PDF: the digest of the byte ranges against the
 signed message digest, the RSA signature over the signed attributes with the certificate the
-signature carries, and whether the ranges reach the end of the file. The view shows the result
+signature carries, and whether the ranges reach the end of the file. It only reads a /ByteRange
+as signers write it (from the start of the file, ordered, inside the file, a gap of at most 128 KB
+of hex), checks at most 32 signatures, and calls a signature invalid when the gap is anything but
+one hex string with only zeros after the DER signature: nothing unsigned can ride along. /Reason
+and /Location are read from the signature dictionary's signed bytes, never from the gap; the
+signing time comes from the signed attributes. The view shows the result
 above the pages, with who signed, when and why; a self-signed certificate is called so, and the
 trust chain of other certificates is not checked. Once a signed PDF is changed, the view warns
 that saving breaks the signature: the engine writes the file anew. A PDF that is signed already
@@ -170,6 +175,10 @@ second key of someone typing fast went missing. When a PDF opens, `preloadTyping
 font picker collect the fonts for the characters of German and English text and loads them, as the
 first key would. Tab moves to the next field.
 
+A form's JavaScript (format, keystroke, calculation and link actions) does not run, so a field
+another program formats by script shows its plain value; the scripts stay in the saved PDF
+([code in documents](engine.md#code-in-documents-does-not-run)).
+
 ## Together
 
 Several people edit a PDF at once, as an Office file: the PDF view opens in the file's editing
@@ -188,7 +197,8 @@ connection someone who types very fast can lose a character in a shared form.
 
 `e2e/pdf-sign.spec.ts` signs through the app with a certificate made for the test (a wrong
 password first), checks the stored file and the warning after a change; `packages/pdf-sign/test`
-signs and checks below the app, also a changed byte and bytes added after signing.
+signs and checks below the app, also a changed byte, bytes added after signing, data planted in
+the padding of /Contents, a range past the end of the file and thousands of junk /ByteRange entries.
 `e2e/pdf-invoice.spec.ts` opens `test-files/rechnung.pdf` (a ZUGFeRD invoice written by
 `test-files/rechnung.ts`), checks the card and the XML download, and that saving keeps the invoice;
 `packages/einvoice/test` reads CII, ZUGFeRD 2 BASIC WL, UBL and a UBL credit note and finds the

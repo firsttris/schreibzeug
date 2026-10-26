@@ -8,6 +8,7 @@ import type { Bearer } from "../src/auth/bearer";
 import { createBlobStore } from "../src/blobs";
 import { connect, type Database, migrateDatabase } from "../src/db/database";
 import { mcpRoutes } from "../src/mcp";
+import { openSockets } from "../src/sockets";
 
 /**
  * The server on a database and a data folder of its own, in a temporary folder that is removed
@@ -26,27 +27,42 @@ export const startServer = async ({
   bearer,
   pendingShares = false,
   collab,
+  rateLimit,
+  trustedOrigins,
 }: {
-  bearer?: (db: Database) => Bearer;
+  /** Gets what closes a person's sockets when it signs them out everywhere, as main.ts wires it. */
+  bearer?: (db: Database, onSessionsEnded: (userId: string) => void) => Bearer;
   pendingShares?: boolean;
   /** The collaboration relay, for the tests of what the file routes tell it. */
   collab?: AppDeps["collab"];
+  /** Better Auth's rate limit, which is off outside production. */
+  rateLimit?: boolean;
+  /** Origins besides the request's own that may change things with a session. */
+  trustedOrigins?: string[];
 } = {}) => {
   const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
   const connection = connect(join(dataDir, "schreibzeug.db"));
   migrateDatabase(connection.db);
-  const auth = createAuth({ db: connection.db, secret: TEST_SECRET, openSignup: true });
   // Tabs that take jobs are stood in for by the tests (mcp-edit.test.ts), with a short wait.
   const agent = createAgentHub({ timeoutMs: 1000 });
+  const sockets = openSockets({ db: connection.db, ...(collab ? { collab: collab.hub } : {}), agent });
+  const auth = createAuth({
+    db: connection.db,
+    secret: TEST_SECRET,
+    openSignup: true,
+    ...(rateLimit === undefined ? {} : { rateLimit }),
+    onSessionEnded: sockets.sessionEnded,
+  });
   const app = createApp({
     agent,
     auth,
-    ...(bearer ? { bearer: bearer(connection.db) } : {}),
+    ...(bearer ? { bearer: bearer(connection.db, sockets.userSignedOut) } : {}),
     db: connection.db,
     blobs: createBlobStore(join(dataDir, "blobs")),
     maxUploadBytes: MAX_UPLOAD_BYTES,
     pendingShares,
     ...(collab ? { collab } : {}),
+    ...(trustedOrigins ? { trustedOrigins } : {}),
     log: () => {},
   });
 
@@ -68,7 +84,7 @@ export const startServer = async ({
     if (!response.ok) throw new Error(`Sign-up failed: ${response.status} ${await response.text()}`);
     return response.headers
       .getSetCookie()
-      .map((cookie) => cookie.split(";")[0])
+      .map((cookie: string) => cookie.split(";")[0])
       .join("; ");
   };
 

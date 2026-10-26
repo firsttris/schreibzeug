@@ -50,7 +50,9 @@ jobs:
       matrix:
         include:
           - name: linux
-            runner: ubuntu-22.04
+            # GTK 4.14 or newer for the CEF runtime (tauri-winit-gtk4): Ubuntu 24.04
+            runner: ubuntu-24.04
+            # Built with the patched Tauri CLI (apps/desktop/patches, scripts/tauri.ts)
             args: --bundles appimage,deb,rpm
           - name: windows
             runner: windows-latest
@@ -72,12 +74,26 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
-      # WebKitGTK and the tray library Tauri builds against on Linux (Tauri's prerequisites).
+      # GTK 4, which the CEF runtime builds against on Linux (Chromium itself is downloaded by the
+      # build, about 1 GB, and kept in the Actions cache). Windows and macOS keep the system webview.
       # From the Actions cache: the runners' Ubuntu mirror is at times very slow (firsttris/workflows)
       - if: matrix.name == 'linux'
         uses: firsttris/workflows/actions/apt-install@v1
         with:
-          packages: libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          packages: libgtk-4-dev librsvg2-dev patchelf
+      - if: matrix.name == 'linux'
+        uses: actions/cache@v4
+        with:
+          path: .cef
+          key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: cef-linux-
+      # The patched Tauri CLI for Linux (apps/desktop/patches/README.md), built once per version
+      # and patch set. Remove with the patches (issue #12).
+      - if: matrix.name == 'linux'
+        uses: actions/cache@v4
+        with:
+          path: apps/desktop/src-tauri/target/patched-cli
+          key: patched-tauri-cli-${{ hashFiles('apps/desktop/package.json', 'apps/desktop/patches/*.patch') }}
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
@@ -87,9 +103,11 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           SCHREIBZEUG_SIDECAR_TARGET: ${{ matrix.name == 'macos' && 'universal-apple-darwin' || '' }}
+          # Where the Linux build downloads Chromium (CEF) to, and the cache above keeps it
+          CEF_PATH: ${{ matrix.name == 'linux' && format('{0}/.cef', github.workspace) || '' }}
         with:
           projectPath: apps/desktop
-          tauriScript: bunx tauri
+          tauriScript: bun run tauri
           args: ${{ matrix.args }}
       - uses: actions/upload-artifact@v4
         with:

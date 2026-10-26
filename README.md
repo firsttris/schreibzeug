@@ -211,7 +211,7 @@ bun run dev              # http://localhost:5173, with the API on http://localho
 ```
 
 A React SPA with TanStack Router and Query, Tailwind and shadcn-style components; Euro-Office
-`sdkjs` as the editing engine; a Bun server with Hono, Drizzle and SQLite; Tauri 2 for the desktop
+`sdkjs` as the editing engine; a Bun server with Hono, Drizzle and SQLite; Tauri 3 (alpha) for the desktop
 app. Checks, tests and architecture: [Development](https://firsttris.github.io/schreibzeug/development.html).
 
 ## 🤝 Contributing

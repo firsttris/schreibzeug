@@ -1,6 +1,6 @@
 # The desktop app
 
-`apps/desktop` is Schreibzeug as a desktop app for Windows, macOS and Linux, built with Tauri 2. It works
+`apps/desktop` is Schreibzeug as a desktop app for Windows, macOS and Linux, built with Tauri 3 (alpha). It works
 in one of two places, chosen on its start page and remembered for the next start:
 
 - **On this computer**: the files in the documents folder (or another folder), through a small
@@ -38,7 +38,7 @@ Schreibzeug window (Tauri) ┤
   left; the window has no menu bar of its own, only macOS keeps one at the top of the screen. The
   app marks every page it shows (`window.schreibzeugDesktop`), and a command is a navigation to
   `https://desktop.schreibzeug.invalid/<command>`, which the window catches before it loads
-  (`desktop_action`), so neither the local nor a server's pages need native calls for it
+  (`windows.rs` `desktop_action`), so neither the local nor a server's pages need native calls for it
   (`apps/web/src/desktop.ts`).
 - **The local server** (`local.rs`): started on first use with a random key, stopped with the app;
   it also ends when its stdin closes, so a crashed app leaves nothing running. A new folder
@@ -49,8 +49,19 @@ Schreibzeug window (Tauri) ┤
   `choose_folder`) are the app's own; the pages of a server or of the local server get none
   (`capabilities/default.json` grants only the core defaults to the app's own window content).
 
-The browser engine is the system's: WebView2 (Chromium) on Windows, WebKit on macOS, WebKitGTK on
-Linux. The editors, the converter (WebAssembly) and saving were tried in WebKitGTK 2.52.
+The browser engine is the system's on Windows (WebView2, Chromium) and macOS (WebKit). On Linux the
+app brings Chromium itself (CEF, Tauri 3's `tauri-runtime-cef`) instead of WebKitGTK, which is slow
+with the editors' canvas and differs from the browsers the web app is tested in. That makes the
+Linux packages about 170 MB larger. Only one engine can be in a Linux build (WebKitGTK's runtime
+builds on GTK 3, CEF on GTK 4), so the folder dialog there goes through the XDG desktop portal
+(the desktop's own dialog) instead of GTK 3. Tauri 3 and its CEF runtime are alpha releases.
+
+Chromium as CEF builds it talks to Google on its own: secure DNS probes, sign-in state, search,
+the translation model, network time and component updates. The app switches all of that off
+(`runtime()` in `src-tauri/src/lib.rs`); a net log of the app (`--log-net-log`) then shows only
+requests to the app's own pages and server. In the Linux packages the bundler moves the app's binary
+to `/usr/share/Schreibzeug/` and leaves the local server in `/usr/bin/`; the app looks in both places
+(`local.rs`).
 
 ## Files on this computer
 
@@ -128,12 +139,24 @@ bun run --filter @schreibzeug/desktop desktop:build   # installers for this mach
 The engine's fonts and the Bun runtime make the installers large (about 200 MB); slimming the
 fonts is for later.
 
-Linux needs WebKitGTK and its tooling (`libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
-librsvg2-dev`, Tauri's prerequisites). The workflow **Actions → Desktop app** builds the web app once on Linux and then all
+Linux needs GTK 4.14 or newer (`libgtk-4-dev librsvg2-dev`; Ubuntu 24.04, Debian 13); Chromium
+(CEF, about 1 GB) is downloaded by the first build, to `CEF_PATH` if set. The workflow **Actions → Desktop app** builds the web app once on Linux and then all
 three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Intel and Apple silicon. Run
 by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
 [Development](development.md#releases)) builds them too and attaches them to the GitHub release. The
 version comes from `apps/desktop/package.json`, which the bump keeps at the version of the release.
+
+### Patched Tauri CLI
+
+Temporary, until Tauri fixes it ([#12](https://github.com/firsttris/schreibzeug/issues/12)): the
+bundler of Tauri 3 alpha copies `libEGL.so` and `libGLESv2.so` from CEF into every Linux package,
+and CEF 154 no longer ships them, so every Linux package fails. On Linux,
+`apps/desktop/scripts/tauri.ts` therefore builds the Tauri CLI of the version in `package.json` from
+Tauri's sources with `apps/desktop/patches/*.patch` applied (once, into
+`src-tauri/target/patched-cli/`), and `bun run tauri …`, `desktop:dev` and `desktop:build` use it;
+Windows and macOS use the published CLI. The script stops when a patch no longer applies to a new
+version: then check whether that release fixes it and remove the patch as described in
+`apps/desktop/patches/README.md`.
 
 The builds are not signed yet. Windows SmartScreen shows "unknown publisher" (More info → Run
 anyway), and macOS Gatekeeper refuses to open the app until it is opened once with right click →

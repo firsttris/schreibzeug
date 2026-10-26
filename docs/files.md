@@ -80,7 +80,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /files` | Upload (multipart: `file`, optional `parentId`) |
 | `POST /files/blank` | New empty file (`parentId`, `name`, `format`: `docx`, `xlsx` or `pptx`) |
 | `GET /files/:id/content[?version=n]` | The bytes of the newest or a given version |
-| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone), see [collaboration](collaboration.md#saving) |
+| `PUT /files/:id/content` | Save: the body becomes a new version; from a shared session with `x-schreibzeug-session-save` (409 when that session is gone; the edit role is checked first, so someone without it gets 404/403 whatever the session's state), see [collaboration](collaboration.md#saving) |
 | `GET /files/:id/versions` | All versions, newest first |
 | `POST /files/:id/media` | Store an image put into the file while editing (PNG, JPEG, GIF, BMP, by its first bytes); answers its name, `<sha256>.<ext>`. Needs `edit` |
 | `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash |

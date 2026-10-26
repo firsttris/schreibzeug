@@ -5,6 +5,7 @@ import { createAgentHub } from "./agent/hub";
 import { createApp } from "./app";
 import { createAuth, OIDC_PROVIDER } from "./auth/auth";
 import { createBearer } from "./auth/bearer";
+import { markClientAddress } from "./auth/client-ip";
 import { loadSecret } from "./auth/secret";
 import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
@@ -29,6 +30,7 @@ const {
   authSecret,
   openSignup,
   trustedOrigins,
+  trustedProxies,
   webDir,
   publicUrl,
   embedOrigin,
@@ -56,6 +58,7 @@ const auth = createAuth({
   trustedOrigins,
   baseUrl: publicUrl,
   oidc,
+  trustedProxies,
   onSessionEnded: sockets.sessionEnded,
 });
 const { upgradeWebSocket, websocket } = createBunWebSocket();
@@ -67,6 +70,8 @@ const app = createApp({
   maxUploadBytes,
   pendingShares: Boolean(oidc),
   collab: { hub, upgradeWebSocket },
+  // Behind a proxy that does not pass the Host on, the request's own origin is not the public one.
+  trustedOrigins: [...(publicUrl ? [new URL(publicUrl).origin] : []), ...trustedOrigins],
   // Kontext's tokens name this server's address, so they need it (SCHREIBZEUG_URL).
   ...(oidc && publicUrl
     ? {
@@ -74,6 +79,7 @@ const app = createApp({
           db,
           issuer: oidc.issuer,
           audience: publicUrl,
+          clientId: oidc.clientId,
           providerId: OIDC_PROVIDER,
           onSessionsEnded: sockets.userSignedOut,
         }),
@@ -91,7 +97,9 @@ if (webDir) site.route("/", webRoutes(webDir, { embedOrigin }));
 // Bun's own limit is 128 MB; uploads are bounded by the API's body limit instead.
 const server = Bun.serve({
   port,
-  fetch: site.fetch,
+  // Better Auth counts sign-in tries by this address (auth/client-ip.ts).
+  fetch: (request, bun) =>
+    site.fetch(markClientAddress(request, bun.requestIP(request)?.address, trustedProxies), bun),
   // A larger message closes the socket (code 1009); an engine's change batches stay far below.
   websocket: { ...websocket, maxPayloadLength: MAX_MESSAGE_BYTES },
   maxRequestBodySize: maxUploadBytes + 1024 * 1024,

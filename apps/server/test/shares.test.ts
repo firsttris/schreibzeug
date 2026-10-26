@@ -41,6 +41,15 @@ const people = async (prefix: string) => ({
 });
 
 describe("sharing", () => {
+  it("marks an account whose address nobody confirmed, for the owner to see", async () => {
+    const { owner, guestEmail } = await people("U");
+    const folder = await createFolder(owner, "Vertraulich");
+    const reply = await share(owner, folder.id, guestEmail, "view");
+    expect(z.array(shareSchema).parse(await reply.json())).toMatchObject([
+      { email: guestEmail, unverified: true },
+    ]);
+  });
+
   it("shares a folder with everything in it, and lists it for the other person", async () => {
     const { owner, guest, stranger, guestEmail } = await people("A");
     const folder = await createFolder(owner, "Projekt");

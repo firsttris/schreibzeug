@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { z } from "zod";
 
 const MEGABYTE = 1024 * 1024;
@@ -12,6 +13,30 @@ const optionalUrl = z
   .preprocess((value) => value || undefined, z.url().optional())
   .transform((value) => value?.replace(/\/+$/, ""));
 
+/** A comma-separated list, without blanks. */
+const listOf = (value: string | undefined) =>
+  (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+/** An IPv4 or IPv6 address, or a CIDR range of them. */
+const isAddressOrRange = (entry: string) => {
+  const [address = "", prefix, ...rest] = entry.split("/");
+  const family = isIP(address);
+  if (!family || rest.length) return false;
+  if (prefix === undefined) return true;
+  return /^\d+$/.test(prefix) && Number(prefix) <= (family === 4 ? 32 : 128);
+};
+
+const addressList = z
+  .string()
+  .optional()
+  .transform(listOf)
+  .refine((entries) => entries.every(isAddressOrRange), {
+    message: "SCHREIBZEUG_TRUSTED_PROXIES takes IP addresses or CIDR ranges, separated by commas.",
+  });
+
 const configSchema = z.object({
   SCHREIBZEUG_DATA_DIR: z.string().min(1).default("data"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -22,6 +47,7 @@ const configSchema = z.object({
     .optional(),
   SCHREIBZEUG_OPEN_SIGNUP: flag,
   SCHREIBZEUG_TRUSTED_ORIGINS: z.string().optional(),
+  SCHREIBZEUG_TRUSTED_PROXIES: addressList,
   SCHREIBZEUG_WEB_DIR: z.string().min(1).optional(),
   SCHREIBZEUG_URL: optionalUrl,
   SCHREIBZEUG_EMBED_ORIGIN: optionalUrl,
@@ -50,6 +76,8 @@ export type Config = {
   authSecret: string | undefined;
   openSignup: boolean;
   trustedOrigins: string[];
+  /** The proxies in front of the server (addresses or CIDR ranges); empty: clients connect directly. */
+  trustedProxies: string[];
   /** The built web app (apps/web/dist) to serve beside the API; absent: the API only. */
   webDir: string | undefined;
   /** Where browsers reach this server; the base of the sign-in callback, the API tokens' audience and the links the MCP tools give. */
@@ -78,20 +106,28 @@ export const readConfig = (env: Record<string, string | undefined>) => {
   const parsed = configSchema.safeParse(env);
   if (!parsed.success) return { ok: false as const, error: z.prettifyError(parsed.error) };
   const value = parsed.data;
+  const oidc = oidcOf(value);
+  // Without it Better Auth takes its base URL, and so the sign-in's redirect_uri, from the Host
+  // header of each request (better-auth utils/url.mjs getBaseURL): anyone could name their own.
+  if (oidc && !value.SCHREIBZEUG_URL) {
+    return {
+      ok: false as const,
+      error:
+        "Signing in through OIDC (OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET) needs SCHREIBZEUG_URL, the address people open.",
+    };
+  }
   const config: Config = {
     dataDir: value.SCHREIBZEUG_DATA_DIR,
     port: value.PORT,
     maxUploadBytes: value.SCHREIBZEUG_MAX_UPLOAD_MB * MEGABYTE,
     authSecret: value.SCHREIBZEUG_AUTH_SECRET,
     openSignup: value.SCHREIBZEUG_OPEN_SIGNUP,
-    trustedOrigins: (value.SCHREIBZEUG_TRUSTED_ORIGINS ?? "")
-      .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean),
+    trustedOrigins: listOf(value.SCHREIBZEUG_TRUSTED_ORIGINS),
+    trustedProxies: value.SCHREIBZEUG_TRUSTED_PROXIES,
     webDir: value.SCHREIBZEUG_WEB_DIR,
     publicUrl: value.SCHREIBZEUG_URL,
     embedOrigin: value.SCHREIBZEUG_EMBED_ORIGIN && new URL(value.SCHREIBZEUG_EMBED_ORIGIN).origin,
-    oidc: oidcOf(value),
+    oidc,
   };
   return { ok: true as const, value: config };
 };

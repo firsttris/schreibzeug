@@ -27,12 +27,18 @@ export const startServer = async ({
   bearer,
   pendingShares = false,
   collab,
+  rateLimit,
+  trustedOrigins,
 }: {
   /** Gets what closes a person's sockets when it signs them out everywhere, as main.ts wires it. */
   bearer?: (db: Database, onSessionsEnded: (userId: string) => void) => Bearer;
   pendingShares?: boolean;
   /** The collaboration relay, for the tests of what the file routes tell it. */
   collab?: AppDeps["collab"];
+  /** Better Auth's rate limit, which is off outside production. */
+  rateLimit?: boolean;
+  /** Origins besides the request's own that may change things with a session. */
+  trustedOrigins?: string[];
 } = {}) => {
   const dataDir = await mkdtemp(join(tmpdir(), "schreibzeug-test-"));
   const connection = connect(join(dataDir, "schreibzeug.db"));
@@ -44,6 +50,7 @@ export const startServer = async ({
     db: connection.db,
     secret: TEST_SECRET,
     openSignup: true,
+    ...(rateLimit === undefined ? {} : { rateLimit }),
     onSessionEnded: sockets.sessionEnded,
   });
   const app = createApp({
@@ -55,6 +62,7 @@ export const startServer = async ({
     maxUploadBytes: MAX_UPLOAD_BYTES,
     pendingShares,
     ...(collab ? { collab } : {}),
+    ...(trustedOrigins ? { trustedOrigins } : {}),
     log: () => {},
   });
 

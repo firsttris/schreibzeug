@@ -65,11 +65,12 @@ All settings are environment variables (`apps/server/src/config.ts`); the image 
 |---|---|---|
 | `SCHREIBZEUG_DATA_DIR` | `data` | The data folder: database, file contents, secret |
 | `PORT` | `3000` | The port the server listens on |
-| `SCHREIBZEUG_URL` | – | The address people open, e.g. `https://office.example.org`: the base of the sign-in through Kontext, the audience of Kontext's tokens, and the links the MCP tools give. Required with `OIDC_*` |
+| `SCHREIBZEUG_URL` | – | The address people open, e.g. `https://office.example.org`: the base of the sign-in through Kontext (required with `OIDC_*`), the audience of Kontext's tokens, and the links the MCP tools give |
 | `SCHREIBZEUG_MAX_UPLOAD_MB` | `512` | The largest file that can be uploaded or saved |
 | `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies (at least 32 characters); without it one is generated and kept in the data folder |
 | `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account |
-| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas (the desktop app) |
+| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in and, with a session, change things, separated by commas (the desktop app) |
+| `SCHREIBZEUG_TRUSTED_PROXIES` | – | The reverse proxies in front of the server, as the server sees them: IP addresses or CIDR ranges, separated by commas ([below](#behind-a-reverse-proxy)) |
 | `SCHREIBZEUG_WEB_DIR` | – | The built web app to serve beside the API (set in the image) |
 | `SCHREIBZEUG_EMBED_ORIGIN` | – | The one site that may show Schreibzeug in a frame ([Kontext](kontext.md)) |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | – | Sign-in through an OpenID Connect provider, all three together ([Kontext](kontext.md)) |
@@ -86,8 +87,8 @@ office.example.org {
 }
 ```
 
-With nginx, forward `Upgrade` and `Connection`, set `X-Forwarded-For` to the address the request
-came from, and allow bodies as large as uploads may be:
+With nginx, forward `Upgrade` and `Connection`, append the address the request came from to
+`X-Forwarded-For`, and allow bodies as large as uploads may be:
 
 ```nginx
 location / {
@@ -97,16 +98,24 @@ location / {
     proxy_set_header Connection "upgrade";
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     client_max_body_size 512m;
 }
 ```
 
-`X-Forwarded-For` is replaced, not appended to (`$proxy_add_x_forwarded_for` would keep what the
-client sent): the server keys its limit on sign-in attempts on it, and a client must not be able to
-choose a new address for every attempt. Caddy does this by itself. `client_max_body_size` matches
-`SCHREIBZEUG_MAX_UPLOAD_MB` (512 by default); when the files are smaller, lower both, e.g. to
-`100m` and `100`, so the proxy turns away oversized bodies before they reach the server.
+Name the proxy in `SCHREIBZEUG_TRUSTED_PROXIES`, as the server sees it: `127.0.0.1` when it runs on
+the same machine, the Docker network (e.g. `172.16.0.0/12`) when the server runs in a container and
+the proxy reaches it through a published port. Sign-in and sign-up allow a few tries per client in
+ten seconds (Better Auth's rate limit). The server counts a client by the address of the connection
+and ignores what a client writes into `X-Forwarded-For` itself; only behind a proxy named here it
+takes the forwarded chain and counts by the first address in it, from the right, that is not one
+of the proxies (`apps/server/src/auth/client-ip.ts`). Without the setting behind a proxy, every
+client counts as the proxy, and all of them share those few tries. When a proxy is in front, publish
+the port only for it (`-p 127.0.0.1:3000:3000`), so nobody reaches the server around it.
+
+`client_max_body_size` matches `SCHREIBZEUG_MAX_UPLOAD_MB` (512 by default); when the files are
+smaller, lower both, e.g. to `100m` and `100`, so the proxy turns away oversized bodies before they
+reach the server.
 
 ## Backups and updates
 

@@ -10,18 +10,34 @@ const NO_ACCOUNT = "Kein Konto mit dieser E-Mail.";
 /** The id a share with an address without an account goes by (to remove it). */
 const PENDING = "pending:";
 
+const hasShare = (db: Queryable, nodeId: string, userId: UserId) =>
+  db
+    .select({ userId: shares.userId })
+    .from(shares)
+    .where(and(eq(shares.nodeId, nodeId), eq(shares.userId, userId)))
+    .get() !== undefined;
+
 /**
  * Who a node is shared with, by name as a person reads it (SQLite's lower() knows only ASCII); then
- * the addresses that have no account yet.
+ * the addresses that have no account yet. An account whose address nobody confirmed is marked
+ * (`unverified`): with a password anyone can sign up under any address, so the owner sees that the
+ * account is not known to be the person.
  */
 const listOf = (db: Queryable, nodeId: string): Share[] => [
   ...db
-    .select({ userId: shares.userId, name: user.name, email: user.email, role: shares.role })
+    .select({
+      userId: shares.userId,
+      name: user.name,
+      email: user.email,
+      role: shares.role,
+      confirmed: user.emailVerified,
+    })
     .from(shares)
     .innerJoin(user, eq(user.id, shares.userId))
     .where(eq(shares.nodeId, nodeId))
     .all()
-    .sort((a, b) => a.name.localeCompare(b.name, "de")),
+    .sort((a, b) => a.name.localeCompare(b.name, "de"))
+    .map(({ confirmed, ...entry }) => (confirmed ? entry : { ...entry, unverified: true })),
   ...db
     .select({ email: pendingShares.email, role: pendingShares.role })
     .from(pendingShares)
@@ -41,8 +57,8 @@ export const listShares = (db: Queryable, owner: UserId, nodeId: string): Result
 /**
  * Shares a node with the account behind an e-mail address, or changes the role it has. Without an
  * account the share waits for one (`pending`, only where a sign-in provider confirms addresses,
- * see claimPendingShares); otherwise the person must have an account. `email` comes lowercased
- * (putShareSchema).
+ * see claimPendingShares; there also while the account's address is unconfirmed); otherwise the
+ * person must have an account. `email` comes lowercased (putShareSchema).
  */
 export const putShare = (
   db: Queryable,
@@ -53,11 +69,17 @@ export const putShare = (
 ): Result<Share[]> => {
   const access = requireRole(db, owner, nodeId, "owner");
   if (!access.ok) return access;
-  const grantee = db
-    .select({ id: user.id })
+  const account = db
+    .select({ id: user.id, confirmed: user.emailVerified })
     .from(user)
     .where(eq(sql`lower(${user.email})`, input.email))
     .get();
+  if (account?.id === owner) return fail("invalid", "Das gehört dir schon.");
+  // Where the provider confirms addresses, an account whose address nobody confirmed (a sign-up
+  // with a password, maybe under a colleague's address) is not taken for the person: the share waits
+  // until the address is confirmed. A share it already has keeps changing in place.
+  const grantee =
+    account && (!pending || account.confirmed || hasShare(db, nodeId, account.id)) ? account : undefined;
   if (!grantee && !pending) return fail("not_found", NO_ACCOUNT);
   if (!grantee) {
     db.insert(pendingShares)
@@ -66,7 +88,6 @@ export const putShare = (
       .run();
     return ok(listOf(db, nodeId));
   }
-  if (grantee.id === owner) return fail("invalid", "Das gehört dir schon.");
   db.insert(shares)
     .values({ nodeId, userId: grantee.id, role: input.role })
     .onConflictDoUpdate({ target: [shares.nodeId, shares.userId], set: { role: input.role } })

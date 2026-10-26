@@ -20,6 +20,17 @@ each sign-in replace the other's, since cookies know no ports. Better Auth check
 trusted origins; Schreibzeug trusts its own origin, whatever host name the server is reached by, and
 the ones in `SCHREIBZEUG_TRUSTED_ORIGINS` (the desktop app, later).
 
+The rest of the API checks the same for requests that come with the session cookie: what changes
+something (every method but `GET`, `HEAD` and `OPTIONS`) and the WebSocket upgrades of the relay
+(`/api/collab`) and of the editor jobs (`/api/agent`) must come from the request's own origin,
+`SCHREIBZEUG_URL` or `SCHREIBZEUG_TRUSTED_ORIGINS`, else the answer is `403`
+(`src/auth/origin.ts`). The cookie is `SameSite=Lax`, so the browser also sends it from another
+origin of the same site, such as another subdomain beside Kontext or another port of the host;
+without the check, a page there could upload, trash or join a live session as the person. Without
+an `Origin` header the browser's `Sec-Fetch-Site` decides; a request with neither comes from no
+page. Personal access tokens and Kontext's tokens are not checked: a browser never sends them by
+itself.
+
 Every node has an `owner_id`. Every query in `src/files/repository.ts` takes the signed-in user and
 asks `src/files/access.ts` what they may do with the node; a file they have no access to is "not
 found", the same as one that does not exist. Names are unique per owner at the top level.
@@ -43,7 +54,22 @@ signs in through Kontext: then a share with an address without an account waits 
 gets an account the provider confirmed, at its first sign-in through Kontext or with Kontext's
 first token for it (`claimPendingShares`). A sign-up with a password never gets it, since anyone
 could sign up with anybody's address. Kontext uses this when a document goes into a chat, a task or
-an appointment ([Schreibzeug in Kontext](kontext.md#files-in-kontext)). A share on a folder holds for everything below it; the user's role on a node is "owner",
+an appointment ([Schreibzeug in Kontext](kontext.md#files-in-kontext)).
+
+An address is not an identity until someone confirmed it. A password sign-up stores any address
+unconfirmed, also a colleague's who has no account yet, so a share by address must not silently
+reach whoever registered it first:
+
+- Where the server signs in through Kontext, a share only goes to an account whose address is
+  confirmed. An account with a password under that address does not get it; the share waits as
+  above ("Noch ohne Konto") until the address is confirmed, by linking the account with Kontext
+  ([sign-up](#sign-up)). A share such an account already has keeps changing its role in place.
+- On a server with passwords only, nothing is confirmed, so a share goes to the account with the
+  address as before, but the share list marks it (`unverified` in `GET /api/nodes/:id/shares`; the
+  dialog says "Adresse nicht bestätigt"), so the owner sees that the account is not known to be
+  the person.
+
+A share on a folder holds for everything below it; the user's role on a node is "owner",
 or the strongest share on the node or on any folder above it, found with one recursive query
 (`roleOf`).
 
@@ -73,6 +99,9 @@ The link opens `/invite/<token>` in the web app, which shows who shares what (`G
 and comes back; "Einladung annehmen" adds a share with the link's role, or keeps a stronger one the
 user already has. A link that holds also opens a closed sign-up: the page sends its token in the
 `x-schreibzeug-invite` header, and the sign-up hook in `src/auth/auth.ts` lets that one account in.
+That account is made for the link: the hook accepts the link with the sign-up, so the person lands
+with the share ("Einladung annehmen" afterwards changes nothing). The address it was registered
+with is not confirmed by the link, which names no address; it counts as above.
 
 In the editor the relay takes the role from the database for every connection. A viewer joins
 with `mode: "view"` whatever the client says, and the relay drops what would change the document
@@ -87,7 +116,8 @@ others' changes as they come.
 |---|---|---|
 | `SCHREIBZEUG_OPEN_SIGNUP` | `false` | `true`: anyone who reaches the server may create an account. Otherwise only the first account can be created there. |
 | `SCHREIBZEUG_AUTH_SECRET` | generated | Signs the session cookies, at least 32 characters. Without it the server generates one on first start and keeps it in `SCHREIBZEUG_DATA_DIR/auth-secret` (mode 600). |
-| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in, separated by commas. |
+| `SCHREIBZEUG_TRUSTED_ORIGINS` | – | More origins that may sign in and, with a session, change things, separated by commas. |
+| `SCHREIBZEUG_TRUSTED_PROXIES` | – | The reverse proxies in front of the server (addresses or CIDR ranges). Sign-in and sign-up allow a few tries per client in ten seconds; a client is the connection's address, behind these proxies the first forwarded address that is not one of them, never an `X-Forwarded-For` a client sends itself (`src/auth/client-ip.ts`, [installation](installation.md#behind-a-reverse-proxy)). |
 
 The first account takes over the files from before there were accounts (nodes without an owner),
 so an existing installation keeps its files.
@@ -98,8 +128,9 @@ with the address of an existing account gets that account when its address is co
 Auth's account linking with Kontext as a trusted provider, `requireLocalEmailVerified`). An account
 with a password has an address nobody confirmed: Better Auth answers `account_not_linked`, the
 sign-in page says so, and signing in with the password links Kontext right after (`linkSocial`,
-only for the same address). Then the address counts as confirmed and what was shared with it
-waits no longer. One account has one person at Kontext: a second `sub` is not linked (the account
+only for the same address). When Kontext confirms the address (`email_verified: true` in its id
+token or userinfo, nothing else counts), it counts as confirmed and what was shared with it waits
+no longer; an address the provider does not confirm stays unconfirmed and gets nothing by it. One account has one person at Kontext: a second `sub` is not linked (the account
 hook in `src/auth/auth.ts`), so an address given to someone new does not hand on the former
 person's files. From then on the account is found by Kontext's `sub`, so a changed address keeps
 it. The variables are in [Schreibzeug in Kontext](kontext.md#settings).
@@ -119,8 +150,10 @@ sign-up and the takeover of old files; the secret file. The server tests sign up
 their harness. In the E2E run (`SCHREIBZEUG_OPEN_SIGNUP=true`) every test signs up an account of its own
 through the API (`e2e/app.ts`); `e2e/accounts.spec.ts` goes through the form, signs out and back in,
 and checks that someone else's folder is not found. `apps/server/test/shares.test.ts` covers the
-roles, shares on folders, taking a share back and the trash; `e2e/sharing.spec.ts` shares a
+roles, shares on folders, taking a share back, the trash and the mark on an unconfirmed address;
+`apps/server/test/edge.test.ts` the body limits, the address the sign-in rate limit counts, and
+the origin check for cookie requests and WebSocket upgrades; `e2e/sharing.spec.ts` shares a
 folder between two accounts: read-only with live changes, and editing; and someone without an
 account follows a link, signs up and accepts it. `apps/server/test/invites.test.ts` covers links:
 reading one without a session, accepting, roles that never get weaker, deleting, expiry, the trash,
-and a closed sign-up opened only by a link that holds.
+and a closed sign-up opened only by a link that holds, which accepts that link.

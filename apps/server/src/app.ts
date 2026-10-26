@@ -6,10 +6,12 @@ import { agentRoutes, agentSocketRoutes } from "./agent/routes";
 import type { Auth } from "./auth/auth";
 import type { Bearer } from "./auth/bearer";
 import { type AuthEnv, bearerToken, requireSession, requireUser } from "./auth/middleware";
+import { requireTrustedOrigin } from "./auth/origin";
 import { tokenRoutes } from "./auth/token-routes";
 import type { Hub } from "./collab/hub";
 import { collabRoutes } from "./collab/routes";
 import { type FilesDeps, filesRoutes, invitationRoutes } from "./files/routes";
+import { authBodyLimit, defaultBodyLimit } from "./limits";
 import { bindSignInSession, openSockets } from "./sockets";
 
 export type AppDeps = FilesDeps & {
@@ -23,6 +25,8 @@ export type AppDeps = FilesDeps & {
   collab?: { hub: Hub; upgradeWebSocket: UpgradeWebSocket };
   /** Jobs for open editors (agent/hub.ts); its tabs connect over the collaboration's WebSocket upgrade. */
   agent?: AgentHub;
+  /** Origins besides the request's own whose pages may change things with a session (auth/origin.ts). */
+  trustedOrigins?: readonly string[];
 };
 
 /**
@@ -32,7 +36,8 @@ export type AppDeps = FilesDeps & {
  * Better Auth answers under /api/auth (sign-up, sign-in, sign-out, session), and what a link
  * shares can be read without signing in; everything after that needs a session, a token from the
  * sign-in provider, or a personal access token (auth/tokens.ts); tokens and live editing sessions
- * are for the person in the app. `DELETE /api/sessions` is only for the sign-in provider's server,
+ * are for the person in the app. With a session, what changes something and the WebSocket upgrades
+ * must come from a page of this server or a trusted origin (auth/origin.ts). `DELETE /api/sessions` is only for the sign-in provider's server,
  * with a token for the person: Kontext ends someone's sessions here when they leave the company or
  * are locked (auth/bearer.ts).
  */
@@ -43,6 +48,7 @@ export const createApp = ({
   info = { mode: "server" },
   bearer,
   agent = createAgentHub(),
+  trustedOrigins = [],
   ...deps
 }: AppDeps) => {
   // A socket is checked when it opens; after a change to who may open what, the open ones again.
@@ -51,7 +57,8 @@ export const createApp = ({
     .basePath("/api")
     .get("/health", (c) => c.json({ ok: true }))
     .get("/info", (c) => c.json(info))
-    .on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw))
+    .on(["GET", "POST"], "/auth/*", authBodyLimit, (c) => auth.handler(c.req.raw))
+    .use(defaultBodyLimit)
     .route("/", invitationRoutes(deps))
     .delete("/sessions", async (c) => {
       const token = bearerToken(c.req.raw.headers);
@@ -61,6 +68,7 @@ export const createApp = ({
         : c.body(null, 204);
     })
     .use(requireUser(auth, deps.db, bearer))
+    .use(requireTrustedOrigin(trustedOrigins))
     .route("/", tokenRoutes(deps))
     .route("/", filesRoutes({ ...deps, relay: collab?.hub, onAccessChange: sockets.accessChanged }))
     .route("/", agentRoutes({ db: deps.db, hub: agent }))

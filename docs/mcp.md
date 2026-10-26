@@ -158,7 +158,8 @@ MCP client ─▶ /mcp edit tool ─▶ POST /api/files/:id/agent ─▶ agent h
 ```
 
 - **The hub** (`apps/server src/agent`): every editor with a document open for editing joins
-  `/api/agent/:fileId` (WebSocket, session only, the right to edit checked). A job for a user and
+  `/api/agent/:fileId` (WebSocket, session only, the right to edit checked when it opens and again
+  after every change to shares, the trash or a move; a tab that lost it is closed with 4403). A job for a user and
   file goes to that user's tab that joined last and waits up to two minutes for its answer.
   Without a tab the answer is `Das Dokument ist gerade in keinem Tab geöffnet.`, and the tool adds
   the link to open it. `POST /api/files/:id/agent` checks "edit", `GET /api/files/:id/outline`

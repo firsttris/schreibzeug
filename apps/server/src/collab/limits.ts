@@ -1,5 +1,5 @@
 /**
- * What one session may hold, and how the relay sends an engine away. DocsCoServer keeps its change
+ * What one session may hold, and how the relay ends a connection. DocsCoServer keeps its change
  * log in a database; here it lives in the memory of the one server process every user shares, so
  * it has a ceiling.
  */
@@ -25,6 +25,12 @@ export const bytesOf = (changes: ReadonlyArray<{ change: string }>): number =>
 /** Whether a log of these changes stays within LOG_LIMITS. */
 export const withinLimits = (changes: ReadonlyArray<{ change: string }>): boolean =>
   changes.length <= LOG_LIMITS.changes && bytesOf(changes) <= LOG_LIMITS.bytes;
+
+/**
+ * WebSocket close codes in the private range, ours: what ended a connection. The collaboration and
+ * the agent socket both use them.
+ */
+export const SOCKET_CLOSE = { badMessage: 4400, signedOut: 4401, revoked: 4403, notFound: 4404 } as const;
 
 /** sdkjs's close codes (common/docscoapicommon.js c_oCloseCode) the relay hands an engine. */
 export const ENGINE_CLOSE = { sessionAbsolute: 4003, accessDeny: 4004, drop: 4007 } as const;

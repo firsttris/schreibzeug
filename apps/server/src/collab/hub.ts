@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { SessionSave } from "@schreibzeug/files-api";
+import { dropMessage, ENGINE_CLOSE, SOCKET_CLOSE } from "./limits";
 import {
   createSession,
   disconnect,
@@ -25,7 +26,7 @@ export type FileAccess = { version: number; role: "owner" | "edit" | "view" };
 export type HubDeps = {
   /**
    * The file outside the trash as the user may use it, or null when they may not open it: every
-   * connection is checked, also to a session that is already open.
+   * connection is checked, also to a session that is already open, and again on `revalidate`.
    */
   access: (fileId: string, userId: string) => Promise<FileAccess | null>;
   now?: () => number;
@@ -49,7 +50,10 @@ const unrefTimer = (run: () => void, ms: number) => {
   return () => clearTimeout(timer as unknown as number);
 };
 
-type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send };
+/** Closes one connection's socket. */
+export type Close = (code: number, reason: string) => void;
+
+type Connection = { fileId: string; user: HubUser; viewer: boolean; send: Send; close: Close };
 
 /**
  * sdkjs announces its user in `auth` (docscoapi.js getAuthCommand). The relay replaces id and name
@@ -210,13 +214,41 @@ export const createHub = ({
     return { ...createSession(fileId, version), issued: last?.version === version ? last.ids : [] };
   };
 
+  /** A connection is gone: its locks are freed, and the session may end. */
+  const leave = (connectionId: string) => {
+    const connection = connections.get(connectionId);
+    if (!connection) return;
+    apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
+    connections.delete(connectionId);
+    leftSinceChange.get(connection.fileId)?.push(connectionId);
+    settle(connection.fileId);
+  };
+
+  /**
+   * Sends a connection away for good: its engine gets `drop` and stops reconnecting (limits.ts
+   * dropMessage), it leaves the session at once, so nothing more reaches it or comes from it, and
+   * its socket closes.
+   */
+  const eject = (connectionId: string, engineCode: number, socketCode: number, reason: string) => {
+    const connection = connections.get(connectionId);
+    if (!connection) return;
+    connection.send(dropMessage(engineCode, reason));
+    leave(connectionId);
+    connection.close(socketCode, reason);
+  };
+
   return {
     /**
      * A new connection to a file. It first learns the version to open (our own `schreibzeug:session`
      * message, before anything sdkjs sees), then gets the license sdkjs waits for after connecting.
      * Returns its id, or null when the file does not exist.
      */
-    open: async (fileId: string, user: HubUser, send: Send): Promise<string | null> => {
+    open: async (
+      fileId: string,
+      user: HubUser,
+      send: Send,
+      close: Close = () => {},
+    ): Promise<string | null> => {
       const allowed = await access(fileId, user.id);
       if (allowed === null) return null;
       const { version } = allowed;
@@ -228,7 +260,7 @@ export const createHub = ({
       const session = sessions.get(fileId) ?? startSession(fileId, version);
       sessions.set(fileId, session);
       const connectionId = randomUUID();
-      connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send });
+      connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send, close });
       send({ type: "schreibzeug:session", baseVersion: session.baseVersion });
       send(licenseMessage());
       return connectionId;
@@ -244,13 +276,25 @@ export const createHub = ({
       if (data.type === "saveChanges") leftSinceChange.set(connection.fileId, []);
     },
 
-    close: (connectionId: string) => {
-      const connection = connections.get(connectionId);
-      if (!connection) return;
-      apply(connection.fileId, connectionId, (session) => disconnect(session, connectionId, now()));
-      connections.delete(connectionId);
-      leftSinceChange.get(connection.fileId)?.push(connectionId);
-      settle(connection.fileId);
+    /** The connection's socket closed. */
+    close: leave,
+
+    /**
+     * Checks every open connection against the files again, after something may have changed who
+     * may open what (a share, the trash, a move): whoever lost the file is sent away, whoever may
+     * now only look too, for their engine to open it again as a viewer (DocsCoServer drops a
+     * connection whose rights changed). Someone who may now edit stays a viewer until they reopen.
+     */
+    revalidate: async (): Promise<void> => {
+      const checks = [...connections.entries()].map(async ([id, { fileId, user }]) => {
+        const allowed = await access(fileId, user.id);
+        const connection = connections.get(id);
+        if (!connection) return;
+        if (allowed === null) eject(id, ENGINE_CLOSE.accessDeny, SOCKET_CLOSE.revoked, "Access revoked");
+        else if (allowed.role === "view" && !connection.viewer)
+          eject(id, ENGINE_CLOSE.accessDeny, SOCKET_CLOSE.revoked, "Access changed to view");
+      });
+      await Promise.all(checks);
     },
 
     /**

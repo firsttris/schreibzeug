@@ -84,7 +84,7 @@ export const startServer = async ({
     if (!response.ok) throw new Error(`Sign-up failed: ${response.status} ${await response.text()}`);
     return response.headers
       .getSetCookie()
-      .map((cookie) => cookie.split(";")[0])
+      .map((cookie: string) => cookie.split(";")[0])
       .join("; ");
   };
 

@@ -137,6 +137,20 @@ describe("shares with an address that has no account yet", () => {
     ).toEqual([file.id]);
   });
 
+  it("wait also when an account with a password has the address already", async () => {
+    const owner = await server.signUp("Eva", "eva@example.org");
+    const squatter = await server.signUp("Kollegin", "kollegin@example.org");
+    const file = await documentOf(owner, "Gehälter");
+    const reply = await call(
+      `/api/nodes/${file.id}/shares`,
+      asCookie(owner),
+      json("PUT", { email: "kollegin@example.org", role: "edit" }),
+    );
+    expect(reply.status).toBe(200);
+    expect(await sharedWith(asCookie(squatter))).toEqual([]);
+    expect(await sharesOf(owner, file.id)).toMatchObject([{ email: "kollegin@example.org", pending: true }]);
+  });
+
   it("can be taken back", async () => {
     const owner = await server.signUp("Uta", "uta@example.org");
     const file = await documentOf(owner, "Notiz");

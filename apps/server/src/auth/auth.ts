@@ -7,7 +7,7 @@ import { decodeJwt } from "jose";
 import type { OidcConfig } from "../config";
 import type { Database } from "../db/database";
 import * as schema from "../db/schema";
-import { findInvitation } from "../files/invites";
+import { acceptInvite, findInvitation } from "../files/invites";
 import { adoptOwnerless } from "../files/repository";
 import { claimPendingShares } from "../files/shares";
 import { CLIENT_IP_HEADER } from "./client-ip";
@@ -171,10 +171,14 @@ export const createAuth = ({
             }
           },
           // The first account takes over the files from before there were accounts. An address
-          // the provider confirmed gets what was shared with it before it had an account.
-          after: async (user) => {
+          // the provider confirmed gets what was shared with it before it had an account. An
+          // account a link opened is made for that link: it accepts it right away (the page's
+          // "Einladung annehmen" after it changes nothing more).
+          after: async (user, context) => {
             if (userCount(db) === 1) adoptOwnerless(db, user.id);
             if (user.emailVerified) claimPendingShares(db, user.id, user.email);
+            const invite = context?.headers?.get(INVITE_HEADER);
+            if (invite) acceptInvite(db, user.id, invite);
           },
         },
         // A sign-in through the provider confirms the address of an account it is linked to later

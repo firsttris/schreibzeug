@@ -156,7 +156,17 @@ describe("sign-up with a link", () => {
 
       expect((await signUp("uninvited")).status).toBe(403);
       expect((await signUp("forged", "not-a-token")).status).toBe(403);
-      expect((await signUp("invited", invite.token)).status).toBe(200);
+      const invited = await signUp("invited", invite.token);
+      expect(invited.status).toBe(200);
+      // The account the link opened is made for it: the link is accepted with the sign-up.
+      const invitedCookie = invited.headers
+        .getSetCookie()
+        .map((c) => c.split(";")[0])
+        .join("; ");
+      const shared = await app.request("/api/shared", { headers: { cookie: invitedCookie } });
+      expect(
+        z.array(z.object({ id: z.string(), role: z.string() })).parse(await shared.json()),
+      ).toMatchObject([{ id: folder.id, role: "edit" }]);
     } finally {
       await fresh.stop();
     }

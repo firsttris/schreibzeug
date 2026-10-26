@@ -49,7 +49,22 @@ signs in through Kontext: then a share with an address without an account waits 
 gets an account the provider confirmed, at its first sign-in through Kontext or with Kontext's
 first token for it (`claimPendingShares`). A sign-up with a password never gets it, since anyone
 could sign up with anybody's address. Kontext uses this when a document goes into a chat, a task or
-an appointment ([Schreibzeug in Kontext](kontext.md#files-in-kontext)). A share on a folder holds for everything below it; the user's role on a node is "owner",
+an appointment ([Schreibzeug in Kontext](kontext.md#files-in-kontext)).
+
+An address is not an identity until someone confirmed it. A password sign-up stores any address
+unconfirmed, also a colleague's who has no account yet, so a share by address must not silently
+reach whoever registered it first:
+
+- Where the server signs in through Kontext, a share only goes to an account whose address is
+  confirmed. An account with a password under that address does not get it; the share waits as
+  above ("Noch ohne Konto") until the address is confirmed, by linking the account with Kontext
+  ([sign-up](#sign-up)). A share such an account already has keeps changing its role in place.
+- On a server with passwords only, nothing is confirmed, so a share goes to the account with the
+  address as before, but the share list marks it (`unverified` in `GET /api/nodes/:id/shares`; the
+  dialog says "Adresse nicht bestätigt"), so the owner sees that the account is not known to be
+  the person.
+
+A share on a folder holds for everything below it; the user's role on a node is "owner",
 or the strongest share on the node or on any folder above it, found with one recursive query
 (`roleOf`).
 
@@ -76,6 +91,9 @@ The link opens `/invite/<token>` in the web app, which shows who shares what (`G
 and comes back; "Einladung annehmen" adds a share with the link's role, or keeps a stronger one the
 user already has. A link that holds also opens a closed sign-up: the page sends its token in the
 `x-schreibzeug-invite` header, and the sign-up hook in `src/auth/auth.ts` lets that one account in.
+That account is made for the link: the hook accepts the link with the sign-up, so the person lands
+with the share ("Einladung annehmen" afterwards changes nothing). The address it was registered
+with is not confirmed by the link, which names no address; it counts as above.
 
 In the editor the relay takes the role from the database for every connection. A viewer joins
 with `mode: "view"` whatever the client says, and the relay drops what would change the document
@@ -124,8 +142,10 @@ sign-up and the takeover of old files; the secret file. The server tests sign up
 their harness. In the E2E run (`SCHREIBZEUG_OPEN_SIGNUP=true`) every test signs up an account of its own
 through the API (`e2e/app.ts`); `e2e/accounts.spec.ts` goes through the form, signs out and back in,
 and checks that someone else's folder is not found. `apps/server/test/shares.test.ts` covers the
-roles, shares on folders, taking a share back and the trash; `e2e/sharing.spec.ts` shares a
+roles, shares on folders, taking a share back, the trash and the mark on an unconfirmed address;
+`apps/server/test/edge.test.ts` the body limits, the address the sign-in rate limit counts, and
+the origin check for cookie requests and WebSocket upgrades; `e2e/sharing.spec.ts` shares a
 folder between two accounts: read-only with live changes, and editing; and someone without an
 account follows a link, signs up and accepts it. `apps/server/test/invites.test.ts` covers links:
 reading one without a session, accepting, roles that never get weaker, deleting, expiry, the trash,
-and a closed sign-up opened only by a link that holds.
+and a closed sign-up opened only by a link that holds, which accepts that link.

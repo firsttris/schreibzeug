@@ -128,12 +128,13 @@ and GHCR when a `v*` tag is pushed, [installation](installation.md)).
 ## Tests
 
 `apps/server/test/pending-shares.test.ts`: a share with an address that waits, holds once the
-person comes through Kontext, never goes to a sign-up with a password but holds once that
-account is connected with Kontext, and can be taken back.
+person comes through Kontext, never goes to a sign-up with a password (also one made before the
+share) but holds once that account is connected with Kontext, waits for a token without
+`email_verified`, and can be taken back.
 `apps/server/test/bearer.test.ts`: tokens kept by subject, found by a confirmed address, never
 for a password account under someone else's address or for a second subject, a new account, the
-files from before accounts, ending a person's sessions, refused audience, issuer, subject and
-garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
+files from before accounts, ending a person's sessions, `email_verified`, refused audience, issuer,
+subject, other clients (`azp`, `client_id`), missing expiry, age and garbage; `apps/server/test/web.test.ts`: `frame-ancestors`;
 `apps/web/src/embed/messages.test.ts`: origin and window checks, when the app counts as embedded,
 paths and keys. `e2e/kontext.spec.ts` runs against a stand-in for Kontext (`e2e/fake-kontext.ts`:
 discovery, authorize with PKCE and `prompt=none`, token, userinfo, keys, and a page with the frame)

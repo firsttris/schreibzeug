@@ -106,7 +106,9 @@ last saw, `lastOtherSaveTime`) and the blocks the engine still holds pass the sa
 the editor's rule refuses ends the restore ("Restore error. Locks not checked.", DocsCoServer.js
 `auth` with `getLock(…, true)`). Otherwise it answers with error 4004 and the document has to be
 opened again. If the relay started a new session at another version, the channel tells the engine
-the reconnect failed.
+the reconnect failed. A session that takes over the previous one's ids also starts its user index
+past theirs, so whoever joins fresh never gets an index a restored engine still uses (sdkjs builds
+its object ids from it, `common/editorscommon.js` `CIdCounter`).
 
 The relay records with each session id it gives out the account and the user index it came with.
 Only that account may come back with the id, and it gets that index again; the index the engine

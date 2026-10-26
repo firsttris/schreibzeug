@@ -214,7 +214,10 @@ export const createHub = ({
     generations.set(fileId, (generations.get(fileId) ?? 0) + 1);
     storedAt.set(fileId, version);
     leftSinceChange.set(fileId, []);
-    return { ...createSession(fileId, version), issued: last?.version === version ? last.ids : [] };
+    const issued = last?.version === version ? last.ids : [];
+    // A restore hands back the index an inherited id had; new joiners must start past all of them.
+    const nextIndexUser = Math.max(1, ...issued.map(({ indexUser }) => indexUser + 1));
+    return { ...createSession(fileId, version), issued, nextIndexUser };
   };
 
   /** A connection is gone: its locks are freed, and the session may end. */

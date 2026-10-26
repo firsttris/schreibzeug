@@ -561,6 +561,22 @@ describe("collaboration hub", () => {
     hub.abandon(FILE); // (nothing left under way)
   });
 
+  it("gives a fresh joiner another index than an editor restored into the next session", async () => {
+    const { hub, join } = setup();
+    const a = await join(ANNA);
+    hub.message(a.id, auth("anna"));
+    hub.close(a.id); // nothing unsaved: the session ends, its ids live on for a restore
+    expect(hub.session(FILE)).toBeUndefined();
+    const back = await join(ANNA);
+    hub.message(back.id, auth("anna", { sessionId: a.id, lastOtherSaveTime: 0 }));
+    const b = await join(BEN);
+    hub.message(b.id, auth("ben"));
+    const restored = back.messages.find((m) => m.type === "auth");
+    const fresh = b.messages.find((m) => m.type === "auth");
+    expect(restored?.indexUser).toBe(1);
+    expect(fresh?.indexUser).toBe(2);
+  });
+
   it("lets an editor restore whose save landed after its connection dropped", async () => {
     const stored = { version: 3 };
     const { hub, join } = setup(undefined, undefined, stored);

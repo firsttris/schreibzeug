@@ -12,7 +12,8 @@
  *   dist/dictionaries/<lang>/             Hunspell dictionaries for the spell checker, with their licenses
  *   dist/licenses/                        engine and font licenses
  *
- * One fix is made to the built sdkjs: see patchSpellWorker.
+ * One fix is made to the built sdkjs: see patchSpellWorker. checkScriptHooks makes sure the places
+ * where packages/editor-core keeps a document's own code from running are still where it expects.
  *
  * Sources, both pinned in engine.json: the official Euro-Office Document Server release package
  * (built sdkjs, the open-source fonts in core-fonts, the allfontsgen tool) and CryptPad's x2t
@@ -217,6 +218,49 @@ const patchEngine = (): void => {
   writeFileSync(file, patchSpellWorker(readFileSync(file, "utf8")));
 };
 
+/**
+ * packages/editor-core/src/document-scripts.ts keeps code a document carries from running, at
+ * places of the built engine it cannot see from there. Each check is one of them, with how often it
+ * occurs in this release; when an engine update moves one, preparing stops here instead of the
+ * guard quietly missing it.
+ */
+const SCRIPT_HOOKS: { file: string; text: string; count: number; why: string }[] = [
+  // pdf/src/forms/formActions.js: the PDF's JavaScript runs only through CActionRunScript's Do and
+  // RunScript, which silencePdfScripts empties.
+  { file: "sdkjs/word/sdk-all.js", text: "EvalScript(", count: 3, why: "PDF scripts: one evaluator" },
+  {
+    file: "sdkjs/word/sdk-all.js",
+    text: "EvalScript(this.script,",
+    count: 2,
+    why: "PDF scripts: Do, RunScript",
+  },
+  // cell/api_plugins.js: the custom functions run only here, which withoutCustomFunctions replaces.
+  {
+    file: "sdkjs/cell/sdk-all-min.js",
+    text: "registerCustomFunctionsLibrary=function",
+    count: 1,
+    why: "custom functions",
+  },
+  // common/apiBase.js asc_runMacros and asc_runAutostartMacroses ask the flag createDocInfo clears.
+  ...["word", "cell", "slide"].map((editor) => ({
+    file: `sdkjs/${editor}/sdk-all-min.js`,
+    text: "asc_getIsEnabledMacroses()",
+    count: 2,
+    why: "macro switch",
+  })),
+];
+
+const occurrences = (source: string, text: string): number => source.split(text).length - 1;
+
+const checkScriptHooks = (): void => {
+  const moved = SCRIPT_HOOKS.filter(
+    ({ file, text, count }) => occurrences(readFileSync(join(distDir, file), "utf8"), text) !== count,
+  );
+  if (moved.length === 0) return;
+  const list = moved.map(({ file, text, why }) => `${file}: "${text}" (${why})`).join("\n");
+  throw new Error(`The engine changed where documents' scripts run; check document-scripts.ts:\n${list}`);
+};
+
 const extractConverter = async (spec: ReleaseAsset): Promise<void> => {
   const out = join(distDir, "x2t");
   mkdirSync(out, { recursive: true });
@@ -297,6 +341,7 @@ const prepare = async (force: boolean): Promise<void> => {
     { label: "Unpack the package", run: () => extract(spec) },
     { label: "Copy sdkjs and its libraries", run: () => copyEngine(spec) },
     { label: "Let the spell checker start however fast it loads", run: patchEngine },
+    { label: "Check where documents' scripts would run", run: checkScriptHooks },
     { label: "Download the converter", run: (report) => download(spec.converter, report) },
     { label: "Unpack the converter", run: () => extractConverter(spec.converter) },
     { label: "Generate the fonts (allfontsgen)", run: generateFonts },

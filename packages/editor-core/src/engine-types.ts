@@ -236,6 +236,8 @@ export interface EngineDocInfo {
   put_Lang(lang: string): void;
   /** "fast": changes go out as they happen; "strict": only when the user saves. */
   put_CoEditingMode(mode: "fast" | "strict"): void;
+  /** Whether the document's JS macros may run (asc_runMacros, asc_runAutostartMacroses). */
+  put_IsEnabledMacroses(enabled: boolean): void;
 }
 
 /** What every editor's API offers (common/apiBase.js `baseEditorsApi`), typed by its events. */

@@ -170,6 +170,10 @@ second key of someone typing fast went missing. When a PDF opens, `preloadTyping
 font picker collect the fonts for the characters of German and English text and loads them, as the
 first key would. Tab moves to the next field.
 
+A form's JavaScript (format, keystroke, calculation and link actions) does not run, so a field
+another program formats by script shows its plain value; the scripts stay in the saved PDF
+([code in documents](engine.md#code-in-documents-does-not-run)).
+
 ## Together
 
 Several people edit a PDF at once, as an Office file: the PDF view opens in the file's editing

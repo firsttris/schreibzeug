@@ -27,6 +27,7 @@ import { createEngineColor } from "./colors";
 import { cellCommentEvents, commentEvents } from "./comment-state";
 import { type CommentCommands, createCommentCommands } from "./comments";
 import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
+import { withoutCustomFunctions } from "./document-scripts";
 import { CELL_TEXTS } from "./engine-texts";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
 import { uniqueSorted } from "./events";
@@ -144,7 +145,7 @@ const cellBinding: EditorBinding<
     // Stored until the full API has loaded (cell/api.js asc_setLocale, tmpLCID).
     api.asc_setLocale(GERMAN_LCID);
     keepSelectionCallbacks(api);
-    return api;
+    return withoutCustomFunctions(api);
   },
   initialState: initialSheetState,
   reduce: reduceSheetState,

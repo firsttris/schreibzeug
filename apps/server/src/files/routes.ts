@@ -3,6 +3,7 @@ import {
   createBlankFileSchema,
   createFolderSchema,
   createInviteSchema,
+  ifMatchOf,
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
@@ -79,11 +80,17 @@ const uploadForm = z.object({
 const mediaParam = z.object({ id: nodeIdSchema, name: z.string().max(100) });
 const NOT_AN_IMAGE = "Das ist kein Bild im Format PNG, JPEG, GIF oder BMP.";
 const NO_SUCH_IMAGE = "Dieses Bild gibt es nicht.";
+const BAD_IF_MATCH = "If-Match nennt keine Version (erwartet: SHA-256 in Anführungszeichen).";
+
+/** A new note or text file is empty: UTF-8 without a byte order mark (text-editor codec.ts). */
+const empty = () => new Uint8Array();
 
 const BLANK_FILES = {
   docx: { extension: ".docx", bytes: blankDocx },
   xlsx: { extension: ".xlsx", bytes: blankXlsx },
   pptx: { extension: ".pptx", bytes: blankPptx },
+  md: { extension: ".md", bytes: empty },
+  txt: { extension: ".txt", bytes: empty },
 } as const;
 
 /** Adds the extension the format needs, unless the name already has it. */
@@ -226,6 +233,9 @@ export const filesRoutes = ({
         // learns nothing from the file's session state; addVersion checks again after the awaits.
         const access = repository.requireFile(db, userOf(c), id, "edit");
         if (!access.ok) return c.json({ error: access.error }, statusOf(access.error.kind));
+        // A save made over a version (files-api ifMatchOf) goes through only while that one is newest.
+        const over = ifMatchOf(c.req.header("if-match"));
+        if (over === undefined) return respond(c, fail("invalid", BAD_IF_MATCH), toFileNode);
         const bytes = new Uint8Array(await c.req.arrayBuffer());
         const content = await store(bytes);
         // From here to `stored` nothing waits, so no other save comes in between.
@@ -234,7 +244,7 @@ export const filesRoutes = ({
           return respond(c, fail("conflict", SESSION_GONE), toFileNode);
         let saved: ReturnType<typeof repository.addVersion>;
         try {
-          saved = repository.addVersion(db, userOf(c), id, content);
+          saved = repository.addVersion(db, userOf(c), id, content, over);
         } catch (error) {
           if (sessionSave) relay?.abandon(id); // a begun save always ends (hub.ts `begin`)
           throw error;

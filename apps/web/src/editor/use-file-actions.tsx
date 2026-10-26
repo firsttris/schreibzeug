@@ -1,25 +1,19 @@
-import type { OfficeFormat } from "@schreibzeug/editor-core";
-import type { FileNode } from "@schreibzeug/files-api";
+import type { BlankFormat, FileNode } from "@schreibzeug/files-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { isApiFailure } from "../api/client";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
 import { NameDialog } from "../files/name-dialog";
+import { NEW_FILES } from "../files/new-files";
 import { ShareDialog } from "../files/share-dialog";
 import { VersionsDialog } from "../files/versions-dialog";
 import type { FileActions } from "./file-menu";
 
-const NEW_FILE: Record<OfficeFormat, { title: string; label: string; name: string }> = {
-  docx: { title: "Neues Dokument", label: "Name des Dokuments", name: "Unbenanntes Dokument" },
-  xlsx: { title: "Neue Tabelle", label: "Name der Tabelle", name: "Unbenannte Tabelle" },
-  pptx: { title: "Neue Präsentation", label: "Name der Präsentation", name: "Unbenannte Präsentation" },
-};
-
 /** Opens a file in a new tab, so the open document stays where it is. */
 const openInNewTab = (id: string) => window.open(`/edit/${id}`, "_blank", "noopener");
 
-type Dialog = "versions" | "share" | OfficeFormat | null;
+type Dialog = "versions" | "share" | BlankFormat | null;
 
 export type FileActionsHandle = {
   actions: FileActions;
@@ -49,7 +43,7 @@ export const useFileActions = ({
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = () => setDialog(null);
 
-  const createNew = async (format: OfficeFormat, name: string) => {
+  const createNew = async (format: BlankFormat, name: string) => {
     const parentId = node && node.role !== "view" ? node.parentId : null;
     const created = await commands.createBlank(parentId, name, format).catch((error: unknown) => {
       // The folder may be one the user cannot add to (a file shared on its own): use their own files.
@@ -85,13 +79,13 @@ export const useFileActions = ({
 
   const dialogs = (
     <>
-      {(Object.keys(NEW_FILE) as OfficeFormat[]).map((format) => (
+      {(Object.keys(NEW_FILES) as BlankFormat[]).map((format) => (
         <NameDialog
           key={format}
           open={dialog === format}
-          title={NEW_FILE[format].title}
-          label={NEW_FILE[format].label}
-          initialName={NEW_FILE[format].name}
+          title={NEW_FILES[format].title}
+          label={NEW_FILES[format].label}
+          initialName={NEW_FILES[format].name}
           confirm="Anlegen und öffnen"
           onSubmit={(name) => createNew(format, name)}
           onClose={close}

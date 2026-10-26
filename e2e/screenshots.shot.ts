@@ -17,6 +17,7 @@ const LETTER = "Angebot Lagerverwaltung.docx";
 const PRICES = "Preisliste Hardware.xlsx";
 const TALK = "Projektstart Lagerverwaltung.pptx";
 const FORM = "Auftragsformular.pdf";
+const NOTE = "Projektnotizen Lager.md";
 
 /** What "Meine Dateien" holds, with how long before NOW each was last changed. */
 const FOLDERS = [
@@ -31,6 +32,7 @@ const DOCUMENTS = [
   { name: PRICES, file: "preise.xlsx", ago: { hours: 1, minutes: 5 } },
   { name: TALK, file: "vortrag.pptx", ago: { days: 1, hours: 6 } },
   { name: FORM, file: "formular.pdf", ago: { days: 2, hours: 2 } },
+  { name: NOTE, file: "notiz.md", ago: { hours: 2, minutes: 30 } },
 ];
 
 type Ago = { days?: number; hours?: number; minutes?: number };
@@ -48,8 +50,9 @@ const seed = async (api: APIRequestContext) => {
         docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        ".pdf": "application/pdf",
-      }[name.slice(-4)] ?? "application/octet-stream";
+        pdf: "application/pdf",
+        md: "text/markdown",
+      }[name.slice(name.lastIndexOf(".") + 1)] ?? "application/octet-stream";
     expect((await api.post("/api/files", { multipart: { file: { name, mimeType, buffer } } })).ok()).toBe(
       true,
     );
@@ -235,6 +238,17 @@ for (const scheme of schemes) {
       await page.mouse.click(box.x + 200 + 300 * scale, box.y + 20 + 400 * scale);
       await page.waitForTimeout(1_000);
       await shoot(page, "pdf", scheme);
+    });
+
+    test("text", async ({ page }) => {
+      await page.goto("/");
+      await page.getByRole("link", { name: NOTE, exact: true }).click();
+      // The cursor in the heading "Offene Punkte": that line shows its marks, the others not.
+      const heading = page.getByTestId("text-editor").locator(".cm-md-h2").first();
+      await heading.click();
+      await page.keyboard.press("End");
+      await page.evaluate(() => document.fonts.ready);
+      await shoot(page, "text", scheme);
     });
 
     test("comments", async ({ page }) => {

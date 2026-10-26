@@ -22,6 +22,7 @@ belong here; note each file's source below.
 | `vortrag.ppt` | `vortrag.pptx` converted with LibreOffice 24.2 (`soffice --headless --convert-to ppt`); ours, AGPL-3.0, like the repository | `e2e/other-formats.spec.ts` |
 | `einladung.docx` | written by `make.ts` in this folder: a letter with Word's merge fields (AGPL-3.0, like the repository) | `e2e/mail-merge.spec.ts` |
 | `empfaenger.xlsx` | written by `make.ts` in this folder: the letter's recipients (AGPL-3.0, like the repository) | `e2e/mail-merge.spec.ts` |
+| `notiz.md` | written by hand for the screenshots (AGPL-3.0, like the repository) | `e2e/screenshots.shot.ts` |
 | `anhang.pdf` | written by `make.ts` with `pdf.ts` in this folder (AGPL-3.0, like the repository) | `e2e/pdf.spec.ts` |
 
 `fidelity/` holds documents for the format-fidelity test (`e2e/formats.fidelity.ts`), each with its

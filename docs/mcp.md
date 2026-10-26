@@ -121,7 +121,8 @@ the client's own approval of the call, guided by the annotations, is the safegua
 | `create_presentation` | A .pptx from slides (title, content, title only, blank) | write |
 | `append_rows` | Rows below the last row of a sheet, as a new version | write |
 | `einvoice_xml` | Factur-X XML (EN 16931) from an invoice's data, checked first (`draftProblems`) | write |
-| `upload_file` | A small file from the conversation (up to 1 MB), as text or base64 | write |
+| `upload_file` | A small file from the conversation (up to 1 MB), as text or base64; with `text` and a name ending in `.md` a Markdown note | write |
+| `write_text` | The text of a Markdown note or text file, replaced or appended to, in the file's own encoding and line endings; made over the version it read, so a save in between is not overwritten ([Markdown and text files](text.md)) | write |
 | `outline` | The open document as it is in the editor: numbered paragraphs (with their style) and tables, sheets with their used range, slides with their text | read |
 | `replace_text` | Find and replace in an open .docx; answers how often | write |
 | `insert_content` | Markdown (headings, paragraphs, lists, bold, italic) into an open .docx, before or after element n of the outline, or at the end | write |

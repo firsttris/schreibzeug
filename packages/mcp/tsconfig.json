@@ -10,6 +10,7 @@
     { "path": "../einvoice" },
     { "path": "../files-api" },
     { "path": "../ooxml" },
-    { "path": "../pdf-sign" }
+    { "path": "../pdf-sign" },
+    { "path": "../text-editor" }
   ]
 }

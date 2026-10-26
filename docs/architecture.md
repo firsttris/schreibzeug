@@ -16,6 +16,7 @@ MCP client (Claude Code) ──HTTP /mcp────────▶└─ MCP to
 | Workspace | What it does |
 |---|---|
 | `packages/editor-core` | The only code that calls `sdkjs`: loads the engine, opens and saves files, turns engine events into a store, for the text, spreadsheet, presentation and PDF editors. Framework-free. See [the engine](engine.md) and [PDFs](pdf.md). |
+| `packages/text-editor` | The editor for Markdown and plain text files on CodeMirror 6, without a UI framework: reads and writes a file's own encoding and line endings, the live preview, the toolbar's Markdown commands, the split view's preview. See [Markdown and text files](text.md). |
 | `packages/mcp` | The MCP server's tools for Claude Code and other clients: find, read, manage and create files, each through the files API with the caller's token. See [the MCP server](mcp.md). |
 | `packages/files-api` | The contract between server and clients: Zod schemas for names, nodes, versions and errors. |
 | `packages/einvoice` | E-invoices: finds and reads the invoice XML a ZUGFeRD or Factur-X PDF carries (CII and UBL, taken from Haben), and writes one: reads an invoice from a document's text, writes Factur-X XML (EN 16931) and makes the PDF/A a ZUGFeRD PDF/A-3. See [E-invoices](e-invoice.md). |
@@ -46,12 +47,13 @@ Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an a
 other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
 `/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views,
 `/settings` the access tokens for MCP clients ([MCP server](mcp.md)), `/invite/:token` a link someone shared (readable before signing in), `/edit/:id` opens a file in its editor with the whole window
-(`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, sharing
+(`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, the text view for .md and .txt, sharing
 the header with the editable name, the menu bar, status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under
 `files`. The editor page joins the file's editing session first (`src/editor/use-session-file.ts`) and
 opens the version the session started from, so refreshing the lists after a save does not reopen
-the document. Every reply is checked against the schemas in
+the document. A text file has no session: its page loads the newest version and saves the whole
+file over it (`src/editor/text-page.tsx`, [Markdown and text files](text.md#saving)). Every reply is checked against the schemas in
 `packages/files-api`.
 
 In development `bun run dev` prepares the engine if needed, starts the server and serves the app on port 5173, which forwards `/api`, WebSockets included, and `/mcp` to the server

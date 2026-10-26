@@ -1,3 +1,4 @@
+import type { BlankFormat } from "@schreibzeug/files-api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, FilePlus2, FolderPlus, Upload } from "lucide-react";
@@ -9,32 +10,14 @@ import { Button } from "../ui/button";
 import { MenuButton } from "../ui/menu";
 import { FileBadge } from "./file-badge";
 import { NameDialog } from "./name-dialog";
+import { NEW_FILE_GROUPS, NEW_FILES } from "./new-files";
 import { NodeActions } from "./node-actions";
 import { NodeTable } from "./node-table";
 import { PageHeader, PageMessage } from "./page";
 import { TemplateDialog } from "./template-dialog";
 import { useUpload } from "./use-upload";
 
-type NewFile = "docx" | "xlsx" | "pptx";
-
-/** What "Neu" offers, with the words the name dialog uses for each. */
-const NEW_FILES: Record<NewFile, { item: string; title: string; label: string; name: string }> = {
-  docx: {
-    item: "Dokument",
-    title: "Neues Dokument",
-    label: "Name des Dokuments",
-    name: "Unbenanntes Dokument",
-  },
-  xlsx: { item: "Tabelle", title: "Neue Tabelle", label: "Name der Tabelle", name: "Unbenannte Tabelle" },
-  pptx: {
-    item: "Präsentation",
-    title: "Neue Präsentation",
-    label: "Name der Präsentation",
-    name: "Unbenannte Präsentation",
-  },
-};
-
-type Creating = "folder" | "template" | NewFile | null;
+type Creating = "folder" | "template" | BlankFormat | null;
 
 /** The path from the top: the user's own files, or what was shared with them. */
 const Breadcrumb = ({
@@ -84,7 +67,7 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
   const picker = useRef<HTMLInputElement>(null);
   const { upload, state, dragging, dropZone, dismiss } = useUpload(folderId);
   const createFolder = useFileMutation((name: string) => commands.createFolder(folderId, name));
-  const createFile = useFileMutation((format: NewFile, name: string) =>
+  const createFile = useFileMutation((format: BlankFormat, name: string) =>
     commands.createBlank(folderId, name, format),
   );
 
@@ -111,11 +94,13 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
               variant="outline"
               align="right"
               groups={[
-                (Object.keys(NEW_FILES) as NewFile[]).map((format) => ({
-                  label: NEW_FILES[format].item,
-                  icon: <FileBadge kind={format} size={22} />,
-                  onSelect: () => setCreating(format),
-                })),
+                ...NEW_FILE_GROUPS.map((group) =>
+                  group.map((format) => ({
+                    label: NEW_FILES[format].item,
+                    icon: <FileBadge kind={format} size={22} />,
+                    onSelect: () => setCreating(format),
+                  })),
+                ),
                 [{ label: "Aus Vorlage …", onSelect: () => setCreating("template") }],
               ]}
             >
@@ -195,7 +180,7 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
         onSubmit={(name) => createFolder.mutateAsync([name])}
         onClose={() => setCreating(null)}
       />
-      {(Object.keys(NEW_FILES) as NewFile[]).map((format) => (
+      {(Object.keys(NEW_FILES) as BlankFormat[]).map((format) => (
         <NameDialog
           key={format}
           open={creating === format}

@@ -41,8 +41,15 @@ export const cacheControlOf = (path: string): string =>
 const etagOf = (file: BunFile, encoding: Encoding | null): string =>
   `"${file.size.toString(36)}-${file.lastModified.toString(36)}${encoding ? `-${encoding}` : ""}"`;
 
+/**
+ * If-None-Match compares weakly (RFC 9110 13.1.2): a proxy that makes the tag weak (W/"…") still
+ * gets its 304.
+ */
 const matches = (ifNoneMatch: string | undefined, etag: string): boolean =>
-  (ifNoneMatch ?? "").split(",").some((tag) => tag.trim() === etag || tag.trim() === "*");
+  (ifNoneMatch ?? "")
+    .split(",")
+    .map((tag) => tag.trim().replace(/^W\//, ""))
+    .some((tag) => tag === etag || tag === "*");
 
 /** Up to this much compressed output is kept in memory: the engines of all editors fit. */
 const COMPRESSION_BUDGET_BYTES = 192 * 1024 * 1024;

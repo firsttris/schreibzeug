@@ -13,7 +13,7 @@ export const encodingFor = (acceptEncoding: string | undefined): Encoding | null
     (acceptEncoding ?? "")
       .split(",")
       .map((part) => part.trim().split(";"))
-      .filter(([, ...params]) => !params.some((param) => /^\s*q=0(\.0*)?\s*$/.test(param)))
+      .filter(([, ...params]) => !params.some((param) => /^\s*q=0(\.0*)?\s*$/i.test(param)))
       .map(([name]) => name?.trim().toLowerCase()),
   );
   if (accepted.has("br")) return "br";
@@ -55,26 +55,28 @@ export type FileVersion = { path: string; size: number; lastModified: number };
 
 /**
  * Compresses each file once and keeps the result, up to `budgetBytes` in all; past that the files
- * used longest ago go first. A changed file (size or time) is compressed again. Two requests for
- * the same file at once share one compression.
+ * used longest ago go first, never one still being compressed. A changed file (size or time) is
+ * compressed again. Two requests for the same file at once share one compression.
  */
 export const createCompressionCache = (budgetBytes: number) => {
   const entries = new Map<string, Promise<Uint8Array>>();
-  const sizes = new Map<string, number>();
+  // The finished ones, by when they were last used, oldest first, with their compressed size.
+  const finished = new Map<string, number>();
   let used = 0;
 
   const forget = (key: string) => {
     entries.delete(key);
-    used -= sizes.get(key) ?? 0;
-    sizes.delete(key);
+    used -= finished.get(key) ?? 0;
+    finished.delete(key);
   };
 
   const keep = (key: string, size: number) => {
-    sizes.set(key, size);
+    finished.set(key, size);
     used += size;
-    for (const oldest of entries.keys()) {
-      if (used <= budgetBytes || oldest === key) break;
-      forget(oldest);
+    for (const oldest of finished.keys()) {
+      if (used <= budgetBytes) break;
+      // The one just kept stays, even alone past the budget: it is the one asked for.
+      if (oldest !== key) forget(oldest);
     }
   };
 
@@ -82,9 +84,12 @@ export const createCompressionCache = (budgetBytes: number) => {
     const key = `${encoding}:${file.path}:${file.size}:${file.lastModified}`;
     const known = entries.get(key);
     if (known) {
-      // Used again: to the end of the line.
-      entries.delete(key);
-      entries.set(key, known);
+      const size = finished.get(key);
+      if (size !== undefined) {
+        // Used again: to the end of the line.
+        finished.delete(key);
+        finished.set(key, size);
+      }
       return known;
     }
     const pending = read().then((bytes) => compress(bytes, encoding));

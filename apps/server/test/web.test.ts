@@ -69,6 +69,9 @@ describe("the web app beside the API", () => {
     const again = await site.request("/", { headers: { "if-none-match": etag } });
     expect(again.status).toBe(304);
     expect(await again.text()).toBe("");
+    // A proxy may hand the tag back weak; If-None-Match compares weakly (RFC 9110 13.1.2).
+    const weak = await site.request("/", { headers: { "if-none-match": `W/${etag}` } });
+    expect(weak.status).toBe(304);
   });
 
   it("sends files compressed, Brotli where the browser takes it, else gzip", async () => {

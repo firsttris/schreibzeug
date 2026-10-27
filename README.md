@@ -2,9 +2,6 @@
 
 <h1>Schreibzeug: self-hosted office suite for Word, Excel, PowerPoint and PDF</h1>
 
-<h3>Word, Excel and PowerPoint together in the browser – without Microsoft, without Google, without a document server.<br>
-One container on your server, and every file stays a real .docx, .xlsx or .pptx.</h3>
-
 **An open-source alternative to Google Docs and Microsoft 365 that runs on your own server.**<br>
 Edit documents, spreadsheets, presentations and PDFs together in real time, in the browser or as a desktop app.<br>
 Open source (AGPL) on the European Euro-Office engine, no cloud account, no tracking, no per-user price. Made in Europe.

@@ -193,14 +193,16 @@ app. Checks, tests and architecture: [Development](https://firsttris.github.io/s
 
 Issues and pull requests are welcome. For a rendering or compatibility bug, please attach a file
 that shows it (or a small one that reproduces it) and say which program made it. Please run
-`bun run lint && bun run typecheck && bun run test` before opening a pull request.
+`bun run lint && bun run typecheck && bun run test` before opening a pull request; the checks,
+conventions and how contributions are licensed are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Security problems please report privately ([SECURITY.md](SECURITY.md)).
 
 ---
 
 <div align="center">
 
 ⭐ Like Schreibzeug? A [star on GitHub](https://github.com/firsttris/schreibzeug) helps others find it.<br>
-🐛 [Report a bug](https://github.com/firsttris/schreibzeug/issues/new) · 💡 [Request a feature](https://github.com/firsttris/schreibzeug/issues/new)
+🐛 [Report a bug](https://github.com/firsttris/schreibzeug/issues/new?template=bug_report.yml) · 💡 [Request a feature](https://github.com/firsttris/schreibzeug/issues/new?template=feature_request.yml)
 
 <sub>License: <a href="LICENSE">AGPL-3.0</a> · © Tristan Teufel and contributors · <a href="README.de.md">Deutsche Version</a><br>
 Changed versions you pass on or run for others must offer their source code under the AGPL; a commercial license without these obligations is available via <a href="https://teufel-it.de">teufel-it.de</a>.<br>

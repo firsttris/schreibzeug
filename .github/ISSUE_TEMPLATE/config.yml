@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security problem
+    url: https://github.com/firsttris/schreibzeug/security/advisories/new
+    about: Please report vulnerabilities privately, not as an issue (see SECURITY.md).
+  - name: Documentation
+    url: https://firsttris.github.io/schreibzeug/
+    about: Installation, settings, troubleshooting and every feature in detail.

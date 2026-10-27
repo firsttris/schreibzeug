@@ -98,10 +98,15 @@ const slideBinding: EditorBinding<
   >
 > = {
   format: EDITOR_FORMAT.slide,
-  createApi: (win) => {
+  createApi: (win, options) => {
     limitSpellLanguages(win.AscCommon);
     useDedicatedSpellWorker(win);
-    const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: SLIDE_TEXTS });
+    const api = new win.Asc.asc_docs_api({
+      "id-view": "editor_sdk",
+      translate: SLIDE_TEXTS,
+      // The slide list under the slide on a phone (slide/api.js thumbnailsPosition).
+      ...(options.phone ? { "thumbnails-position": "bottom" } : {}),
+    });
     api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     api.SetDrawingFreeze(true);
     api.SetThemesPath("../../../../sdkjs/slide/themes/");
@@ -143,6 +148,8 @@ const slideBinding: EditorBinding<
       activeElement: () => win.document.activeElement,
       focus: () => win.focus(),
     };
+    // The notes start hidden on a phone (contentReady); the state says so from the start.
+    if (options.phone) dispatch({ type: "notes", value: false });
     api.asc_registerCallback("asc_onEndDemonstration", () => {
       hideShowElement(showPage);
       dispatch({ type: "showRunning", value: false });
@@ -197,13 +204,14 @@ const slideBinding: EditorBinding<
   },
   // web-apps presentationeditor/mobile Main.jsx onDocumentContentReady; spell checking as in the
   // text editor (spelling.ts).
-  contentReady: (api, _win, { spellCheck }) => {
+  contentReady: (api, _win, { spellCheck, phone }) => {
     api.SetDrawingFreeze(false);
     api.asc_setSpellCheck(spellCheck);
     // The comment marks on the slides, as web-apps shows them (presentationeditor main Main.js).
     api.asc_showComments();
-    // The notes under the slide, as web-apps' desktop editor shows them unless hidden (Main.js).
-    api.asc_ShowNotes(true);
+    // The notes under the slide, as web-apps' desktop editor shows them unless hidden (Main.js);
+    // its mobile editor has none, so on a phone they wait for "Ansicht → Notizen".
+    api.asc_ShowNotes(!phone);
     api.Resize();
     api.zoomFitToPage();
   },

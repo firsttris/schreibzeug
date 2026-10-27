@@ -15,6 +15,7 @@ import { kindOf } from "../lib/format";
 import { readSpellCheck } from "../settings/spell-check";
 import { ENGINE_PATH, newConverter } from "./engine";
 import type { OpenedFile } from "./opened-file";
+import { isPhone } from "./use-mobile-view";
 
 export type EngineEditorHandle<E extends OpenedDocument<S>, S extends CoreState> = {
   editor: E | null;
@@ -78,6 +79,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           writePdfA: converter.writePdfA,
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
+          phone: isPhone(),
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),
         });

@@ -325,9 +325,18 @@ export interface WordEngineApi
    */
   WordControl: {
     m_oDrawingDocument: { ToRendererPart(noBase64: true, isPrint: boolean): Uint8Array };
-    /** word/Editor/Document.js `CDocument`, as far as a mail merge reads it (word-mail-merge.ts). */
-    m_oLogicDocument: MailMergeDocument;
+    /** word/Editor/Document.js `CDocument`, as far as a mail merge and the mobile view read it. */
+    m_oLogicDocument: MailMergeDocument & {
+      /** Lays out the whole document now instead of on a timer (word/api.js asc_Print). */
+      RecalculateAllAtOnce(isFromStart: boolean): void;
+    };
+    /** word/Drawing/HtmlPage.js: whether the mobile view shows (word-mobile-view.ts). */
+    IsReaderMode(): boolean;
   };
+  /** word/api.js: switches between the pages and the mobile view (word-mobile-view.ts). */
+  ChangeReaderMode(): void;
+  /** word/api.js: shows or hides the rulers. */
+  asc_SetViewRulers(show: boolean): void;
   /** word/api.js: the recipients of a mail merge, the first row their field names. */
   asc_StartMailMergeByList(rows: string[][]): void;
   asc_GetReceptionsCount(): number;

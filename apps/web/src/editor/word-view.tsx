@@ -23,6 +23,7 @@ import { frameToWindow, useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
 import { openLink, useLinks } from "./use-links";
 import { useMailMerge } from "./use-mail-merge";
+import { useMobileView } from "./use-mobile-view";
 import { type WordMenuContext, wordContextMenu, wordMenus } from "./word-menus";
 
 /** A text document: title and menus, the toolbar above the page, comments beside it. */
@@ -57,6 +58,7 @@ export const WordView = ({
   });
   const chrome = useEditorChrome(editor, container, name, file.readOnly, () => void saving.save());
   const comments = useCommentsPanel(editor, state, file.readOnly);
+  const mobileView = useMobileView(editor?.mobileView ?? null);
   const [tableDialog, setTableDialog] = useState(false);
   const links = useLinks(editor, file.readOnly, chrome.notify);
   const eInvoice = useEInvoice(editor, name, chrome.notify);
@@ -96,6 +98,7 @@ export const WordView = ({
     onInsertTable: () => setTableDialog(true),
     commentsOpen: comments.isOpen,
     onToggleComments: comments.toggle,
+    mobileView,
     onFind: chrome.searchBar.open,
     onInsertImage: chrome.insertImage,
     onNotice: chrome.notify,

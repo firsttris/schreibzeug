@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
-import { EditorHeader } from "./editor-header";
+import { ButtonLabel, EditorHeader } from "./editor-header";
 import { SLIDE_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
@@ -92,7 +92,7 @@ export const SlideView = ({
             {comments.button}
             <Button variant="outline" disabled={!present} onClick={() => void present?.("beginning")}>
               <Presentation size={16} />
-              Präsentieren
+              <ButtonLabel>Präsentieren</ButtonLabel>
             </Button>
           </>
         }

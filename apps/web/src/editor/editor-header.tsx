@@ -1,4 +1,13 @@
-import { ArrowLeft, Download, ExternalLink, History, Save, Share2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  ExternalLink,
+  History,
+  PanelTopClose,
+  PanelTopOpen,
+  Save,
+  Share2,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useEmbed } from "../embed/bridge";
 import { FileBadge } from "../files/file-badge";
@@ -44,13 +53,56 @@ export type EditorHeaderProps = {
 };
 
 /** A button's word, kept for screen readers on a phone, where the button shows only its icon. */
-const ButtonLabel = ({ children }: { children: string }) => (
+export const ButtonLabel = ({ children }: { children: string }) => (
   <span className="sr-only sm:not-sr-only">{children}</span>
 );
+
+type FileButtonsProps = {
+  ready: boolean;
+  file: FileActions;
+  onDownload: () => void;
+};
+
+/** What is done with the file as a whole: open in a tab of its own, versions, download, share. */
+const FileButtons = ({ ready, file, onDownload }: FileButtonsProps) => {
+  const { embedded } = useEmbed();
+  return (
+    <>
+      {embedded && (
+        <a
+          href={window.location.pathname}
+          target="_blank"
+          rel="noopener"
+          aria-label="In neuem Tab öffnen"
+          title="In neuem Tab öffnen"
+          className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+        >
+          <ExternalLink size={16} />
+        </a>
+      )}
+      {file.onShowVersions && (
+        <Button variant="ghost" aria-label="Versionen" onClick={file.onShowVersions}>
+          <History size={16} />
+        </Button>
+      )}
+      <Button variant="ghost" aria-label="Herunterladen" disabled={!ready} onClick={onDownload}>
+        <Download size={16} />
+      </Button>
+      {file.onShare && (
+        <Button variant="outline" onClick={file.onShare}>
+          <Share2 size={15} />
+          <ButtonLabel>Teilen</ButtonLabel>
+        </Button>
+      )}
+    </>
+  );
+};
 
 /**
  * The top of every editor, as in an office suite: back, the file's name (editable in place) with
  * what happens to it, the menus under it, the buttons on the right, then the editor's toolbar.
+ * On a phone the document gets the room: one row with back, name, the editor's own buttons and
+ * saving, and the menus, the file's buttons and the toolbar only after a tap on "Werkzeuge".
  */
 export const EditorHeader = ({
   name,
@@ -74,18 +126,25 @@ export const EditorHeader = ({
   const [dialog, setDialog] = useState<"shortcuts" | "about" | null>(null);
   const [renameError, setRenameError] = useNotice();
   const message = notice ?? renameError;
-  const { embedded } = useEmbed();
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const menuBar = (
+    <MenuBar
+      label="Menü"
+      menus={[fileMenu(file, onDownload, pdf, ready, downloads), ...menus, helpMenu(setDialog)]}
+    />
+  );
 
   return (
-    <header className="flex flex-col gap-2 border-b border-[var(--border)] px-4 pt-2 pb-2">
-      {/* On a phone the buttons move under the name and the menus, which wrap. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <header className="flex flex-col gap-2 border-b border-[var(--border)] px-2 pt-1.5 pb-1.5 sm:px-4 sm:pt-2 sm:pb-2">
+      <div className="flex items-center gap-x-2 sm:flex-wrap sm:gap-x-3 sm:gap-y-2">
         <Button variant="ghost" aria-label="Zurück" onClick={file.onClose}>
           <ArrowLeft size={18} />
         </Button>
-        <FileBadge kind={format} size={32} />
-        <div className="flex min-w-0 flex-1 basis-48 flex-col">
-          <div className="flex min-w-0 items-center gap-3">
+        <span className="hidden sm:contents">
+          <FileBadge kind={format} size={32} />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col sm:basis-48">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <FileTitle name={name} onRename={readOnly ? undefined : onRename} onError={setRenameError} />
             <SaveStatus
               document={document}
@@ -95,39 +154,22 @@ export const EditorHeader = ({
               readOnly={readOnly}
             />
           </div>
-          <MenuBar
-            label="Menü"
-            menus={[fileMenu(file, onDownload, pdf, ready, downloads), ...menus, helpMenu(setDialog)]}
-          />
+          <div className="hidden sm:block">{menuBar}</div>
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {actions}
-          {embedded && (
-            <a
-              href={window.location.pathname}
-              target="_blank"
-              rel="noopener"
-              aria-label="In neuem Tab öffnen"
-              title="In neuem Tab öffnen"
-              className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-            >
-              <ExternalLink size={16} />
-            </a>
-          )}
-          {file.onShowVersions && (
-            <Button variant="ghost" aria-label="Versionen" onClick={file.onShowVersions}>
-              <History size={16} />
-            </Button>
-          )}
-          <Button variant="ghost" aria-label="Herunterladen" disabled={!ready} onClick={onDownload}>
-            <Download size={16} />
+          <span className="hidden items-center gap-2 sm:flex">
+            <FileButtons ready={ready} file={file} onDownload={onDownload} />
+          </span>
+          <Button
+            variant="ghost"
+            aria-label="Werkzeuge"
+            aria-expanded={toolsOpen}
+            className="sm:hidden"
+            onClick={() => setToolsOpen((open) => !open)}
+          >
+            {toolsOpen ? <PanelTopClose size={18} /> : <PanelTopOpen size={18} />}
           </Button>
-          {file.onShare && (
-            <Button variant="outline" onClick={file.onShare}>
-              <Share2 size={15} />
-              <ButtonLabel>Teilen</ButtonLabel>
-            </Button>
-          )}
           {!readOnly && (
             <Button variant="primary" disabled={!ready || saving} onClick={save}>
               <Save size={15} />
@@ -136,12 +178,18 @@ export const EditorHeader = ({
           )}
         </div>
       </div>
+      {toolsOpen && (
+        <div className="flex flex-wrap items-center gap-1 sm:hidden">
+          {menuBar}
+          <FileButtons ready={ready} file={file} onDownload={onDownload} />
+        </div>
+      )}
       {message && (
         <p role="status" data-testid="editor-notice" className="m-0 text-xs text-[var(--muted-foreground)]">
           {message}
         </p>
       )}
-      {!readOnly && toolbar}
+      {!readOnly && <div className={toolsOpen ? "" : "hidden sm:block"}>{toolbar}</div>}
       <ShortcutsDialog open={dialog === "shortcuts"} shortcuts={shortcuts} onClose={() => setDialog(null)} />
       <AboutDialog open={dialog === "about"} onClose={() => setDialog(null)} />
     </header>

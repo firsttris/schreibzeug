@@ -27,7 +27,15 @@ test("files and the editor fit a phone's screen", async ({ page }, testInfo) => 
   await page.getByRole("link", { name: "hello.docx", exact: true }).click();
   await expectEditorReady(page, errors);
   await expectFitsTheScreen(page);
-  // The buttons show only their icons here, and keep their names.
+  // The document gets the room: one row of buttons, which show only their icons and keep their names.
   await expect(page.getByRole("button", { name: "Speichern", exact: true })).toBeInViewport();
+  await expect(page.getByRole("toolbar", { name: "Formatierung" })).toBeHidden();
+  await expect(page.getByRole("menubar", { name: "Menü" })).toBeHidden();
+
+  // The menus, the file's buttons and the toolbar come with "Werkzeuge".
+  await page.getByRole("button", { name: "Werkzeuge" }).click();
+  await expect(page.getByRole("menubar", { name: "Menü" })).toBeInViewport();
   await expect(page.getByRole("button", { name: "Teilen", exact: true })).toBeInViewport();
+  await expect(page.getByRole("toolbar", { name: "Formatierung" })).toBeInViewport();
+  await expectFitsTheScreen(page);
 });

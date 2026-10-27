@@ -280,8 +280,10 @@ The editor's title row carries a menu bar as in a desktop office suite (`apps/we
 own menus between them (`src/editor/word-menus.ts`), built from the state and the commands above.
 The entries follow the desktop editors of web-apps (`documenteditor/main` `Toolbar.js`,
 `DocumentHolder.js`); the shortcuts shown are the engine's own (`word/Editor/Shortcuts.js`). On a phone
-the menus wrap onto more lines and the buttons on the right move under them, showing only their
-icons (`e2e/phone.spec.ts`).
+the document gets the room: the header is one row (back, name, the save state as an icon, the
+editor's own buttons, "Werkzeuge" and "Speichern"), and the menus, the file's buttons and the
+toolbar show only after a tap on "Werkzeuge" (`src/editor/editor-header.tsx`, `e2e/phone.spec.ts`).
+Inside Kontext, Kontext leaves out its tab bar under an open file.
 
 A right click in the document makes the engine send `asc_onContextMenu` with a `CContextMenuData`
 (`word/api.js` `sync_ContextMenuCallback`): the point relative to its view element and whether it

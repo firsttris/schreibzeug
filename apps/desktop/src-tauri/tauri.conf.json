@@ -33,6 +33,16 @@
     "externalBin": ["binaries/schreibzeug-local"],
     "resources": {
       "../../web/dist/": "web/"
+    },
+    "linux": {
+      "rpm": {
+        "compression": { "type": "zstd", "level": 3 }
+      }
+    },
+    "windows": {
+      "nsis": {
+        "compression": "zlib"
+      }
     }
   }
 }

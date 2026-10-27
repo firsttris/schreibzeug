@@ -292,7 +292,9 @@ the width of the screen at a size to read, still editable, without rulers
 layout only (`word/Editor/Layout/ReadView.js`, set without history), so the saved .docx stays as
 it is. The PDF and printing need the pages: for them the engine goes back to the pages, lays them
 out at once (`RecalculateAllAtOnce`, as `asc_Print` does) and returns to the mobile view. "Ansicht →
-Mobilansicht" switches it on any screen.
+Mobilansicht" switches it on any screen. A presentation on a phone has its slide list under the slide
+(`thumbnails-position: bottom`) and its notes hidden until "Ansicht → Notizen", as web-apps'
+mobile presentation editor has it (`presentationeditor/mobile` `Main.jsx`).
 
 A right click in the document makes the engine send `asc_onContextMenu` with a `CContextMenuData`
 (`word/api.js` `sync_ContextMenuCallback`): the point relative to its view element and whether it

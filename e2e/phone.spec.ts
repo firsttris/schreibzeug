@@ -82,3 +82,32 @@ test("a text document opens in the mobile view and its PDF keeps the pages", asy
   await expect.poll(() => inMobileView(page)).toBe(false);
   expect(fromMobileView).toEqual(await downloadPdf(page));
 });
+
+test("a presentation keeps its slide list under the slide and its notes hidden", async ({
+  page,
+}, testInfo) => {
+  const errors = collectErrors(page);
+  await signUp(page, credentialsFor(testInfo));
+  await page.goto("/");
+  await upload(page, join(import.meta.dirname, "../test-files/vortrag.pptx"), "vortrag.pptx");
+  await page.getByRole("link", { name: "vortrag.pptx", exact: true }).click();
+  await expectEditorReady(page, errors);
+  const frame = await (await page.getByTestId("engine-frame").elementHandle())?.contentFrame();
+  if (!frame) throw new Error("No engine frame.");
+  // slide/api.js thumbnailsPosition, as the config "thumbnails-position" set it; tests only.
+  const position = await frame.evaluate(() => {
+    const win = window as unknown as {
+      editor: { thumbnailsPosition: number };
+      AscCommon: { thumbnailsPositionMap: { bottom: number } };
+    };
+    return win.editor.thumbnailsPosition === win.AscCommon.thumbnailsPositionMap.bottom;
+  });
+  expect(position).toBe(true);
+
+  await page.getByRole("button", { name: "Werkzeuge" }).click();
+  await page.getByRole("menubar").getByRole("button", { name: "Ansicht", exact: true }).click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Notizen" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+});

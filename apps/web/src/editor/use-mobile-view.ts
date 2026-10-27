@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 /** Below Tailwind's `sm`, where the editor's header becomes one row: a phone held upright. */
 const PHONE = "(max-width: 639px)";
 
-const isPhone = () => {
+export const isPhone = (): boolean => {
   try {
     return window.matchMedia(PHONE).matches;
   } catch {

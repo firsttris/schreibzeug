@@ -4,7 +4,7 @@
 
 **An open-source alternative to Google Docs and Microsoft 365 that runs on your own server.**<br>
 Edit documents, spreadsheets, presentations and PDFs together in real time, in the browser or as a desktop app.<br>
-Open source (AGPL) on the European Euro-Office engine, no cloud account, no tracking, no per-user price. Made in Europe.
+Open source (AGPL) on the European Euro-Office engine, no document server, no cloud account, no tracking. Made in Europe.
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)
@@ -162,10 +162,6 @@ interface that feels like today's web apps, on their own server.
 ### Is there a self-hosted alternative to Google Docs and Microsoft 365?
 Yes. Schreibzeug runs on your own server with Docker and edits Word, Excel, PowerPoint and PDF
 files in the browser, several people at once. See the [installation guide](https://firsttris.github.io/schreibzeug/installation.html).
-
-### What does it cost?
-Nothing per user: the software is free (AGPL) and runs in one container on a server you already have
-or a small VPS. Ten people cost the same as one.
 
 ### Does it need an ONLYOFFICE Document Server or Nextcloud?
 No. The Euro-Office engine runs in the browser and the Schreibzeug server stores the files and

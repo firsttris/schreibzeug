@@ -12,7 +12,7 @@ notes and text files (.md, .txt).
 
 | | |
 |---|---|
-| [Installation](installation.md) | run the server with Docker: settings, reverse proxy, backups, updates |
+| [Installation](installation.md) | run the server with Docker: settings, reverse proxy, backups, updates, troubleshooting |
 | [Accounts and sharing](accounts.md) | sign-up, roles, sharing with accounts and by link |
 | [Sign-in through Kontext](kontext.md) | OpenID Connect, Schreibzeug as Kontext's "Dokumente" |
 | [Desktop app](desktop.md) | files on your computer without a server, or a window onto a server |
@@ -21,7 +21,7 @@ notes and text files (.md, .txt).
 
 | | |
 |---|---|
-| [Files and versions](files.md) | folders, uploads, versions, trash, search and the files API |
+| [Files and versions](files.md) | folders, uploads, versions, trash, search (API and MCP) and the files API |
 | [Collaboration](collaboration.md) | several people in one file, through the server's relay |
 | [PDFs](pdf.md) | forms, notes, signatures, OCR, pages, PDF/A |
 | [Markdown and text files](text.md) | notes with a live preview, kept in their own encoding and line endings |

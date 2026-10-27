@@ -59,7 +59,8 @@ changes that refer to pictures.
 ## Digital signatures
 
 "Kommentieren → Digital signieren …" signs the PDF with the person's own certificate, a PKCS#12
-file (.p12, .pfx) and its password, in the browser; the certificate never leaves it.
+file (.p12, .pfx) and its password, in the browser; the certificate never leaves it (PKCS#12, RSA; not a qualified eIDAS
+signature).
 `packages/pdf-sign` does the work, without the engine:
 
 1. `readIdentity` opens the PKCS#12 file with node-forge (RSA keys; a wrong password is said as

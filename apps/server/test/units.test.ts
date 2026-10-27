@@ -77,8 +77,17 @@ describe("readConfig", () => {
         openSignup: false,
         trustedOrigins: [],
         trustedProxies: [],
+        versionPolicy: "thin",
       },
     });
+  });
+
+  it("keeps every version when asked to, and refuses another policy", () => {
+    expect(readConfig({ SCHREIBZEUG_VERSIONS: "all" })).toMatchObject({
+      ok: true,
+      value: { versionPolicy: "all" },
+    });
+    expect(readConfig({ SCHREIBZEUG_VERSIONS: "none" }).ok).toBe(false);
   });
 
   it("reads the proxies in front of the server, and refuses what is no address", () => {

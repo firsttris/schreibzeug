@@ -1,6 +1,6 @@
 import type { FileNode } from "@schreibzeug/files-api";
-import { useQuery } from "@tanstack/react-query";
-import { Download, RotateCcw } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, Pin, PinOff, RotateCcw } from "lucide-react";
 import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
@@ -16,7 +16,10 @@ export type VersionsDialogProps = {
   onRestored?: (file: FileNode) => void;
 };
 
-/** Every saved state of a file, newest first: download any, make an older one the newest again. */
+/**
+ * The saved states of a file, newest first: download any, make an older one the newest again, keep
+ * one so that thinning out the older versions never drops it.
+ */
 export const VersionsDialog = ({ file, open, onClose, onRestored }: VersionsDialogProps) => (
   <Dialog open={open} title={`Versionen von ${file.name}`} onClose={onClose}>
     {open && <VersionList file={file} onClose={onClose} {...(onRestored ? { onRestored } : {})} />}
@@ -27,6 +30,11 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
   const { queries, commands } = useFiles();
   const versions = useQuery(queries.versions(file.id));
   const restore = useFileMutation((number: number) => commands.restoreVersion(file.id, number));
+  const client = useQueryClient();
+  const keep = useMutation({
+    mutationFn: ([number, kept]: [number, boolean]) => commands.keepVersion(file.id, number, kept),
+    onSettled: () => client.invalidateQueries({ queryKey: queries.versions(file.id).queryKey }),
+  });
 
   if (versions.isPending) return <p className="m-0 text-sm text-[var(--muted-foreground)]">Lädt …</p>;
   if (versions.isError)
@@ -53,6 +61,9 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
                   {current && (
                     <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">aktuell</span>
                   )}
+                  {version.kept && (
+                    <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">behalten</span>
+                  )}
                 </span>
                 <span className="text-xs text-[var(--muted-foreground)]">
                   {formatChanged(version.createdAt)} · {formatSize(version.size)}
@@ -66,6 +77,21 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
               >
                 <Download size={15} />
               </a>
+              {file.role !== "view" && (
+                <Button
+                  variant="ghost"
+                  aria-label={
+                    version.kept
+                      ? `Version ${version.number} nicht mehr behalten`
+                      : `Version ${version.number} behalten`
+                  }
+                  aria-pressed={version.kept}
+                  disabled={keep.isPending}
+                  onClick={() => keep.mutate([version.number, !version.kept])}
+                >
+                  {version.kept ? <PinOff size={15} /> : <Pin size={15} />}
+                </Button>
+              )}
               {!current && file.role !== "view" && (
                 <Button
                   variant="ghost"
@@ -84,14 +110,16 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
           );
         })}
       </ol>
-      {restore.isError && (
+      {(restore.isError || keep.isError) && (
         <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">
-          {messageOf(restore.error)}
+          {messageOf(restore.error ?? keep.error)}
         </p>
       )}
       {file.role !== "view" && (
         <p className="m-0 text-xs text-[var(--muted-foreground)]">
-          Wiederherstellen legt eine neue Version mit dem alten Inhalt an; keine Version geht verloren.
+          Wiederherstellen legt eine neue Version mit dem alten Inhalt an. Ältere Versionen werden ausgedünnt
+          (ab einem Tag eine pro Stunde, ab einem Monat eine pro Tag, ab einem Jahr eine pro Woche); behaltene
+          Versionen bleiben immer.
         </p>
       )}
     </div>

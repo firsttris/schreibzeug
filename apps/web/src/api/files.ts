@@ -119,6 +119,11 @@ export const fileCommands = (api: ApiClient) => ({
       api.files[":id"].versions[":number"].restore.$post({ param: { id, number: String(number) } }),
       nodeSchema,
     ),
+  keepVersion: (id: string, number: number, kept: boolean) =>
+    expectJson(
+      api.files[":id"].versions[":number"].$patch({ param: { id, number: String(number) }, json: { kept } }),
+      versionSchema,
+    ),
   share: (id: string, email: string, role: ShareRole) =>
     expectJson(api.nodes[":id"].shares.$put({ param: { id }, json: { email, role } }), shareList),
   unshare: (id: string, userId: string) =>

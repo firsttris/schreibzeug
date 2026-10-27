@@ -34,7 +34,8 @@ Update what the change affects, in the same pull request, and only that:
 
 - the tests for what changed (unit, integration, engine, E2E, collaboration, format fidelity);
 - the docs in `docs/` that describe it;
-- the README when a feature a user sees is added, changed or removed;
+- both READMEs (`README.md` in English, `README.de.md` in German) when a feature a user sees is
+  added, changed or removed;
 - the screenshots after a change to the look: **Actions → Update screenshots → Run workflow**, then
   look at the new pictures.
 

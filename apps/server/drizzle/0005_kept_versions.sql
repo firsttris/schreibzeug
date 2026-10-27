@@ -1,0 +1,1 @@
+ALTER TABLE `versions` ADD `kept` integer DEFAULT false NOT NULL;

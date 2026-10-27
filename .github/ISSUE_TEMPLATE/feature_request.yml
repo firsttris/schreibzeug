@@ -1,0 +1,42 @@
+name: Feature request
+description: Something Schreibzeug should do, or do differently.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the idea!
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The task or the problem behind the request, e.g. "I need to send invoices as XRechnung".
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: What you would click or see. How Word, Excel, LibreOffice or Google Docs do it, if they do.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Documents (.docx)
+        - Spreadsheets (.xlsx)
+        - Presentations (.pptx)
+        - PDFs
+        - Markdown and text files
+        - Files, versions and sharing
+        - Accounts and installation
+        - Desktop app
+        - MCP server (AI assistants)
+        - Kontext
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Who would use it, how often, and files or screenshots that show what you mean.

@@ -18,7 +18,8 @@ The session is a cookie, named `schreibzeug.session_token` (and so on, `advanced
 beside Kontext on one host, as `localhost` in development, Better Auth's default names would make
 each sign-in replace the other's, since cookies know no ports. Better Auth checks the `Origin` of requests that carry it against its
 trusted origins; Schreibzeug trusts its own origin, whatever host name the server is reached by, and
-the ones in `SCHREIBZEUG_TRUSTED_ORIGINS` (the desktop app, later).
+the ones in `SCHREIBZEUG_TRUSTED_ORIGINS`. The desktop app needs none: its window shows the
+server's own pages ([desktop app](desktop.md#how-it-fits-together)).
 
 The rest of the API checks the same for requests that come with the session cookie: what changes
 something (every method but `GET`, `HEAD` and `OPTIONS`) and the WebSocket upgrades of the relay
@@ -134,6 +135,47 @@ no longer; an address the provider does not confirm stays unconfirmed and gets n
 hook in `src/auth/auth.ts`), so an address given to someone new does not hand on the former
 person's files. From then on the account is found by Kontext's `sub`, so a changed address keeps
 it. The variables are in [Schreibzeug in Kontext](kontext.md#settings).
+
+## For administrators
+
+Schreibzeug has no administrator: no admin interface, and no account with rights over the others.
+The first account is an account like every other one; it only takes over the files from before
+there were accounts ([sign-up](#sign-up)). What that leaves to whoever runs the server:
+
+- **No "Passwort vergessen"**: the sign-in page has no password reset, the server sends no e-mail,
+  and the app has no page to change a password. Someone who forgot theirs needs the operator, who
+  can set a new one in the container. The script hashes it the way Better Auth does
+  (`better-auth/crypto` `hashPassword`) and writes it into the `account` row of the address with
+  the provider `credential` (`src/db/auth-schema.ts`); Better Auth keeps addresses in lower case:
+
+  ```bash
+  read -rsp "New password: " PASSWORD && export PASSWORD
+  docker exec -w /app/apps/server -e EMAIL=anna@example.org -e PASSWORD schreibzeug bun -e '
+  import { Database } from "bun:sqlite";
+  import { hashPassword } from "better-auth/crypto";
+  const { EMAIL, PASSWORD } = process.env;
+  if (!EMAIL || !PASSWORD || PASSWORD.length < 8) throw new Error("Needs EMAIL and a PASSWORD of at least 8 characters.");
+  const db = new Database("/data/schreibzeug.db");
+  db.exec("PRAGMA busy_timeout = 5000");
+  const { changes } = db
+    .query("UPDATE account SET password = ?, updated_at = ? WHERE provider_id = ? AND user_id = (SELECT id FROM user WHERE email = lower(?))")
+    .run(await hashPassword(PASSWORD), Date.now(), "credential", EMAIL);
+  console.log(changes === 1 ? "Password changed." : "No account with a password under this address.");
+  '
+  unset PASSWORD
+  ```
+
+  `-w /app/apps/server` runs it where `better-auth` is installed; the password is read from the
+  terminal, so it stays out of the shell's history. Devices that are signed in stay signed in. An
+  account that signs in only through Kontext has no password; the script says so and changes
+  nothing.
+- **No deleting accounts**: neither the person nor the operator can delete an account in the app.
+- **Files are not deleted for good**: the trash is never emptied, so a trashed file keeps its bytes
+  and its versions. Versions go only by [thinning](files.md#versions); the newest version and the
+  kept ones stay. A request to erase someone's data (GDPR Art. 17) therefore needs the operator,
+  and there is no tool for it yet: an account's files, their versions and images, its shares,
+  links, tokens and sessions are rows in several tables and blobs in the data folder, and a
+  procedure that removes all of them consistently is not written yet.
 
 ## Web app
 

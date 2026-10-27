@@ -104,7 +104,9 @@ and leaves out what only makes sense with accounts.
   another site's page is refused.
 - **MCP** (`src/mcp.ts`): `/mcp` serves the same tools as a server ([MCP server](mcp.md#on-this-computer)),
   without a key, behind the same check of host and origin; its tools reach the local API with the
-  app's own key.
+  app's own key. The app starts the local server on a free port (`PORT=0`, `src-tauri/src/local.rs`),
+  a different one on every start, so an MCP client set up with the app's address stops working when
+  the app restarts.
 
 | Variable | Meaning |
 |---|---|
@@ -159,7 +161,8 @@ bundler of Tauri 3 alpha copies `libEGL.so` and `libGLESv2.so` from CEF into eve
 and CEF 154 no longer ships them, so every Linux package fails. On Linux,
 `apps/desktop/scripts/tauri.ts` therefore builds the Tauri CLI of the version in `package.json` from
 Tauri's sources with `apps/desktop/patches/*.patch` applied (once, into
-`src-tauri/target/patched-cli/`), and `bun run tauri …`, `desktop:dev` and `desktop:build` use it
+`src-tauri/target/patched-cli/`), and the desktop package's scripts use it: `tauri`
+(`cd apps/desktop && bun run tauri …`; the root has no such script), `desktop:dev` and `desktop:build`
 (CI's `desktop` job builds it on `main`, so a release, which runs on its tag and reads `main`'s
 cache, finds it there instead of spending four minutes on it);
 Windows and macOS use the published CLI. The script stops when a patch no longer applies to a new
@@ -167,8 +170,9 @@ version: then check whether that release fixes it and remove the patch as descri
 `apps/desktop/patches/README.md`.
 
 The builds are not signed yet. Windows SmartScreen shows "unknown publisher" (More info → Run
-anyway), and macOS Gatekeeper refuses to open the app until it is opened once with right click →
-Open. Linux packages need no signature.
+anyway). macOS Gatekeeper refuses to open the app the first time; since macOS 15 (Sequoia), right
+click → Open no longer gets past it: try to open the app once, then allow it under System Settings
+→ Privacy & Security → "Open Anyway". Linux packages need no signature.
 
 ## Tests
 

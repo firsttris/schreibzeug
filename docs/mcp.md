@@ -34,7 +34,9 @@ tools call the local API with the app's own key; what only a server has (sharing
 the trash, `search_files`, and the tools for an open document: `outline`, `replace_text`,
 `insert_content`, `set_cells`, `export_pdf`) they answer with the local server's "Das gibt es nur
 auf einem Schreibzeug-Server".
-The desktop app starts the local server on a free port; started by hand with a fixed one:
+The desktop app starts the local server on a free port, a different one on every start, so an MCP
+client set up with that address stops working when the app restarts. Started by hand with a fixed
+one:
 
 ```sh
 SCHREIBZEUG_LOCAL_ROOT=~/Dokumente PORT=3300 bun run --filter @schreibzeug/local start

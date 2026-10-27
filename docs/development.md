@@ -1,8 +1,10 @@
 # Development
 
-Requires [Bun](https://bun.sh) 1.4 or newer. Preparing the editing engine runs its font generator,
-a Linux x86_64 binary, so the engine is prepared on Linux (CI does it too); the database is a
-SQLite file, nothing else needs installing.
+Requires [Bun](https://bun.sh) 1.4 or newer and Linux x86_64. Preparing the editing engine
+(`engine/scripts/prepare.ts`) downloads the pinned Euro-Office release, about 630 MB, unpacks it with
+`ar`, `tar -xJ` and `unzip` (on Debian and Ubuntu: `binutils`, `xz-utils`, `unzip`) and runs its
+font generator, a Linux x86_64 binary. `bun run dev` runs that step first, so on macOS or Windows
+work in a Linux VM or container. The database is a SQLite file; nothing else needs installing.
 
 ```bash
 git clone https://github.com/firsttris/schreibzeug && cd schreibzeug
@@ -18,6 +20,8 @@ Vite server forwards `/api` (WebSockets included) and `/mcp` to the API server.
 ## Checks
 
 ```bash
+bun run engine:prepare   # once, and after a change in engine/: build and E2E need the engine
+bunx playwright install chromium   # once: Playwright's browser for the E2E tests
 bun run lint             # Biome
 bun run typecheck        # tsc in every workspace
 bun run test             # Vitest on Bun: unit and integration tests (SQLite)
@@ -26,11 +30,30 @@ bun run build            # the web app
 mkdocs build --strict    # this documentation (pip install -r requirements-docs.txt)
 ```
 
-Without Playwright's own browser download, an installed Chromium can be used:
+`bun run build` and the E2E tests do not prepare the engine themselves, and the build quietly leaves
+it out when `engine/dist` is missing (`apps/web/engine-plugin.ts`): the app then builds, but opens
+no document. Without Playwright's own browser download, an installed Chromium can be used:
 `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`. CI (`.github/workflows/ci.yml`)
 runs all of it, the E2E suite in three shards, plus the desktop app's Rust checks and a validation
 of the e-invoices against EN 16931 and PDF/A-3. Draft pull requests and changes to Markdown or
 `docs/` alone do not start it; "Ready for review" does.
+
+All scripts of the root `package.json`:
+
+| Script | What it does |
+|---|---|
+| `dev` | Prepares the engine, then the server and the web app's dev server together |
+| `server` | The server alone, restarting on changes |
+| `engine:prepare` | The engine in `engine/dist` (`--force` to prepare it again) |
+| `build` | The web app in `apps/web/dist`, the prepared engine copied in |
+| `preview` | The built web app on http://localhost:4173, with `/api` and `/mcp` forwarded like `dev` |
+| `typecheck`, `lint` | `tsc -b`; Biome |
+| `format` | Biome with `--write`: fixes formatting and what else it can |
+| `test`, `test:watch` | Vitest once; Vitest watching the files |
+| `test:e2e` | Playwright, projects `chromium` (the specs) and `fidelity`; a spec path after it runs only that spec |
+| `test:fidelity`, `fidelity:update` | Only the format-fidelity project; the same, taking new reference pictures |
+| `screenshots` | The pictures in `docs/screenshots` (`e2e/screenshots.shot.ts`) |
+| `test-files` | Writes the test documents in `test-files/` again (`test-files/make.ts`) |
 
 ## Releases
 
@@ -60,6 +83,6 @@ GitHub release. The shared workflows come from
 
 A React SPA with TanStack Router and Query, Tailwind and shadcn-style components (`apps/web`);
 Euro-Office `sdkjs` as the editing engine, driven only from `packages/editor-core`; a Bun server
-with Hono, Drizzle and SQLite (`apps/server`); Tauri 2 for the desktop app (`apps/desktop`). Why it
+with Hono, Drizzle and SQLite (`apps/server`); Tauri 3 (alpha) for the desktop app (`apps/desktop`). Why it
 is built this way: [Architecture](architecture.md); how the interface talks to the engine:
 [The editing engine](engine.md).

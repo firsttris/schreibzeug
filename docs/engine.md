@@ -477,7 +477,7 @@ the converter three things, the way CryptPad does (`www/common/outer/x2t.js`
 
 "Als PDF/A herunterladen" asks x2t for the same PDF as PDF/A-2 (`m_bIsPDFA` in the task;
 `X2tConverter/src/cextracttools.h` → `PdfFile.cpp` `CreatePdf(isPDFA)`): XMP metadata with
-`pdfaid:part` 2, an sRGB output intent, every font embedded. For a PDF itself see `docs/pdf.md`.
+`pdfaid:part` 2, an sRGB output intent, every font embedded. For a PDF itself see [PDFs](pdf.md#pdfa).
 
 "Drucken" prints that PDF through the browser's dialog from a hidden frame (`apps/web/src/editor/pdf.ts`).
 Strg+P is another key the engine leaves to its UI; it goes to the same place as Strg+F

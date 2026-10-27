@@ -25,7 +25,7 @@ MCP client (Claude Code) ──HTTP /mcp────────▶└─ MCP to
 | `packages/ooxml` | Builds minimal Office Open XML packages (.docx, .xlsx, .pptx): blank files for the server, test files for the tests; reads the text of a .docx (for [e-invoices](e-invoice.md) and the [MCP server](mcp.md)), the sheets of an .xlsx and the slides of a .pptx. |
 | `apps/server` | The files API on Bun with Hono, Drizzle and SQLite (`bun:sqlite`). See [files](files.md); accounts with Better Auth in `src/auth/`, see [accounts](accounts.md). The collaboration relay in `src/collab/`, see [collaboration](collaboration.md). |
 | `apps/local` | The desktop app's local server: the same files API over a folder on the computer, for one person, without accounts. See [the desktop app](desktop.md#files-on-this-computer). |
-| `apps/desktop` | The desktop app (Tauri 2) for Windows, macOS and Linux: the files on this computer through `apps/local`, or a window onto a Schreibzeug server. See [the desktop app](desktop.md). |
+| `apps/desktop` | The desktop app (Tauri 3, alpha) for Windows, macOS and Linux: the files on this computer through `apps/local`, or a window onto a Schreibzeug server. See [the desktop app](desktop.md). |
 | `apps/web` | The React interface: file pages (`src/files/`), the editor page, routes in `src/router.tsx`, the typed API client in `src/api/`, the talk with Kontext when shown in its frame (`src/embed/`, see [Schreibzeug in Kontext](kontext.md)). |
 
 ## Why a SPA and a Hono API, not TanStack Start
@@ -46,7 +46,7 @@ Hono's WebSocket upgrade, so access checks for files and editing sessions live i
 Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an account; every
 other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
 `/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views,
-`/settings` the access tokens for MCP clients ([MCP server](mcp.md)), `/invite/:token` a link someone shared (readable before signing in), `/edit/:id` opens a file in its editor with the whole window
+`/settings` the storage the files take and the access tokens for MCP clients ([files](files.md#storage), [MCP server](mcp.md); in local mode it has nothing to set), `/invite/:token` a link someone shared (readable before signing in), `/edit/:id` opens a file in its editor with the whole window
 (`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, the text view for .md and .txt, sharing
 the header with the editable name, the menu bar, status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under

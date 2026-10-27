@@ -15,6 +15,8 @@ Open source (AGPL) on the European Euro-Office engine, no document server, no cl
 [![Docs](https://img.shields.io/badge/docs-firsttris.github.io%2Fschreibzeug-4f46e5?logo=materialformkdocs&logoColor=white)](https://firsttris.github.io/schreibzeug/)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
+[![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-your-files-stay-in-europe--with-ai)
+[![GoBD](https://img.shields.io/badge/GoBD-every%20version%20kept-15803d)](#-your-files-stay-in-europe--with-ai)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
@@ -22,6 +24,7 @@ Open source (AGPL) on the European Euro-Office engine, no document server, no cl
 docker run -d -p 3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
+[Privacy & GoBD](#-your-files-stay-in-europe--with-ai) •
 [Why](#-why-schreibzeug) •
 [Install](#-install) •
 [Features](#-features) •
@@ -36,6 +39,14 @@ docker run -d -p 3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 </picture>
 
 </div>
+
+## 🇪🇺 Your files stay in Europe – with AI
+
+- **GDPR**: documents live on your server, or on your own computer with the desktop app. The editor runs in your browser: no US cloud, no third-party document server, no telemetry.
+- **GoBD**: every save is kept as a version and can be restored, and nothing is deleted for good from the app (the trash keeps it). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
+- **E-invoices**: ZUGFeRD / Factur-X (EN 16931) from an invoice document, and e-invoices in PDFs read and shown – for the German e-invoice obligation.
+- **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to an open document need your consent and can be undone.
+- **No lock-in**: a .docx stays a .docx, an .odt stays an .odt.
 
 ## 💡 Why Schreibzeug?
 
@@ -73,62 +84,16 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 
 ## ✨ Features
 
-### 📝 Documents (.docx)
-
-- **Writing and layout**: styles, fonts, colours, highlighting, format painter, lists, tables,
-  images, links, text boxes, line spacing, page layout, page and section breaks.
-- **Long documents**: headers and footers with page numbers, table of contents, footnotes.
-- **Reviewing**: comments with replies, tracked changes, spell checking in German and English
-  (in the browser, no server needed), find and replace.
-- **Letters and invoices**: templates (letter, offer, invoice and your own), **mail merge** from a
-  spreadsheet of recipients, and **e-invoices** (ZUGFeRD / Factur-X, EN 16931) from an invoice document.
-- **PDF**: export as PDF or PDF/A for archiving, and printing.
-
-### 📊 Spreadsheets (.xlsx) and 📽️ presentations (.pptx)
-
-- **Spreadsheets**: formulas, number formats, sheets, sorting, filters, frozen rows, merged cells,
-  charts, **pivot tables**, dropdown lists, conditional formats, CSV files.
-- **Presentations**: slide layouts, shapes, designs, transitions, speaker notes and a full-screen
-  slide show.
-
-### 📄 PDFs
-
-- **Fill in and sign**: PDF forms, notes, highlighting, drawing, signing by hand or **digitally**
-  with your own certificate.
-- **Edit pages**: black out, turn, add and remove pages, append another PDF, save pages apart.
-- **Scans and e-invoices**: text recognition (OCR) makes scans searchable; the e-invoice inside a
-  ZUGFeRD PDF is shown and its XML can be downloaded.
-
-### 🗒️ Markdown and text files (.md, .txt)
-
-- **Notes in Markdown**: a live view that shows headings, lists, task boxes and links formatted
-  while the text stays Markdown, or source and preview side by side; a toolbar that writes the marks.
-- **Files stay as they are**: encoding (UTF-8, Windows-1252, UTF-16) and line endings are kept, and
-  a save never overwrites a change someone else saved meanwhile.
-
-### 📁 Files and teamwork
-
-- **File browser**: folders, drag-and-drop upload, recent files, templates, rename, move and trash.
-- **Versions**: every save is kept; any version can be restored.
-- **Storage**: how much room is left on the server and what your files, their older versions and
-  the trash take, with a warning before the disk runs full.
-- **Sharing**: with other accounts or by link with an expiry date, to edit or to view.
-- **Real-time co-editing**: everyone editing a file sees the others' changes and cursors, PDFs included.
-- **Other formats**: OpenDocument files are edited as they are; .doc, .xls, .ppt and .rtf open as
-  an Office copy.
-
-### 🤖 AI assistants and integrations
-
-- **MCP server**: Claude Code and other MCP clients find, read, create and manage files with your
-  rights, through a personal access token; they edit an open document after you allow it,
-  visibly and undoably. [How to connect](https://firsttris.github.io/schreibzeug/mcp.html)
-- **Kontext**: sign in with [Kontext](https://github.com/firsttris/kontext) (OpenID Connect) and use
-  Schreibzeug as its "Dokumente" module: mail attachments go into a folder, documents onto a mail.
-
-### 🖥️ Desktop app
-
-- **Windows, macOS and Linux** (Tauri): the files in your documents folder without any server, or a
-  window onto a Schreibzeug server. Builds are not signed yet.
+| | |
+|---|---|
+| 📝 **Documents** (.docx) | Styles, fonts, lists, tables, images, page layout, **headers, footers, table of contents and footnotes**, **comments and tracked changes**, spell checking in German and English, templates, **mail merge**, **e-invoices** (ZUGFeRD), export as PDF and PDF/A · [more →](https://firsttris.github.io/schreibzeug/) |
+| 📊 **Spreadsheets** (.xlsx) | Formulas, number formats, sorting and filters, frozen rows, **charts**, **pivot tables**, dropdown lists, conditional formats, CSV · [more →](https://firsttris.github.io/schreibzeug/) |
+| 📽️ **Presentations** (.pptx) | Slide layouts, shapes, designs, transitions, speaker notes and a full-screen **slide show** · [more →](https://firsttris.github.io/schreibzeug/) |
+| 📄 **PDFs** | **Fill in forms and sign**, by hand or **digitally** with your certificate, notes, highlighting, **black out**, turn, add and remove pages, **OCR** for scans, the e-invoice inside a ZUGFeRD PDF · [more →](https://firsttris.github.io/schreibzeug/pdf.html) |
+| 🗒️ **Markdown & text** (.md, .txt) | A **live view** that keeps the text Markdown, or source and preview side by side; encoding and line endings kept byte for byte · [more →](https://firsttris.github.io/schreibzeug/text.html) |
+| 📁 **Files & teamwork** | File browser with folders, upload, recent files and trash, **every version kept**, storage at a glance, **sharing** with accounts or by link, **real-time co-editing** with live cursors, OpenDocument edited as it is · [more →](https://firsttris.github.io/schreibzeug/files.html) |
+| 🤖 **AI & Kontext** | **MCP server** for Claude Code and other MCP clients, with your rights and your consent before an edit; **sign in with [Kontext](https://github.com/firsttris/kontext)** and use Schreibzeug as its documents module · [more →](https://firsttris.github.io/schreibzeug/mcp.html) |
+| 🖥️ **Desktop app** | **Windows, macOS and Linux** (Tauri): the files in your documents folder without any server, or a window onto a Schreibzeug server (builds not signed yet) · [more →](https://firsttris.github.io/schreibzeug/desktop.html) |
 
 ## 📸 Screenshots
 
@@ -161,47 +126,55 @@ interface that feels like today's web apps, on their own server.
 
 ## ❓ FAQ
 
-### Is there a self-hosted alternative to Google Docs and Microsoft 365?
+<details>
+<summary><b>Is there a self-hosted alternative to Google Docs and Microsoft 365?</b></summary>
+
 Yes. Schreibzeug runs on your own server with Docker and edits Word, Excel, PowerPoint and PDF
 files in the browser, several people at once. See the [installation guide](https://firsttris.github.io/schreibzeug/installation.html).
+</details>
 
-### Does it need an ONLYOFFICE Document Server or Nextcloud?
+<details>
+<summary><b>Does it need an ONLYOFFICE Document Server or Nextcloud?</b></summary>
+
 No. The Euro-Office engine runs in the browser and the Schreibzeug server stores the files and
 relays the changes; there is nothing else to install. How that works is in [the engine](https://firsttris.github.io/schreibzeug/engine.html).
+</details>
 
-### Are my files converted into another format?
+<details>
+<summary><b>Are my files converted into another format?</b></summary>
+
 No. A .docx stays a .docx, an .xlsx stays an .xlsx, an .odt stays an .odt; every save is a new
 version of the same file.
+</details>
 
-### Can I use Schreibzeug offline, without a server?
+<details>
+<summary><b>Can I use Schreibzeug offline, without a server?</b></summary>
+
 Yes, with the desktop app for Windows, macOS and Linux: it opens the files in your documents folder
 directly. See [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html).
+</details>
 
-### Can Claude or other AI assistants edit my documents?
+<details>
+<summary><b>Can Claude or other AI assistants edit my documents?</b></summary>
+
 Yes, through the built-in MCP server and a personal access token you create in the settings. Read
 access can be limited to "read only"; edits to an open document need your consent and can be
 undone. See [MCP server](https://firsttris.github.io/schreibzeug/mcp.html).
+</details>
 
-### Can I create ZUGFeRD or XRechnung e-invoices?
+<details>
+<summary><b>Can I create ZUGFeRD or XRechnung e-invoices?</b></summary>
+
 Yes. An invoice written in the text editor becomes a ZUGFeRD PDF/A-3 with Factur-X XML (EN 16931),
 and e-invoices in PDFs are read and shown. See [E-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html).
+</details>
 
 ## 📚 Documentation
 
-The full documentation is at **[firsttris.github.io/schreibzeug](https://firsttris.github.io/schreibzeug/)**.
-
-| | |
-|---|---|
-| [Installation](https://firsttris.github.io/schreibzeug/installation.html) | Docker, settings, reverse proxy, backups, updates |
-| [Accounts and sharing](https://firsttris.github.io/schreibzeug/accounts.html) | sign-up, roles, sharing with accounts and by link |
-| [Files and versions](https://firsttris.github.io/schreibzeug/files.html) | folders, versions, trash, the files API |
-| [Collaboration](https://firsttris.github.io/schreibzeug/collaboration.html) | real-time co-editing without a document server |
-| [PDFs](https://firsttris.github.io/schreibzeug/pdf.html) and [e-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html) | forms, signatures, OCR, ZUGFeRD |
-| [Markdown and text files](https://firsttris.github.io/schreibzeug/text.html) | notes with a live preview, kept byte for byte |
-| [MCP server](https://firsttris.github.io/schreibzeug/mcp.html) | Claude Code and other AI assistants |
-| [Kontext](https://firsttris.github.io/schreibzeug/kontext.html) | sign-in through Kontext, the "Dokumente" module |
-| [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html) | the app for Windows, macOS and Linux |
-| [Development](https://firsttris.github.io/schreibzeug/development.html) | building, checks, architecture and the engine |
+The full documentation, with search, is at **[firsttris.github.io/schreibzeug](https://firsttris.github.io/schreibzeug/)**: every feature
+in detail, [installation](https://firsttris.github.io/schreibzeug/installation.html), [accounts and sharing](https://firsttris.github.io/schreibzeug/accounts.html),
+[collaboration](https://firsttris.github.io/schreibzeug/collaboration.html), [the engine](https://firsttris.github.io/schreibzeug/engine.html) and
+[development](https://firsttris.github.io/schreibzeug/development.html).
 
 ## 🛠️ Development
 

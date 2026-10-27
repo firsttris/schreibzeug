@@ -15,7 +15,7 @@ import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-
 import { CSV_DELIMITER_CODES, type CsvDelimiter, detectDelimiter, encodeCsv } from "./csv";
 import type { CommonEventArgs, DocumentUrls, EngineApiBase, EngineWindow } from "./engine-types";
 import { coreEvents, type Translators } from "./events";
-import { keepFocusOnClick } from "./frame";
+import { type EditorKind, keepFocusOnClick } from "./frame";
 import { createFrameSocketIO } from "./frame-socket";
 import { addImage, collectMedia, type ImageStore, provideMedia } from "./media";
 import { fontsForPdf } from "./print";
@@ -58,6 +58,11 @@ export type OpenOptions = {
   collaboration?: { channel: CollabChannel; documentId: string };
   /** Where inserted images are kept; without it the document offers no insertImage. */
   images?: ImageStore;
+  /**
+   * The file already on its way to the engine's format (convertForEngine), started before the
+   * engine's frame was loaded; without it the file is converted once the frame is there.
+   */
+  converted?: Promise<Converted>;
 };
 
 /**
@@ -127,6 +132,24 @@ const toBinary = async (
   const workbook = await options.convert(options.bytes, "csv", "xlsx", undefined, delimiter);
   return options.convert(workbook.bytes, "xlsx", "bin");
 };
+
+/** The format each editor opens. */
+export const EDITOR_FORMAT: Record<EditorKind, DocumentFormat> = {
+  word: "docx",
+  cell: "xlsx",
+  slide: "pptx",
+  pdf: "pdf",
+};
+
+/**
+ * Turns the file into the engine's format without the engine: x2t loads, compiles and converts in
+ * its worker while the frame is still loading sdkjs, instead of after it. Hand the result to the
+ * editor's open function as `converted`.
+ */
+export const convertForEngine = (
+  options: Pick<OpenOptions, "bytes" | "convert" | "csv" | "openDocument">,
+  kind: EditorKind,
+): Promise<Converted> => toBinary(options, fileFormatOf(options, EDITOR_FORMAT[kind]));
 
 /** What the file is, as it is read and saved: the editor's format, a CSV, or OpenDocument. */
 const fileFormatOf = (
@@ -491,7 +514,7 @@ export const openDocument = <
       api.asc_getEditorPermissions();
     };
 
-    toBinary(options, file)
+    (options.converted ?? toBinary(options, file))
       .then(start)
       .catch((error: unknown) => onFailure(error instanceof Error ? error.message : String(error)));
   });

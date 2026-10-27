@@ -24,39 +24,40 @@ let stderr = [];
 
 const x2tUrl = (file) => new URL(`../../x2t/${file}`, self.location.href).href;
 
-// The module is fetched here rather than by the emscripten glue, so a missing or wrong file fails
-// with its URL and status instead of a bare "expected magic word" from WebAssembly.
-const fetchWasm = async () => {
+// The module is compiled while it downloads (instantiateStreaming), and the browser keeps the
+// compiled code with the cached file, so the next open skips compiling 35 MB of WebAssembly. A
+// module handed over as bytes (emscripten's wasmBinary) gets neither. It is fetched here rather
+// than by the emscripten glue (x2t.js createWasm, which calls instantiateWasm with the imports and
+// takes the instance back), so a missing or wrong file fails with its URL and status instead of a
+// bare "expected magic word" from WebAssembly.
+const instantiateX2t = async (imports) => {
   const url = x2tUrl("x2t.wasm");
   const response = await fetch(url);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  const isWasm = bytes[0] === 0x00 && bytes[1] === 0x61 && bytes[2] === 0x73 && bytes[3] === 0x6d;
-  if (!response.ok || !isWasm) {
-    throw new Error(
-      `x2t.wasm could not be loaded from ${url} (${response.status} ${response.headers.get("content-type")})`,
-    );
+  const type = response.headers.get("content-type") ?? "";
+  if (!response.ok || !type.startsWith("application/wasm")) {
+    throw new Error(`x2t.wasm could not be loaded from ${url} (${response.status} ${type})`);
   }
-  return bytes.buffer;
+  return WebAssembly.instantiateStreaming(response, imports);
 };
 
 const loadX2t = () => {
-  x2tReady ??= fetchWasm().then(
-    (wasmBinary) =>
-      new Promise((resolve, reject) => {
-        self.Module = {
-          wasmBinary,
-          locateFile: (file) => x2tUrl(file),
-          onRuntimeInitialized: () => resolve(self.Module),
-          onAbort: (reason) => reject(new Error(`x2t aborted: ${reason}`)),
-          print: () => {},
-          printErr: (text) => {
-            stderr.push(text);
-            console.warn("[x2t]", text);
-          },
-        };
-        importScripts(x2tUrl("x2t.js"));
-      }),
-  );
+  x2tReady ??= new Promise((resolve, reject) => {
+    self.Module = {
+      instantiateWasm: (imports, receiveInstance) => {
+        instantiateX2t(imports).then(({ instance, module }) => receiveInstance(instance, module), reject);
+        return {};
+      },
+      locateFile: (file) => x2tUrl(file),
+      onRuntimeInitialized: () => resolve(self.Module),
+      onAbort: (reason) => reject(new Error(`x2t aborted: ${reason}`)),
+      print: () => {},
+      printErr: (text) => {
+        stderr.push(text);
+        console.warn("[x2t]", text);
+      },
+    };
+    importScripts(x2tUrl("x2t.js"));
+  });
   // A failed load is not cached, so the next conversion tries again.
   x2tReady.catch(() => {
     x2tReady = null;

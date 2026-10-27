@@ -2,7 +2,13 @@ import { createEngineColor } from "./colors";
 import { type CharacterCommands, createCharacterCommands } from "./commands";
 import { commentEvents } from "./comment-state";
 import { type CommentCommands, createCommentCommands } from "./comments";
-import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
+import {
+  EDITOR_FORMAT,
+  type EditorBinding,
+  type OpenedDocument,
+  type OpenOptions,
+  openDocument,
+} from "./document";
 import { SLIDE_TEXTS } from "./engine-texts";
 import type { EngineWindow, SlideEngineApi, SlideEventArgs, SlideWindow } from "./engine-types";
 import { textEvents } from "./events";
@@ -91,7 +97,7 @@ const slideBinding: EditorBinding<
     "commands" | "view" | "search" | "slideShow" | "comments" | "spelling" | "onContextMenu" | "design"
   >
 > = {
-  format: "pptx",
+  format: EDITOR_FORMAT.slide,
   createApi: (win) => {
     limitSpellLanguages(win.AscCommon);
     useDedicatedSpellWorker(win);

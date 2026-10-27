@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { cp } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
@@ -22,10 +22,23 @@ export const resolveEnginePath = (root: string, requestPath: string): string | n
   return file === root || file.startsWith(root + sep) ? file : null;
 };
 
+/**
+ * The name of the prepared engine: the start of the stamp engine:prepare writes (engine/scripts/
+ * prepare.ts, a hash of the release, the scripts and the frame pages), "dev" before it ran.
+ */
+export const engineId = (engineDist: string): string => {
+  const stamp = join(engineDist, ".version");
+  return existsSync(stamp) ? readFileSync(stamp, "utf8").trim().slice(0, 12) : "dev";
+};
+
+/** A request path without the engine's name in front, which dev and preview take with or without. */
+export const withoutEngineId = (requestPath: string, id: string): string =>
+  requestPath.startsWith(`/${id}/`) ? requestPath.slice(id.length + 1) : requestPath;
+
 const serve =
-  (root: string) =>
+  (root: string, id: string) =>
   (req: IncomingMessage, res: ServerResponse, next: () => void): void => {
-    const file = resolveEnginePath(root, req.url ?? "/");
+    const file = resolveEnginePath(root, withoutEngineId(req.url ?? "/", id));
     if (!file || !existsSync(file) || !statSync(file).isFile()) {
       next();
       return;
@@ -39,23 +52,29 @@ const serve =
 /**
  * Serves engine/dist at /engine in dev and preview and copies it into the build. The engine is
  * prepared by `bun run engine:prepare`; it is far too large for the module graph.
+ *
+ * The build puts it in a folder named after the prepared engine, /engine/<id>/, and the app loads
+ * it from there (`import.meta.env.ENGINE_PATH`). A new engine gets a new name, so the server can let
+ * browsers keep every engine file for good (apps/server/src/web.ts cacheControlOf).
  */
 export const enginePlugin = (engineDist: string, base = "/engine"): Plugin => {
   const root = resolve(engineDist);
+  const id = engineId(root);
   let outDir = "dist";
   return {
     name: "schreibzeug-engine",
+    config: () => ({ define: { "import.meta.env.ENGINE_PATH": JSON.stringify(`${base}/${id}`) } }),
     configResolved: (config) => {
       outDir = resolve(config.root, config.build.outDir);
     },
     configureServer: (server) => {
-      server.middlewares.use(base, serve(root));
+      server.middlewares.use(base, serve(root, id));
     },
     configurePreviewServer: (server) => {
-      server.middlewares.use(base, serve(root));
+      server.middlewares.use(base, serve(root, id));
     },
     closeBundle: async () => {
-      if (existsSync(root)) await cp(root, join(outDir, base), { recursive: true });
+      if (existsSync(root)) await cp(root, join(outDir, base, id), { recursive: true });
     },
   };
 };

@@ -5,7 +5,7 @@ name: Desktop app
 # compiled with Bun for each platform by the app's beforeBuildCommand (scripts/sidecar.ts).
 # - Run by hand (Actions → Desktop app → Run workflow): the installers as workflow artifacts.
 # - From release.yml on a version tag: the same, and the artifact "schreibzeug-desktop" with all of
-#   them, which the Docker release attaches to the GitHub release.
+#   them, which release.yml's release job attaches to the GitHub release.
 # The builds are not signed yet: Windows SmartScreen and macOS Gatekeeper warn on the first start.
 on:
   workflow_dispatch:

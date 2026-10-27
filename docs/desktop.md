@@ -148,8 +148,9 @@ three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Inte
 by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
 [Development](development.md#releases)) builds them too and attaches them to the GitHub release. The
 version comes from `apps/desktop/package.json`, which the bump keeps at the version of the release.
-The .rpm is compressed with zstd and the setup .exe with zlib (`tauri.conf.json`): each takes about
-a minute instead of four with gzip and LZMA, for a somewhat larger file.
+The .rpm is compressed with zstd at level 3 and the setup .exe with zlib (`tauri.conf.json`)
+instead of the bundler's defaults, zstd at level 19 and LZMA, which took about four minutes each,
+for a somewhat larger file.
 
 ### Patched Tauri CLI
 

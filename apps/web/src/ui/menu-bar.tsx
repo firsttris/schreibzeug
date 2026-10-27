@@ -33,7 +33,7 @@ export const MenuBar = ({ label, menus }: { label: string; menus: Menu[] }) => {
   }, [open]);
 
   return (
-    <div ref={ref} role="menubar" aria-label={label} className="flex items-center">
+    <div ref={ref} role="menubar" aria-label={label} className="flex flex-wrap items-center">
       {menus.map((menu) => (
         <div key={menu.label} className="relative">
           <button

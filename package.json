@@ -19,11 +19,11 @@
     "format": "biome check --write .",
     "test": "bun --bun vitest run",
     "test:watch": "bun --bun vitest",
-    "test:e2e": "playwright test -c e2e/playwright.config.ts --project chromium --project fidelity",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts --project=chromium --project=fidelity",
     "server": "bun run --filter @schreibzeug/server dev",
-    "screenshots": "playwright test -c e2e/playwright.config.ts --project screenshots --workers 1",
-    "test:fidelity": "playwright test -c e2e/playwright.config.ts --project fidelity",
-    "fidelity:update": "playwright test -c e2e/playwright.config.ts --project fidelity --update-snapshots"
+    "screenshots": "playwright test -c e2e/playwright.config.ts --project=screenshots --workers 1",
+    "test:fidelity": "playwright test -c e2e/playwright.config.ts --project=fidelity",
+    "fidelity:update": "playwright test -c e2e/playwright.config.ts --project=fidelity --update-snapshots"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.2",

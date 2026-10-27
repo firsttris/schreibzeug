@@ -43,6 +43,11 @@ export type EditorHeaderProps = {
   toolbar: ReactNode;
 };
 
+/** A button's word, kept for screen readers on a phone, where the button shows only its icon. */
+const ButtonLabel = ({ children }: { children: string }) => (
+  <span className="sr-only sm:not-sr-only">{children}</span>
+);
+
 /**
  * The top of every editor, as in an office suite: back, the file's name (editable in place) with
  * what happens to it, the menus under it, the buttons on the right, then the editor's toolbar.
@@ -73,12 +78,13 @@ export const EditorHeader = ({
 
   return (
     <header className="flex flex-col gap-2 border-b border-[var(--border)] px-4 pt-2 pb-2">
-      <div className="flex items-center gap-3">
+      {/* On a phone the buttons move under the name and the menus, which wrap. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button variant="ghost" aria-label="Zurück" onClick={file.onClose}>
           <ArrowLeft size={18} />
         </Button>
         <FileBadge kind={format} size={32} />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 basis-48 flex-col">
           <div className="flex min-w-0 items-center gap-3">
             <FileTitle name={name} onRename={readOnly ? undefined : onRename} onError={setRenameError} />
             <SaveStatus
@@ -119,13 +125,13 @@ export const EditorHeader = ({
           {file.onShare && (
             <Button variant="outline" onClick={file.onShare}>
               <Share2 size={15} />
-              Teilen
+              <ButtonLabel>Teilen</ButtonLabel>
             </Button>
           )}
           {!readOnly && (
             <Button variant="primary" disabled={!ready || saving} onClick={save}>
               <Save size={15} />
-              Speichern
+              <ButtonLabel>Speichern</ButtonLabel>
             </Button>
           )}
         </div>

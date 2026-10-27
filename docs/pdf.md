@@ -34,7 +34,7 @@ form designer: every field shows its name and a click selects the field to move 
 | rectangle, ellipse, line | `StartAddAnnot(ANNOTATIONS_TYPES.Square …, pen, true)`, off: `StartAddAnnot("", undefined, false)`; ended: `asc_onStartAddShapeChanged(false)` |
 | text box | `AddFreeTextAnnot(FREE_TEXT_INTENT_TYPE.freeText)` on the page in view |
 | note | `asc_addComment(data)`: the comments panel, as in the other editors; a note is a text annotation on the page in view |
-| black out | `SetRedactTool(true)` draws boxes; `ApplyRedact()` removes what is under them from the page (`drawingfile.wasm` `RedactPage`), and saving writes the page without it |
+| black out | `SetRedactTool(true)` draws boxes; `ApplyRedact()` removes what is under them from the page (`drawingfile.wasm` `RedactPage`), and saving writes the page without it. The older versions of the file still hold the original, and anyone who may open the file may open them ([files](files.md)): share a blacked-out PDF as a new file (download it, or save the pages apart) |
 | turn, add, remove pages | `asc_RotatePage(±90, pages)`, `asc_AddPage(position)`, `asc_RemovePage(pages)` after `asc_CanRemovePages`; on the pages selected in the thumbnails (`getSelectedPages`), or the page in view |
 | undo, redo | `Undo()`, `Redo()`; `asc_onCanUndo`, `asc_onCanRedo` |
 

@@ -21,7 +21,7 @@ Open source (AGPL) on the European Euro-Office engine, no document server, no cl
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
 ```bash
-docker run -d -p 3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
+docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
 [Privacy & GoBD](#-your-files-stay-in-europe--with-ai) •
@@ -43,9 +43,9 @@ docker run -d -p 3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ## 🇪🇺 Your files stay in Europe – with AI
 
 - **GDPR**: documents live on your server, or on your own computer with the desktop app. The editor runs in your browser: no US cloud, no third-party document server, no telemetry.
-- **GoBD**: every save is kept as a version and can be restored, and nothing is deleted for good from the app (the trash keeps it). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
+- **GoBD**: on a Schreibzeug server every save is kept as a version and can be restored, and nothing is deleted for good from the app (the trash keeps it). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
 - **E-invoices**: ZUGFeRD / Factur-X (EN 16931) from an invoice document, and e-invoices in PDFs read and shown – for the German e-invoice obligation.
-- **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to an open document need your consent and can be undone.
+- **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to a document open in the app need your consent and can be undone.
 - **No lock-in**: a .docx stays a .docx, an .odt stays an .odt.
 
 ## 💡 Why Schreibzeug?
@@ -63,7 +63,7 @@ the office programs of 2010. Schreibzeug is one small server with a modern inter
 - **Your server, your data**: one container with a SQLite database and a data folder; backing up
   that folder backs up everything. No tracking, no telemetry.
 - **Browser, desktop and AI assistants**: the same editors in the browser and as a desktop app for
-  Windows, macOS and Linux that works offline; Claude Code and other MCP clients work in your
+  Windows, macOS and Linux that works offline with the files on your computer; Claude Code and other MCP clients work in your
   files with your rights.
 
 Runs on any Linux server or VPS with Docker or Podman (amd64), on a home server, or without any
@@ -72,10 +72,10 @@ server as the desktop app on your computer.
 ## 🚀 Install
 
 ```bash
-docker run -d --name schreibzeug -p 3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
+docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-Open http://localhost:3000 and create the first account; it becomes the owner of the installation.
+Open http://localhost:3000 and create the first account (on a server through an SSH tunnel; the port stays on 127.0.0.1 so plain HTTP never reaches the internet).
 More accounts are created through invitation links, or by anyone when `SCHREIBZEUG_OPEN_SIGNUP=true`.
 Behind a domain, set `SCHREIBZEUG_URL=https://office.example.org`.
 
@@ -86,13 +86,13 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 
 | | |
 |---|---|
-| 📝 **Documents** (.docx) | Styles, fonts, lists, tables, images, page layout, **headers, footers, table of contents and footnotes**, **comments and tracked changes**, spell checking in German and English, templates, **mail merge**, **e-invoices** (ZUGFeRD), export as PDF and PDF/A · [more →](https://firsttris.github.io/schreibzeug/) |
-| 📊 **Spreadsheets** (.xlsx) | Formulas, number formats, sorting and filters, frozen rows, **charts**, **pivot tables**, dropdown lists, conditional formats, CSV · [more →](https://firsttris.github.io/schreibzeug/) |
-| 📽️ **Presentations** (.pptx) | Slide layouts, shapes, designs, transitions, speaker notes and a full-screen **slide show** · [more →](https://firsttris.github.io/schreibzeug/) |
-| 📄 **PDFs** | **Fill in forms and sign**, by hand or **digitally** with your certificate, notes, highlighting, **black out**, turn, add and remove pages, **OCR** for scans, the e-invoice inside a ZUGFeRD PDF · [more →](https://firsttris.github.io/schreibzeug/pdf.html) |
+| 📝 **Documents** (.docx) | Styles, fonts, lists, tables, images, page layout, **headers, footers, table of contents and footnotes**, **comments and tracked changes**, spell checking in German and English, templates, **mail merge**, **e-invoices** (ZUGFeRD), export as PDF and PDF/A · [more →](https://firsttris.github.io/schreibzeug/engine.html#mail-merge) |
+| 📊 **Spreadsheets** (.xlsx) | Formulas, number formats, sorting and filters, frozen rows, **charts**, **pivot tables**, dropdown lists, conditional formats, CSV · [more →](https://firsttris.github.io/schreibzeug/engine.html#spreadsheets) |
+| 📽️ **Presentations** (.pptx) | Slide layouts, shapes, designs, transitions, speaker notes and a full-screen **slide show** · [more →](https://firsttris.github.io/schreibzeug/engine.html#presentations) |
+| 📄 **PDFs** | **Fill in forms and sign**, by hand or **digitally** with your certificate (PKCS#12, not a qualified signature), notes, highlighting, **black out** (older versions keep the original: share a fresh copy), turn, add and remove pages, **OCR** for scans, the e-invoice inside a ZUGFeRD PDF · [more →](https://firsttris.github.io/schreibzeug/pdf.html) |
 | 🗒️ **Markdown & text** (.md, .txt) | A **live view** that keeps the text Markdown, or source and preview side by side; encoding and line endings kept byte for byte · [more →](https://firsttris.github.io/schreibzeug/text.html) |
 | 📁 **Files & teamwork** | File browser with folders, upload, recent files and trash, **every version kept**, storage at a glance, **sharing** with accounts or by link, **real-time co-editing** with live cursors, OpenDocument edited as it is · [more →](https://firsttris.github.io/schreibzeug/files.html) |
-| 🤖 **AI & Kontext** | **MCP server** for Claude Code and other MCP clients, with your rights and your consent before an edit; **sign in with [Kontext](https://github.com/firsttris/kontext)** and use Schreibzeug as its documents module · [more →](https://firsttris.github.io/schreibzeug/mcp.html) |
+| 🤖 **AI & Kontext** | **MCP server** for Claude Code and other MCP clients, with your rights, asking before it edits a document you have open; **sign in with [Kontext](https://github.com/firsttris/kontext)** and use Schreibzeug as its documents module · [more →](https://firsttris.github.io/schreibzeug/mcp.html) |
 | 🖥️ **Desktop app** | **Windows, macOS and Linux** (Tauri): the files in your documents folder without any server, or a window onto a Schreibzeug server (builds not signed yet) · [more →](https://firsttris.github.io/schreibzeug/desktop.html) |
 
 ## 📸 Screenshots
@@ -157,16 +157,16 @@ directly. See [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html
 <details>
 <summary><b>Can Claude or other AI assistants edit my documents?</b></summary>
 
-Yes, through the built-in MCP server and a personal access token you create in the settings. Read
-access can be limited to "read only"; edits to an open document need your consent and can be
+Yes, through the built-in MCP server and a personal access token you create in the settings. A token
+can be limited to "Nur lesen" (read only); edits to an open document need your consent and can be
 undone. See [MCP server](https://firsttris.github.io/schreibzeug/mcp.html).
 </details>
 
 <details>
 <summary><b>Can I create ZUGFeRD or XRechnung e-invoices?</b></summary>
 
-Yes. An invoice written in the text editor becomes a ZUGFeRD PDF/A-3 with Factur-X XML (EN 16931),
-and e-invoices in PDFs are read and shown. See [E-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html).
+ZUGFeRD yes: an invoice written in the text editor becomes a ZUGFeRD PDF/A-3 with Factur-X XML
+(EN 16931). XRechnung is read and shown, but not created yet. See [E-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html).
 </details>
 
 ## 📚 Documentation

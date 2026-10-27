@@ -85,6 +85,9 @@ and leaves out what only makes sense with accounts.
   an open document; those routes answer "Das gibt es nur auf einem Schreibzeug-Server"
   (`src/app.ts`). The version number only counts the saves since the server started, which the
   editing session needs.
+- **Storage**: `/api/storage` names the room on the folder's drive and no usage of its own; the app
+  shows no bar for it, the system's file manager does that, only the notice when less than 1 GB is
+  left ([files](files.md#storage)).
 - **Markdown and text files** open in the text editor ([Markdown and text files](text.md)): a
   save goes through only while the file on disk is still the bytes it was made from, so a change
   by another program (an editor, a sync tool) is not overwritten; the editor asks instead.

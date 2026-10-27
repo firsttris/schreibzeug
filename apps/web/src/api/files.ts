@@ -14,6 +14,7 @@ import {
   sessionSaveHeader,
   sharedNodeSchema,
   shareSchema,
+  storageSchema,
   type UpdateNode,
   versionSchema,
 } from "@schreibzeug/files-api";
@@ -32,6 +33,8 @@ export const fileKeys = {
   invites: (id: string) => ["files", "invites", id] as const,
   invitation: (token: string) => ["invitation", token] as const,
   versions: (id: string) => ["files", "versions", id] as const,
+  /** Under "files": every change to the files (useFileMutation) refreshes it with the lists. */
+  storage: ["files", "storage"] as const,
 };
 
 const nodeList = nodeSchema.array();
@@ -54,6 +57,13 @@ export const fileQueries = (api: ApiClient) => ({
     queryOptions({ queryKey: fileKeys.recent, queryFn: () => expectJson(api.recent.$get(), nodeList) }),
   trash: () =>
     queryOptions({ queryKey: fileKeys.trash, queryFn: () => expectJson(api.trash.$get(), nodeList) }),
+  /** How much room is left; asked again every few minutes, since others fill the drive too. */
+  storage: () =>
+    queryOptions({
+      queryKey: fileKeys.storage,
+      queryFn: () => expectJson(api.storage.$get(), storageSchema),
+      refetchInterval: 5 * 60_000,
+    }),
   shared: () =>
     queryOptions({
       queryKey: fileKeys.shared,

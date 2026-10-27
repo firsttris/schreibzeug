@@ -12,6 +12,7 @@ import { createHub } from "./collab/hub";
 import { MAX_MESSAGE_BYTES } from "./collab/limits";
 import { readConfig } from "./config";
 import { connect, migrateDatabase } from "./db/database";
+import { diskSpace } from "./disk";
 import { roleOf } from "./files/access";
 import { mcpRoutes } from "./mcp";
 import { openSockets } from "./sockets";
@@ -68,6 +69,7 @@ const app = createApp({
   db,
   blobs: createBlobStore(join(resolve(dataDir), "blobs")),
   maxUploadBytes,
+  disk: diskSpace(resolve(dataDir)),
   pendingShares: Boolean(oidc),
   collab: { hub, upgradeWebSocket },
   // Behind a proxy that does not pass the Host on, the request's own origin is not the public one.

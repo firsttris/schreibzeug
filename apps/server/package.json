@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/app.ts",
     "./blobs": "./src/blobs.ts",
+    "./disk": "./src/disk.ts",
     "./result": "./src/result.ts",
     "./collab/hub": "./src/collab/hub.ts",
     "./collab/routes": "./src/collab/routes.ts",

@@ -109,6 +109,8 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 
 - **File browser**: folders, drag-and-drop upload, recent files, templates, rename, move and trash.
 - **Versions**: every save is kept; any version can be restored.
+- **Storage**: how much room is left on the server and what your files, their older versions and
+  the trash take, with a warning before the disk runs full.
 - **Sharing**: with other accounts or by link with an expiry date, to edit or to view.
 - **Real-time co-editing**: everyone editing a file sees the others' changes and cursors, PDFs included.
 - **Other formats**: OpenDocument files are edited as they are; .doc, .xls, .ppt and .rtf open as

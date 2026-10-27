@@ -8,6 +8,7 @@ import {
   ifMatchHeader,
   nodeSchema,
   serverInfoSchema,
+  storageSchema,
 } from "@schreibzeug/files-api";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Local, startLocal } from "./harness";
@@ -32,6 +33,13 @@ describe("the local files API", () => {
   it("says it is local and what the root is called", async () => {
     const info = serverInfoSchema.parse(await (await local.request("/api/info")).json());
     expect(info).toEqual({ mode: "local", rootName: "Dokumente" });
+  });
+
+  it("names the room on the folder's drive, and no usage of its own", async () => {
+    const storage = storageSchema.parse(await (await local.request("/api/storage")).json());
+    expect(storage.usage).toBeNull();
+    expect(storage.uploadLimit).toBe(64 * 1024);
+    expect(storage.disk?.total).toBeGreaterThan(0);
   });
 
   it("answers the session as the person at the computer", async () => {

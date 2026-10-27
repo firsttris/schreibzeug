@@ -71,6 +71,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `POST /nodes/:id/trash` | Move into the trash |
 | `POST /nodes/:id/restore` | Bring back from the trash |
 | `GET /trash`, `GET /recent` | What is in the trash; files by last change (both only the user's own) |
+| `GET /storage` | How much room there is, [below](#storage) |
 | `GET /search?q=` | Nodes whose name contains `q`, ignoring case: the user's own and what lies in or below what is shared with them, files first, at most 50 |
 | `GET /nodes/:id/shares` | Who the node is shared with (owner only) |
 | `PUT /nodes/:id/shares` | Share with the account behind `email`, or change its `role` (`edit`, `view`) |
@@ -104,6 +105,29 @@ More routes, described where they belong:
 | `GET /agent/:fileId` (WebSocket) | An open editor taking jobs ([MCP server](mcp.md#editing-in-the-open-tab)) |
 | `DELETE /sessions` | Kontext signs someone out everywhere ([Kontext](kontext.md#tokens-from-kontext)) |
 | `/mcp` (outside `/api`) | The MCP endpoint ([MCP server](mcp.md#the-endpoint)) |
+
+## Storage
+
+`GET /api/storage` answers what the user's own files take and how much room is left
+(`src/files/storage.ts`, `src/disk.ts`):
+
+- `usage`: the sizes of their versions, split into `files` (the newest version of every file
+  outside the trash), `versions` (the older ones; every save keeps one) and `trash` (every version
+  of what lies there). These are the files' sizes: the blob store keeps the same bytes once, so the
+  disk may hold less. A shared file counts for its owner.
+- `disk`: `free` and `total` of the drive that holds the data folder (`statfs`; `free` is what an
+  unprivileged process may still write, without the blocks reserved for root), asked anew each
+  time; `null` when the system does not say. Every signed-in account sees it: they share the
+  drive.
+- `uploadLimit`: `SCHREIBZEUG_MAX_UPLOAD_MB` in bytes.
+
+The app shows it at the foot of the navigation (a bar that turns yellow from 80 % and red from
+95 %, as Kontext's mailbox ring, and what the user's files take) and in the settings, split as
+above (`apps/web/src/storage`, `apps/web/src/settings/storage-section.tsx`). With less than 1 GB
+free, or less than the upload limit when that is larger, a notice above every file page says that
+saves may soon fail (`apps/web/src/lib/storage.ts`); a share of the drive would not do, as 5 % of
+a large one is still plenty. The desktop app's local server answers the same route with the drive
+of its folder and no `usage`, and the app shows only that notice ([desktop app](desktop.md)).
 
 ## Templates
 
@@ -148,7 +172,8 @@ against a real SQLite file: each test file gets a temporary data folder of its o
 (`test/harness.ts`), removed afterwards. Vitest runs on Bun (`bun --bun vitest`), which `bun:sqlite`
 needs. The E2E server starts on an empty `e2e/.data`; the screenshots pin their dates in its
 database through a small Bun script (`e2e/sqlite.ts`), since Playwright runs on Node.
-`apps/server/test/media.test.ts` covers images stored while editing, `units.test.ts` the settings,
+`apps/server/test/media.test.ts` covers images stored while editing, `storage.test.ts` what
+`/storage` counts, `units.test.ts` the settings,
 names and small helpers. Templates: `apps/web/src/files/templates.test.ts` (which files count, the
 names) and `e2e/templates.spec.ts` (a file from a built-in and from an own template, opened in its
 editor). `e2e/files.spec.ts` goes through the file list as a person does.

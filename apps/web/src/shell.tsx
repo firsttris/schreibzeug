@@ -16,6 +16,8 @@ import { initialsOf } from "./account/initials";
 import { rootLabel, useFiles } from "./api/context";
 import { inDesktopApp, runDesktopCommand } from "./desktop";
 import { useEmbed } from "./embed/bridge";
+import { LowSpaceNotice } from "./storage/low-space-notice";
+import { StorageMeter } from "./storage/storage-meter";
 import { Button } from "./ui/button";
 import { MenuButton } from "./ui/menu";
 
@@ -74,7 +76,7 @@ const AccountBox = () => {
     await navigate({ to: "/login" });
   };
   return (
-    <div className="mt-auto hidden items-center gap-2 border-t border-[var(--border)] px-1.5 pt-3 md:flex">
+    <div className="hidden items-center gap-2 border-t border-[var(--border)] px-1.5 pt-3 md:flex">
       <span
         aria-hidden
         className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-xs font-semibold"
@@ -149,10 +151,14 @@ export const Shell = () => {
             </NavLink>
           )}
         </nav>
-        {!embedded && <AccountBox />}
+        <div className="mt-auto flex flex-col gap-2">
+          {!local && <StorageMeter />}
+          {!embedded && <AccountBox />}
+        </div>
       </aside>
       <main className="min-h-0 min-w-0 flex-1 overflow-auto">
         <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-4 p-4 md:p-8">
+          <LowSpaceNotice />
           <Outlet />
         </div>
       </main>

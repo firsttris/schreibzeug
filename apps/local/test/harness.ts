@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { createBlobStore } from "@schreibzeug/server/blobs";
+import { diskSpace } from "@schreibzeug/server/disk";
 import { ok } from "@schreibzeug/server/result";
 import { createLocalApp } from "../src/app";
 import { createFolder } from "../src/folder";
@@ -34,6 +35,7 @@ export const startLocal = async () => {
     token: TOKEN,
     media: createBlobStore(join(base, "media")),
     maxUploadBytes: 64 * 1024,
+    disk: diskSpace(base),
     log: () => {},
   });
 

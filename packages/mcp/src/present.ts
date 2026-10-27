@@ -19,6 +19,7 @@ export const presentNode = (origin: string, node: FileNode) => ({
 export const presentVersion = (version: FileVersion) => ({
   number: version.number,
   size: version.size,
+  kept: version.kept,
   createdAt: version.createdAt,
 });
 

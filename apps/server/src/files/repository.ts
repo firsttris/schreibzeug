@@ -273,6 +273,25 @@ export const findVersion = (
   return version ? ok({ file: file.value.node, version }) : fail("not_found", "Diese Version gibt es nicht.");
 };
 
+/** Marks a version to keep, or no longer: thinning (thinning.ts) never drops a kept one. */
+export const keepVersion = (
+  db: Queryable,
+  user: UserId,
+  id: string,
+  number: number,
+  kept: boolean,
+): Result<VersionRow> => {
+  const file = requireFile(db, user, id, "edit");
+  if (!file.ok) return file;
+  const row = db
+    .update(versions)
+    .set({ kept })
+    .where(and(eq(versions.fileId, id), eq(versions.number, number)))
+    .returning()
+    .get();
+  return row ? ok(row) : fail("not_found", "Diese Version gibt es nicht.");
+};
+
 /**
  * Makes an older version the newest again, as a new version with the same bytes: the versions in
  * between stay, so restoring can itself be undone.

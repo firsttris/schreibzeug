@@ -217,8 +217,12 @@ export const versionSchema = z.object({
   number: z.number().int().positive(),
   size: z.number().int().nonnegative(),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  /** Chosen to keep: thinning out the older versions never drops it. */
+  kept: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
 });
+
+export const keepVersionSchema = z.object({ kept: z.boolean() });
 
 export const createFolderSchema = z.object({
   parentId: nodeIdSchema.nullable(),

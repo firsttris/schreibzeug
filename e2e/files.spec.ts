@@ -118,6 +118,13 @@ test.describe("files", () => {
     const versions = page.getByRole("list", { name: "Versionen" });
     await expect(versions.getByRole("listitem")).toHaveCount(2);
     await expect(versions.locator('[data-version="2"]')).toContainText("aktuell");
+    // A kept version is never thinned out; the dialog marks it.
+    await page.getByRole("button", { name: "Version 1 behalten" }).click();
+    await expect(versions.locator('[data-version="1"]')).toContainText("behalten");
+    await expect(page.getByRole("button", { name: "Version 1 nicht mehr behalten" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await page.getByRole("button", { name: "Version 1 wiederherstellen" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
 

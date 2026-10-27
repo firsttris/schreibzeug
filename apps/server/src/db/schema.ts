@@ -83,7 +83,10 @@ export const nodes = sqliteTable(
   ],
 );
 
-/** Every saved state of a file. The bytes live in the blob store under their SHA-256. */
+/**
+ * The saved states of a file, thinned out with age (files/thinning.ts). The bytes live in the blob
+ * store under their SHA-256.
+ */
 export const versions = sqliteTable(
   "versions",
   {
@@ -94,6 +97,8 @@ export const versions = sqliteTable(
     number: integer("number").notNull(),
     size: integer("size").notNull(),
     sha256: text("sha256").notNull(),
+    /** Chosen to keep: thinning out older versions (files/thinning.ts) never drops it. */
+    kept: integer("kept", { mode: "boolean" }).notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [uniqueIndex("versions_number_per_file").on(table.fileId, table.number)],

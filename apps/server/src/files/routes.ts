@@ -4,6 +4,7 @@ import {
   createFolderSchema,
   createInviteSchema,
   ifMatchOf,
+  keepVersionSchema,
   nodeIdSchema,
   nodeNameSchema,
   putShareSchema,
@@ -36,6 +37,7 @@ import {
 } from "./serialize";
 import * as shares from "./shares";
 import { usageOf } from "./storage";
+import { thinVersions, type VersionPolicy } from "./thinning";
 
 export type FilesDeps = {
   db: Database;
@@ -52,6 +54,8 @@ export type FilesDeps = {
    * checked again (app.ts).
    */
   onAccessChange?: () => void;
+  /** "thin" (the default): older versions are thinned out after each save (thinning.ts). */
+  versionPolicy?: VersionPolicy;
 };
 
 /** Every route acts for the signed-in user (`requireUser` in app.ts). */
@@ -118,7 +122,14 @@ export const filesRoutes = ({
   pendingShares = false,
   relay,
   onAccessChange = () => {},
+  versionPolicy = "thin",
 }: FilesDeps) => {
+  /** After a new version: the older ones of the file thinned out, unless every one is kept. */
+  const thinned = <T extends { node: { id: string } }>(result: Result<T>): Result<T> => {
+    if (result.ok && versionPolicy === "thin") thinVersions(db, result.value.node.id, new Date());
+    return result;
+  };
+
   /** A result of a change to who may open what; once it is done, the open sockets are checked. */
   const accessChanged = <T>(result: Result<T>): Result<T> => {
     if (result.ok) onAccessChange();
@@ -260,7 +271,7 @@ export const filesRoutes = ({
         const version = saved.ok ? saved.value.node.version : null;
         if (sessionSave && version !== null) relay?.stored(id, version, sessionSave);
         else if (sessionSave) relay?.abandon(id);
-        return respond(c, saved, toFileNode);
+        return respond(c, thinned(saved), toFileNode);
       })
       // An image added while editing (media.ts): whoever may change the file may add one, whoever
       // may see it may load it, and only the images put into this file. The engine refers to one by
@@ -298,7 +309,17 @@ export const filesRoutes = ({
         validate("param", z.object({ id: nodeIdSchema, number: z.coerce.number().int().positive() })),
         async (c) => {
           const { id, number } = c.req.valid("param");
-          return respond(c, repository.restoreVersion(db, userOf(c), id, number), toFileNode);
+          return respond(c, thinned(repository.restoreVersion(db, userOf(c), id, number)), toFileNode);
+        },
+      )
+      .patch(
+        "/files/:id/versions/:number",
+        validate("param", z.object({ id: nodeIdSchema, number: z.coerce.number().int().positive() })),
+        validate("json", keepVersionSchema),
+        (c) => {
+          const { id, number } = c.req.valid("param");
+          const { kept } = c.req.valid("json");
+          return respond(c, repository.keepVersion(db, userOf(c), id, number, kept), toFileVersion);
         },
       )
       .get("/nodes/:id/shares", validate("param", idParam), async (c) =>

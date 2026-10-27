@@ -51,6 +51,7 @@ export const toFileVersion = (row: VersionRow): FileVersion => ({
   number: row.number,
   size: row.size,
   sha256: row.sha256,
+  kept: row.kept,
   createdAt: row.createdAt.toISOString(),
 });
 

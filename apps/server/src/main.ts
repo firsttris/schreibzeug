@@ -7,6 +7,7 @@ import { createAuth, OIDC_PROVIDER } from "./auth/auth";
 import { createBearer } from "./auth/bearer";
 import { markClientAddress } from "./auth/client-ip";
 import { loadSecret } from "./auth/secret";
+import { collectBlobs } from "./blob-collection";
 import { createBlobStore } from "./blobs";
 import { createHub } from "./collab/hub";
 import { MAX_MESSAGE_BYTES } from "./collab/limits";
@@ -36,10 +37,20 @@ const {
   publicUrl,
   embedOrigin,
   oidc,
+  versionPolicy,
 } = config.value;
 // One SQLite file next to the blobs: backing up the data folder backs up everything.
 const { db, close } = connect(join(resolve(dataDir), "schreibzeug.db"));
 migrateDatabase(db);
+
+const blobs = createBlobStore(join(resolve(dataDir), "blobs"));
+// The bytes of thinned-out versions (files/thinning.ts) go once nothing refers to them any more.
+const BLOB_COLLECTION_MS = 6 * 60 * 60 * 1000;
+const collect = () =>
+  collectBlobs(db, blobs, new Date()).catch((error) =>
+    console.error("Collecting unused blobs failed:", error),
+  );
+setInterval(collect, BLOB_COLLECTION_MS).unref();
 
 const hub = createHub({
   access: async (fileId, userId) => {
@@ -67,7 +78,8 @@ const app = createApp({
   auth,
   agent,
   db,
-  blobs: createBlobStore(join(resolve(dataDir), "blobs")),
+  blobs,
+  versionPolicy,
   maxUploadBytes,
   disk: diskSpace(resolve(dataDir)),
   pendingShares: Boolean(oidc),

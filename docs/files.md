@@ -16,7 +16,7 @@ is not interleaved with other requests, and a transaction must not await (`src/d
 | Table | What it holds |
 |---|---|
 | `nodes` | Folders and files in one tree (`parent_id`, `null` is the root of the owner's files, `owner_id` whose they are; see [accounts](accounts.md)). A file has `mime`, `size` and its newest `version`. |
-| `versions` | Every saved state of a file: number, size and the SHA-256 of its bytes. |
+| `versions` | The saved states of a file, [thinned out with age](#versions): number, size, the SHA-256 of its bytes, and `kept` when someone chose to keep it. |
 | `media` | Which image belongs to which file: the file and the SHA-256 of an image put into it while it was edited. |
 | `shares` | Who else may open a node, with `edit` or `view`; see [accounts](accounts.md#sharing). |
 | `invites` | Links that share a node: a random token, the role, when it expires. |
@@ -37,6 +37,31 @@ characters, so every file can be downloaded under its name on every system
 (`packages/files-api/src/schemas.ts`).
 
 Saving adds a version. Concurrent saves of one file lock its row and get consecutive numbers.
+
+## Versions
+
+The editor saves a few seconds after each change (`AUTOSAVE_DELAY` in
+`packages/editor-core/src/session-progress.ts`), so a day's work makes hundreds of versions. After
+every save and restore the server thins out the file's older ones (`src/files/thinning.ts`), as
+Google Docs and Nextcloud do:
+
+| Age | What stays |
+|---|---|
+| up to a day | every version |
+| up to 30 days | the newest per hour |
+| up to a year | the newest per day |
+| older | the newest per week |
+
+The newest version always stays, and so does every version someone chose to keep ("Version
+behalten" in the versions dialog, `PATCH /files/:id/versions/:number` with `{ "kept": true }`, for
+those who may edit): the sent invoice, the signed contract. With `SCHREIBZEUG_VERSIONS=all` every
+version stays ([installation](installation.md#settings)).
+
+A thinned-out version's row goes at once; its bytes stay in the blob store until the collection
+(`src/blob-collection.ts`), which runs every six hours and removes the blobs that no version and no
+image refers to and that were stored more than an hour ago. A save stores its bytes before it writes
+their row, and storing bytes that are already there renews their time, so the collection never takes
+the blob of a save under way.
 
 ## Trash
 
@@ -92,6 +117,7 @@ Every node in an answer carries `role`, what the user may do with it: `owner`, `
 | `GET /files/:id/media/:name` | That image, for everyone who may see the file; only images put into this file, never another blob by its hash; with `X-Content-Type-Options: nosniff` |
 | `POST /files/:id/copy` | A copy of the newest version, named "… (Kopie).docx", next to the original when the user may add there, otherwise in their own files |
 | `POST /files/:id/versions/:number/restore` | Make an older version the newest again (as a new version; the ones in between stay) |
+| `PATCH /files/:id/versions/:number` | `{ "kept": true }` keeps a version from being [thinned out](#versions), `false` lets it go again (edit) |
 | `GET /health` | `{ "ok": true }` |
 | `GET /info` | `{ "mode": "server" }`, with `oidc: { name }` when a sign-in provider is set and `embedOrigin` when a site may frame the app ([Kontext](kontext.md)); the desktop app's local server answers `{ "mode": "local", "rootName" }` ([desktop app](desktop.md#files-on-this-computer)). **No session needed** |
 
@@ -112,7 +138,7 @@ More routes, described where they belong:
 (`src/files/storage.ts`, `src/disk.ts`):
 
 - `usage`: the sizes of their versions, split into `files` (the newest version of every file
-  outside the trash), `versions` (the older ones; every save keeps one) and `trash` (every version
+  outside the trash), `versions` (the older ones that [thinning](#versions) left) and `trash` (every version
   of what lies there). These are the files' sizes: the blob store keeps the same bytes once, so the
   disk may hold less. A shared file counts for its owner.
 - `disk`: `free` and `total` of the drive that holds the data folder (`statfs`; `free` is what an

@@ -5,6 +5,8 @@
 The self-hosted Google Docs and Microsoft 365 alternative: in real time, in the browser or as a desktop app.<br>
 AGPL, on the European Euro-Office engine, no document server, no cloud account, no tracking. Made in Europe.
 
+**English** · [Deutsch](README.de.md)
+
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)
 [![Docker Pulls](https://img.shields.io/docker/pulls/tristanteu/schreibzeug?logo=docker&logoColor=white)](https://hub.docker.com/r/tristanteu/schreibzeug)
@@ -13,7 +15,7 @@ AGPL, on the European Euro-Office engine, no document server, no cloud account, 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
 [![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-your-files-stay-in-europe--with-ai)
-[![GoBD](https://img.shields.io/badge/GoBD-every%20version%20kept-15803d)](#-your-files-stay-in-europe--with-ai)
+[![GoBD](https://img.shields.io/badge/GoBD-kept%20versions%20stay-15803d)](#-your-files-stay-in-europe--with-ai)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
@@ -40,7 +42,7 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 ## 🇪🇺 Your files stay in Europe – with AI
 
 - **GDPR**: documents live on your server, or on your own computer with the desktop app. The editor runs in your browser: no US cloud, no third-party document server, no telemetry.
-- **GoBD**: on a Schreibzeug server every save is kept as a version and can be restored, and nothing is deleted for good from the app (the trash keeps it). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
+- **GoBD**: on a Schreibzeug server older versions are thinned out with age, as in Google Docs, and the versions you keep – the sent invoice, the signed contract – stay for good; files are never deleted for good from the app (the trash keeps them). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
 - **E-invoices**: ZUGFeRD / Factur-X (EN 16931) from an invoice document, and e-invoices in PDFs read and shown – for the German e-invoice obligation.
 - **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to a document open in the app need your consent and can be undone.
 - **No lock-in**: a .docx stays a .docx, an .odt stays an .odt.
@@ -88,7 +90,7 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 | 📽️ **Presentations** (.pptx) | Slide layouts, shapes, designs, transitions, speaker notes and a full-screen **slide show** · [more →](https://firsttris.github.io/schreibzeug/engine.html#presentations) |
 | 📄 **PDFs** | **Fill in forms and sign**, by hand or **digitally** with your certificate (PKCS#12, not a qualified signature), notes, highlighting, **black out** (older versions keep the original: share a fresh copy), turn, add and remove pages, **OCR** for scans, the e-invoice inside a ZUGFeRD PDF · [more →](https://firsttris.github.io/schreibzeug/pdf.html) |
 | 🗒️ **Markdown & text** (.md, .txt) | A **live view** that keeps the text Markdown, or source and preview side by side; encoding and line endings kept byte for byte · [more →](https://firsttris.github.io/schreibzeug/text.html) |
-| 📁 **Files & teamwork** | File browser with folders, upload, recent files and trash, **every version kept**, storage at a glance, **sharing** with accounts or by link, **real-time co-editing** with live cursors, OpenDocument edited as it is · [more →](https://firsttris.github.io/schreibzeug/files.html) |
+| 📁 **Files & teamwork** | File browser with folders, upload, recent files and trash, **versions** thinned out with age, the ones you keep stay, storage at a glance, **sharing** with accounts or by link, **real-time co-editing** with live cursors, OpenDocument edited as it is · [more →](https://firsttris.github.io/schreibzeug/files.html) |
 | 🤖 **AI & Kontext** | **MCP server** for Claude Code and other MCP clients, with your rights, asking before it edits a document you have open; **sign in with [Kontext](https://github.com/firsttris/kontext)** and use Schreibzeug as its documents module · [more →](https://firsttris.github.io/schreibzeug/mcp.html) |
 | 🖥️ **Desktop app** | **Windows, macOS and Linux** (Tauri): the files in your documents folder without any server, or a window onto a Schreibzeug server (builds not signed yet) · [more →](https://firsttris.github.io/schreibzeug/desktop.html) |
 
@@ -200,7 +202,7 @@ that shows it (or a small one that reproduces it) and say which program made it.
 ⭐ Like Schreibzeug? A [star on GitHub](https://github.com/firsttris/schreibzeug) helps others find it.<br>
 🐛 [Report a bug](https://github.com/firsttris/schreibzeug/issues/new) · 💡 [Request a feature](https://github.com/firsttris/schreibzeug/issues/new)
 
-<sub>License: <a href="LICENSE">AGPL-3.0</a> · © Tristan Teufel and contributors<br>
+<sub>License: <a href="LICENSE">AGPL-3.0</a> · © Tristan Teufel and contributors · <a href="README.de.md">Deutsche Version</a><br>
 Changed versions you pass on or run for others must offer their source code under the AGPL; a commercial license without these obligations is available via <a href="https://teufel-it.de">teufel-it.de</a>.<br>
 Schreibzeug builds on the open-source Euro-Office engine and is not affiliated with Euro-Office, ONLYOFFICE, Microsoft or Google.</sub>
 

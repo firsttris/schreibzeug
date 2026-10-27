@@ -55,6 +55,7 @@ const configSchema = z.object({
   OIDC_CLIENT_ID: z.string().min(1).optional(),
   OIDC_CLIENT_SECRET: z.string().min(1).optional(),
   OIDC_NAME: z.string().min(1).default("Kontext"),
+  SCHREIBZEUG_VERSIONS: z.enum(["thin", "all"]).default("thin"),
 });
 
 /** Signing in through another service (OpenID Connect), e.g. Kontext. */
@@ -86,6 +87,8 @@ export type Config = {
   embedOrigin: string | undefined;
   /** Absent: email and password only. */
   oidc: OidcConfig | undefined;
+  /** "thin": older versions are thinned out with age (files/thinning.ts); "all": every one stays. */
+  versionPolicy: "thin" | "all";
 };
 
 type ParsedConfig = z.infer<typeof configSchema>;
@@ -128,6 +131,7 @@ export const readConfig = (env: Record<string, string | undefined>) => {
     publicUrl: value.SCHREIBZEUG_URL,
     embedOrigin: value.SCHREIBZEUG_EMBED_ORIGIN && new URL(value.SCHREIBZEUG_EMBED_ORIGIN).origin,
     oidc,
+    versionPolicy: value.SCHREIBZEUG_VERSIONS,
   };
   return { ok: true as const, value: config };
 };

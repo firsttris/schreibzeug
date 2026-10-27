@@ -75,6 +75,7 @@ All settings are environment variables (`apps/server/src/config.ts`); the image 
 | `SCHREIBZEUG_EMBED_ORIGIN` | – | The one site that may show Schreibzeug in a frame ([Kontext](kontext.md)) |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` | – | Sign-in through an OpenID Connect provider, all three together ([Kontext](kontext.md)) |
 | `OIDC_NAME` | `Kontext` | The name on the sign-in button |
+| `SCHREIBZEUG_VERSIONS` | `thin` | `thin`: older versions are thinned out with age, kept ones stay ([versions](files.md#versions)); `all`: every save stays as a version |
 
 ## Behind a reverse proxy
 

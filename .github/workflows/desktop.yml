@@ -5,7 +5,7 @@ name: Desktop app
 # compiled with Bun for each platform by the app's beforeBuildCommand (scripts/sidecar.ts).
 # - Run by hand (Actions → Desktop app → Run workflow): the installers as workflow artifacts.
 # - From release.yml on a version tag: the same, and the artifact "schreibzeug-desktop" with all of
-#   them, which the Docker release attaches to the GitHub release.
+#   them, which release.yml's release job attaches to the GitHub release.
 # The builds are not signed yet: Windows SmartScreen and macOS Gatekeeper warn on the first start.
 on:
   workflow_dispatch:
@@ -88,12 +88,17 @@ jobs:
           key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
           restore-keys: cef-linux-
       # The patched Tauri CLI for Linux (apps/desktop/patches/README.md), built once per version
-      # and patch set. Remove with the patches (issue #12).
+      # and patch set. Remove with the patches (issue #12). The key names the CLI's version, not
+      # the hash of package.json, whose version every release raises. A release runs on its tag,
+      # which reads only its own caches and main's, so ci.yml builds and keeps it on main.
+      - if: matrix.name == 'linux'
+        id: tauri-cli
+        run: echo "key=patched-tauri-cli-$(jq -r '.devDependencies["@tauri-apps/cli"]' apps/desktop/package.json)-${{ hashFiles('apps/desktop/patches/*.patch') }}" >> "$GITHUB_OUTPUT"
       - if: matrix.name == 'linux'
         uses: actions/cache@v4
         with:
           path: apps/desktop/src-tauri/target/patched-cli
-          key: patched-tauri-cli-${{ hashFiles('apps/desktop/package.json', 'apps/desktop/patches/*.patch') }}
+          key: ${{ steps.tauri-cli.outputs.key }}
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:

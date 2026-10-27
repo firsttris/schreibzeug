@@ -4,6 +4,11 @@ name: Release
 # publishes a release: the Docker image (docker/Dockerfile) with the web app, its engine and the
 # server, e.g. for Kontext's deploy/compose.yaml, and the GitHub release with the desktop app's
 # installers attached. The engine's font tool is a Linux x86_64 binary, so the image is for amd64.
+#
+# The image and the installers are built at the same time. The image is published once the checks
+# pass, a few minutes after the tag, without waiting for the installers, which take about a quarter
+# of an hour; the GitHub release follows when both are there. A failed installer build leaves the
+# image published (its code passed the checks) and makes no GitHub release.
 on:
   push:
     tags: ["v*"]
@@ -22,24 +27,37 @@ jobs:
     if: needs.tested.outputs.tested != 'true'
     uses: ./.github/workflows/ci.yml
 
-  # Built while the checks run; nothing is published unless they pass (docker needs both).
+  # Built while the checks run; the GitHub release needs it.
   desktop:
     uses: ./.github/workflows/desktop.yml
     permissions:
       contents: read
 
   docker:
-    needs: [tested, checks, desktop]
-    if: ${{ !cancelled() && needs.tested.result == 'success' && needs.checks.result != 'failure' && needs.desktop.result == 'success' }}
+    needs: [tested, checks]
+    if: ${{ !cancelled() && needs.tested.result == 'success' && needs.checks.result != 'failure' }}
     uses: firsttris/workflows/.github/workflows/docker-release.yml@v1
     with:
       image: tristanteu/schreibzeug
       description: Office files in the browser – documents, spreadsheets, presentations and PDFs, self-hosted
       ghcr: true
       platforms: linux/amd64
-      # The installers of desktop.yml, attached to the GitHub release
-      release-artifact: schreibzeug-desktop
+      # The release job below makes the GitHub release, with the installers.
+      github-release: false
     secrets: inherit
+    # contents: write although it makes no release: a called workflow may not ask for more than its
+    # caller grants, and its github-release job asks for it whether or not it runs.
     permissions:
       contents: write
       packages: write
+
+  # The GitHub release with the installers of desktop.yml, once the image they name is published.
+  release:
+    needs: [docker, desktop]
+    if: ${{ !cancelled() && needs.docker.result == 'success' && needs.desktop.result == 'success' && needs.docker.outputs.version != '' }}
+    uses: firsttris/workflows/.github/workflows/github-release.yml@v1
+    with:
+      release-artifact: schreibzeug-desktop
+      notes: "Docker: `tristanteu/schreibzeug:${{ needs.docker.outputs.version }}` (also `:${{ needs.docker.outputs.prerelease == 'true' && 'next' || 'latest' }}`)"
+    permissions:
+      contents: write

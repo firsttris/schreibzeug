@@ -40,10 +40,13 @@ A release is a button: **Actions → Bump version → Run workflow**, with `patc
 `apps/desktop/src-tauri/Cargo.toml` (with `Cargo.lock`), commits "Release vX.Y.Z" on `main`, tags
 it and starts `release.yml` on the tag. That workflow skips the checks when `main`'s CI already
 passed on the commit before the release commit (so wait for `main`'s CI after a merge, or the
-release runs the checks again), builds the desktop app meanwhile, publishes the Docker image
-and creates the GitHub release with the installers attached. The shared workflows come from
+release runs the checks again) and builds the Docker image and the desktop app at the same time.
+The image is published as soon as the checks pass, a few minutes after the tag, without waiting
+for the installers (about a quarter of an hour); the GitHub release with the installers attached
+follows once both are there. A failed installer build leaves the image published and makes no
+GitHub release. The shared workflows come from
 [firsttris/workflows](https://github.com/firsttris/workflows) (`bump-version.yml`,
-`tested-on-main.yml`, `docker-release.yml`).
+`tested-on-main.yml`, `docker-release.yml`, `github-release.yml`).
 
 | Workflow | What it does |
 |---|---|

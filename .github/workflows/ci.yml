@@ -84,6 +84,20 @@ jobs:
           path: .cef
           key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
           restore-keys: cef-linux-
+      # The patched Tauri CLI the Linux packages are built with (desktop.yml), built here once per
+      # version and patch set so main's cache holds it: a release runs on its tag and can read
+      # main's caches, not those of the last release's tag.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - id: tauri-cli
+        working-directory: .
+        run: echo "key=patched-tauri-cli-$(jq -r '.devDependencies["@tauri-apps/cli"]' apps/desktop/package.json)-${{ hashFiles('apps/desktop/patches/*.patch') }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: apps/desktop/src-tauri/target/patched-cli
+          key: ${{ steps.tauri-cli.outputs.key }}
+      - run: bun ../scripts/tauri.ts --version
       # tauri-build checks that what tauri.conf.json bundles exists: the start page (frontendDist),
       # the local server (externalBin) and the web app (resources). Stand-ins do for these checks.
       - run: |

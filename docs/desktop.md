@@ -148,6 +148,9 @@ three platforms: AppImage, .deb and .rpm; .msi and a setup .exe; a .dmg for Inte
 by hand it keeps them as artifacts; every release (**Actions → Bump version**, see
 [Development](development.md#releases)) builds them too and attaches them to the GitHub release. The
 version comes from `apps/desktop/package.json`, which the bump keeps at the version of the release.
+The .rpm is compressed with zstd at level 3 and the setup .exe with zlib (`tauri.conf.json`)
+instead of the bundler's defaults, zstd at level 19 and LZMA, which took about four minutes each,
+for a somewhat larger file.
 
 ### Patched Tauri CLI
 
@@ -156,7 +159,9 @@ bundler of Tauri 3 alpha copies `libEGL.so` and `libGLESv2.so` from CEF into eve
 and CEF 154 no longer ships them, so every Linux package fails. On Linux,
 `apps/desktop/scripts/tauri.ts` therefore builds the Tauri CLI of the version in `package.json` from
 Tauri's sources with `apps/desktop/patches/*.patch` applied (once, into
-`src-tauri/target/patched-cli/`), and `bun run tauri …`, `desktop:dev` and `desktop:build` use it;
+`src-tauri/target/patched-cli/`), and `bun run tauri …`, `desktop:dev` and `desktop:build` use it
+(CI's `desktop` job builds it on `main`, so a release, which runs on its tag and reads `main`'s
+cache, finds it there instead of spending four minutes on it);
 Windows and macOS use the published CLI. The script stops when a patch no longer applies to a new
 version: then check whether that release fixes it and remove the patch as described in
 `apps/desktop/patches/README.md`.

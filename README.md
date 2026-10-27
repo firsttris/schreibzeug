@@ -1,10 +1,8 @@
 <div align="center">
 
-<h1>Schreibzeug: self-hosted office suite for Word, Excel, PowerPoint and PDF</h1>
+<h1>Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source</h1>
 
-<h3>Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source.</h3>
-
-An alternative to Google Docs and Microsoft 365: in real time, in the browser or as a desktop app.<br>
+The self-hosted Google Docs and Microsoft 365 alternative: in real time, in the browser or as a desktop app.<br>
 AGPL, on the European Euro-Office engine, no document server, no cloud account, no tracking. Made in Europe.
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)

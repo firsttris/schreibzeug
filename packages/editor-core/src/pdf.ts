@@ -1,7 +1,13 @@
 import { commentEvents } from "./comment-state";
 import { type CommentCommands, createCommentCommands } from "./comments";
 import type { MediaFiles } from "./converter";
-import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
+import {
+  EDITOR_FORMAT,
+  type EditorBinding,
+  type OpenedDocument,
+  type OpenOptions,
+  openDocument,
+} from "./document";
 import { beforeOpening, silencePdfScripts } from "./document-scripts";
 import type { EngineWindow } from "./engine-types";
 import { type PdfColor, rgbOf } from "./pdf-color";
@@ -233,7 +239,7 @@ type PdfParts = Pick<PdfEditor, "commands" | "signature" | "pages" | "view" | "c
  * changes into the original (savePdf).
  */
 const pdfBinding: EditorBinding<PdfWindow, PdfEventArgs, PdfEngineApi, PdfState, PdfEvent, PdfParts> = {
-  format: "pdf",
+  format: EDITOR_FORMAT.pdf,
   createApi: (win) =>
     beforeOpening(new win.Asc.PDFEditorApi({ "id-view": "editor_sdk" }), () => silencePdfScripts(win)),
   initialState: initialPdfState,

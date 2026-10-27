@@ -1,7 +1,13 @@
 import { createEngineColor } from "./colors";
 import { createTextCommands, type TextCommands } from "./commands";
 import { type CommentCommands, createCommentCommands } from "./comments";
-import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
+import {
+  EDITOR_FORMAT,
+  type EditorBinding,
+  type OpenedDocument,
+  type OpenOptions,
+  openDocument,
+} from "./document";
 import type { EngineWindow, WordEngineApi, WordEventArgs, WordWindow } from "./engine-types";
 import { stateEvents } from "./events";
 import { createHeaderFooterCommands, type HeaderFooterCommands } from "./header-footer";
@@ -123,7 +129,7 @@ const wordBinding: EditorBinding<
     | "mailMerge"
   >
 > = {
-  format: "docx",
+  format: EDITOR_FORMAT.word,
   createApi: (win) => {
     limitSpellLanguages(win.AscCommon);
     useDedicatedSpellWorker(win);

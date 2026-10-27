@@ -83,7 +83,15 @@ export {
   type SearchState,
 } from "./core-state";
 export { decodeCsv } from "./csv";
-export type { DocumentFormat, DocumentUser, OpenedDocument, OpenOptions, SavedDocument } from "./document";
+export {
+  convertForEngine,
+  type DocumentFormat,
+  type DocumentUser,
+  EDITOR_FORMAT,
+  type OpenedDocument,
+  type OpenOptions,
+  type SavedDocument,
+} from "./document";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
 export type { HeaderFooterCommands, PageNumberPlace } from "./header-footer";

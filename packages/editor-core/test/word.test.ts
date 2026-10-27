@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Convert } from "../src/converter";
 import { hasUnsavedChanges } from "../src/core-state";
+import { convertForEngine } from "../src/document";
 import { openWordDocument } from "../src/word";
 import { createFakeEngine } from "./fake-engine";
 
@@ -141,6 +142,19 @@ describe("openWordDocument", () => {
 
   it("hands the converted bytes to the engine when it asks for the local document", async () => {
     const { engine } = await openReady();
+    const call = engine.api().calls.find(([name]) => name === "asc_openDocumentFromBytes");
+    expect(call?.[1]).toBe(binary);
+  });
+
+  it("takes a conversion started before the frame loaded, and converts nothing again", async () => {
+    const engine = createFakeEngine();
+    const converter = fakeConverter();
+    const converted = convertForEngine({ bytes: docx, convert: converter.convert }, "word");
+    const opening = openWordDocument(engine.window, optionsWith(converter.convert, { converted }));
+    await flush();
+    engine.api().emit("asc_onDocumentContentReady");
+    await opening;
+    expect(converter.conversions).toEqual([{ bytes: docx, from: "docx", to: "bin" }]);
     const call = engine.api().calls.find(([name]) => name === "asc_openDocumentFromBytes");
     expect(call?.[1]).toBe(binary);
   });

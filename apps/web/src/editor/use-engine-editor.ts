@@ -1,6 +1,6 @@
 import {
   type CoreState,
-  createConverter,
+  convertForEngine,
   type EditorKind,
   type EngineWindow,
   mountEngineFrame,
@@ -13,6 +13,7 @@ import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } fr
 import { useUser } from "../account/context";
 import { kindOf } from "../lib/format";
 import { readSpellCheck } from "../settings/spell-check";
+import { ENGINE_PATH, newConverter } from "./engine";
 import type { OpenedFile } from "./opened-file";
 
 export type EngineEditorHandle<E extends OpenedDocument<S>, S extends CoreState> = {
@@ -46,9 +47,21 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
 
     setEditor(null);
     setFailure(null);
-    const converter = createConverter();
+    const converter = newConverter();
     cleanup = converter.terminate;
-    mountEngineFrame(host, { kind })
+    const fileKind = kindOf({ kind: "file", name: file.name });
+    const reading = {
+      // Word's merge fields are complex fields, which the engine does not merge (merge-fields.ts).
+      bytes: fileKind === "docx" ? simplifyMergeFields(file.bytes) : file.bytes,
+      convert: converter.convert,
+      csv: fileKind === "csv",
+      openDocument: ["odt", "ods", "odp"].includes(fileKind),
+    };
+    // The converter and the frame load at once: x2t compiles and converts the file in its worker
+    // while the frame parses sdkjs. A failure shows when the document opens with it.
+    const converted = convertForEngine(reading, kind);
+    converted.catch(() => {});
+    mountEngineFrame(host, { kind, enginePath: ENGINE_PATH })
       .then(async (frame) => {
         cleanup = () => {
           converter.terminate();
@@ -56,21 +69,15 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
         };
         if (cancelled) return cleanup();
         const opened = await open(frame.window, {
-          // Word's merge fields are complex fields, which the engine does not merge (merge-fields.ts).
-          bytes:
-            kindOf({ kind: "file", name: file.name }) === "docx"
-              ? simplifyMergeFields(file.bytes)
-              : file.bytes,
+          ...reading,
+          converted,
           title: file.name,
           user: { id: userId, name: userName },
-          convert: converter.convert,
           renderPdf: converter.renderPdf,
           applyPdfChanges: converter.applyPdfChanges,
           writePdfA: converter.writePdfA,
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
-          csv: kindOf({ kind: "file", name: file.name }) === "csv",
-          openDocument: ["odt", "ods", "odp"].includes(kindOf({ kind: "file", name: file.name })),
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),
         });

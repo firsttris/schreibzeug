@@ -46,7 +46,8 @@ const app = createLocalApp({
   collab: { hub, upgradeWebSocket },
 });
 const site = new Hono().route("/", app).route("/", localMcpRoutes({ api: app, token }));
-if (webDir) site.route("/", webRoutes(webDir));
+// The bytes stay on this computer: compressing them would only cost time.
+if (webDir) site.route("/", webRoutes(webDir, { compress: false }));
 const server = Bun.serve({
   hostname: "127.0.0.1",
   port,

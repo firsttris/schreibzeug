@@ -26,7 +26,13 @@ import {
 import { createEngineColor } from "./colors";
 import { cellCommentEvents, commentEvents } from "./comment-state";
 import { type CommentCommands, createCommentCommands } from "./comments";
-import { type EditorBinding, type OpenedDocument, type OpenOptions, openDocument } from "./document";
+import {
+  EDITOR_FORMAT,
+  type EditorBinding,
+  type OpenedDocument,
+  type OpenOptions,
+  openDocument,
+} from "./document";
 import { withoutCustomFunctions } from "./document-scripts";
 import { CELL_TEXTS } from "./engine-texts";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
@@ -133,7 +139,7 @@ const cellBinding: EditorBinding<
     | "onFilter"
   >
 > = {
-  format: "xlsx",
+  format: EDITOR_FORMAT.cell,
   createApi: (win) => {
     // The same options as web-apps (spreadsheeteditor/mobile Main.jsx), with our formula bar.
     const api = new win.Asc.spreadsheet_api({

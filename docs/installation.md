@@ -113,6 +113,11 @@ of the proxies (`apps/server/src/auth/client-ip.ts`). Without the setting behind
 client counts as the proxy, and all of them share those few tries. When a proxy is in front, publish
 the port only for it (`-p 127.0.0.1:3000:3000`), so nobody reaches the server around it.
 
+The server compresses the app and the editing engine itself (Brotli or gzip) and tells browsers to
+keep the engine for good ([opening fast](engine.md#opening-fast-on-a-phone-too)); the proxy needs no
+compression of its own and must pass `Cache-Control`, `ETag` and `Content-Encoding` on, as Caddy
+and nginx do with the settings above.
+
 `client_max_body_size` matches `SCHREIBZEUG_MAX_UPLOAD_MB` (512 by default); when the files are
 smaller, lower both, e.g. to `100m` and `100`, so the proxy turns away oversized bodies before they
 reach the server.

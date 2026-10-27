@@ -1,4 +1,3 @@
-import { createConverter } from "@schreibzeug/editor-core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { FileOutput } from "lucide-react";
@@ -7,6 +6,7 @@ import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
 import { Button } from "../ui/button";
 import { copyNameFor, legacyPlanOf } from "./convert";
+import { newConverter } from "./engine";
 import { MIME, type OpenedFile } from "./opened-file";
 
 type ConvertPageProps = {
@@ -34,7 +34,7 @@ export const ConvertPage = ({ file, name, onClose }: ConvertPageProps) => {
   const convert = async () => {
     setBusy(true);
     setFailure(null);
-    const converter = createConverter();
+    const converter = newConverter();
     try {
       const converted = await converter.convert(file.bytes, plan.from, plan.to);
       const folder = await queryClient.fetchQuery(queries.folder(parentId));

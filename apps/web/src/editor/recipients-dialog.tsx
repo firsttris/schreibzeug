@@ -1,4 +1,3 @@
-import { createConverter } from "@schreibzeug/editor-core";
 import type { FileNode } from "@schreibzeug/files-api";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Folder, Upload } from "lucide-react";
@@ -8,6 +7,7 @@ import { FileBadge } from "../files/file-badge";
 import { kindOf } from "../lib/format";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
+import { newConverter } from "./engine";
 import { isRecipientTable, type Recipients, recipientsOf, tableOf } from "./mail-merge";
 
 type RecipientsDialogProps = {
@@ -29,7 +29,7 @@ export const RecipientsDialog = ({ open, folderId, onClose, onChoose }: Recipien
 );
 
 const readTable = async (name: string, bytes: Uint8Array) => {
-  const converter = createConverter();
+  const converter = newConverter();
   try {
     return recipientsOf(name, await tableOf(name, bytes, converter.convert));
   } catch (error) {

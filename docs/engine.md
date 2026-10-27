@@ -30,7 +30,8 @@ the result by the hash of the spec, the scripts and the frame pages).
 
 sdkjs resolves its own files relative to the page as `../../../../sdkjs/…` and `../../../../fonts/`
 (`common/libfont/loader.js`, `common/GlobalLoaders.js`, `common/zlib/zlib.js`). The host page
-therefore sits four folders below the engine root: `/engine/frame/editor/<editor>/main/index.html`,
+therefore sits four folders below the engine root: `<engine>/frame/editor/<editor>/main/index.html`
+(`<engine>` is `/engine/<id>` in the build, see [below](#opening-fast-on-a-phone-too)),
 with `word` for text documents, `cell` for spreadsheets, `slide` for presentations and `pdf` for
 PDFs ([PDFs](pdf.md)).
 
@@ -42,6 +43,34 @@ The iframe has its own `Object`, `Array` and so on. sdkjs sometimes checks value
 `instanceof` (`CNumInfo.Parse` takes an object only if `value instanceof Object`), which fails for
 objects made in the app's window. So everything handed to the engine is a primitive, JSON text, or
 an object made with the frame's own constructors (`new win.Asc.asc_CColor(…)`).
+
+### Opening fast, on a phone too
+
+The engine is large: for a text document the browser loads about 68 MB (x2t.wasm 35 MB,
+`word/sdk-all.js` 18 MB, `fonts.wasm`, the fonts the document uses). Four things keep that from
+happening on every open:
+
+- **Kept for good.** The build puts the engine in a folder named after the prepared engine,
+  `/engine/<id>/` (the start of the stamp `engine:prepare` writes to `engine/dist/.version`, a hash
+  of the release, the scripts and the frame pages; `apps/web/engine-plugin.ts`), and the app loads it
+  from there (`import.meta.env.ENGINE_PATH`, `apps/web/src/editor/engine.ts`). A new engine gets a new
+  name, so the server sends the engine and the app's own scripts (`/assets/`, named by their
+  content) with `Cache-Control: immutable` for a year; everything else, `index.html` first, with
+  `no-cache` and an `ETag`, which the browser asks about again and gets 304 while it is unchanged
+  (`apps/server/src/web.ts`). Opening a document a second time downloads nothing of the engine.
+  Dev and preview serve the engine at `/engine/` with or without the name.
+- **Compressed.** The server compresses what shrinks (scripts, JSON, WebAssembly, the engine's
+  fonts) with Brotli where the browser takes it, else gzip, once per file, and keeps the result in
+  memory (`apps/server/src/compression.ts`): about 15 MB instead of 68 on the first open. Brotli at
+  quality 5: x2t.wasm takes about a second, quality 11 would take two minutes. The desktop app's
+  local server sends files as they are; they never leave the computer.
+- **At the same time.** The file is converted while the frame loads: `convertForEngine` starts x2t
+  as soon as the editor mounts, so x2t downloads, compiles and converts in its worker while the
+  frame parses sdkjs, and the editor's open function takes the result as `converted`.
+- **Compiled while it downloads.** The worker hands x2t.wasm to emscripten through
+  `instantiateWasm` with `WebAssembly.instantiateStreaming` (`engine/frame/x2t/worker.js`, the hook
+  in x2t.js `createWasm`), not as bytes (`wasmBinary`): it compiles while it arrives, and Chromium
+  keeps the compiled code beside the cached file, so the next open does not compile 35 MB again.
 
 ### Code in documents does not run
 

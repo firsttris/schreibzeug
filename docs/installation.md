@@ -24,7 +24,7 @@ needs it.
 
 The server in the image runs as the unprivileged user `bun` (uid 1000) and writes only `/data`.
 
-Until the first release, build the image from the repository:
+The image is published with every [release](https://github.com/firsttris/schreibzeug/releases), for amd64. To build it yourself from the repository:
 
 ```bash
 git clone https://github.com/firsttris/schreibzeug && cd schreibzeug

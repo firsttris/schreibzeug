@@ -111,3 +111,23 @@ test("a presentation keeps its slide list under the slide and its notes hidden",
     "false",
   );
 });
+
+test("the menus stay on a phone's screen", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await signUp(page, credentialsFor(testInfo));
+  await page.goto("/");
+  await upload(page, helloDocx, "hello.docx");
+  await page.getByRole("link", { name: "hello.docx", exact: true }).click();
+  await expectEditorReady(page, errors);
+
+  await page.getByRole("button", { name: "Werkzeuge" }).click();
+  const menus = await page.getByRole("menubar").getByRole("button").allTextContents();
+  const offScreen: string[] = [];
+  for (const name of menus) {
+    await page.getByRole("menubar").getByRole("button", { name, exact: true }).click();
+    const box = await page.getByRole("menu", { name }).boundingBox();
+    if (!box || box.x < 0 || box.x + box.width > PHONE_WIDTH) offScreen.push(name);
+    await page.keyboard.press("Escape");
+  }
+  expect(offScreen).toEqual([]);
+});

@@ -1,8 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { type MenuItem, MenuList } from "./menu";
 import { popoverPanel } from "./use-popover";
 
 export type Menu = { label: string; groups: MenuItem[][] };
+
+/** Space kept between an open menu and the window's edge. */
+const EDGE = 8;
+
+/** How far a panel moves left so it ends inside the window (a menu far right on a phone). */
+export const shiftIntoView = (left: number, width: number, windowWidth: number): number =>
+  Math.min(0, Math.max(EDGE - left, windowWidth - EDGE - (left + width)));
+
+/** A menu's panel under its button, moved left where it would run past the window's edge. */
+const MenuPanel = ({ menu, onDone }: { menu: Menu; onDone: () => void }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shift, setShift] = useState(0);
+  useLayoutEffect(() => {
+    const panel = ref.current?.getBoundingClientRect();
+    // The page's own width: on a phone the window grows with a menu that sticks out.
+    if (panel) setShift(shiftIntoView(panel.left, panel.width, document.documentElement.clientWidth));
+  }, []);
+  return (
+    <div ref={ref} className={`${popoverPanel} top-8 z-20`} style={{ transform: `translateX(${shift}px)` }}>
+      <MenuList label={menu.label} groups={menu.groups} onDone={onDone} />
+    </div>
+  );
+};
 
 /**
  * A row of menus as in a desktop office suite: a click opens one, moving to a neighbour while one is
@@ -46,11 +69,7 @@ export const MenuBar = ({ label, menus }: { label: string; menus: Menu[] }) => {
           >
             {menu.label}
           </button>
-          {open === menu.label && (
-            <div className={`${popoverPanel} top-8 z-20`}>
-              <MenuList label={menu.label} groups={menu.groups} onDone={() => setOpen(null)} />
-            </div>
-          )}
+          {open === menu.label && <MenuPanel menu={menu} onDone={() => setOpen(null)} />}
         </div>
       ))}
     </div>

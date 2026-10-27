@@ -175,7 +175,8 @@ XRechnung wird gelesen und angezeigt, aber noch nicht erstellt. Siehe [E-Rechnun
 Die ganze Dokumentation (Englisch), mit Suche, steht unter **[firsttris.github.io/schreibzeug](https://firsttris.github.io/schreibzeug/)**:
 jede Funktion im Detail, [Installation](https://firsttris.github.io/schreibzeug/installation.html), [Konten und Teilen](https://firsttris.github.io/schreibzeug/accounts.html),
 [gemeinsames Bearbeiten](https://firsttris.github.io/schreibzeug/collaboration.html), [die Engine](https://firsttris.github.io/schreibzeug/engine.html) und
-[Entwicklung](https://firsttris.github.io/schreibzeug/development.html).
+[Entwicklung](https://firsttris.github.io/schreibzeug/development.html). Was sich in jedem Release geändert hat, mit den Schritten,
+die ein Update braucht: das [Changelog](CHANGELOG.md) (Englisch).
 
 ## 🛠️ Entwicklung
 

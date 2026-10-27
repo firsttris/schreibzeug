@@ -173,7 +173,8 @@ ZUGFeRD yes: an invoice written in the text editor becomes a ZUGFeRD PDF/A-3 wit
 The full documentation, with search, is at **[firsttris.github.io/schreibzeug](https://firsttris.github.io/schreibzeug/)**: every feature
 in detail, [installation](https://firsttris.github.io/schreibzeug/installation.html), [accounts and sharing](https://firsttris.github.io/schreibzeug/accounts.html),
 [collaboration](https://firsttris.github.io/schreibzeug/collaboration.html), [the engine](https://firsttris.github.io/schreibzeug/engine.html) and
-[development](https://firsttris.github.io/schreibzeug/development.html).
+[development](https://firsttris.github.io/schreibzeug/development.html). What changed in each release, with the steps an
+update needs: the [changelog](CHANGELOG.md).
 
 ## 🛠️ Development
 

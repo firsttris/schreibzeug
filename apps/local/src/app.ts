@@ -8,6 +8,7 @@ import {
   SESSION_GONE,
   SESSION_SAVE_HEADER,
   type ServerInfo,
+  type Storage,
   sessionSaveOf,
   updateNodeSchema,
 } from "@schreibzeug/files-api";
@@ -16,6 +17,7 @@ import type { AuthEnv } from "@schreibzeug/server/auth/middleware";
 import type { BlobStore } from "@schreibzeug/server/blobs";
 import type { Hub } from "@schreibzeug/server/collab/hub";
 import { collabRoutes } from "@schreibzeug/server/collab/routes";
+import type { Disk } from "@schreibzeug/server/disk";
 import { imageTypeOf, mediaNameOf, parseMediaName } from "@schreibzeug/server/files/media";
 import { contentDisposition } from "@schreibzeug/server/files/serialize";
 import { fail, type Result, statusOf } from "@schreibzeug/server/result";
@@ -40,6 +42,8 @@ export type LocalDeps = {
   /** Images added while editing; they are part of the file once it is saved. */
   media: BlobStore;
   maxUploadBytes: number;
+  /** The room left on the drive of the folder (server disk.ts). */
+  disk: () => Promise<Disk | null>;
   collab?: { hub: Hub; upgradeWebSocket: UpgradeWebSocket };
   log?: (message: string, error: unknown) => void;
 };
@@ -95,6 +99,7 @@ export const createLocalApp = ({
   token,
   media,
   maxUploadBytes,
+  disk,
   collab,
   log = console.error,
 }: LocalDeps) => {
@@ -152,6 +157,10 @@ export const createLocalApp = ({
       .get("/trash", (c) => c.json([]))
       .get("/shared", (c) => c.json([]))
       .get("/recent", async (c) => c.json(await folder.recent()))
+      // No versions or trash of our own to count; the drive is what can run full.
+      .get("/storage", async (c) =>
+        c.json({ usage: null, disk: await disk(), uploadLimit: maxUploadBytes } satisfies Storage),
+      )
       .post("/folders", validate("json", createFolderSchema), async (c) => {
         const { parentId, name } = c.req.valid("json");
         return respond(c, await folder.createFolder(parentId, name), 201);

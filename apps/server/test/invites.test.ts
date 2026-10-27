@@ -124,6 +124,7 @@ describe("sign-up with a link", () => {
         db: fresh.db,
         blobs: createBlobStore(fresh.dataDir),
         maxUploadBytes: 1024,
+        disk: async () => null,
       });
       const signUp = (name: string, token?: string) =>
         app.request("/api/auth/sign-up/email", {

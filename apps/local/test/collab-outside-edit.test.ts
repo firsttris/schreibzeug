@@ -35,6 +35,7 @@ const start = async () => {
     token: TOKEN,
     media: createBlobStore(join(base, "media")),
     maxUploadBytes: 64 * 1024,
+    disk: async () => null,
     log: () => {},
     collab: { hub, upgradeWebSocket },
   });

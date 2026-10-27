@@ -20,6 +20,7 @@ import { z } from "zod";
 import { type AuthEnv, refuseReadToken } from "../auth/middleware";
 import type { BlobStore } from "../blobs";
 import type { Database } from "../db/database";
+import type { Disk } from "../disk";
 import { fail, ok, type Result, statusOf } from "../result";
 import * as invites from "./invites";
 import { hasMedia, imageTypeOf, mediaNameOf, parseMediaName, recordMedia } from "./media";
@@ -34,11 +35,14 @@ import {
   toSharedNode,
 } from "./serialize";
 import * as shares from "./shares";
+import { usageOf } from "./storage";
 
 export type FilesDeps = {
   db: Database;
   blobs: BlobStore;
   maxUploadBytes: number;
+  /** The room left on the drive of the data folder (disk.ts). */
+  disk: () => Promise<Disk | null>;
   /** Shares may wait for an address without an account (a sign-in provider confirms addresses). */
   pendingShares?: boolean;
   /** The collaboration relay, told of saves from its sessions (collab/hub.ts). */
@@ -110,6 +114,7 @@ export const filesRoutes = ({
   db,
   blobs,
   maxUploadBytes,
+  disk,
   pendingShares = false,
   relay,
   onAccessChange = () => {},
@@ -175,6 +180,9 @@ export const filesRoutes = ({
       )
       .get("/trash", async (c) => c.json(repository.listTrash(db, userOf(c)).map(toFileNode)))
       .get("/recent", async (c) => c.json(repository.listRecent(db, userOf(c)).map(toFileNode)))
+      .get("/storage", async (c) =>
+        c.json({ usage: usageOf(db, userOf(c)), disk: await disk(), uploadLimit: maxUploadBytes }),
+      )
       .get("/search", validate("query", searchQuery), (c) =>
         c.json(repository.searchNodes(db, userOf(c), c.req.valid("query").q).map(toFileNode)),
       )

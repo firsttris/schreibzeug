@@ -7,6 +7,7 @@ import { createAuth } from "../src/auth/auth";
 import type { Bearer } from "../src/auth/bearer";
 import { createBlobStore } from "../src/blobs";
 import { connect, type Database, migrateDatabase } from "../src/db/database";
+import { diskSpace } from "../src/disk";
 import { mcpRoutes } from "../src/mcp";
 import { openSockets } from "../src/sockets";
 
@@ -60,6 +61,7 @@ export const startServer = async ({
     db: connection.db,
     blobs: createBlobStore(join(dataDir, "blobs")),
     maxUploadBytes: MAX_UPLOAD_BYTES,
+    disk: diskSpace(dataDir),
     pendingShares,
     ...(collab ? { collab } : {}),
     ...(trustedOrigins ? { trustedOrigins } : {}),

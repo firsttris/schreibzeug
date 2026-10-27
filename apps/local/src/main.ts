@@ -1,6 +1,7 @@
 import { mkdir, stat } from "node:fs/promises";
 import { createBlobStore } from "@schreibzeug/server/blobs";
 import { createHub } from "@schreibzeug/server/collab/hub";
+import { diskSpace } from "@schreibzeug/server/disk";
 import { webRoutes } from "@schreibzeug/server/web";
 import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
@@ -43,6 +44,7 @@ const app = createLocalApp({
   token,
   media: createBlobStore(cacheDir),
   maxUploadBytes,
+  disk: diskSpace(root),
   collab: { hub, upgradeWebSocket },
 });
 const site = new Hono().route("/", app).route("/", localMcpRoutes({ api: app, token }));

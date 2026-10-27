@@ -278,3 +278,28 @@ export type CreateAccessToken = z.infer<typeof createAccessTokenSchema>;
 export type CreatedAccessToken = z.infer<typeof createdAccessTokenSchema>;
 export type ApiErrorKind = z.infer<typeof apiErrorKindSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>["error"];
+
+const bytes = z.number().int().nonnegative();
+
+/**
+ * How much room there is (`GET /api/storage`). `usage`: what the user's own files take, as the sum
+ * of their versions' sizes; the blob store keeps equal bytes once, so the disk may hold less. Absent
+ * for files on this computer, which have no versions or trash of their own. `disk`: the drive the
+ * data lies on, the same for every account; null when the system does not say.
+ */
+export const storageSchema = z.object({
+  usage: z
+    .object({
+      /** The newest version of every file outside the trash. */
+      files: bytes,
+      /** The older versions of those files: every save keeps one. */
+      versions: bytes,
+      /** Every version of what lies in the trash. */
+      trash: bytes,
+    })
+    .nullable(),
+  disk: z.object({ free: bytes, total: bytes }).nullable(),
+  /** The largest file the server takes; less free room than this and a save may fail. */
+  uploadLimit: bytes,
+});
+export type Storage = z.infer<typeof storageSchema>;

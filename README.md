@@ -4,9 +4,8 @@
 
 <h3>Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source.</h3>
 
-**An open-source alternative to Google Docs and Microsoft 365 that runs on your own server.**<br>
-In real time, in the browser or as a desktop app.<br>
-Open source (AGPL) on the European Euro-Office engine, no document server, no cloud account, no tracking. Made in Europe.
+An alternative to Google Docs and Microsoft 365: in real time, in the browser or as a desktop app.<br>
+AGPL, on the European Euro-Office engine, no document server, no cloud account, no tracking. Made in Europe.
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)

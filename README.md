@@ -47,6 +47,8 @@ the office programs of 2010. Schreibzeug is one small server with a modern inter
 - **Browser, desktop and AI assistants**: the same editors in the browser and as a desktop app for
   Windows, macOS and Linux that works offline; Claude Code and other MCP clients work in your
   files with your rights.
+- **On the phone too**: a text document flows in the width of the screen at a size to read, with
+  the menus and the toolbar one tap away.
 
 Runs on any Linux server or VPS with Docker or Podman (amd64), on a home server, or without any
 server as the desktop app on your computer.

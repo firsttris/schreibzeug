@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import { collectErrors, credentialsFor, expectEditorReady, signUp, upload } from "./app";
@@ -38,4 +39,46 @@ test("files and the editor fit a phone's screen", async ({ page }, testInfo) => 
   await expect(page.getByRole("button", { name: "Teilen", exact: true })).toBeInViewport();
   await expect(page.getByRole("toolbar", { name: "Formatierung" })).toBeInViewport();
   await expectFitsTheScreen(page);
+});
+
+/** Whether the engine shows the mobile view (word/Drawing/HtmlPage.js IsReaderMode); tests only. */
+const inMobileView = async (page: Page): Promise<boolean> => {
+  const frame = await (await page.getByTestId("engine-frame").elementHandle())?.contentFrame();
+  if (!frame) throw new Error("No engine frame.");
+  return frame.evaluate(
+    () =>
+      (
+        window as unknown as { editor?: { WordControl: { IsReaderMode(): boolean } } }
+      ).editor?.WordControl.IsReaderMode() ?? false,
+  );
+};
+
+/** "Als PDF herunterladen", without what changes from one PDF to the next (its time and id). */
+const downloadPdf = async (page: Page): Promise<string> => {
+  await page.getByRole("menubar").getByRole("button", { name: "Datei", exact: true }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("menuitem", { name: "Als PDF herunterladen" }).click();
+  const pdf = (await readFile((await (await download).path()) as string)).toString("latin1");
+  return pdf.replace(/\/(CreationDate|ModDate) *\([^)]*\)|\/ID *\[[^\]]*\]|<xmp:\w+Date>[^<]*/g, "");
+};
+
+test("a text document opens in the mobile view and its PDF keeps the pages", async ({ page }, testInfo) => {
+  const errors = collectErrors(page);
+  await signUp(page, credentialsFor(testInfo));
+  await page.goto("/");
+  await upload(page, helloDocx, "hello.docx");
+  await page.getByRole("link", { name: "hello.docx", exact: true }).click();
+  await expectEditorReady(page, errors);
+  await expect.poll(() => inMobileView(page)).toBe(true);
+
+  // The PDF is drawn from the pages, not from the screen's width: the same as with the pages shown.
+  await page.getByRole("button", { name: "Werkzeuge" }).click();
+  const fromMobileView = await downloadPdf(page);
+  expect(await inMobileView(page)).toBe(true);
+
+  // "Ansicht" switches back to the pages.
+  await page.getByRole("menubar").getByRole("button", { name: "Ansicht", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Mobilansicht" }).click();
+  await expect.poll(() => inMobileView(page)).toBe(false);
+  expect(fromMobileView).toEqual(await downloadPdf(page));
 });

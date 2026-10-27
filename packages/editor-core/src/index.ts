@@ -189,3 +189,4 @@ export {
 export { type OpenWordOptions, openWordDocument, type WordEditor } from "./word";
 export type { InsertCommands, SectionBreak } from "./word-insert";
 export type { MailMergeCommands } from "./word-mail-merge";
+export type { MobileViewCommands } from "./word-mobile-view";

@@ -44,6 +44,8 @@ export type WordMenuContext = {
   onInsertImage: (() => void) | null;
   commentsOpen: boolean;
   onToggleComments: () => void;
+  /** The text in the width of the screen instead of pages (use-mobile-view.ts). */
+  mobileView: { on: boolean; toggle: () => void };
   onFind: (mode: "find" | "replace") => void;
   /** Says something in the editor's notice line. */
   onNotice: (message: string) => void;
@@ -95,7 +97,10 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
       label: "Ansicht",
       groups: [
         ...zoomGroups(view, document.zoom),
-        [{ label: "Kommentare", checked: context.commentsOpen, onSelect: context.onToggleComments }],
+        [
+          { label: "Mobilansicht", checked: context.mobileView.on, onSelect: context.mobileView.toggle },
+          { label: "Kommentare", checked: context.commentsOpen, onSelect: context.onToggleComments },
+        ],
       ],
     },
     {

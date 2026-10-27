@@ -157,7 +157,7 @@ needs nothing of its own for it and an own template stays as it is.
 The image `tristanteu/schreibzeug` (`docker/Dockerfile`) has the server and the built web app with
 its engine, with the data in `/data` (`SCHREIBZEUG_WEB_DIR=/app/web`, port 3000). **Actions →
 Release** publishes it on Docker Hub and as `ghcr.io/firsttris/schreibzeug` when a `v*` tag is
-pushed; until the first one, build it with `docker build -f docker/Dockerfile .`
+pushed; to build it yourself, `docker build -f docker/Dockerfile .`
 ([installation](installation.md)).
 
 `bun run server` starts it with reload; it applies the migrations in `apps/server/drizzle` on

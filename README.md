@@ -2,13 +2,21 @@
 
 <h1>Schreibzeug: self-hosted office suite for Word, Excel, PowerPoint and PDF</h1>
 
+<h3>Word, Excel and PowerPoint together in the browser – without Microsoft, without Google, without a document server.<br>
+One container on your server, and every file stays a real .docx, .xlsx or .pptx.</h3>
+
 **An open-source alternative to Google Docs and Microsoft 365 that runs on your own server.**<br>
 Edit documents, spreadsheets, presentations and PDFs together in real time, in the browser or as a desktop app.<br>
-Your files stay real .docx, .xlsx and .pptx files, with no document server, no cloud account and no tracking.
+Open source (AGPL) on the European Euro-Office engine, no cloud account, no tracking, no per-user price. Made in Europe.
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)
+[![Docker Pulls](https://img.shields.io/docker/pulls/tristanteu/schreibzeug?logo=docker&logoColor=white)](https://hub.docker.com/r/tristanteu/schreibzeug)
+[![Image Size](https://img.shields.io/docker/image-size/tristanteu/schreibzeug/latest?logo=docker&logoColor=white&label=image)](https://hub.docker.com/r/tristanteu/schreibzeug)
 [![Docs](https://img.shields.io/badge/docs-firsttris.github.io%2Fschreibzeug-4f46e5?logo=materialformkdocs&logoColor=white)](https://firsttris.github.io/schreibzeug/)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
+[![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
 ```bash
@@ -59,13 +67,7 @@ docker run -d --name schreibzeug -p 3000:3000 -v schreibzeug-data:/data tristant
 
 Open http://localhost:3000 and create the first account; it becomes the owner of the installation.
 More accounts are created through invitation links, or by anyone when `SCHREIBZEUG_OPEN_SIGNUP=true`.
-Behind a domain, set `SCHREIBZEUG_URL=https://office.example.org`. The image is published with
-each release; until the first one, build it yourself from this repository:
-
-```bash
-git clone https://github.com/firsttris/schreibzeug && cd schreibzeug
-docker build -f docker/Dockerfile -t tristanteu/schreibzeug .
-```
+Behind a domain, set `SCHREIBZEUG_URL=https://office.example.org`.
 
 Settings, reverse proxy, backups and updates are in the [installation guide](https://firsttris.github.io/schreibzeug/installation.html).
 The desktop app is described under [Desktop app](https://firsttris.github.io/schreibzeug/desktop.html); its installers for Windows, macOS and Linux are attached to every [release](https://github.com/firsttris/schreibzeug/releases).
@@ -163,6 +165,10 @@ interface that feels like today's web apps, on their own server.
 ### Is there a self-hosted alternative to Google Docs and Microsoft 365?
 Yes. Schreibzeug runs on your own server with Docker and edits Word, Excel, PowerPoint and PDF
 files in the browser, several people at once. See the [installation guide](https://firsttris.github.io/schreibzeug/installation.html).
+
+### What does it cost?
+Nothing per user: the software is free (AGPL) and runs in one container on a server you already have
+or a small VPS. Ten people cost the same as one.
 
 ### Does it need an ONLYOFFICE Document Server or Nextcloud?
 No. The Euro-Office engine runs in the browser and the Schreibzeug server stores the files and

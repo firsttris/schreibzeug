@@ -270,8 +270,12 @@ export const createFakeEngine = (): FakeEngine => {
           m_oLogicDocument: {
             Get_MailMergedDocument: () => null,
             FieldsManager: { GetAllFieldsByType: () => [] },
+            RecalculateAllAtOnce: record(calls, "RecalculateAllAtOnce"),
           },
+          IsReaderMode: () => false,
         },
+        ChangeReaderMode: record(calls, "ChangeReaderMode"),
+        asc_SetViewRulers: record(calls, "asc_SetViewRulers"),
         asc_StartMailMergeByList: record(calls, "asc_StartMailMergeByList"),
         asc_GetReceptionsCount: () => 0,
         asc_AddMailMergeField: record(calls, "asc_AddMailMergeField"),

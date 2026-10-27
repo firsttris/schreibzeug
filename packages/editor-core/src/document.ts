@@ -47,6 +47,11 @@ export type OpenOptions = {
   openDocument?: boolean;
   /** Red underlines for misspelled words (spelling.ts); on unless switched off. */
   spellCheck?: boolean;
+  /**
+   * A phone's screen: the presentation's slide list goes under the slide and its notes start
+   * hidden, as in web-apps' mobile editor (presentationeditor/mobile Main.jsx).
+   */
+  phone?: boolean;
   /** "view" opens the document read-only: for someone it is shared with to look at. */
   mode?: "edit" | "view";
   /** How long to wait until the document is shown, in milliseconds. */
@@ -179,7 +184,7 @@ export type EditorBinding<
   /** The format of the files this editor opens. */
   format: DocumentFormat;
   /** The editor's API object, created in the frame (word/api.js, cell/api.js, slide/api.js). */
-  createApi: (win: W) => Api;
+  createApi: (win: W, options: OpenOptions) => Api;
   initialState: S;
   /** The editor's own events; the shared ones go through reduceCore. */
   reduce: (state: S, event: E) => S;
@@ -188,7 +193,7 @@ export type EditorBinding<
   /** Callbacks and commands of this editor: its part of the opened document. */
   setup: (context: KindContext<W, Api, S, E>) => Parts;
   /** What the editor sets once the document is shown (spell check, zoom, …). */
-  contentReady: (api: Api, win: W, opened: { shared: boolean; spellCheck: boolean }) => void;
+  contentReady: (api: Api, win: W, opened: { shared: boolean; spellCheck: boolean; phone: boolean }) => void;
   resize: (api: Api) => void;
   /** Marks the current state as saved in the engine, where the editor can. */
   markUnchanged: (api: Api) => void;
@@ -421,7 +426,7 @@ export const openDocument = <
     );
 
     const start = ({ bytes: binary, media }: Converted) => {
-      const api = binding.createApi(win);
+      const api = binding.createApi(win, options);
       const urls = win.AscCommon.g_oDocumentUrls;
       provideMedia(urls, media, (image) => win.URL.createObjectURL(new win.Blob([image as BlobPart])));
       // The document with the images it holds: those it came with and those added since, by
@@ -500,6 +505,7 @@ export const openDocument = <
         binding.contentReady(api, win, {
           shared: Boolean(options.collaboration),
           spellCheck: options.spellCheck !== false && options.mode !== "view",
+          phone: options.phone === true,
         });
         settle(() => {
           dispatch({ type: "ready" });

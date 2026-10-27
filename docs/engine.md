@@ -280,8 +280,21 @@ The editor's title row carries a menu bar as in a desktop office suite (`apps/we
 own menus between them (`src/editor/word-menus.ts`), built from the state and the commands above.
 The entries follow the desktop editors of web-apps (`documenteditor/main` `Toolbar.js`,
 `DocumentHolder.js`); the shortcuts shown are the engine's own (`word/Editor/Shortcuts.js`). On a phone
-the menus wrap onto more lines and the buttons on the right move under them, showing only their
-icons (`e2e/phone.spec.ts`).
+the document gets the room: the header is one row (back, name, the save state as an icon, the
+editor's own buttons, "Werkzeuge" and "Speichern"), and the menus, the file's buttons and the
+toolbar show only after a tap on "Werkzeuge" (`src/editor/editor-header.tsx`, `e2e/phone.spec.ts`).
+Inside Kontext, Kontext leaves out its tab bar under an open file.
+
+A text document opens on a phone in the engine's mobile view, as web-apps' mobile editor opens
+it (`documenteditor/mobile` `Main.jsx`, "mobile-view"): `ChangeReaderMode` lays the text out in
+the width of the screen at a size to read, still editable, without rulers
+(`packages/editor-core/src/word-mobile-view.ts`, `apps/web/src/editor/use-mobile-view.ts`). It is a
+layout only (`word/Editor/Layout/ReadView.js`, set without history), so the saved .docx stays as
+it is. The PDF and printing need the pages: for them the engine goes back to the pages, lays them
+out at once (`RecalculateAllAtOnce`, as `asc_Print` does) and returns to the mobile view. "Ansicht →
+Mobilansicht" switches it on any screen. A presentation on a phone has its slide list under the slide
+(`thumbnails-position: bottom`) and its notes hidden until "Ansicht → Notizen", as web-apps'
+mobile presentation editor has it (`presentationeditor/mobile` `Main.jsx`).
 
 A right click in the document makes the engine send `asc_onContextMenu` with a `CContextMenuData`
 (`word/api.js` `sync_ContextMenuCallback`): the point relative to its view element and whether it

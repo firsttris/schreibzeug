@@ -39,6 +39,7 @@ import {
 } from "./view";
 import { createInsertCommands, type InsertCommands } from "./word-insert";
 import { createMailMergeCommands, type MailMergeCommands } from "./word-mail-merge";
+import { createMobileViewCommands, type MobileViewCommands, onPages } from "./word-mobile-view";
 
 export type OpenWordOptions = OpenOptions;
 
@@ -60,6 +61,8 @@ export type WordEditor = OpenedDocument<EditorState> & {
   onLinkOpen: (listener: (url: string) => void) => () => void;
   comments: CommentCommands;
   view: ViewCommands;
+  /** The text in the width of a phone's screen instead of pages (word-mobile-view.ts). */
+  mobileView: MobileViewCommands;
   search: SearchCommands;
   /** Someone right-clicked in the document; the listener shows the menu. Returns the unsubscribe. */
   onContextMenu: (listener: ContextMenuListener) => () => void;
@@ -124,6 +127,7 @@ const wordBinding: EditorBinding<
     | "onLinkOpen"
     | "comments"
     | "view"
+    | "mobileView"
     | "search"
     | "onContextMenu"
     | "mailMerge"
@@ -202,6 +206,7 @@ const wordBinding: EditorBinding<
     });
     return {
       view: createViewCommands(api),
+      mobileView: createMobileViewCommands(api),
       search: createSearchCommands(
         api,
         () => new win.AscCommon.CSearchSettings(),
@@ -264,7 +269,7 @@ const wordBinding: EditorBinding<
   // word/api.js: marks the current state as saved and sends asc_onDocumentModifiedChanged.
   markUnchanged: (api) => api.SetUnchangedDocument(),
   // As word/api.js `_downloadAs` for a PDF to print: all pages, printed look (no marks).
-  printCommands: (api) => api.WordControl.m_oDrawingDocument.ToRendererPart(true, true),
+  printCommands: (api) => onPages(api, () => api.WordControl.m_oDrawingDocument.ToRendererPart(true, true)),
 };
 
 /** Opens a .docx in the text engine of a frame mounted with kind "word" (see document.ts). */

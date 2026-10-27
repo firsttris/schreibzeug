@@ -18,6 +18,13 @@ to versions saved before the update. To keep every version as before, set
 `SCHREIBZEUG_VERSIONS=all` before you start the new image. The database gets a new column at
 start (`apps/server/drizzle/0005_kept_versions.sql`).
 
+## 0.1.8 – 2026-10-27
+
+- On a phone the editor gives the document the room: the header is one row (back, name, save
+  state, the editor's buttons, "Werkzeuge" and "Speichern"); menus, file buttons and toolbar show
+  after a tap on "Werkzeuge". Text documents open in the engine's mobile view, so text is no
+  longer shrunk to fit the page.
+
 ## 0.1.7 – 2026-10-27
 
 - Storage at a glance: a bar at the foot of the navigation shows how full the server's drive is,

@@ -66,7 +66,8 @@ export const followScreenReader = (
   // It matches the key code of the layout (common/apiBase.js Shortcuts.Get(e.KeyCode, …)), so on
   // a German keyboard the Z key has code "KeyY" but keyCode 90.
   const onKeyUp = (event: KeyboardEvent) => {
-    if (event.keyCode === Z_KEY_CODE || event.code === "KeyZ") dispatch({ type: "screenReader", value: isRunning(win) });
+    if (event.keyCode === Z_KEY_CODE || event.code === "KeyZ")
+      dispatch({ type: "screenReader", value: isRunning(win) });
   };
   win.addEventListener("keyup", onKeyUp, true);
   return {

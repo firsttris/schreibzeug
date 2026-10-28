@@ -168,10 +168,10 @@ XRechnung wird gelesen und angezeigt, aber noch nicht erstellt. Siehe [E-Rechnun
 
 ## 📚 Dokumentation
 
-Ein Rundgang in Bildern, gemacht zum Weiterschicken an Kunden: **[Schreibzeug entdecken](https://firsttris.github.io/schreibzeug/entdecken.html)**.
+Die Dokumentation beginnt mit einem Rundgang in Bildern, gemacht zum Weiterschicken an Kunden: **[auf Deutsch](https://firsttris.github.io/schreibzeug/de/)** und **[auf Englisch](https://firsttris.github.io/schreibzeug/)**.
 
 Die ganze Dokumentation (Englisch), mit Suche, steht unter **[firsttris.github.io/schreibzeug](https://firsttris.github.io/schreibzeug/)**:
-jede Funktion im Detail, [Installation](https://firsttris.github.io/schreibzeug/installation.html), [Konten und Teilen](https://firsttris.github.io/schreibzeug/accounts.html),
+[jede Funktion im Detail](https://firsttris.github.io/schreibzeug/overview.html), [Installation](https://firsttris.github.io/schreibzeug/installation.html), [Konten und Teilen](https://firsttris.github.io/schreibzeug/accounts.html),
 [gemeinsames Bearbeiten](https://firsttris.github.io/schreibzeug/collaboration.html), [die Engine](https://firsttris.github.io/schreibzeug/engine.html) und
 [Entwicklung](https://firsttris.github.io/schreibzeug/development.html). Was sich in jedem Release geändert hat, mit den Schritten,
 die ein Update braucht: das [Changelog](CHANGELOG.md) (Englisch).

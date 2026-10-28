@@ -77,7 +77,7 @@ GitHub release. The shared workflows come from
 | `release.yml` | On a tag `vX.Y.Z`: the checks (unless `main` ran them), the desktop app, the Docker image (`docker/Dockerfile`, amd64) and the GitHub release |
 | `desktop.yml` | **Actions → Desktop app** builds the desktop app for Windows, macOS and Linux, unsigned for now; also part of every release |
 | `screenshots.yml` | **Actions → Update screenshots** takes the README and documentation pictures and the format-fidelity references |
-| `docs.yml` | Publishes this documentation on GitHub Pages when `docs/` changes on `main` |
+| `docs.yml` | Publishes this documentation on GitHub Pages when `docs/` changes on `main`: English at `/`, German at `/de/` (mkdocs-static-i18n). A page is translated by a file next to it (`index.de.md` for `index.md`); without one the German site shows the English text. The start page is the tour in pictures, `overview.md` the overview |
 
 ## Stack
 

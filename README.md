@@ -211,6 +211,11 @@ A React SPA with TanStack Router and Query, Tailwind and shadcn-style components
 `sdkjs` as the editing engine; a Bun server with Hono, Drizzle and SQLite; Tauri 3 (alpha) for the desktop
 app. Checks, tests and architecture: [Development](https://firsttris.github.io/schreibzeug/development.html).
 
+## 🧩 More from us
+
+- Looking for a replacement for Gmail or Google Workspace? **[Kontext](https://github.com/firsttris/kontext)**: mail, calendar, contacts, chat and calls for your team, on your own server.
+- Doing your own books in Germany? **[Haben](https://github.com/firsttris/haben)**: invoices with e-invoicing, receipts, bank reconciliation and VAT returns via ELSTER.
+
 ## 🤝 Contributing
 
 Issues and pull requests are welcome. For a rendering or compatibility bug, please attach a file

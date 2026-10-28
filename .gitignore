@@ -21,3 +21,6 @@ e2e/.kontext/
 # Server data (database and blobs) in development
 apps/server/data/
 site/
+
+# The settings of a deployment (deploy/.env for Compose)
+deploy/.env

@@ -19,10 +19,6 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
-```bash
-docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
-```
-
 [Warum](#-warum-schreibzeug) •
 [Installation](#-installation) •
 [Funktionen](#-funktionen) •
@@ -67,16 +63,30 @@ ohne Server als Desktop-App für Windows, macOS und Linux.
 
 ## 🚀 Installation
 
+Auf einem Server mit Docker (oder Podman), einer Domain, die auf ihn zeigt, und offenen Ports 80
+und 443:
+
 ```bash
-docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
+# Die Konfiguration (compose.yaml, .env.example, Caddyfile); die Programme kommen von Docker Hub
+git clone https://github.com/firsttris/schreibzeug /opt/schreibzeug && cd /opt/schreibzeug
+cp deploy/.env.example deploy/.env
+nano deploy/.env                                          # Domain, Mail für Let's Encrypt, Version
+docker compose -f deploy/compose.yaml up -d schreibzeug   # lädt Schreibzeug und startet es, vorerst nur auf dem Server selbst
 ```
 
-http://localhost:3000 öffnen und das erste Konto anlegen. Auf einem Server kommt ein Reverse Proxy
-mit HTTPS davor ([Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html)). Weitere Konten
-entstehen über Einladungslinks oder, mit `SCHREIBZEUG_OPEN_SIGNUP=true`, durch jeden. Hinter einer
-Domain `SCHREIBZEUG_URL=https://office.example.org` setzen.
+Danach:
 
-Einstellungen, Reverse Proxy, Backups und Updates stehen in der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html) (Englisch).
+1. Das erste Konto über einen SSH-Tunnel anlegen (`ssh -L 3000:127.0.0.1:3000 <server>`, dann
+   http://localhost:3000), bevor jemand anderes den Server erreicht.
+2. Caddy dazu starten, der das HTTPS-Zertifikat holt: `docker compose -f deploy/compose.yaml up -d`.
+3. `https://<deine Domain>` öffnen. Weitere Konten entstehen über Freigabe-Links oder, mit
+   `SCHREIBZEUG_OPEN_SIGNUP=true` in `deploy/.env`, durch jeden.
+
+Mit [Kontext](https://github.com/firsttris/kontext) braucht Schreibzeug keine eigene Installation:
+Es kommt mit Kontext als dessen Dokumente. Nur auf dem eigenen Rechner ausprobieren:
+`docker run -d -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug`, dann
+http://localhost:3000. Einstellungen, ein eigener Reverse Proxy, Backups und Updates stehen in der
+[Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html) (Englisch).
 Die Desktop-App beschreibt [Desktop-App](https://firsttris.github.io/schreibzeug/desktop.html); ihre Installer für Windows, macOS und Linux hängen an jedem [Release](https://github.com/firsttris/schreibzeug/releases).
 
 ## ✨ Funktionen

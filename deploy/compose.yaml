@@ -1,0 +1,57 @@
+# Schreibzeug on a server of its own: the Schreibzeug server and Caddy (HTTPS, Let's Encrypt).
+# With Kontext this is not needed: Kontext's deploy/compose.yaml brings Schreibzeug as its
+# "documents". Works with Docker Compose and Podman Compose (docs/installation.md).
+#
+#   cp deploy/.env.example deploy/.env   # domain, mail for Let's Encrypt, version
+#   docker compose -f deploy/compose.yaml up -d
+name: schreibzeug
+
+services:
+  schreibzeug:
+    image: docker.io/tristanteu/schreibzeug:${SCHREIBZEUG_VERSION:?SCHREIBZEUG_VERSION in deploy/.env}
+    restart: unless-stopped
+    # Only on the server itself, for the first account through an SSH tunnel (docs/installation.md);
+    # everyone else comes through Caddy.
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      SCHREIBZEUG_URL: https://${SCHREIBZEUG_DOMAIN:?SCHREIBZEUG_DOMAIN in deploy/.env}
+      # Caddy and only Caddy (its fixed address below), so sign-ins count per client
+      # (apps/server/src/auth/client-ip.ts). Not the whole network: the tunnel on port 3000 comes
+      # in from its gateway, which is no proxy.
+      SCHREIBZEUG_TRUSTED_PROXIES: 10.89.251.10
+      SCHREIBZEUG_OPEN_SIGNUP: ${SCHREIBZEUG_OPEN_SIGNUP:-false}
+    volumes:
+      - schreibzeug-data:/data
+
+  caddy:
+    image: docker.io/library/caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on: [schreibzeug]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SCHREIBZEUG_DOMAIN: ${SCHREIBZEUG_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      default:
+        ipv4_address: 10.89.251.10
+
+volumes:
+  schreibzeug-data:
+  caddy-data:
+  caddy-config:
+
+# A fixed subnet, so Caddy has a fixed address the server can name as its proxy
+# (SCHREIBZEUG_TRUSTED_PROXIES above).
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.89.251.0/24

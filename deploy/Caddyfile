@@ -1,0 +1,22 @@
+# Schreibzeug on https://$SCHREIBZEUG_DOMAIN: Caddy gets the certificate and passes everything,
+# WebSockets included (editing, jobs for an open document), to the server.
+{
+	email {$ACME_EMAIL}
+}
+
+{$SCHREIBZEUG_DOMAIN} {
+	reverse_proxy schreibzeug:3000 {
+		# Only the address Caddy saw counts; a client can't name another one.
+		header_up X-Forwarded-For {remote_host}
+		header_up -Forwarded
+		header_up -X-Real-IP
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+}

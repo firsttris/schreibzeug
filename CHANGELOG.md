@@ -7,6 +7,11 @@ installers: the [releases](https://github.com/firsttris/schreibzeug/releases). H
 
 ## Unreleased
 
+- **Installing with Docker Compose**: `deploy/` holds `compose.yaml` (Schreibzeug and Caddy for
+  HTTPS), `.env.example` and the `Caddyfile`; `git clone`, fill in `deploy/.env`, `docker compose
+  up -d`, as with Kontext
+  ([installation](https://firsttris.github.io/schreibzeug/installation.html#with-docker-compose)).
+  A server started with `docker run` keeps working as before.
 - **Versions are thinned out with age**: every version of the last day stays, then the newest per
   hour up to 30 days, per day up to a year, per week after that. "Version behalten" in the
   versions dialog keeps a version for good, and the newest always stays

@@ -2,8 +2,8 @@
 
 <h1>Schreibzeug: Word, Excel, PowerPoint und PDF gemeinsam bearbeiten – selbst gehostet und Open Source</h1>
 
-Die selbst gehostete Alternative zu Google Docs und Microsoft 365: in Echtzeit, im Browser oder als Desktop-App.<br>
-AGPL, auf der europäischen Engine Euro-Office, ohne Dokumentenserver, ohne Cloud-Konto, ohne Tracking. Made in Europe.
+Die selbst gehostete Alternative zu Google Docs und Microsoft 365: gemeinsam in Echtzeit, im Browser oder als Desktop-App.<br>
+Open Source, ohne Dokumentenserver und ohne Tracking. Made in Europe.
 
 [English](README.md) · **Deutsch**
 
@@ -14,7 +14,7 @@ AGPL, auf der europäischen Engine Euro-Office, ohne Dokumentenserver, ohne Clou
 [![Docs](https://img.shields.io/badge/docs-firsttris.github.io%2Fschreibzeug-4f46e5?logo=materialformkdocs&logoColor=white)](https://firsttris.github.io/schreibzeug/)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
-[![DSGVO](https://img.shields.io/badge/DSGVO-Dateien%20auf%20deinem%20Server-15803d)](#-deine-dateien-bleiben-in-europa--mit-ki)
+[![DSGVO](https://img.shields.io/badge/DSGVO-Dateien%20auf%20deinem%20Server-15803d)](#-warum-schreibzeug)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
@@ -22,7 +22,6 @@ AGPL, auf der europäischen Engine Euro-Office, ohne Dokumentenserver, ohne Clou
 docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-[Datenschutz](#-deine-dateien-bleiben-in-europa--mit-ki) •
 [Warum](#-warum-schreibzeug) •
 [Installation](#-installation) •
 [Funktionen](#-funktionen) •
@@ -38,13 +37,6 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 
 </div>
 
-## 🇪🇺 Deine Dateien bleiben in Europa – mit KI
-
-- **DSGVO**: Dokumente liegen auf deinem Server oder mit der Desktop-App auf deinem eigenen Rechner. Der Editor läuft in deinem Browser: keine US-Cloud, kein fremder Dokumentenserver, keine Telemetrie.
-- **E-Rechnungen**: ZUGFeRD / Factur-X (EN 16931) aus einem Rechnungsdokument, E-Rechnungen in PDFs werden gelesen und angezeigt – für die E-Rechnungspflicht.
-- **KI nach deinen Regeln**: Claude Code und andere MCP-Clients arbeiten mit deinen Rechten über einen persönlichen Zugangsschlüssel, auf Wunsch „Nur lesen“; Änderungen an einem Dokument, das in der App offen ist, brauchen deine Zustimmung und lassen sich rückgängig machen.
-- **Kein Lock-in**: Eine .docx bleibt eine .docx, eine .odt bleibt eine .odt.
-
 ## 💡 Warum Schreibzeug?
 
 Google Docs und Microsoft 365 halten deine Dokumente in fremder Cloud und kosten pro Benutzer.
@@ -52,20 +44,25 @@ Selbst gehostete Office-Pakete brauchen meist einen eigenen Dokumentenserver neb
 sehen aus wie die Office-Programme von 2010. Schreibzeug ist ein kleiner Server mit einer modernen
 Oberfläche.
 
-- **Echte Office-Dateien**: Dokumente werden als .docx, .xlsx und .pptx gespeichert (und .odt, .ods,
-  .odp als sie selbst), nie in ein eigenes Format umgewandelt. Word, Excel und LibreOffice öffnen sie wie vorher.
-- **Ausgereifte Kompatibilität**: Die Engine ist Euro-Office (der Open-Source-Fork von ONLYOFFICE),
-  so kommen Tabellen, Änderungsverfolgung, Kommentare, Diagramme und Pivot-Tabellen heil an.
-- **Gemeinsam in Echtzeit ohne Dokumentenserver**: Mehrere Leute bearbeiten dieselbe Datei, mit
-  Cursorn und Kommentaren live; der Editor läuft im Browser, der Server reicht nur die Änderungen weiter.
-- **Dein Server, deine Daten**: ein Container mit einer SQLite-Datenbank und einem Datenordner; wer
-  den Ordner sichert, sichert alles. Kein Tracking, keine Telemetrie.
-- **Browser, Desktop und KI-Assistenten**: dieselben Editoren im Browser und als Desktop-App für
-  Windows, macOS und Linux, die mit den Dateien auf deinem Rechner offline arbeitet; Claude Code und
-  andere MCP-Clients arbeiten mit deinen Rechten in deinen Dateien.
+- **Deine Dateien bleiben bei dir (DSGVO)**: Dokumente liegen auf deinem Server oder mit der
+  Desktop-App auf deinem eigenen Rechner. Keine US-Cloud, kein fremder Dokumentenserver, keine
+  Telemetrie.
+- **Echte Office-Dateien**: Eine .docx bleibt eine .docx, eine .xlsx eine .xlsx, eine .odt eine
+  .odt – Word, Excel und LibreOffice öffnen sie wie vorher.
+- **Ausgereifte Kompatibilität**: Die Engine ist Euro-Office, der europäische Open-Source-Fork von
+  ONLYOFFICE; Tabellen, Änderungsverfolgung, Kommentare, Diagramme und Pivot-Tabellen kommen heil an.
+- **Gemeinsam in Echtzeit**: Mehrere Leute in derselben Datei, mit Cursorn und Kommentaren live,
+  ohne Dokumentenserver.
+- **E-Rechnungen**: ZUGFeRD-Rechnungen direkt aus einem Rechnungsdokument, E-Rechnungen in PDFs
+  werden gelesen und angezeigt.
+- **KI, wenn du willst**: Claude Code und andere Assistenten finden, lesen und schreiben deine
+  Dateien mit deinen Rechten; Änderungen an einem offenen Dokument brauchen deine Zustimmung und
+  lassen sich rückgängig machen.
+- **Einfach zu betreiben**: ein Container mit einer SQLite-Datenbank und einem Datenordner; wer den
+  Ordner sichert, sichert alles.
 
 Läuft auf jedem Linux-Server oder VPS mit Docker oder Podman (amd64), auf einem Heimserver oder ganz
-ohne Server als Desktop-App auf deinem Rechner.
+ohne Server als Desktop-App für Windows, macOS und Linux.
 
 ## 🚀 Installation
 
@@ -73,8 +70,8 @@ ohne Server als Desktop-App auf deinem Rechner.
 docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-http://localhost:3000 öffnen und das erste Konto anlegen (auf einem Server über einen SSH-Tunnel; der
-Port bleibt auf 127.0.0.1, damit unverschlüsseltes HTTP nie ins Internet geht). Weitere Konten
+http://localhost:3000 öffnen und das erste Konto anlegen. Auf einem Server kommt ein Reverse Proxy
+mit HTTPS davor ([Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html)). Weitere Konten
 entstehen über Einladungslinks oder, mit `SCHREIBZEUG_OPEN_SIGNUP=true`, durch jeden. Hinter einer
 Domain `SCHREIBZEUG_URL=https://office.example.org` setzen.
 
@@ -85,12 +82,12 @@ Die Desktop-App beschreibt [Desktop-App](https://firsttris.github.io/schreibzeug
 
 | | |
 |---|---|
-| 📝 **Dokumente** (.docx) | Formatvorlagen, Schriften, Listen, Tabellen, Bilder, Seitenlayout, **Kopf- und Fußzeilen, Inhaltsverzeichnis und Fußnoten**, **Kommentare und Änderungsverfolgung**, Rechtschreibprüfung auf Deutsch und Englisch, Vorlagen, **Serienbrief**, **E-Rechnungen** (ZUGFeRD), Export als PDF und PDF/A · [mehr →](https://firsttris.github.io/schreibzeug/engine.html#mail-merge) |
+| 📝 **Dokumente** (.docx) | **Kommentare und Änderungsverfolgung**, Kopf- und Fußzeilen und Inhaltsverzeichnis, Rechtschreibprüfung auf Deutsch und Englisch, Vorlagen, **Serienbrief**, **E-Rechnungen** (ZUGFeRD), PDF und PDF/A · [mehr →](https://firsttris.github.io/schreibzeug/engine.html#mail-merge) |
 | 📊 **Tabellen** (.xlsx) | Formeln, Zahlenformate, Sortieren und Filter, fixierte Zeilen, **Diagramme**, **Pivot-Tabellen**, Auswahllisten, bedingte Formatierung, CSV · [mehr →](https://firsttris.github.io/schreibzeug/engine.html#spreadsheets) |
 | 📽️ **Präsentationen** (.pptx) | Folienlayouts, Formen, Designs, Übergänge, Sprechernotizen und eine **Bildschirmpräsentation** · [mehr →](https://firsttris.github.io/schreibzeug/engine.html#presentations) |
-| 📄 **PDFs** | **Formulare ausfüllen und unterschreiben**, von Hand oder **digital** mit deinem Zertifikat (PKCS#12, keine qualifizierte Signatur), Notizen, Markieren, **Schwärzen** (ältere Versionen behalten das Original: eine frische Kopie teilen), Seiten drehen, einfügen und entfernen, **Texterkennung (OCR)** für Scans, die E-Rechnung in einem ZUGFeRD-PDF · [mehr →](https://firsttris.github.io/schreibzeug/pdf.html) |
+| 📄 **PDFs** | **Formulare ausfüllen und unterschreiben**, von Hand oder **digital** mit deinem Zertifikat (nicht qualifiziert), Notizen und Markieren, **Schwärzen**, Seiten einfügen und entfernen, **Texterkennung (OCR)** für Scans · [mehr →](https://firsttris.github.io/schreibzeug/pdf.html) |
 | 🗒️ **Markdown & Text** (.md, .txt) | Eine **Live-Ansicht**, in der der Text Markdown bleibt, oder Quelle und Vorschau nebeneinander; Zeichenkodierung und Zeilenenden bleiben Byte für Byte · [mehr →](https://firsttris.github.io/schreibzeug/text.html) |
-| 📁 **Dateien & Teamarbeit** | Dateiansicht mit Ordnern, Hochladen, zuletzt geöffneten Dateien und Papierkorb, **Versionen**, mit dem Alter ausgedünnt, behaltene bleiben, Speicherplatz auf einen Blick, **Teilen** mit Konten oder per Link, **gemeinsam in Echtzeit** mit Cursorn, OpenDocument bleibt, wie es ist · [mehr →](https://firsttris.github.io/schreibzeug/files.html) |
+| 📁 **Dateien & Teamarbeit** | Ordner, Hochladen, zuletzt geöffnete Dateien und Papierkorb, **Versionen** zum Zurückholen, **Teilen** mit Konten oder per Link, **gemeinsam in Echtzeit** mit Cursorn · [mehr →](https://firsttris.github.io/schreibzeug/files.html) |
 | 🤖 **KI & Kontext** | **MCP-Server** für Claude Code und andere MCP-Clients, mit deinen Rechten und mit Rückfrage, bevor er ein offenes Dokument ändert; **Anmeldung über [Kontext](https://github.com/firsttris/kontext)** und Schreibzeug als dessen Dokumente-Modul · [mehr →](https://firsttris.github.io/schreibzeug/mcp.html) |
 | 🖥️ **Desktop-App** | **Windows, macOS und Linux** (Tauri): die Dateien in deinem Dokumente-Ordner ganz ohne Server, oder ein Fenster auf einen Schreibzeug-Server (noch nicht signiert) · [mehr →](https://firsttris.github.io/schreibzeug/desktop.html) |
 

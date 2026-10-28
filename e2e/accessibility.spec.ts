@@ -195,3 +195,18 @@ test("the toolbar is one stop for Tab, with the arrow keys inside", async ({ pag
   await page.keyboard.press("Tab");
   await expect(toolbar.locator("button:focus")).toHaveCount(0);
 });
+
+test("F6 reaches the toolbar after everything typed was undone", async ({ page }, testInfo) => {
+  await openOwnFolder(page, testInfo);
+  const errors = collectErrors(page);
+  await createDocument(page, "Rueckgaengig");
+  await expectEditorReady(page, errors);
+  await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+  const undo = page.getByRole("toolbar").getByRole("button", { name: "Rückgängig", exact: true });
+  await page.keyboard.type("a");
+  await expect(undo).toBeEnabled();
+  await page.keyboard.press("Control+KeyZ");
+  await expect(undo).toBeDisabled();
+  await page.keyboard.press("Shift+F6");
+  await expect(page.getByRole("toolbar").locator("button:focus")).toHaveCount(1);
+});

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { attachRovingToolbar } from "../ui/roving-toolbar";
 import { moveRegion } from "./regions";
 
 const page = () => {
@@ -41,5 +42,26 @@ describe("moveRegion", () => {
     expect(document.activeElement?.textContent).toBe("Kursiv");
     moveRegion(document, 1, focusDocument, () => false);
     expect(inDocument()).toBe(1);
+  });
+});
+
+describe("moveRegion with a roving toolbar", () => {
+  it("reaches the toolbar after its stop for Tab turned disabled", async () => {
+    document.body.innerHTML = `
+      <div role="toolbar"><button>Rückgängig</button><button>Fett</button></div>`;
+    const bar = document.querySelector<HTMLElement>('[role="toolbar"]');
+    const undo = bar?.querySelector("button");
+    if (!bar || !undo) throw new Error("no toolbar");
+    attachRovingToolbar(bar);
+    // Typing makes "Rückgängig" usable and the toolbar's stop; undoing everything disables it again.
+    undo.disabled = true;
+    await Promise.resolve();
+    moveRegion(
+      document,
+      -1,
+      () => {},
+      () => true,
+    );
+    expect(document.activeElement?.textContent).toBe("Fett");
   });
 });

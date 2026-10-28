@@ -176,6 +176,21 @@ ZUGFeRD ja: Eine Rechnung aus dem Texteditor wird ein ZUGFeRD-PDF/A-3 mit Factur
 XRechnung wird gelesen und angezeigt, aber noch nicht erstellt. Siehe [E-Rechnungen](https://firsttris.github.io/schreibzeug/e-invoice.html).
 </details>
 
+<details>
+<summary><b>Kann eine KI das für mich aufsetzen?</b></summary>
+
+Ja. Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und SSH-Zugang zu deinem
+Server und sag: „Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
+</details>
+
+<details>
+<summary><b>Ist das sicher?</b></summary>
+
+Prüf es selbst, der Code ist offen: Lass deinen KI-Agenten Cloudflares [Security Audit Skill](https://github.com/cloudflare/security-audit-skill) oder
+`/security-review` von Claude Code über dieses Repository laufen.
+Sicherheitslücken meldest du vertraulich, wie in [SECURITY.md](SECURITY.md) beschrieben.
+</details>
+
 ## 📚 Dokumentation
 
 Die Dokumentation beginnt mit einem Rundgang in Bildern, gemacht zum Weiterschicken an Kunden: **[auf Deutsch](https://firsttris.github.io/schreibzeug/de/)** und **[auf Englisch](https://firsttris.github.io/schreibzeug/)**.

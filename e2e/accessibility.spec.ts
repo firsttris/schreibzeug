@@ -64,6 +64,25 @@ test("the menu bar works with the arrow keys", async ({ page }, testInfo) => {
   await expect(bar.getByRole("menuitem", { name: "Datei", exact: true })).toBeFocused();
 });
 
+test("left and right in a menu opened with the keyboard switch to the neighbouring menu", async ({
+  page,
+}, testInfo) => {
+  await openOwnFolder(page, testInfo);
+  const errors = collectErrors(page);
+  await createDocument(page, "Nachbarmenü");
+  await expectEditorReady(page, errors);
+  const bar = page.getByRole("menubar");
+  await bar.getByRole("menuitem", { name: "Hilfe", exact: true }).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menu", { name: "Hilfe" }).getByRole("menuitem").first()).toBeFocused();
+  // ARIA menu bar pattern: right in an open menu opens the next one (around to "Datei").
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("menu", { name: "Hilfe" })).toHaveCount(0);
+  await expect(page.getByRole("menu", { name: "Datei" }).getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByRole("menu", { name: "Hilfe" }).getByRole("menuitem").first()).toBeFocused();
+});
+
 test("the screen reader support reads the document out, in German, and is remembered", async ({
   page,
 }, testInfo) => {

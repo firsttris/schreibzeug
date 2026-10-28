@@ -6,6 +6,8 @@ It uses the Euro-Office engine (the open-source fork of ONLYOFFICE) without a do
 it keeps your files as what they are: .docx, .xlsx, .pptx, .odt, .ods, .odp and .pdf, and Markdown
 notes and text files (.md, .txt).
 
+A tour in pictures for customers and colleagues, in German: [Schreibzeug entdecken](entdecken.md).
+
 ![The Schreibzeug editor with a Word document open, toolbar above the page](screenshots/editor-light.png)
 
 ## Start here

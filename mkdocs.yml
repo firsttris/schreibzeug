@@ -21,6 +21,7 @@ use_directory_urls: false
 
 nav:
   - Overview: index.md
+  - Entdecken (Deutsch): entdecken.md
   - Running it:
       - Installation: installation.md
       - Accounts and sharing: accounts.md
@@ -40,6 +41,8 @@ nav:
 
 theme:
   name: material
+  # Link previews for pages with an image (overrides/main.html)
+  custom_dir: overrides
   language: en
   icon:
     repo: fontawesome/brands/github
@@ -64,8 +67,13 @@ theme:
     - search.highlight
     - content.code.copy
 
+extra_css:
+  - assets/entdecken.css
+
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - tables
   - toc:
       permalink: true

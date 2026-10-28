@@ -5,6 +5,8 @@ import {
   type TextEditorState,
   type TextViewMode,
 } from "@schreibzeug/text-editor";
+import { keys } from "../lib/keys";
+import { m } from "../paraglide/messages";
 import { BLOCK_LABELS, MARKS, PREFIXES, VIEW_MODES } from "../toolbar/text-toolbar";
 import type { Menu } from "../ui/menu-bar";
 import type { Shortcut } from "./help-dialogs";
@@ -26,33 +28,49 @@ export type TextMenuContext = {
 
 const HEADINGS: BlockKind[] = ["paragraph", "h1", "h2", "h3"];
 
-const VIEW_MENU_LABEL: Record<TextViewMode, string> = {
-  live: "Live-Vorschau",
-  split: "Quelltext und Vorschau",
-  source: "Nur Quelltext",
+const VIEW_MENU_LABEL: Record<TextViewMode, () => string> = {
+  live: m.text_menus_view_live,
+  split: m.text_menus_view_split,
+  source: m.text_menus_view_source,
 };
 
 /** Bearbeiten, Ansicht, Einfügen and Format of a text file; a plain text file has only Bearbeiten. */
 export const textMenus = (context: TextMenuContext): Menu[] => {
   const { state, markdown, readOnly, run } = context;
   const edit: Menu = {
-    label: "Bearbeiten",
+    label: m.common_edit(),
     groups: [
       readOnly
         ? []
         : [
-            { label: "Rückgängig", shortcut: "Strg+Z", disabled: !state.canUndo, onSelect: context.onUndo },
-            { label: "Wiederholen", shortcut: "Strg+Y", disabled: !state.canRedo, onSelect: context.onRedo },
+            {
+              label: m.common_undo(),
+              shortcut: keys("Ctrl+Z"),
+              disabled: !state.canUndo,
+              onSelect: context.onUndo,
+            },
+            {
+              label: m.common_redo(),
+              shortcut: keys("Ctrl+Y"),
+              disabled: !state.canRedo,
+              onSelect: context.onRedo,
+            },
           ],
-      [{ label: readOnly ? "Suchen" : "Suchen und ersetzen", shortcut: "Strg+F", onSelect: context.onFind }],
+      [
+        {
+          label: readOnly ? m.common_find() : m.text_menus_find_replace(),
+          shortcut: keys("Ctrl+F"),
+          onSelect: context.onFind,
+        },
+      ],
     ],
   };
   if (!markdown) return [edit];
   const view: Menu = {
-    label: "Ansicht",
+    label: m.common_view(),
     groups: [
       VIEW_MODES.map(({ mode }) => ({
-        label: VIEW_MENU_LABEL[mode],
+        label: VIEW_MENU_LABEL[mode](),
         checked: context.mode === mode,
         onSelect: () => context.onMode(mode),
       })),
@@ -60,17 +78,17 @@ export const textMenus = (context: TextMenuContext): Menu[] => {
   };
   if (readOnly) return [edit, view];
   const insert: Menu = {
-    label: "Einfügen",
+    label: m.common_insert(),
     groups: [
       [
-        { label: "Link …", onSelect: context.onLink },
-        { label: "Tabelle …", onSelect: context.onTable },
-        { label: "Trennlinie", onSelect: () => run(TEXT_COMMANDS.rule) },
+        { label: m.text_menus_link(), onSelect: context.onLink },
+        { label: m.text_menus_table(), onSelect: context.onTable },
+        { label: m.text_menus_rule(), onSelect: () => run(TEXT_COMMANDS.rule) },
       ],
     ],
   };
   const format: Menu = {
-    label: "Format",
+    label: m.common_format(),
     groups: [
       MARKS.map(({ mark, label, shortcut }) => ({
         label,
@@ -91,13 +109,13 @@ export const textMenus = (context: TextMenuContext): Menu[] => {
 
 /** Keys of the text editor (CodeMirror's default keymap and editor.ts). */
 export const TEXT_SHORTCUTS: Shortcut[] = [
-  { keys: "Strg+Z", label: "Rückgängig" },
-  { keys: "Strg+Y / Strg+Umschalt+Z", label: "Wiederholen" },
-  { keys: "Strg+X / C / V", label: "Ausschneiden, Kopieren, Einfügen" },
-  { keys: "Strg+A", label: "Alles auswählen" },
-  { keys: "Strg+F", label: "Suchen und ersetzen" },
-  { keys: "Strg+S", label: "Speichern" },
-  { keys: "Strg+B", label: "Fett (Markdown)" },
-  { keys: "Strg+I", label: "Kursiv (Markdown)" },
-  { keys: "Tab / Umschalt+Tab", label: "Einrücken, Ausrücken" },
+  { keys: keys("Ctrl+Z"), label: m.common_undo() },
+  { keys: keys("Ctrl+Y / Ctrl+Shift+Z"), label: m.common_redo() },
+  { keys: keys("Ctrl+X / C / V"), label: m.text_menus_shortcut_clipboard() },
+  { keys: keys("Ctrl+A"), label: m.common_select_all() },
+  { keys: keys("Ctrl+F"), label: m.text_menus_find_replace() },
+  { keys: keys("Ctrl+S"), label: m.common_save() },
+  { keys: keys("Ctrl+B"), label: m.text_menus_shortcut_bold() },
+  { keys: keys("Ctrl+I"), label: m.text_menus_shortcut_italic() },
+  { keys: keys("Tab / Shift+Tab"), label: m.text_menus_shortcut_indent() },
 ];

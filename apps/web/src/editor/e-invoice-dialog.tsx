@@ -1,5 +1,6 @@
 import { draftProblems, type InvoiceDraft, totalsOf } from "@schreibzeug/einvoice/draft";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import {
@@ -29,7 +30,7 @@ export type EInvoiceDialogProps = {
  * then a PDF/A-3 with the Factur-X XML. What the XML says comes from here, not from the page.
  */
 export const EInvoiceDialog = ({ start, onClose, onCreate }: EInvoiceDialogProps) => (
-  <Dialog open={start !== null} title="Als E-Rechnung (ZUGFeRD)" large onClose={onClose}>
+  <Dialog open={start !== null} title={m.e_invoice_dialog_title()} large onClose={onClose}>
     {start && <EInvoiceForm start={start} onClose={onClose} onCreate={onCreate} />}
   </Dialog>
 );
@@ -42,35 +43,45 @@ const PartyFields = ({
   onChange: (patch: Partial<PartyForm>) => void;
 }) => (
   <div className="grid grid-cols-6 gap-2">
-    <Field className="col-span-6" label="Name" value={party.name} onChange={(name) => onChange({ name })} />
     <Field
       className="col-span-6"
-      label="Straße"
+      label={m.e_invoice_dialog_name()}
+      value={party.name}
+      onChange={(name) => onChange({ name })}
+    />
+    <Field
+      className="col-span-6"
+      label={m.e_invoice_dialog_street()}
       value={party.street}
       onChange={(street) => onChange({ street })}
     />
     <Field
       className="col-span-2"
-      label="PLZ"
+      label={m.e_invoice_dialog_postcode()}
       value={party.postcode}
       onChange={(postcode) => onChange({ postcode })}
     />
-    <Field className="col-span-3" label="Ort" value={party.city} onChange={(city) => onChange({ city })} />
+    <Field
+      className="col-span-3"
+      label={m.e_invoice_dialog_city()}
+      value={party.city}
+      onChange={(city) => onChange({ city })}
+    />
     <Field
       className="col-span-1"
-      label="Land"
+      label={m.e_invoice_dialog_country()}
       value={party.country}
       onChange={(country) => onChange({ country })}
     />
     <Field
       className="col-span-3"
-      label="USt-IdNr."
+      label={m.e_invoice_dialog_vat_id()}
       value={party.vatId}
       onChange={(vatId) => onChange({ vatId })}
     />
     <Field
       className="col-span-3"
-      label="E-Mail"
+      label={m.e_invoice_dialog_email()}
       type="email"
       value={party.email}
       onChange={(email) => onChange({ email })}
@@ -112,81 +123,77 @@ const EInvoiceForm = ({
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">
-        Aus dem Dokument entsteht ein PDF/A-3 mit den Rechnungsdaten als Factur-X-XML (ZUGFeRD, Profil EN
-        16931), wie es Buchhaltungsprogramme lesen. Die Daten unten stammen aus dem Dokument; bitte prüfen und
-        ergänzen. In die XML kommt, was hier steht.
-      </p>
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.e_invoice_dialog_intro()}</p>
 
-      <Section title="Rechnung">
+      <Section title={m.e_invoice_dialog_invoice()}>
         <div className="grid grid-cols-6 gap-2">
           <Field
             className="col-span-2"
-            label="Rechnungsnummer"
+            label={m.e_invoice_dialog_number()}
             value={form.number}
             onChange={(number) => set({ number })}
           />
           <Field
             className="col-span-2"
-            label="Rechnungsdatum"
+            label={m.e_invoice_dialog_issue_date()}
             type="date"
             value={form.issueDate}
             onChange={(issueDate) => set({ issueDate })}
           />
           <Field
             className="col-span-2"
-            label="Fällig am"
+            label={m.e_invoice_dialog_due_date()}
             type="date"
             value={form.dueDate}
             onChange={(dueDate) => set({ dueDate })}
           />
           <Field
             className="col-span-2"
-            label="Leistung vom"
+            label={m.e_invoice_dialog_service_from()}
             type="date"
             value={form.serviceFrom}
             onChange={(serviceFrom) => set({ serviceFrom })}
           />
           <Field
             className="col-span-2"
-            label="Leistung bis"
+            label={m.e_invoice_dialog_service_to()}
             type="date"
             value={form.serviceTo}
             onChange={(serviceTo) => set({ serviceTo })}
           />
           <label className="col-span-2 flex flex-col gap-1 text-xs">
-            <span className="text-[var(--muted-foreground)]">Umsatzsteuer</span>
+            <span className="text-[var(--muted-foreground)]">{m.e_invoice_dialog_vat()}</span>
             <select
               className={inputClass}
               value={form.taxMode}
               onChange={(event) => set({ taxMode: event.target.value as InvoiceForm["taxMode"] })}
             >
-              <option value="regular">mit Umsatzsteuer</option>
-              <option value="small-business">Kleinunternehmer (§ 19 UStG)</option>
+              <option value="regular">{m.e_invoice_dialog_with_vat()}</option>
+              <option value="small-business">{m.e_invoice_dialog_small_business()}</option>
             </select>
           </label>
         </div>
       </Section>
 
       <div className="grid gap-5 md:grid-cols-2">
-        <Section title="Rechnungssteller">
+        <Section title={m.e_invoice_dialog_seller()}>
           <PartyFields party={form.seller} onChange={setSeller} />
           <div className="grid grid-cols-6 gap-2">
             <Field
               className="col-span-3"
-              label="Steuernummer"
+              label={m.e_invoice_dialog_tax_number()}
               value={form.seller.taxNumber}
               onChange={(taxNumber) => setSeller({ taxNumber })}
             />
             <Field
               className="col-span-3"
-              label="BIC"
+              label={m.e_invoice_dialog_bic()}
               value={form.seller.bic}
               onChange={(bic) => setSeller({ bic })}
             />
             <Field
               className="col-span-6"
-              label="IBAN"
+              label={m.e_invoice_dialog_iban()}
               value={form.seller.iban}
               onChange={(iban) => setSeller({ iban })}
             />
@@ -197,20 +204,20 @@ const EInvoiceForm = ({
               checked={remember}
               onChange={(event) => setRemember(event.target.checked)}
             />
-            In diesem Browser für die nächste Rechnung merken
+            {m.e_invoice_dialog_remember()}
           </label>
         </Section>
-        <Section title="Empfänger">
+        <Section title={m.e_invoice_dialog_buyer()}>
           <PartyFields party={form.buyer} onChange={setBuyer} />
           <Field
-            label="Leitweg-ID oder Bestellnummer"
+            label={m.e_invoice_dialog_buyer_reference()}
             value={form.buyerReference}
             onChange={(buyerReference) => set({ buyerReference })}
           />
         </Section>
       </div>
 
-      <Section title="Positionen">
+      <Section title={m.e_invoice_dialog_lines()}>
         <LinesTable
           lines={form.lines}
           totals={totals.lines.map(centsText)}
@@ -220,20 +227,21 @@ const EInvoiceForm = ({
         />
         <dl
           className="m-0 ml-auto grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-sm tabular-nums"
-          aria-label="Summen"
+          aria-label={m.e_invoice_dialog_totals()}
         >
-          <dt className="text-[var(--muted-foreground)]">Netto</dt>
+          <dt className="text-[var(--muted-foreground)]">{m.e_invoice_dialog_net()}</dt>
           <dd className="m-0 text-right">{money(totals.net, "EUR")}</dd>
-          <dt className="text-[var(--muted-foreground)]">Umsatzsteuer</dt>
+          <dt className="text-[var(--muted-foreground)]">{m.e_invoice_dialog_vat()}</dt>
           <dd className="m-0 text-right">{money(totals.tax, "EUR")}</dd>
-          <dt className="font-medium">Rechnungsbetrag</dt>
+          <dt className="font-medium">{m.e_invoice_dialog_gross()}</dt>
           <dd className="m-0 text-right font-medium">{money(totals.gross, "EUR")}</dd>
         </dl>
         {differs && (
           <p role="status" className="m-0 text-sm text-amber-700 dark:text-amber-400">
-            Im Dokument steht ein Rechnungsbetrag von {money(start.statedTotal ?? 0, "EUR")}; die Positionen
-            ergeben {money(totals.gross, "EUR")}. Bitte prüfen: Die E-Rechnung enthält die Positionen, wie sie
-            hier stehen.
+            {m.e_invoice_dialog_total_differs({
+              stated: money(start.statedTotal ?? 0, "EUR"),
+              computed: money(totals.gross, "EUR"),
+            })}
           </p>
         )}
       </Section>
@@ -252,10 +260,10 @@ const EInvoiceForm = ({
       )}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" onClick={() => void create()} disabled={busy}>
-          {busy ? "Wird erstellt …" : "E-Rechnung erstellen"}
+          {busy ? m.e_invoice_dialog_creating() : m.e_invoice_dialog_create()}
         </Button>
       </div>
     </div>

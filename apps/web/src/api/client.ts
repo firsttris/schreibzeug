@@ -2,6 +2,7 @@ import { type ApiError, apiErrorSchema } from "@schreibzeug/files-api";
 import type { AppType } from "@schreibzeug/server";
 import { hc } from "hono/client";
 import type { z } from "zod";
+import { m } from "../paraglide/messages";
 
 /**
  * The typed client for the Schreibzeug server. Its routes and request bodies come from the server's own
@@ -28,7 +29,7 @@ const failure = async (reply: Reply): Promise<ApiFailure> => {
   const parsed = apiErrorSchema.safeParse(await reply.json().catch(() => null));
   const error: ApiError = parsed.success
     ? parsed.data.error
-    : { kind: "internal", message: `Der Server antwortet nicht wie erwartet (HTTP ${reply.status}).` };
+    : { kind: "internal", message: m.client_unexpected_reply({ status: String(reply.status) }) };
   return Object.assign(new Error(error.message), { status: reply.status, error });
 };
 
@@ -57,6 +58,6 @@ export const expectBytes = async (reply: Promise<Reply>): Promise<Uint8Array> =>
   return new Uint8Array(await response.arrayBuffer());
 };
 
-/** The message to show for anything a request threw. */
+/** The message to show for anything a request threw; the server's own message passes through as it is. */
 export const messageOf = (error: unknown): string =>
-  isApiFailure(error) ? error.error.message : "Der Server ist nicht erreichbar.";
+  isApiFailure(error) ? error.error.message : m.client_unreachable();

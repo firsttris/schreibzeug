@@ -1,4 +1,5 @@
 import type { Convert } from "./converter";
+import type { EngineTexts } from "./engine-texts";
 import type { WordEngineApi, WordWindow } from "./engine-types";
 import { collectMedia } from "./media";
 
@@ -28,6 +29,7 @@ export const createMailMergeCommands = (
   win: WordWindow,
   api: WordEngineApi,
   convert: Convert,
+  texts: Pick<EngineTexts, "mailMergeNoRecipients" | "mailMergeFailed">,
 ): MailMergeCommands => {
   const logic = () => api.WordControl.m_oLogicDocument;
   return {
@@ -47,9 +49,9 @@ export const createMailMergeCommands = (
     preview: (index) => api.asc_PreviewMailMergeResult(index),
     endPreview: () => api.asc_EndPreviewMailMergeResult(),
     mergedDocx: async () => {
-      if (api.asc_GetReceptionsCount() === 0) throw new Error("Es sind keine Empfänger geladen.");
+      if (api.asc_GetReceptionsCount() === 0) throw new Error(texts.mailMergeNoRecipients);
       const merged = logic().Get_MailMergedDocument();
-      if (!merged) throw new Error("Der Serienbrief ließ sich nicht zusammenstellen.");
+      if (!merged) throw new Error(texts.mailMergeFailed);
       const binary = new TextEncoder().encode(new win.AscCommonWord.BinaryFileWriter(merged).Write());
       // The letters hold the template's images; they go along as for any save.
       const media = await collectMedia(win.AscCommon.g_oDocumentUrls, async (url) =>

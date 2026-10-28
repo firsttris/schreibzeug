@@ -3,6 +3,7 @@ import { FolderInput, History, Pencil, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { MoveDialog } from "./move-dialog";
 import { NameDialog } from "./name-dialog";
@@ -31,24 +32,36 @@ export const NodeActions = ({ node, renamable = true }: { node: FileNode; renama
   return (
     <>
       {owner && server && (
-        <Button variant="ghost" aria-label={`${node.name} teilen`} onClick={() => setDialog("share")}>
+        <Button
+          variant="ghost"
+          aria-label={m.node_actions_share({ name: node.name })}
+          onClick={() => setDialog("share")}
+        >
           <Share2 size={15} />
         </Button>
       )}
       {editor && renamable && (
-        <Button variant="ghost" aria-label={`${node.name} umbenennen`} onClick={() => setDialog("rename")}>
+        <Button
+          variant="ghost"
+          aria-label={m.node_actions_rename({ name: node.name })}
+          onClick={() => setDialog("rename")}
+        >
           <Pencil size={15} />
         </Button>
       )}
       {owner && (
-        <Button variant="ghost" aria-label={`${node.name} verschieben`} onClick={() => setDialog("move")}>
+        <Button
+          variant="ghost"
+          aria-label={m.node_actions_move({ name: node.name })}
+          onClick={() => setDialog("move")}
+        >
           <FolderInput size={15} />
         </Button>
       )}
       {node.kind === "file" && server && (
         <Button
           variant="ghost"
-          aria-label={`Versionen von ${node.name}`}
+          aria-label={m.node_actions_versions({ name: node.name })}
           onClick={() => setDialog("versions")}
         >
           <History size={15} />
@@ -57,7 +70,7 @@ export const NodeActions = ({ node, renamable = true }: { node: FileNode; renama
       {owner && (
         <Button
           variant="ghost"
-          aria-label={`${node.name} in den Papierkorb`}
+          aria-label={m.node_actions_trash({ name: node.name })}
           disabled={trash.isPending}
           onClick={() => trash.mutate([])}
         >
@@ -66,10 +79,10 @@ export const NodeActions = ({ node, renamable = true }: { node: FileNode; renama
       )}
       <NameDialog
         open={dialog === "rename"}
-        title="Umbenennen"
-        label="Neuer Name"
+        title={m.common_rename()}
+        label={m.node_actions_new_name()}
         initialName={node.name}
-        confirm="Umbenennen"
+        confirm={m.common_rename()}
         onSubmit={(name) => rename.mutateAsync([name])}
         onClose={close}
       />

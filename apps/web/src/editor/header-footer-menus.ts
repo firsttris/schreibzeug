@@ -1,11 +1,12 @@
 import type { HeaderFooterCommands, PageNumberPlace } from "@schreibzeug/editor-core";
+import { m } from "../paraglide/messages";
 import type { MenuItem } from "../ui/menu";
 
 /** The usual places; web-apps' picker has all six, the menu keeps the ones letters use. */
-const PAGE_NUMBERS: Array<{ label: string; place: PageNumberPlace }> = [
-  { label: "Seitenzahl unten mittig", place: { in: "footer", align: "center" } },
-  { label: "Seitenzahl unten rechts", place: { in: "footer", align: "right" } },
-  { label: "Seitenzahl oben rechts", place: { in: "header", align: "right" } },
+const PAGE_NUMBERS: Array<{ label: () => string; place: PageNumberPlace }> = [
+  { label: m.header_footer_menus_page_number_bottom_center, place: { in: "footer", align: "center" } },
+  { label: m.header_footer_menus_page_number_bottom_right, place: { in: "footer", align: "right" } },
+  { label: m.header_footer_menus_page_number_top_right, place: { in: "header", align: "right" } },
 ];
 
 /**
@@ -21,38 +22,50 @@ export const headerFooterGroups = (
   const disabled = off || !headerFooter;
   const editing: MenuItem[] = inHeaderFooter
     ? [
-        { label: "Kopf- und Fußzeile schließen", disabled, onSelect: () => headerFooter?.close() },
+        { label: m.header_footer_menus_close(), disabled, onSelect: () => headerFooter?.close() },
         {
-          label: "Kopfzeile entfernen",
+          label: m.header_footer_menus_remove_header(),
           danger: true,
           disabled,
           onSelect: () => headerFooter?.remove("header"),
         },
         {
-          label: "Fußzeile entfernen",
+          label: m.header_footer_menus_remove_footer(),
           danger: true,
           disabled,
           onSelect: () => headerFooter?.remove("footer"),
         },
       ]
     : [
-        { label: "Kopfzeile bearbeiten", disabled, onSelect: () => headerFooter?.edit("header") },
-        { label: "Fußzeile bearbeiten", disabled, onSelect: () => headerFooter?.edit("footer") },
+        {
+          label: m.header_footer_menus_edit_header(),
+          disabled,
+          onSelect: () => headerFooter?.edit("header"),
+        },
+        {
+          label: m.header_footer_menus_edit_footer(),
+          disabled,
+          onSelect: () => headerFooter?.edit("footer"),
+        },
       ];
   return [
     editing,
     [
       ...PAGE_NUMBERS.map(({ label, place }) => ({
-        label,
+        label: label(),
         disabled,
         onSelect: () => headerFooter?.insertPageNumber(place),
       })),
       {
-        label: "Seitenzahl an der Cursorposition",
+        label: m.header_footer_menus_page_number_at_cursor(),
         disabled,
         onSelect: () => headerFooter?.insertPageNumber(),
       },
-      { label: "Seitenanzahl", disabled, onSelect: () => headerFooter?.insertPageCount() },
+      {
+        label: m.header_footer_menus_page_count(),
+        disabled,
+        onSelect: () => headerFooter?.insertPageCount(),
+      },
     ],
   ];
 };

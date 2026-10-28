@@ -8,6 +8,7 @@ import {
 } from "@schreibzeug/text-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isApiFailure, messageOf } from "../api/client";
+import { m } from "../paraglide/messages";
 import type { DocumentSave } from "./use-document-save";
 
 /** How long after the last change the text saves on its own; slower after a failed save. */
@@ -34,7 +35,10 @@ export const textBytes = (
     ? encoded
     : {
         ok: false,
-        message: `„${encoded.character}“ lässt sich in ${ENCODING_LABEL[form.encoding]} nicht speichern. Entferne das Zeichen oder lade die Datei herunter.`,
+        message: m.use_text_save_unencodable({
+          character: encoded.character,
+          encoding: ENCODING_LABEL[form.encoding],
+        }),
       };
 };
 
@@ -83,7 +87,9 @@ export const useTextSave = ({
       const changedSince =
         isApiFailure(error) && error.status === 409 && error.error.message === CHANGED_SINCE;
       setFailure(
-        `Nicht gespeichert: ${changedSince ? "Die Datei wurde inzwischen geändert." : messageOf(error)}`,
+        m.use_text_save_not_saved({
+          reason: changedSince ? m.use_text_save_changed_since() : messageOf(error),
+        }),
       );
       if (changedSince) {
         setConflict(true);

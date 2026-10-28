@@ -1,4 +1,5 @@
 import { messageOf } from "../api/client";
+import { m } from "../paraglide/messages";
 
 /** What an Office file takes as a picture; the server checks the bytes again (src/files/media.ts). */
 const IMAGE_TYPES = "image/png,image/jpeg,image/gif,image/bmp";
@@ -31,7 +32,7 @@ export const useInsertImage = (
       try {
         await insertImage(new Uint8Array(await file.arrayBuffer()));
       } catch (error) {
-        notify(`Das Bild konnte nicht eingefügt werden: ${messageOf(error)}`);
+        notify(m.use_insert_image_failed({ reason: messageOf(error) }));
       }
     });
 };

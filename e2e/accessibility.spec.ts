@@ -117,7 +117,7 @@ test("the screen reader support reads the document out, in German, and is rememb
   await page.keyboard.press("Shift+End");
   const live = frame.locator("#area_id_screen_reader");
   await expect(live).toHaveAttribute("aria-live", "assertive");
-  // Selecting reads the text with the German word for it (screen-reader.ts SPEECH_TEXTS).
+  // Selecting reads the text with the German word for it (apps/web/src/editor/engine-texts.ts).
   await expect(live).toContainText("Hallo Welt");
   await expect(live).toContainText("ausgewählt");
 

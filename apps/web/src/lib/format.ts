@@ -1,7 +1,12 @@
-/** How the file list shows sizes, dates and kinds; German first, like the rest of the interface. */
+/** How the file list shows sizes, dates and kinds, in the interface's language. */
+import { m } from "../paraglide/messages";
+import { getLocale } from "../paraglide/runtime";
 
-const sizeFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 });
-const UNITS = ["Byte", "KB", "MB", "GB", "TB"] as const;
+/** The Intl locale for the interface's language: German as in Germany, English as in the US. */
+const intlLocale = (): string => (getLocale() === "en" ? "en-US" : "de-DE");
+
+const sizeFormat = () => new Intl.NumberFormat(intlLocale(), { maximumFractionDigits: 1 });
+const UNITS = [m.format_bytes, () => "KB", () => "MB", () => "GB", () => "TB"] as const;
 
 /** The value as `sizeFormat` shows it, rounded to one decimal. */
 const roundedTo = (bytes: number, exponent: number): number =>
@@ -14,12 +19,19 @@ export const formatSize = (bytes: number | null): string => {
   // The unit is chosen after rounding: 1023,97 KB shows as "1 MB", not "1.024 KB".
   const exponent =
     estimate < UNITS.length - 1 && roundedTo(bytes, estimate) >= 1024 ? estimate + 1 : estimate;
-  return `${sizeFormat.format(bytes / 1024 ** exponent)} ${UNITS[exponent]}`;
+  return `${sizeFormat().format(bytes / 1024 ** exponent)} ${UNITS[exponent]?.()}`;
 };
 
-const time = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" });
-const dayThisYear = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "short" });
-const dayOtherYear = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "short", year: "numeric" });
+const time = (date: Date) =>
+  new Intl.DateTimeFormat(intlLocale(), { hour: "2-digit", minute: "2-digit" }).format(date);
+
+/** The day, with the year when it is not this one. */
+const day = (date: Date, now: Date) =>
+  new Intl.DateTimeFormat(intlLocale(), {
+    day: "numeric",
+    month: "short",
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  }).format(date);
 
 const startOfDay = (date: Date): number =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -28,16 +40,13 @@ const startOfDay = (date: Date): number =>
 export const formatChanged = (iso: string, now: Date = new Date()): string => {
   const date = new Date(iso);
   const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
-  if (days === 0) return `Heute, ${time.format(date)}`;
-  if (days === 1) return `Gestern, ${time.format(date)}`;
-  return (date.getFullYear() === now.getFullYear() ? dayThisYear : dayOtherYear).format(date);
+  if (days === 0) return m.format_today({ time: time(date) });
+  if (days === 1) return m.format_yesterday({ time: time(date) });
+  return day(date, now);
 };
 
 /** "31. Okt.", or with the year when it is another one. */
-export const formatDay = (iso: string, now: Date = new Date()): string => {
-  const date = new Date(iso);
-  return (date.getFullYear() === now.getFullYear() ? dayThisYear : dayOtherYear).format(date);
-};
+export const formatDay = (iso: string, now: Date = new Date()): string => day(new Date(iso), now);
 
 /** What a file is, by its extension: the formats Schreibzeug opens, a folder, or anything else. */
 export type FileKind =

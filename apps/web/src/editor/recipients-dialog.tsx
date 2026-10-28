@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { rootLabel, useFiles } from "../api/context";
 import { FileBadge } from "../files/file-badge";
 import { kindOf } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { newConverter } from "./engine";
@@ -23,7 +24,7 @@ type RecipientsDialogProps = {
  * or from the computer, read and shown before it is taken.
  */
 export const RecipientsDialog = ({ open, folderId, onClose, onChoose }: RecipientsDialogProps) => (
-  <Dialog open={open} title="Empfänger wählen" wide onClose={onClose}>
+  <Dialog open={open} title={m.recipients_dialog_title()} wide onClose={onClose}>
     {open && <Chooser folderId={folderId} onClose={onClose} onChoose={onChoose} />}
   </Dialog>
 );
@@ -58,7 +59,7 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
     const result = await load().then((bytes) => readTable(name, bytes));
     setBusy(false);
     if (result.ok) setChosen(result.recipients);
-    else setFailure(`„${name}“: ${result.error}`);
+    else setFailure(m.recipients_dialog_failure({ name, error: result.error }));
   };
   const fromFiles = (node: FileNode) =>
     void take(node.name, async () => new Uint8Array(await commands.content(node.id)));
@@ -66,15 +67,12 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
   const [header = [], ...recipients] = chosen?.rows ?? [];
   return (
     <div className="flex flex-col gap-3">
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">
-        Eine Tabelle mit einem Empfänger je Zeile; die erste Zeile nennt die Felder, z. B. „Anrede“, „Name“,
-        „Straße“.
-      </p>
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.recipients_dialog_hint()}</p>
       <div className="flex items-center gap-1 text-sm">
         {folderId !== null && (
           <Button
             variant="ghost"
-            aria-label="Eine Ebene höher"
+            aria-label={m.recipients_dialog_up()}
             onClick={() => setFolderId(listing.data?.folder?.parentId ?? null)}
           >
             <ChevronLeft size={16} />
@@ -83,15 +81,21 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
         <span className="truncate font-medium">{listing.data?.folder?.name ?? rootLabel(info)}</span>
       </div>
       <ul className="m-0 flex max-h-56 min-h-24 list-none flex-col overflow-y-auto rounded-md border border-[var(--border)] p-1">
-        {listing.isPending && <li className="p-2 text-sm text-[var(--muted-foreground)]">Lädt …</li>}
+        {listing.isPending && (
+          <li className="p-2 text-sm text-[var(--muted-foreground)]">{m.recipients_dialog_loading()}</li>
+        )}
         {listing.data && entries.length === 0 && (
-          <li className="p-2 text-sm text-[var(--muted-foreground)]">Keine Tabellen in diesem Ordner</li>
+          <li className="p-2 text-sm text-[var(--muted-foreground)]">{m.recipients_dialog_empty()}</li>
         )}
         {entries.map((node) => (
           <li key={node.id}>
             <button
               type="button"
-              aria-label={node.kind === "folder" ? `Ordner ${node.name} öffnen` : `${node.name} wählen`}
+              aria-label={
+                node.kind === "folder"
+                  ? m.recipients_dialog_open_folder({ name: node.name })
+                  : m.recipients_dialog_choose({ name: node.name })
+              }
               disabled={busy}
               onClick={() => (node.kind === "folder" ? setFolderId(node.id) : fromFiles(node))}
               className="flex h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-[var(--muted)]"
@@ -112,7 +116,7 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
       <div>
         <Button variant="ghost" disabled={busy} onClick={() => input.current?.click()}>
           <Upload size={14} />
-          Vom Computer …
+          {m.recipients_dialog_from_computer()}
         </Button>
         <input
           ref={input}
@@ -129,7 +133,7 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
       </div>
       {busy && (
         <p role="status" className="m-0 text-sm">
-          Wird gelesen …
+          {m.recipients_dialog_reading()}
         </p>
       )}
       {failure && (
@@ -140,7 +144,11 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
       {chosen && (
         <div className="flex flex-col gap-1 text-sm" data-testid="recipients-preview">
           <p className="m-0">
-            „{chosen.source}“: {recipients.length} Empfänger, Felder {header.join(", ")}
+            {(recipients.length === 1 ? m.recipients_dialog_summary_one : m.recipients_dialog_summary_other)({
+              source: chosen.source,
+              count: recipients.length,
+              fields: header.join(", "),
+            })}
           </p>
           <div className="overflow-x-auto rounded-md border border-[var(--border)]">
             <table className="w-full border-collapse text-xs">
@@ -176,7 +184,7 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
       )}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button
           variant="primary"
@@ -186,7 +194,7 @@ const Chooser = ({ folderId: start, onClose, onChoose }: Omit<RecipientsDialogPr
             onClose();
           }}
         >
-          Übernehmen
+          {m.common_apply()}
         </Button>
       </div>
     </div>

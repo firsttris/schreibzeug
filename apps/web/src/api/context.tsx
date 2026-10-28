@@ -1,5 +1,6 @@
 import { type ServerInfo, serverInfoSchema } from "@schreibzeug/files-api";
 import { createContext, type ReactNode, useContext } from "react";
+import { m } from "../paraglide/messages";
 import type { ApiClient } from "./client";
 import { fileCommands, fileQueries } from "./files";
 import { type TokenApi, tokenApi } from "./tokens";
@@ -46,7 +47,7 @@ export const fetchServerInfo = async (baseUrl: string): Promise<ServerInfo> => {
 
 /** What the user's own files are called: "Meine Dateien", or the folder's name on this computer. */
 export const rootLabel = (info: ServerInfo): string =>
-  info.mode === "local" ? info.rootName : "Meine Dateien";
+  info.mode === "local" ? info.rootName : m.context_my_files();
 
 /** Hands the server connection down; the desktop app will pass a client for another server. */
 export const FilesProvider = ({ files, children }: { files: Files; children: ReactNode }) => (

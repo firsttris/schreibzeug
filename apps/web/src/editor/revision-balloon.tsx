@@ -2,19 +2,21 @@ import type { ReviewCommands, Revision, RevisionKind } from "@schreibzeug/editor
 import { Check, X } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { initialsOf } from "../account/initials";
+import { m } from "../paraglide/messages";
+import { getLocale } from "../paraglide/runtime";
 import { Button } from "../ui/button";
 
-const KIND_LABELS: Record<RevisionKind, string> = {
-  insert: "Eingefügt",
-  delete: "Gelöscht",
-  paragraphInsert: "Absatz eingefügt",
-  paragraphDelete: "Absatz gelöscht",
-  format: "Formatiert",
-  other: "Geändert",
+const KIND_LABELS: Record<RevisionKind, () => string> = {
+  insert: m.revision_balloon_inserted,
+  delete: m.revision_balloon_deleted,
+  paragraphInsert: m.revision_balloon_paragraph_inserted,
+  paragraphDelete: m.revision_balloon_paragraph_deleted,
+  format: m.revision_balloon_formatted,
+  other: m.revision_balloon_changed,
 };
 
 const formatTime = (time: number) =>
-  new Date(time).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+  new Date(time).toLocaleString(getLocale(), { dateStyle: "short", timeStyle: "short" });
 
 /** Long inserted or deleted text is cut, as web-apps' balloon shows only the start. */
 const MAX_TEXT = 120;
@@ -48,7 +50,7 @@ export const RevisionBalloon = ({ revisions, x, y, commands }: RevisionBalloonPr
   return (
     <section
       ref={ref}
-      aria-label="Änderung"
+      aria-label={m.revision_balloon_label()}
       style={{ left: place.left, top: place.top }}
       className="fixed z-20 flex w-72 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 text-sm shadow-lg"
     >
@@ -68,17 +70,27 @@ export const RevisionBalloon = ({ revisions, x, y, commands }: RevisionBalloonPr
               <span className="text-xs text-[var(--muted-foreground)]">{formatTime(revision.time)}</span>
             )}
             <span data-testid="revision-text" className="mt-1 break-words">
-              <b>{KIND_LABELS[revision.kind]}</b>
-              {revision.text && `: „${shorten(revision.text)}“`}
+              <b>{KIND_LABELS[revision.kind]()}</b>
+              {revision.text && m.revision_balloon_quoted({ text: shorten(revision.text) })}
             </span>
           </div>
         </div>
       ))}
       <div className="flex justify-end gap-1">
-        <Button variant="ghost" aria-label="Änderung annehmen" title="Annehmen" onClick={commands.accept}>
+        <Button
+          variant="ghost"
+          aria-label={m.revision_balloon_accept_label()}
+          title={m.revision_balloon_accept()}
+          onClick={commands.accept}
+        >
           <Check size={16} />
         </Button>
-        <Button variant="ghost" aria-label="Änderung ablehnen" title="Ablehnen" onClick={commands.reject}>
+        <Button
+          variant="ghost"
+          aria-label={m.revision_balloon_reject_label()}
+          title={m.revision_balloon_reject()}
+          onClick={commands.reject}
+        >
           <X size={16} />
         </Button>
       </div>

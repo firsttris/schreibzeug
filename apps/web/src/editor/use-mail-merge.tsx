@@ -1,5 +1,6 @@
 import type { MailMergeCommands } from "@schreibzeug/editor-core";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { mergedNameFor, missingFields, type Recipients } from "./mail-merge";
 import type { MailMergeBarProps } from "./mail-merge-bar";
 import { MIME } from "./opened-file";
@@ -51,9 +52,11 @@ export const useMailMerge = ({ mailMerge, name, onCreateFile, notify }: UseMailM
       const bytes = await mailMerge.mergedDocx();
       const saved = await onCreateFile(mergedNameFor(name), bytes, MIME.docx);
       const count = recipients.rows.length - 1;
-      notify(`${count} ${count === 1 ? "Brief" : "Briefe"} als „${saved}“ gespeichert.`);
+      notify(
+        (count === 1 ? m.use_mail_merge_saved_one : m.use_mail_merge_saved_other)({ count, name: saved }),
+      );
     } catch (error) {
-      notify(`Der Serienbrief konnte nicht erstellt werden: ${message(error)}`);
+      notify(m.use_mail_merge_failed({ reason: message(error) }));
     } finally {
       setBusy(false);
     }

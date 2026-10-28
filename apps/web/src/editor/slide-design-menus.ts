@@ -1,44 +1,45 @@
 import type { DesignCommands, ShapeKind, SlideState, TransitionKind } from "@schreibzeug/editor-core";
 import { TRANSITION_KINDS } from "@schreibzeug/editor-core";
+import { m } from "../paraglide/messages";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 
 const SHAPES: Array<{ kind: ShapeKind; label: string }> = [
-  { kind: "textBox", label: "Textfeld" },
-  { kind: "rectangle", label: "Rechteck" },
-  { kind: "roundedRectangle", label: "Abgerundetes Rechteck" },
-  { kind: "ellipse", label: "Ellipse" },
-  { kind: "arrow", label: "Pfeil" },
-  { kind: "line", label: "Linie" },
+  { kind: "textBox", label: m.slide_design_menus_text_box() },
+  { kind: "rectangle", label: m.slide_design_menus_rectangle() },
+  { kind: "roundedRectangle", label: m.slide_design_menus_rounded_rectangle() },
+  { kind: "ellipse", label: m.slide_design_menus_ellipse() },
+  { kind: "arrow", label: m.slide_design_menus_arrow() },
+  { kind: "line", label: m.slide_design_menus_line() },
 ];
 
 /** The engine's designs by their English names (sdkjs slide/themes/themes.js g_defaultThemes). */
 const THEME_NAMES: Record<string, string> = {
-  Blank: "Leer",
-  Basic: "Einfach",
-  Classic: "Klassisch",
-  Official: "Offiziell",
-  "Green leaf": "Grünes Blatt",
-  Lines: "Linien",
-  Office: "Office",
-  Safari: "Safari",
-  Dotted: "Gepunktet",
-  Corner: "Ecke",
-  Turtle: "Schildkröte",
+  Blank: m.slide_design_menus_theme_blank(),
+  Basic: m.slide_design_menus_theme_basic(),
+  Classic: m.slide_design_menus_theme_classic(),
+  Official: m.slide_design_menus_theme_official(),
+  "Green leaf": m.slide_design_menus_theme_green_leaf(),
+  Lines: m.slide_design_menus_theme_lines(),
+  Office: m.slide_design_menus_theme_office(),
+  Safari: m.slide_design_menus_theme_safari(),
+  Dotted: m.slide_design_menus_theme_dotted(),
+  Corner: m.slide_design_menus_theme_corner(),
+  Turtle: m.slide_design_menus_theme_turtle(),
 };
 
 export const themeLabel = (name: string): string => THEME_NAMES[name] ?? name;
 
 const TRANSITION_LABELS: Record<TransitionKind, string> = {
-  none: "Keiner",
-  fade: "Verblassen",
-  push: "Schieben",
-  wipe: "Wischen",
-  split: "Teilen",
-  uncover: "Aufdecken",
-  cover: "Überdecken",
-  clock: "Uhr",
-  zoom: "Zoom",
+  none: m.slide_design_menus_transition_none(),
+  fade: m.slide_design_menus_transition_fade(),
+  push: m.slide_design_menus_transition_push(),
+  wipe: m.slide_design_menus_transition_wipe(),
+  split: m.slide_design_menus_transition_split(),
+  uncover: m.slide_design_menus_transition_uncover(),
+  cover: m.slide_design_menus_transition_cover(),
+  clock: m.slide_design_menus_transition_clock(),
+  zoom: m.slide_design_menus_transition_zoom(),
 };
 
 /** Shapes and the text box for "Einfügen" (presentationeditor main view/Toolbar.js btnInsertShape). */
@@ -51,7 +52,7 @@ export const shapeItems = (design: DesignCommands | null, off: boolean): MenuIte
 
 /** The speaker notes under the slide, for "Ansicht" (main controller/ViewTab.js chNotes). */
 export const notesItem = (state: SlideState, design: DesignCommands | null, off: boolean): MenuItem => ({
-  label: "Notizen",
+  label: m.slide_design_menus_notes(),
   checked: state.notes,
   disabled: off || !design,
   onSelect: () => design?.showNotes(!state.notes),
@@ -66,7 +67,7 @@ export const designMenus = (state: SlideState, design: DesignCommands | null, of
   const disabled = off || !design;
   return [
     {
-      label: "Design",
+      label: m.slide_design_menus_design(),
       groups: [
         state.themes.map((theme) => ({
           label: themeLabel(theme.name),
@@ -76,7 +77,7 @@ export const designMenus = (state: SlideState, design: DesignCommands | null, of
       ],
     },
     {
-      label: "Übergänge",
+      label: m.slide_design_menus_transitions(),
       groups: [
         TRANSITION_KINDS.map((kind) => ({
           label: TRANSITION_LABELS[kind],
@@ -86,7 +87,7 @@ export const designMenus = (state: SlideState, design: DesignCommands | null, of
         })),
         [
           {
-            label: "Auf alle Folien anwenden",
+            label: m.slide_design_menus_apply_to_all(),
             disabled: disabled || state.transition === null,
             onSelect: () => design?.applyTransitionToAll(),
           },

@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { messageOf } from "../api/client";
 import { rootLabel, useFiles } from "../api/context";
 import { refreshFiles, useFileMutation } from "../api/files";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { MenuButton } from "../ui/menu";
 import { FileBadge } from "./file-badge";
@@ -29,12 +30,15 @@ const Breadcrumb = ({
   shared: boolean;
   root: string;
 }) => (
-  <nav aria-label="Pfad" className="flex min-w-0 items-center gap-1 text-sm text-[var(--muted-foreground)]">
+  <nav
+    aria-label={m.folder_page_path()}
+    className="flex min-w-0 items-center gap-1 text-sm text-[var(--muted-foreground)]"
+  >
     <Link
       to={shared ? "/shared" : "/"}
       className="shrink-0 text-inherit no-underline hover:text-[var(--foreground)]"
     >
-      {shared ? "Für mich freigegeben" : root}
+      {shared ? m.folder_page_shared_with_me() : root}
     </Link>
     {path.map((folder, index) => (
       <span key={folder.id} className="flex min-w-0 items-center gap-1">
@@ -87,10 +91,10 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
           <>
             <Button variant="outline" onClick={() => setCreating("folder")}>
               <FolderPlus size={15} />
-              Neuer Ordner
+              {m.folder_page_new_folder()}
             </Button>
             <MenuButton
-              label="Neu"
+              label={m.common_new()}
               variant="outline"
               align="right"
               groups={[
@@ -101,15 +105,15 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
                     onSelect: () => setCreating(format),
                   })),
                 ),
-                [{ label: "Aus Vorlage …", onSelect: () => setCreating("template") }],
+                [{ label: m.folder_page_from_template(), onSelect: () => setCreating("template") }],
               ]}
             >
               <FilePlus2 size={15} />
-              Neu
+              {m.common_new()}
             </MenuButton>
             <Button variant="primary" onClick={() => picker.current?.click()}>
               <Upload size={15} />
-              Hochladen
+              {m.folder_page_upload()}
             </Button>
             <input
               ref={picker}
@@ -135,8 +139,8 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
       {state.running > 0 && (
         <p role="status" className="m-0 text-sm text-[var(--muted-foreground)]">
           {state.running === 1
-            ? "Eine Datei wird hochgeladen …"
-            : `${state.running} Dateien werden hochgeladen …`}
+            ? m.folder_page_uploading_one()
+            : m.folder_page_uploading_other({ count: String(state.running) })}
         </p>
       )}
       {state.failures.length > 0 && (
@@ -150,33 +154,33 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
             ))}
           </ul>
           <Button variant="ghost" onClick={dismiss}>
-            Schließen
+            {m.common_close()}
           </Button>
         </div>
       )}
 
-      {listing.isPending && <PageMessage>Lädt …</PageMessage>}
+      {listing.isPending && <PageMessage>{m.folder_page_loading()}</PageMessage>}
       {listing.isError && <PageMessage tone="error">{messageOf(listing.error)}</PageMessage>}
       {listing.data && (
         <NodeTable
           nodes={listing.data.children}
           actions={(node) => <NodeActions node={node} />}
-          empty="Dieser Ordner ist leer. Ziehe Dateien hierher oder lege ein Dokument an."
+          empty={m.folder_page_empty()}
         />
       )}
 
       {dragging && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl border-2 border-dashed border-[var(--docx)] bg-[var(--docx-muted)]/80 text-sm font-medium text-[var(--docx)]">
-          Zum Hochladen loslassen
+          {m.folder_page_drop()}
         </div>
       )}
 
       <NameDialog
         open={creating === "folder"}
-        title="Neuer Ordner"
-        label="Name des Ordners"
-        initialName="Neuer Ordner"
-        confirm="Anlegen"
+        title={m.folder_page_new_folder()}
+        label={m.folder_page_folder_name()}
+        initialName={m.folder_page_new_folder()}
+        confirm={m.folder_page_create()}
         onSubmit={(name) => createFolder.mutateAsync([name])}
         onClose={() => setCreating(null)}
       />
@@ -187,7 +191,7 @@ export const FolderPage = ({ folderId }: { folderId: string | null }) => {
           title={NEW_FILES[format].title}
           label={NEW_FILES[format].label}
           initialName={NEW_FILES[format].name}
-          confirm="Anlegen und öffnen"
+          confirm={m.folder_page_create_open()}
           onSubmit={async (name) => {
             const created = await createFile.mutateAsync([format, name]);
             await navigate({ to: "/edit/$fileId", params: { fileId: created.id } });

@@ -1,5 +1,6 @@
 import type { Stroke } from "@schreibzeug/editor-core";
 import { type PointerEvent, useEffect, useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -61,7 +62,7 @@ export type SignatureDialogProps = {
  * this browser. It goes on the page as ink, sharp at any size; it is no digital signature.
  */
 export const SignatureDialog = ({ open, onClose, onInsert }: SignatureDialogProps) => (
-  <Dialog open={open} title="Unterschreiben" wide onClose={onClose}>
+  <Dialog open={open} title={m.signature_dialog_title()} wide onClose={onClose}>
     {open && <SignaturePad onClose={onClose} onInsert={onInsert} />}
   </Dialog>
 );
@@ -125,20 +126,17 @@ const SignaturePad = ({ onClose, onInsert }: Omit<SignatureDialogProps, "open">)
       onClose();
     } catch (error) {
       setFailure(
-        `Die Unterschrift konnte nicht eingefügt werden: ${error instanceof Error ? error.message : String(error)}`,
+        m.signature_dialog_failed({ error: error instanceof Error ? error.message : String(error) }),
       );
     }
   };
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">
-        Unterschreiben Sie im Feld. Die Unterschrift erscheint auf der angezeigten Seite und lässt sich dort
-        verschieben und in der Größe ändern.
-      </p>
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.signature_dialog_intro()}</p>
       <canvas
         ref={canvas}
-        aria-label="Unterschriftsfeld"
+        aria-label={m.signature_dialog_pad()}
         data-testid="signature-pad"
         style={{ width: WIDTH, height: HEIGHT, touchAction: "none" }}
         className="max-w-full rounded-md border border-[var(--border)] bg-white"
@@ -154,19 +152,19 @@ const SignaturePad = ({ onClose, onInsert }: Omit<SignatureDialogProps, "open">)
       )}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="ghost" disabled={!drawn} onClick={clear}>
-          Löschen
+          {m.common_delete()}
         </Button>
         {stored && (
           <Button variant="outline" onClick={() => insert(stored)}>
-            Letzte Unterschrift
+            {m.signature_dialog_last()}
           </Button>
         )}
         <span className="flex-1" />
         <Button variant="ghost" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" disabled={!drawn} onClick={() => insert(strokes.current)}>
-          Einfügen
+          {m.common_insert()}
         </Button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import type { RecognizedLine } from "@schreibzeug/pdf-ocr";
 import type { Block } from "tesseract.js";
+import { m } from "../paraglide/messages";
 
 /** The code that lays text over a PDF (pdf-lib) loads when it is needed, not with the app. */
 export const loadPdfOcr = () => import("@schreibzeug/pdf-ocr");
@@ -27,10 +28,7 @@ export const linesOf = (blocks: Block[] | null): RecognizedLine[] =>
  */
 const pngOf = (canvas: HTMLCanvasElement): Promise<Blob> =>
   new Promise((resolve, reject) =>
-    canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Die Seite ließ sich nicht als Bild lesen."))),
-      "image/png",
-    ),
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(m.ocr_page_unreadable()))), "image/png"),
   );
 
 export type Recognizer = {
@@ -91,7 +89,7 @@ export const makeSearchable = async ({
 }: SearchableInput): Promise<Searchable> => {
   const { addTextLayer, textlessPages } = await loadPdfOcr();
   const { textless } = await textlessPages(pdf);
-  if (textless.length === 0) return { ok: false, error: "Jede Seite des PDFs enthält schon Text." };
+  if (textless.length === 0) return { ok: false, error: m.ocr_all_have_text() };
   let current = { page: 0, of: textless.length, fraction: 0 };
   const worker = await recognizer((fraction) => {
     current = { ...current, fraction };
@@ -111,7 +109,7 @@ export const makeSearchable = async ({
       });
     }
     const found = recognized.filter((page) => page.lines.length > 0);
-    if (found.length === 0) return { ok: false, error: "Auf den Seiten ohne Text wurde kein Text erkannt." };
+    if (found.length === 0) return { ok: false, error: m.ocr_nothing_found() };
     return { ok: true, pdf: await addTextLayer(pdf, found), pages: found.length };
   } finally {
     await worker.close();

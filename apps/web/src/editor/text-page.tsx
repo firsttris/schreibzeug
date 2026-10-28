@@ -6,6 +6,7 @@ import { isApiFailure } from "../api/client";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
 import { kindOf } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Failure, Loading } from "./page-states";
 import { TextView } from "./text-view";
 import { useEditorPage } from "./use-editor-page";
@@ -52,7 +53,7 @@ export const TextPage = ({ fileId, node }: { fileId: string; node: FileNode }) =
         });
       if (created) return void (await navigate({ to: "/edit/$fileId", params: { fileId: created.id } }));
     }
-    throw new Error("Für die Kopie ist kein Name frei.");
+    throw new Error(m.text_page_no_copy_name());
   };
 
   if (opened.status === "loading") return <Loading />;

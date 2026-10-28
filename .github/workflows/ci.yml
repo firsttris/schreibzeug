@@ -39,6 +39,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run typecheck
+      # Every interface text in German and English, none left in the code (docs/architecture.md#interface-texts)
+      - name: Interface texts
+        run: bun run i18n:check
 
   # Stages 2 and 3: unit and integration tests (Vitest)
   unit:

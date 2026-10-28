@@ -8,12 +8,14 @@ import {
   type TextForm,
 } from "@schreibzeug/text-editor";
 import { useDeferredValue, useMemo, useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 import { SizeGrid } from "../toolbar/table-menu";
 import { TextToolbar } from "../toolbar/text-toolbar";
 import { Dialog } from "../ui/dialog";
 import { useNotice } from "../ui/use-notice";
 import { ConflictDialog } from "./conflict-dialog";
 import { EditorHeader } from "./editor-header";
+import { tableColumnHeading } from "./engine-texts";
 import type { FileActions } from "./file-menu";
 import { LinkDialog } from "./link-dialog";
 import { downloadBytes } from "./opened-file";
@@ -55,15 +57,13 @@ const StatusBar = ({
     data-testid="text-status"
     className="flex shrink-0 justify-end gap-5 border-t border-[var(--border)] px-4 py-1.5 text-xs text-[var(--muted-foreground)] tabular-nums"
   >
-    <span>
-      Zeile {state.line}, Spalte {state.column}
-    </span>
-    <span title="Zeichenkodierung">
+    <span>{m.text_view_position({ line: state.line, column: state.column })}</span>
+    <span title={m.text_view_encoding()}>
       {ENCODING_LABEL[form.encoding]}
-      {form.bom ? " mit BOM" : ""}
+      {form.bom ? ` ${m.text_view_with_bom()}` : ""}
     </span>
-    <span title="Zeilenende">{LINE_ENDING_LABEL[form.lineEnding]}</span>
-    <span>{markdown ? "Markdown" : "Text"}</span>
+    <span title={m.text_view_line_ending()}>{LINE_ENDING_LABEL[form.lineEnding]}</span>
+    <span>{markdown ? m.text_view_markdown() : m.text_view_plain()}</span>
   </footer>
 );
 
@@ -73,7 +73,7 @@ const Preview = ({ text }: { text: string }) => {
   const html = useMemo(() => markdownHtml(deferred), [deferred]);
   return (
     <section
-      aria-label="Vorschau"
+      aria-label={m.text_view_preview()}
       data-testid="text-preview"
       className="text-preview min-w-0 overflow-y-auto px-8 py-6"
       // markdownHtml escapes every text and keeps only safe link targets (preview.ts).
@@ -194,10 +194,10 @@ export const TextView = ({
         }
         onClose={() => setLinkText(null)}
       />
-      <Dialog open={tableDialog} title="Tabelle einfügen" onClose={() => setTableDialog(false)}>
+      <Dialog open={tableDialog} title={m.text_view_insert_table()} onClose={() => setTableDialog(false)}>
         <SizeGrid
           onPick={({ columns, rows }) => {
-            run(TEXT_COMMANDS.table(columns, rows));
+            run(TEXT_COMMANDS.table(columns, rows, tableColumnHeading));
             setTableDialog(false);
           }}
         />

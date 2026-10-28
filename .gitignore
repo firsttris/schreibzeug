@@ -7,6 +7,9 @@ dist/
 engine/.cache/
 engine/dist/
 
+# The interface texts compiled by Paraglide (apps/web/project.inlang)
+apps/web/src/paraglide/
+
 # Playwright
 test-results/
 playwright-report/

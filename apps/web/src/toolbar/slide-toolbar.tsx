@@ -20,16 +20,17 @@ import {
   Undo2,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { popoverPanel, usePopover } from "../ui/use-popover";
 import { Choice } from "./choice";
 import { ColorPicker } from "./color-picker";
 
 const aligns: Array<{ value: Align; label: string; icon: LucideIcon }> = [
-  { value: "left", label: "Linksbündig", icon: AlignLeft },
-  { value: "center", label: "Zentriert", icon: AlignCenter },
-  { value: "right", label: "Rechtsbündig", icon: AlignRight },
-  { value: "justify", label: "Blocksatz", icon: AlignJustify },
+  { value: "left", label: m.toolbar_align_left(), icon: AlignLeft },
+  { value: "center", label: m.toolbar_align_center(), icon: AlignCenter },
+  { value: "right", label: m.toolbar_align_right(), icon: AlignRight },
+  { value: "justify", label: m.toolbar_justify(), icon: AlignJustify },
 ];
 
 const Separator = () => <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-[var(--border)]" />;
@@ -106,16 +107,16 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
   const run = (command: (commands: SlideCommands) => void) => () => commands && command(commands);
 
   const marks: Toggle[] = [
-    { label: "Fett", icon: Bold, pressed: text.bold, run: run((c) => c.toggleBold()) },
-    { label: "Kursiv", icon: Italic, pressed: text.italic, run: run((c) => c.toggleItalic()) },
+    { label: m.common_bold(), icon: Bold, pressed: text.bold, run: run((c) => c.toggleBold()) },
+    { label: m.common_italic(), icon: Italic, pressed: text.italic, run: run((c) => c.toggleItalic()) },
     {
-      label: "Unterstrichen",
+      label: m.common_underline(),
       icon: Underline,
       pressed: text.underline,
       run: run((c) => c.toggleUnderline()),
     },
     {
-      label: "Durchgestrichen",
+      label: m.toolbar_strikethrough(),
       icon: Strikethrough,
       pressed: text.strikeout,
       run: run((c) => c.toggleStrikeout()),
@@ -123,13 +124,13 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
   ];
   const lists: Toggle[] = [
     {
-      label: "Aufzählung",
+      label: m.toolbar_bullets(),
       icon: List,
       pressed: state.list === "bullet",
       run: run((c) => c.toggleList("bullet")),
     },
     {
-      label: "Nummerierung",
+      label: m.toolbar_numbering(),
       icon: ListOrdered,
       pressed: state.list === "number",
       run: run((c) => c.toggleList("number")),
@@ -139,12 +140,12 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
   return (
     <div
       role="toolbar"
-      aria-label="Formatierung"
+      aria-label={m.toolbar_formatting()}
       className="flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-1"
     >
       <Button
         variant="ghost"
-        aria-label="Rückgängig"
+        aria-label={m.common_undo()}
         disabled={disabled || !document.canUndo}
         onClick={run((c) => c.undo())}
       >
@@ -152,7 +153,7 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
       </Button>
       <Button
         variant="ghost"
-        aria-label="Wiederholen"
+        aria-label={m.common_redo()}
         disabled={disabled || !document.canRedo}
         onClick={run((c) => c.redo())}
       >
@@ -160,16 +161,16 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
       </Button>
       <Separator />
       <LayoutPicker
-        label="Neue Folie"
+        label={m.slide_toolbar_new_slide()}
         layouts={layouts}
         disabled={disabled}
         onPick={(index) => commands?.addSlide(index)}
       >
         <Plus size={16} />
-        <span className="text-sm">Folie</span>
+        <span className="text-sm">{m.slide_toolbar_slide()}</span>
       </LayoutPicker>
       <LayoutPicker
-        label="Layout"
+        label={m.slide_toolbar_layout()}
         layouts={layouts}
         disabled={disabled}
         onPick={(index) => commands?.setLayout(index)}
@@ -178,7 +179,7 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
       </LayoutPicker>
       <Button
         variant="ghost"
-        aria-label="Folie duplizieren"
+        aria-label={m.slide_toolbar_duplicate()}
         disabled={disabled}
         onClick={run((c) => c.duplicateSlide())}
       >
@@ -186,7 +187,7 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
       </Button>
       <Button
         variant="ghost"
-        aria-label="Folie löschen"
+        aria-label={m.slide_toolbar_delete()}
         disabled={disabled || document.pages <= 1}
         onClick={run((c) => c.deleteSlide())}
       >
@@ -194,7 +195,7 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
       </Button>
       <Separator />
       <Choice
-        label="Schriftart"
+        label={m.toolbar_font()}
         className="w-40"
         value={text.fontName}
         options={catalog.fonts.map((name) => ({ value: name, label: name }))}
@@ -204,7 +205,7 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
       <div className="ml-1 flex h-8 items-center rounded-md border border-[var(--border)] bg-[var(--background)]">
         <Button
           variant="ghost"
-          aria-label="Schrift verkleinern"
+          aria-label={m.toolbar_font_smaller()}
           disabled={disabled}
           onClick={run((c) => c.setFontSize(fontSize - 1))}
         >
@@ -215,7 +216,7 @@ export const SlideToolbar = ({ state, commands }: SlideToolbarProps) => {
         </span>
         <Button
           variant="ghost"
-          aria-label="Schrift vergrößern"
+          aria-label={m.toolbar_font_larger()}
           disabled={disabled}
           onClick={run((c) => c.setFontSize(fontSize + 1))}
         >

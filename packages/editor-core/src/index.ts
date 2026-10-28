@@ -36,7 +36,6 @@ export {
   type PivotItem,
   type PivotState,
   type PivotSummary,
-  SUMMARY_NAMES,
   VALUES_FIELD,
 } from "./cell-pivot";
 export { type QuickFormat, type RuleCommands, splitList } from "./cell-rules";
@@ -92,6 +91,7 @@ export {
   type OpenOptions,
   type SavedDocument,
 } from "./document";
+export { ENGLISH_TEXTS, type EngineTexts } from "./engine-texts";
 export type { EngineWindow } from "./engine-types";
 export { type EditorKind, type EngineFrame, type FrameOptions, framePath, mountEngineFrame } from "./frame";
 export type { HeaderFooterCommands, PageNumberPlace } from "./header-footer";

@@ -1,6 +1,8 @@
 import type { CoreState, OpenedDocument } from "@schreibzeug/editor-core";
 import type { BlankFormat } from "@schreibzeug/files-api";
 import { NEW_FILE_GROUPS, NEW_FILES } from "../files/new-files";
+import { keys } from "../lib/keys";
+import { m } from "../paraglide/messages";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 
@@ -36,26 +38,30 @@ export const fileMenu = (
   /** Further formats to download in, e.g. a spreadsheet as CSV. */
   downloads: MenuItem[] = [],
 ): Menu => ({
-  label: "Datei",
+  label: m.common_file(),
   groups: [
     ...NEW_FILE_GROUPS.map((group) =>
       group.map((format) => ({ label: NEW_FILES[format].title, onSelect: () => actions.onNew(format) })),
     ),
     [
-      { label: "Kopie erstellen", onSelect: actions.onCopy },
-      { label: "Herunterladen", onSelect: download, disabled: !ready },
+      { label: m.file_menu_make_copy(), onSelect: actions.onCopy },
+      { label: m.file_menu_download(), onSelect: download, disabled: !ready },
       ...downloads.map((item) => ({ ...item, disabled: item.disabled || !ready })),
       ...(pdf?.download
-        ? [{ label: "Als PDF herunterladen", onSelect: pdf.download, disabled: !ready }]
+        ? [{ label: m.file_menu_download_pdf(), onSelect: pdf.download, disabled: !ready }]
         : []),
-      ...(pdf ? [{ label: "Als PDF/A herunterladen", onSelect: pdf.downloadPdfA, disabled: !ready }] : []),
-      ...(pdf ? [{ label: "Drucken", shortcut: "Strg+P", onSelect: pdf.print, disabled: !ready }] : []),
+      ...(pdf ? [{ label: m.file_menu_download_pdfa(), onSelect: pdf.downloadPdfA, disabled: !ready }] : []),
+      ...(pdf
+        ? [{ label: m.common_print(), shortcut: keys("Ctrl+P"), onSelect: pdf.print, disabled: !ready }]
+        : []),
     ],
     [
-      ...(actions.onShare ? [{ label: "Teilen …", onSelect: actions.onShare }] : []),
-      ...(actions.onShowVersions ? [{ label: "Versionen …", onSelect: actions.onShowVersions }] : []),
+      ...(actions.onShare ? [{ label: m.file_menu_share(), onSelect: actions.onShare }] : []),
+      ...(actions.onShowVersions
+        ? [{ label: m.file_menu_versions(), onSelect: actions.onShowVersions }]
+        : []),
     ],
-    [{ label: "Schließen", onSelect: actions.onClose }],
+    [{ label: m.common_close(), onSelect: actions.onClose }],
   ],
 });
 
@@ -72,21 +78,21 @@ export const helpMenu = (
   open: (dialog: "shortcuts" | "about") => void,
   screenReader: ScreenReaderSwitch | null = null,
 ): Menu => ({
-  label: "Hilfe",
+  label: m.common_help(),
   groups: [
     [
-      { label: "Tastenkürzel", onSelect: () => open("shortcuts") },
+      { label: m.file_menu_shortcuts(), onSelect: () => open("shortcuts") },
       ...(screenReader
         ? [
             {
-              label: "Unterstützung für Screenreader",
-              shortcut: "Strg+Alt+Z",
+              label: m.file_menu_screen_reader(),
+              shortcut: keys("Ctrl+Alt+Z"),
               checked: screenReader.on,
               onSelect: () => screenReader.set(!screenReader.on),
             },
           ]
         : []),
-      { label: "Über Schreibzeug", onSelect: () => open("about") },
+      { label: m.file_menu_about(), onSelect: () => open("about") },
     ],
   ],
 });

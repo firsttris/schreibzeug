@@ -187,4 +187,5 @@ export const withRemembered = (seller: SellerForm, remembered: Partial<SellerFor
 };
 
 /** "Rechnung 2026-42.docx" → "Rechnung 2026-42 (E-Rechnung).pdf". */
+// i18n-ignore: a file name, the same in every interface language
 export const eInvoiceNameFor = (name: string): string => `${name.replace(/\.[^.]*$/, "")} (E-Rechnung).pdf`;

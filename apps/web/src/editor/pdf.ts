@@ -1,3 +1,4 @@
+import { m } from "../paraglide/messages";
 import { downloadBytes } from "./opened-file";
 
 /** "Angebot.docx" → "Angebot.pdf". */
@@ -15,7 +16,7 @@ export const downloadPdf = (bytes: Uint8Array, name: string): void =>
  */
 export const printPdf = (bytes: Uint8Array): void => {
   const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-  const frame = Object.assign(document.createElement("iframe"), { src: url, title: "Drucken" });
+  const frame = Object.assign(document.createElement("iframe"), { src: url, title: m.common_print() });
   frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   frame.addEventListener("load", () => {
     try {

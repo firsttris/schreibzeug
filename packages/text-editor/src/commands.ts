@@ -193,16 +193,19 @@ export const insertLink =
       };
     });
 
-/** A table of the size with a header row, on lines of its own, with the cursor in the first cell. */
+/**
+ * A table of the size with a header row, on lines of its own, with the cursor in the first cell.
+ * `heading` names a header cell by its number, from 1, in the interface's language.
+ */
 export const insertTable =
-  (columns: number, rows: number): TextCommand =>
+  (columns: number, rows: number, heading: (column: number) => string): TextCommand =>
   (state) => {
     const { from } = state.selection.main;
     const line = state.doc.lineAt(from);
     const row = (cell: (column: number) => string) =>
       `| ${Array.from({ length: columns }, (_, column) => cell(column)).join(" | ")} |`;
     const table = [
-      row((column) => `Spalte ${column + 1}`),
+      row((column) => heading(column + 1)),
       `|${" --- |".repeat(columns)}`,
       ...Array.from({ length: Math.max(1, rows - 1) }, () => row(() => "   ")),
     ].join("\n");
@@ -210,7 +213,7 @@ export const insertTable =
     const at = line.text.trim() === "" ? line.from : line.to;
     return {
       changes: { from: at, to: line.text.trim() === "" ? line.to : at, insert: `${before}${table}\n` },
-      selection: EditorSelection.range(at + before.length + 2, at + before.length + 2 + "Spalte 1".length),
+      selection: EditorSelection.range(at + before.length + 2, at + before.length + 2 + heading(1).length),
     };
   };
 

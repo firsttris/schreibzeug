@@ -36,9 +36,8 @@ export type ShowPage = {
   focus: () => void;
 };
 
-export const END_MESSAGE = "Ende der Bildschirmpräsentation. Zum Beenden klicken.";
-
-export const createSlideShow = (api: SlideShowApi, page: ShowPage): SlideShow => ({
+/** `endMessage` is shown on the black page after the last slide, in the interface's language. */
+export const createSlideShow = (api: SlideShowApi, page: ShowPage, endMessage: string): SlideShow => ({
   start: (from) => {
     const element = page.element();
     if (!element) return;
@@ -46,7 +45,7 @@ export const createSlideShow = (api: SlideShowApi, page: ShowPage): SlideShow =>
     // The engine reads keys only while nothing in its page holds them (Transitions.js wrapKeyboard).
     page.focus();
     (page.activeElement() as HTMLElement | null)?.blur?.();
-    api.DemonstrationEndShowMessage(END_MESSAGE);
+    api.DemonstrationEndShowMessage(endMessage);
     if (from === "current") api.StartDemonstrationFromCurrentSlide(SLIDE_SHOW_ELEMENT);
     else api.StartDemonstrationFromBeginning(SLIDE_SHOW_ELEMENT);
   },

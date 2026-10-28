@@ -1,6 +1,7 @@
 import { initialSlideState, openPresentation } from "@schreibzeug/editor-core";
 import { Presentation } from "lucide-react";
 import { useRef } from "react";
+import { m } from "../paraglide/messages";
 import { SlideToolbar } from "../toolbar/slide-toolbar";
 import { Button } from "../ui/button";
 import { ContextMenu } from "../ui/context-menu";
@@ -94,7 +95,7 @@ export const SlideView = ({
             {comments.button}
             <Button variant="outline" disabled={!present} onClick={() => void present?.("beginning")}>
               <Presentation size={16} />
-              <ButtonLabel>Präsentieren</ButtonLabel>
+              <ButtonLabel>{m.slide_view_present()}</ButtonLabel>
             </Button>
           </>
         }
@@ -116,14 +117,16 @@ export const SlideView = ({
         data-testid="slide-position"
         className="m-0 border-t border-[var(--border)] px-4 py-1.5 text-xs text-[var(--muted-foreground)]"
       >
-        Folie {Math.min(state.currentSlide + 1, Math.max(state.document.pages, 1))} von{" "}
-        {Math.max(state.document.pages, 1)}
+        {m.slide_view_position({
+          current: Math.min(state.currentSlide + 1, Math.max(state.document.pages, 1)),
+          total: Math.max(state.document.pages, 1),
+        })}
       </p>
       {chrome.menuAt && (
         <ContextMenu
           x={chrome.menuAt.x}
           y={chrome.menuAt.y}
-          label="Kontextmenü"
+          label={m.slide_view_context_menu()}
           groups={slideContextMenu(context, chrome.menuAt.area)}
           onClose={chrome.closeMenu}
         />

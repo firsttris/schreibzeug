@@ -12,6 +12,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useEmbed } from "../embed/bridge";
 import { FileBadge } from "../files/file-badge";
 import type { FileKind } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import type { MenuItem } from "../ui/menu";
 import { type Menu, MenuBar } from "../ui/menu-bar";
@@ -76,25 +77,25 @@ const FileButtons = ({ ready, file, onDownload }: FileButtonsProps) => {
           href={window.location.pathname}
           target="_blank"
           rel="noopener"
-          aria-label="In neuem Tab öffnen"
-          title="In neuem Tab öffnen"
+          aria-label={m.editor_header_open_in_tab()}
+          title={m.editor_header_open_in_tab()}
           className="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
         >
           <ExternalLink size={16} />
         </a>
       )}
       {file.onShowVersions && (
-        <Button variant="ghost" aria-label="Versionen" onClick={file.onShowVersions}>
+        <Button variant="ghost" aria-label={m.editor_header_versions()} onClick={file.onShowVersions}>
           <History size={16} />
         </Button>
       )}
-      <Button variant="ghost" aria-label="Herunterladen" disabled={!ready} onClick={onDownload}>
+      <Button variant="ghost" aria-label={m.editor_header_download()} disabled={!ready} onClick={onDownload}>
         <Download size={16} />
       </Button>
       {file.onShare && (
         <Button variant="outline" onClick={file.onShare}>
           <Share2 size={15} />
-          <ButtonLabel>Teilen</ButtonLabel>
+          <ButtonLabel>{m.editor_header_share()}</ButtonLabel>
         </Button>
       )}
     </>
@@ -136,7 +137,7 @@ export const EditorHeader = ({
   useEffect(() => (header.current ? attachRovingToolbars(header.current) : undefined), []);
   const menuBar = (
     <MenuBar
-      label="Menü"
+      label={m.editor_header_menu()}
       menus={[fileMenu(file, onDownload, pdf, ready, downloads), ...menus, helpMenu(setDialog, screenReader)]}
     />
   );
@@ -147,7 +148,7 @@ export const EditorHeader = ({
       className="flex flex-col gap-2 border-b border-[var(--border)] px-2 pt-1.5 pb-1.5 sm:px-4 sm:pt-2 sm:pb-2"
     >
       <div className="flex items-center gap-x-2 sm:flex-wrap sm:gap-x-3 sm:gap-y-2">
-        <Button variant="ghost" aria-label="Zurück" onClick={file.onClose}>
+        <Button variant="ghost" aria-label={m.common_back()} onClick={file.onClose}>
           <ArrowLeft size={18} />
         </Button>
         <span className="hidden sm:contents">
@@ -173,7 +174,7 @@ export const EditorHeader = ({
           </span>
           <Button
             variant="ghost"
-            aria-label="Werkzeuge"
+            aria-label={m.editor_header_tools()}
             aria-expanded={toolsOpen}
             className="sm:hidden"
             onClick={() => setToolsOpen((open) => !open)}
@@ -183,7 +184,7 @@ export const EditorHeader = ({
           {!readOnly && (
             <Button variant="primary" disabled={!ready || saving} onClick={save}>
               <Save size={15} />
-              <ButtonLabel>Speichern</ButtonLabel>
+              <ButtonLabel>{m.common_save()}</ButtonLabel>
             </Button>
           )}
         </div>

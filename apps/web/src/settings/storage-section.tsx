@@ -5,6 +5,7 @@ import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { formatSize } from "../lib/format";
 import { freeText } from "../lib/storage";
+import { m } from "../paraglide/messages";
 import { DiskBar } from "../storage/disk-bar";
 
 const Row = ({ label, value, hint }: { label: string; value: string; hint?: ReactNode }) => (
@@ -23,12 +24,10 @@ export const StorageSection = () => {
   const storage = useQuery(queries.storage());
   const { usage, disk } = storage.data ?? { usage: null, disk: null };
   return (
-    <section id="speicher" aria-label="Speicher" className="flex flex-col gap-3">
+    <section id="speicher" aria-label={m.storage_section_title()} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="m-0 text-base font-semibold">Speicher</h2>
-        <p className="m-0 text-sm text-[var(--muted-foreground)]">
-          Was deine Dateien belegen. Den Platz auf dem Server teilen sich alle Konten.
-        </p>
+        <h2 className="m-0 text-base font-semibold">{m.storage_section_title()}</h2>
+        <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.storage_section_hint()}</p>
       </div>
       {storage.isError && (
         <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">
@@ -37,18 +36,18 @@ export const StorageSection = () => {
       )}
       {usage && (
         <dl className="m-0 flex flex-col text-sm">
-          <Row label="Deine Dateien" value={formatSize(usage.files)} />
+          <Row label={m.storage_section_files()} value={formatSize(usage.files)} />
           <Row
-            label="Ältere Versionen"
+            label={m.storage_section_versions()}
             value={formatSize(usage.versions)}
-            hint="Jedes Speichern behält den Stand davor."
+            hint={m.storage_section_versions_hint()}
           />
           <Row
-            label="Papierkorb"
+            label={m.storage_section_trash()}
             value={formatSize(usage.trash)}
             hint={
               <Link to="/trash" className="text-inherit underline">
-                Papierkorb öffnen
+                {m.storage_section_open_trash()}
               </Link>
             }
           />
@@ -57,12 +56,12 @@ export const StorageSection = () => {
       {disk && (
         <div className="flex flex-col gap-1.5 text-sm">
           <div className="flex items-baseline justify-between gap-4">
-            <span>Auf dem Server</span>
+            <span>{m.storage_section_on_server()}</span>
             <span className="tabular-nums" data-testid="disk-free">
               {freeText(disk)}
             </span>
           </div>
-          <DiskBar disk={disk} label="Belegter Platz auf dem Server" />
+          <DiskBar disk={disk} label={m.storage_section_used()} />
         </div>
       )}
     </section>

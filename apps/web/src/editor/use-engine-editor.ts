@@ -15,6 +15,7 @@ import { kindOf } from "../lib/format";
 import { readScreenReader, writeScreenReader } from "../settings/screen-reader";
 import { readSpellCheck } from "../settings/spell-check";
 import { ENGINE_PATH, newConverter } from "./engine";
+import { engineTexts } from "./engine-texts";
 import type { OpenedFile } from "./opened-file";
 import { isPhone } from "./use-mobile-view";
 
@@ -81,6 +82,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
           screenReader: readScreenReader(),
+          texts: engineTexts(kind),
           phone: isPhone(),
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),

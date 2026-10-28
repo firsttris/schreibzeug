@@ -1,6 +1,7 @@
 import { nodeNameSchema } from "@schreibzeug/files-api";
 import { useState } from "react";
 import { messageOf } from "../api/client";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -38,7 +39,7 @@ const NameForm = ({ label, initialName, confirm, onSubmit, onClose }: NameDialog
 
   const submit = async () => {
     const parsed = nodeNameSchema.safeParse(name);
-    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Ungültiger Name.");
+    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? m.name_dialog_invalid());
     setBusy(true);
     try {
       await onSubmit(parsed.data);
@@ -84,7 +85,7 @@ const NameForm = ({ label, initialName, confirm, onSubmit, onClose }: NameDialog
       )}
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" type="submit" disabled={busy}>
           {confirm}

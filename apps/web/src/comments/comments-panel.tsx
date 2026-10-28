@@ -2,6 +2,7 @@ import type { Comment, CommentCommands, CommentEntry } from "@schreibzeug/editor
 import { Check, MessageSquare, RotateCcw, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { formatChanged } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 
 /** A text field with a send button; Ctrl/⌘+Enter sends, as in most comment boxes. */
@@ -56,7 +57,7 @@ const Composer = ({
 const Entry = ({ entry }: { entry: CommentEntry }) => (
   <div className="flex flex-col gap-0.5">
     <div className="flex items-baseline justify-between gap-2">
-      <span className="truncate text-sm font-medium">{entry.author || "Unbekannt"}</span>
+      <span className="truncate text-sm font-medium">{entry.author || m.comments_panel_unknown()}</span>
       <span className="shrink-0 text-xs text-[var(--muted-foreground)]">
         {entry.time ? formatChanged(new Date(entry.time).toISOString()) : ""}
       </span>
@@ -75,7 +76,7 @@ const CommentCard = ({
   commands: CommentCommands;
 }) => (
   <article
-    aria-label={`Kommentar von ${comment.author || "Unbekannt"}`}
+    aria-label={m.comments_panel_comment_by({ author: comment.author || m.comments_panel_unknown() })}
     data-active={active}
     data-resolved={comment.resolved}
     className={`flex flex-col gap-3 rounded-lg border p-3 ${active ? "border-[var(--docx)] shadow-sm" : "border-[var(--border)]"} ${comment.resolved ? "opacity-60" : ""}`}
@@ -98,23 +99,27 @@ const CommentCard = ({
     <div className="flex items-center gap-1">
       <Button
         variant="ghost"
-        aria-label={comment.resolved ? "Wieder öffnen" : "Als erledigt markieren"}
-        title={comment.resolved ? "Wieder öffnen" : "Erledigt"}
+        aria-label={comment.resolved ? m.comments_panel_reopen() : m.comments_panel_mark_resolved()}
+        title={comment.resolved ? m.comments_panel_reopen() : m.comments_panel_resolved()}
         onClick={() => commands.setResolved(comment.id, !comment.resolved)}
       >
         {comment.resolved ? <RotateCcw size={15} /> : <Check size={15} />}
       </Button>
       <Button
         variant="ghost"
-        aria-label="Kommentar löschen"
-        title="Löschen"
+        aria-label={m.comments_panel_delete_comment()}
+        title={m.common_delete()}
         onClick={() => commands.remove(comment.id)}
       >
         <Trash2 size={15} />
       </Button>
     </div>
     {!comment.resolved && (
-      <Composer label="Antworten" submit="Antworten" onSubmit={(text) => commands.reply(comment.id, text)} />
+      <Composer
+        label={m.comments_panel_reply()}
+        submit={m.comments_panel_reply()}
+        onSubmit={(text) => commands.reply(comment.id, text)}
+      />
     )}
   </article>
 );
@@ -122,11 +127,11 @@ const CommentCard = ({
 /** What a new comment is on (CommentsPanelProps.target). */
 export type CommentTarget = "selection" | "slide" | "cell" | "page";
 
-const COMPOSE_LABELS: Record<CommentTarget, string> = {
-  selection: "Kommentar zur Auswahl",
-  slide: "Kommentar zur Folie",
-  cell: "Kommentar zur Zelle",
-  page: "Notiz zur Seite",
+const COMPOSE_LABELS: Record<CommentTarget, () => string> = {
+  selection: m.comments_panel_on_selection,
+  slide: m.comments_panel_on_slide,
+  cell: m.comments_panel_on_cell,
+  page: m.comments_panel_on_page,
 };
 
 export type CommentsPanelProps = {
@@ -157,20 +162,20 @@ export const CommentsPanel = ({
   ];
   return (
     <aside
-      aria-label="Kommentare"
+      aria-label={m.comments_panel_title()}
       className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] p-3"
     >
       <header className="flex items-center justify-between">
-        <h2 className="m-0 text-sm font-semibold">Kommentare</h2>
-        <Button variant="ghost" aria-label="Kommentare schließen" onClick={onClose}>
+        <h2 className="m-0 text-sm font-semibold">{m.comments_panel_title()}</h2>
+        <Button variant="ghost" aria-label={m.comments_panel_close()} onClick={onClose}>
           <X size={16} />
         </Button>
       </header>
       {composing && commands && (
         <div className="rounded-lg border border-[var(--docx)] p-3">
           <Composer
-            label={COMPOSE_LABELS[target]}
-            submit="Kommentieren"
+            label={COMPOSE_LABELS[target]()}
+            submit={m.comments_panel_submit()}
             autoFocus
             onSubmit={(text) => {
               commands.add(text);
@@ -182,7 +187,7 @@ export const CommentsPanel = ({
       {ordered.length === 0 && !composing && (
         <p className="m-0 flex flex-col items-center gap-2 py-10 text-center text-sm text-[var(--muted-foreground)]">
           <MessageSquare size={20} aria-hidden />
-          Noch keine Kommentare. Markiere Text und wähle „Kommentar hinzufügen“.
+          {m.comments_panel_empty()}
         </p>
       )}
       {commands &&

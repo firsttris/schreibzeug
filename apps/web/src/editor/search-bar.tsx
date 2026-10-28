@@ -1,6 +1,7 @@
 import type { SearchCommands, SearchQuery, SearchState } from "@schreibzeug/editor-core";
 import { CaseSensitive, ChevronDown, ChevronUp, WholeWord, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import type { SearchMode } from "./use-search-bar";
 
@@ -19,10 +20,13 @@ const inputClass =
 
 /** "2 von 5", "Keine Treffer", or how many were replaced. */
 const resultText = ({ current, total, replaced }: SearchState, text: string): string => {
-  if (replaced !== null) return replaced === 1 ? "1 ersetzt" : `${replaced} ersetzt`;
+  if (replaced !== null)
+    return replaced === 1
+      ? m.search_bar_replaced_one({ count: replaced })
+      : m.search_bar_replaced_other({ count: replaced });
   if (!text) return "";
-  if (total === 0) return "Keine Treffer";
-  return `${current + 1} von ${total}`;
+  if (total === 0) return m.search_bar_no_matches();
+  return m.search_bar_position({ current: current + 1, total });
 };
 
 /** How long typing pauses before the search runs, as web-apps waits (Search.js onInputSearchChange). */
@@ -58,14 +62,14 @@ export const SearchBar = ({ search, state, mode, canReplace, onModeChange, onClo
 
   return (
     <search
-      aria-label="Suchen und ersetzen"
+      aria-label={m.search_bar_label()}
       className="absolute top-3 right-4 z-10 flex w-[min(26rem,calc(100%-2rem))] flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-2 shadow-lg"
     >
       <div className="flex items-center gap-1">
         <input
           ref={input}
-          aria-label="Suchen"
-          placeholder="Suchen"
+          aria-label={m.common_find()}
+          placeholder={m.common_find()}
           value={query.text}
           onChange={(event) => setQuery({ ...query, text: event.target.value })}
           onKeyDown={(event) => {
@@ -82,23 +86,28 @@ export const SearchBar = ({ search, state, mode, canReplace, onModeChange, onClo
         </span>
         <Button
           variant="ghost"
-          aria-label="Vorheriger Treffer"
+          aria-label={m.search_bar_previous()}
           disabled={!query.text}
           onClick={() => go(false)}
         >
           <ChevronUp size={15} />
         </Button>
-        <Button variant="ghost" aria-label="Nächster Treffer" disabled={!query.text} onClick={() => go(true)}>
+        <Button
+          variant="ghost"
+          aria-label={m.search_bar_next()}
+          disabled={!query.text}
+          onClick={() => go(true)}
+        >
           <ChevronDown size={15} />
         </Button>
-        <Button variant="ghost" aria-label="Suche schließen" onClick={onClose}>
+        <Button variant="ghost" aria-label={m.search_bar_close()} onClick={onClose}>
           <X size={15} />
         </Button>
       </div>
       <div className="flex items-center gap-1">
         <Button
           variant="toggle"
-          aria-label="Groß-/Kleinschreibung beachten"
+          aria-label={m.search_bar_match_case()}
           aria-pressed={query.matchCase}
           onClick={() => toggle("matchCase")}
         >
@@ -106,7 +115,7 @@ export const SearchBar = ({ search, state, mode, canReplace, onModeChange, onClo
         </Button>
         <Button
           variant="toggle"
-          aria-label="Nur ganze Wörter"
+          aria-label={m.search_bar_whole_words()}
           aria-pressed={query.wholeWords}
           onClick={() => toggle("wholeWords")}
         >
@@ -114,15 +123,15 @@ export const SearchBar = ({ search, state, mode, canReplace, onModeChange, onClo
         </Button>
         {canReplace && mode === "find" && (
           <Button variant="ghost" className="ml-auto" onClick={() => onModeChange("replace")}>
-            Ersetzen …
+            {m.search_bar_show_replace()}
           </Button>
         )}
       </div>
       {canReplace && mode === "replace" && (
         <div className="flex items-center gap-1">
           <input
-            aria-label="Ersetzen durch"
-            placeholder="Ersetzen durch"
+            aria-label={m.search_bar_replace_with()}
+            placeholder={m.search_bar_replace_with()}
             value={replacement}
             onChange={(event) => setReplacement(event.target.value)}
             onKeyDown={(event) => {
@@ -136,14 +145,14 @@ export const SearchBar = ({ search, state, mode, canReplace, onModeChange, onClo
             disabled={!query.text}
             onClick={() => search?.replace(query, replacement)}
           >
-            Ersetzen
+            {m.common_replace()}
           </Button>
           <Button
             variant="outline"
             disabled={!query.text}
             onClick={() => search?.replaceAll(query, replacement)}
           >
-            Alle ersetzen
+            {m.search_bar_replace_all()}
           </Button>
         </div>
       )}

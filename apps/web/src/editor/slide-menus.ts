@@ -7,6 +7,8 @@ import type {
   SpellingCommands,
   ViewCommands,
 } from "@schreibzeug/editor-core";
+import { keys } from "../lib/keys";
+import { m } from "../paraglide/messages";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, searchItems, zoomGroups } from "./common-menus";
@@ -36,10 +38,10 @@ const slideItems = (
   off: boolean,
   slides: number,
 ): MenuItem[] => [
-  { label: "Neue Folie", disabled: off, onSelect: run((c) => c.addSlide()) },
-  { label: "Folie duplizieren", disabled: off, onSelect: run((c) => c.duplicateSlide()) },
+  { label: m.slide_menus_new_slide(), disabled: off, onSelect: run((c) => c.addSlide()) },
+  { label: m.slide_menus_duplicate_slide(), disabled: off, onSelect: run((c) => c.duplicateSlide()) },
   {
-    label: "Folie löschen",
+    label: m.slide_menus_delete_slide(),
     danger: true,
     disabled: off || slides <= 1,
     onSelect: run((c) => c.deleteSlide()),
@@ -58,18 +60,18 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
 
   return [
     {
-      label: "Bearbeiten",
+      label: m.common_edit(),
       groups: [
         [
           {
-            label: "Rückgängig",
-            shortcut: "Strg+Z",
+            label: m.common_undo(),
+            shortcut: keys("Ctrl+Z"),
             disabled: off || !document.canUndo,
             onSelect: run((c) => c.undo()),
           },
           {
-            label: "Wiederholen",
-            shortcut: "Strg+Y",
+            label: m.common_redo(),
+            shortcut: keys("Ctrl+Y"),
             disabled: off || !document.canRedo,
             onSelect: run((c) => c.redo()),
           },
@@ -77,8 +79,8 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
         clipboardItems(view, context.onClipboardRefused),
         [
           {
-            label: "Alles auswählen",
-            shortcut: "Strg+A",
+            label: m.common_select_all(),
+            shortcut: keys("Ctrl+A"),
             disabled: off,
             onSelect: run((c) => c.selectAll()),
           },
@@ -87,16 +89,16 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Ansicht",
+      label: m.common_view(),
       groups: [
         [
           {
-            label: "Bildschirmpräsentation von Anfang an",
+            label: m.slide_menus_show_from_beginning(),
             disabled: !context.onPresent,
             onSelect: () => context.onPresent?.("beginning"),
           },
           {
-            label: "Bildschirmpräsentation ab aktueller Folie",
+            label: m.slide_menus_show_from_current(),
             disabled: !context.onPresent,
             onSelect: () => context.onPresent?.("current"),
           },
@@ -106,25 +108,25 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Einfügen",
+      label: m.common_insert(),
       groups: [
         [
           {
-            label: "Bild …",
+            label: m.slide_menus_image(),
             disabled: off || !context.onInsertImage,
             onSelect: () => context.onInsertImage?.(),
           },
-          { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
+          { label: m.slide_menus_comment(), disabled: off, onSelect: context.onAddComment },
         ],
         shapeItems(context.design, off),
       ],
     },
     {
-      label: "Folie",
+      label: m.slide_menus_slide(),
       groups: [
         slideItems(run, off, document.pages),
         state.layouts.map((layout) => ({
-          label: `Layout: ${layout.name}`,
+          label: m.slide_menus_layout({ name: layout.name }),
           disabled: off,
           onSelect: run((c) => c.setLayout(layout.index)),
         })),
@@ -132,44 +134,44 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
     },
     ...designMenus(state, context.design, off),
     {
-      label: "Format",
+      label: m.common_format(),
       groups: [
         [
           {
-            label: "Fett",
-            shortcut: "Strg+B",
+            label: m.common_bold(),
+            shortcut: keys("Ctrl+B"),
             checked: text.bold,
             disabled: off,
             onSelect: run((c) => c.toggleBold()),
           },
           {
-            label: "Kursiv",
-            shortcut: "Strg+I",
+            label: m.common_italic(),
+            shortcut: keys("Ctrl+I"),
             checked: text.italic,
             disabled: off,
             onSelect: run((c) => c.toggleItalic()),
           },
           {
-            label: "Unterstrichen",
-            shortcut: "Strg+U",
+            label: m.common_underline(),
+            shortcut: keys("Ctrl+U"),
             checked: text.underline,
             disabled: off,
             onSelect: run((c) => c.toggleUnderline()),
           },
           {
-            label: "Durchgestrichen",
+            label: m.slide_menus_strikethrough(),
             checked: text.strikeout,
             disabled: off,
             onSelect: run((c) => c.toggleStrikeout()),
           },
           {
-            label: "Hochgestellt",
+            label: m.slide_menus_superscript(),
             checked: text.baseline === "superscript",
             disabled: off,
             onSelect: run((c) => c.toggleBaseline("superscript")),
           },
           {
-            label: "Tiefgestellt",
+            label: m.slide_menus_subscript(),
             checked: text.baseline === "subscript",
             disabled: off,
             onSelect: run((c) => c.toggleBaseline("subscript")),
@@ -177,25 +179,25 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
         ],
         [
           {
-            label: "Linksbündig",
+            label: m.slide_menus_align_left(),
             checked: text.align === "left",
             disabled: off,
             onSelect: run((c) => c.setAlign("left")),
           },
           {
-            label: "Zentriert",
+            label: m.slide_menus_align_center(),
             checked: text.align === "center",
             disabled: off,
             onSelect: run((c) => c.setAlign("center")),
           },
           {
-            label: "Rechtsbündig",
+            label: m.slide_menus_align_right(),
             checked: text.align === "right",
             disabled: off,
             onSelect: run((c) => c.setAlign("right")),
           },
           {
-            label: "Blocksatz",
+            label: m.slide_menus_justify(),
             checked: text.align === "justify",
             disabled: off,
             onSelect: run((c) => c.setAlign("justify")),
@@ -203,22 +205,28 @@ export const slideMenus = (context: SlideMenuContext): Menu[] => {
         ],
         [
           {
-            label: "Aufzählung",
+            label: m.slide_menus_bullets(),
             checked: state.list === "bullet",
             disabled: off,
             onSelect: run((c) => c.toggleList("bullet")),
           },
           {
-            label: "Nummerierung",
+            label: m.slide_menus_numbering(),
             checked: state.list === "number",
             disabled: off,
             onSelect: run((c) => c.toggleList("number")),
           },
         ],
-        [{ label: "Formatierung löschen", disabled: off, onSelect: run((c) => c.clearFormatting()) }],
+        [
+          {
+            label: m.slide_menus_clear_formatting(),
+            disabled: off,
+            onSelect: run((c) => c.clearFormatting()),
+          },
+        ],
       ],
     },
-    { label: "Überprüfen", groups: [[spellCheckItem(state.spelling, context.spelling, off)]] },
+    { label: m.slide_menus_review(), groups: [[spellCheckItem(state.spelling, context.spelling, off)]] },
   ];
 };
 
@@ -229,7 +237,7 @@ export const slideContextMenu = (context: SlideMenuContext, area: ContextMenuAre
   const run = (action: (c: SlideCommands) => void) => () => commands && action(commands);
   const clipboard = clipboardItems(context.view, context.onClipboardRefused);
   const slides = slideItems(run, off, state.document.pages);
-  const comment = [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }];
+  const comment = [{ label: m.slide_menus_add_comment(), onSelect: context.onAddComment }];
   return area === "thumbnails"
     ? [slides, clipboard]
     : [...suggestionGroups(state.spelling, context.spelling), clipboard, comment, slides];

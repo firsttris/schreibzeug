@@ -8,6 +8,7 @@ import {
   type OpenOptions,
   openDocument,
 } from "./document";
+import { textsOf } from "./engine-texts";
 import type { EngineWindow, WordEngineApi, WordEventArgs, WordWindow } from "./engine-types";
 import { stateEvents } from "./events";
 import { createHeaderFooterCommands, type HeaderFooterCommands } from "./header-footer";
@@ -16,7 +17,6 @@ import { createLinkCommands, type HyperlinkProps, type LinkCommands, readLink } 
 import { readListKind } from "./lists";
 import { createMarkingCommands, type MarkingCommands, readHighlight } from "./marking";
 import { createReviewCommands, type ReviewCommands, readRevision, trackingOf } from "./review";
-import { SPEECH_TEXTS } from "./screen-reader";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
   connectSpelling,
@@ -135,10 +135,10 @@ const wordBinding: EditorBinding<
   >
 > = {
   format: EDITOR_FORMAT.word,
-  createApi: (win) => {
+  createApi: (win, options) => {
     limitSpellLanguages(win.AscCommon);
     useDedicatedSpellWorker(win);
-    const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: SPEECH_TEXTS });
+    const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: textsOf(options).translate });
     api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     return api;
   },
@@ -235,7 +235,7 @@ const wordBinding: EditorBinding<
       onLinkRequest: linkRequests.add,
       onLinkOpen: linkOpens.add,
       headerFooter: createHeaderFooterCommands(api, focusEngine),
-      mailMerge: createMailMergeCommands(win, api, options.convert),
+      mailMerge: createMailMergeCommands(win, api, options.convert, textsOf(options)),
       insert: createInsertCommands(api, win.Asc, () => new win.Asc.CTableOfContentsPr(), focusEngine),
       layout: createLayoutCommands(api, () => new win.Asc.CDocumentSectionProps(), layoutConstants),
       commands: withListRefresh(

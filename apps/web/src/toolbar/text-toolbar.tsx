@@ -23,39 +23,41 @@ import {
   Table,
   Undo2,
 } from "lucide-react";
+import { keys } from "../lib/keys";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Choice } from "./choice";
 
 const Separator = () => <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-[var(--border)]" />;
 
 export const BLOCK_LABELS: Record<BlockKind, string> = {
-  paragraph: "Absatz",
-  h1: "Überschrift 1",
-  h2: "Überschrift 2",
-  h3: "Überschrift 3",
-  h4: "Überschrift 4",
-  h5: "Überschrift 5",
-  h6: "Überschrift 6",
+  paragraph: m.text_toolbar_paragraph(),
+  h1: m.text_toolbar_heading({ level: 1 }),
+  h2: m.text_toolbar_heading({ level: 2 }),
+  h3: m.text_toolbar_heading({ level: 3 }),
+  h4: m.text_toolbar_heading({ level: 4 }),
+  h5: m.text_toolbar_heading({ level: 5 }),
+  h6: m.text_toolbar_heading({ level: 6 }),
 };
 
 export const MARKS: Array<{ mark: InlineMark; label: string; icon: LucideIcon; shortcut?: string }> = [
-  { mark: "strong", label: "Fett", icon: Bold, shortcut: "Strg+B" },
-  { mark: "emphasis", label: "Kursiv", icon: Italic, shortcut: "Strg+I" },
-  { mark: "strikethrough", label: "Durchgestrichen", icon: Strikethrough },
-  { mark: "code", label: "Code", icon: Code },
+  { mark: "strong", label: m.common_bold(), icon: Bold, shortcut: keys("Ctrl+B") },
+  { mark: "emphasis", label: m.common_italic(), icon: Italic, shortcut: keys("Ctrl+I") },
+  { mark: "strikethrough", label: m.toolbar_strikethrough(), icon: Strikethrough },
+  { mark: "code", label: m.text_toolbar_code(), icon: Code },
 ];
 
 export const PREFIXES: Array<{ prefix: LinePrefix; label: string; icon: LucideIcon }> = [
-  { prefix: "bullet", label: "Aufzählung", icon: List },
-  { prefix: "ordered", label: "Nummerierung", icon: ListOrdered },
-  { prefix: "task", label: "Aufgabenliste", icon: ListTodo },
-  { prefix: "quote", label: "Zitat", icon: Quote },
+  { prefix: "bullet", label: m.toolbar_bullets(), icon: List },
+  { prefix: "ordered", label: m.toolbar_numbering(), icon: ListOrdered },
+  { prefix: "task", label: m.text_toolbar_task_list(), icon: ListTodo },
+  { prefix: "quote", label: m.text_toolbar_quote(), icon: Quote },
 ];
 
 export const VIEW_MODES: Array<{ mode: TextViewMode; label: string }> = [
-  { mode: "live", label: "Live" },
-  { mode: "split", label: "Geteilt" },
-  { mode: "source", label: "Quelltext" },
+  { mode: "live", label: m.text_toolbar_live() },
+  { mode: "split", label: m.text_toolbar_split() },
+  { mode: "source", label: m.text_toolbar_source() },
 ];
 
 export type TextToolbarProps = {
@@ -87,18 +89,28 @@ export const TextToolbar = ({
 }: TextToolbarProps) => (
   <div
     role="toolbar"
-    aria-label="Formatierung"
+    aria-label={m.toolbar_formatting()}
     className="flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-1"
   >
-    <Button variant="ghost" aria-label="Rückgängig" disabled={disabled || !state.canUndo} onClick={onUndo}>
+    <Button
+      variant="ghost"
+      aria-label={m.common_undo()}
+      disabled={disabled || !state.canUndo}
+      onClick={onUndo}
+    >
       <Undo2 size={16} />
     </Button>
-    <Button variant="ghost" aria-label="Wiederholen" disabled={disabled || !state.canRedo} onClick={onRedo}>
+    <Button
+      variant="ghost"
+      aria-label={m.common_redo()}
+      disabled={disabled || !state.canRedo}
+      onClick={onRedo}
+    >
       <Redo2 size={16} />
     </Button>
     <Separator />
     <Choice
-      label="Absatzart"
+      label={m.text_toolbar_block()}
       value={state.block}
       options={(Object.keys(BLOCK_LABELS) as BlockKind[])
         .slice(0, 4)
@@ -121,7 +133,7 @@ export const TextToolbar = ({
         <Icon size={16} />
       </Button>
     ))}
-    <Button variant="ghost" aria-label="Link" disabled={disabled} onClick={onLink}>
+    <Button variant="ghost" aria-label={m.text_toolbar_link()} disabled={disabled} onClick={onLink}>
       <Link size={16} />
     </Button>
     <Separator />
@@ -136,19 +148,19 @@ export const TextToolbar = ({
         <Icon size={16} />
       </Button>
     ))}
-    <Button variant="ghost" aria-label="Tabelle" disabled={disabled} onClick={onTable}>
+    <Button variant="ghost" aria-label={m.text_toolbar_table()} disabled={disabled} onClick={onTable}>
       <Table size={16} />
     </Button>
     <Button
       variant="ghost"
-      aria-label="Trennlinie"
+      aria-label={m.text_toolbar_rule()}
       disabled={disabled}
       onClick={() => run(TEXT_COMMANDS.rule)}
     >
       <Minus size={16} />
     </Button>
     <fieldset
-      aria-label="Ansicht"
+      aria-label={m.common_view()}
       className="m-0 ml-auto flex overflow-hidden rounded-md border border-[var(--border)] bg-[var(--background)] p-0"
     >
       {VIEW_MODES.map((entry) => (

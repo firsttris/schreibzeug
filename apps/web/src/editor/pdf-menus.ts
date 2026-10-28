@@ -7,6 +7,8 @@ import type {
   PdfTool,
   ViewCommands,
 } from "@schreibzeug/editor-core";
+import { keys } from "../lib/keys";
+import { m } from "../paraglide/messages";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 import { clipboardItems, zoomGroups } from "./common-menus";
@@ -36,20 +38,18 @@ export type PdfMenuContext = {
 
 /** The tools of "Kommentieren", with the label the menu and the toolbar share. */
 export const ANNOTATION_TOOLS: Array<{ tool: PdfTool; label: string }> = [
-  { tool: "highlight", label: "Text hervorheben" },
-  { tool: "underline", label: "Text unterstreichen" },
-  { tool: "strikeout", label: "Text durchstreichen" },
-  { tool: "draw", label: "Freihand zeichnen" },
-  { tool: "square", label: "Rechteck" },
-  { tool: "circle", label: "Ellipse" },
-  { tool: "line", label: "Linie" },
+  { tool: "highlight", label: m.pdf_menus_highlight() },
+  { tool: "underline", label: m.pdf_menus_underline() },
+  { tool: "strikeout", label: m.pdf_menus_strikeout() },
+  { tool: "draw", label: m.pdf_menus_draw() },
+  { tool: "square", label: m.pdf_menus_rectangle() },
+  { tool: "circle", label: m.pdf_menus_ellipse() },
+  { tool: "line", label: m.pdf_menus_line() },
 ];
 
 /** A tool switches on, or off again when it is the one in use. */
 export const toggleTool = (commands: PdfCommands, current: PdfTool, tool: PdfTool): void =>
   commands.setTool(current === tool ? "select" : tool);
-
-const LAST_PAGE_MESSAGE = "Die letzte Seite eines PDFs kann nicht gelöscht werden.";
 
 /** Pages from 0 as people count them: "Seite 2", "Seiten 1–3", "Seiten 1, 3–4". */
 export const pagesLabel = (pages: number[]): string => {
@@ -61,7 +61,9 @@ export const pagesLabel = (pages: number[]): string => {
     else runs.push([page, page]);
   }
   const text = runs.map(([from, to]) => (from === to ? `${from}` : `${from}–${to}`)).join(", ");
-  return sorted.length === 1 ? `Seite ${text}` : `Seiten ${text}`;
+  return sorted.length === 1
+    ? m.pdf_menus_page_one({ pages: text })
+    : m.pdf_menus_page_other({ pages: text });
 };
 
 /** Turn, add, remove pages: in "Seiten" and in the context menu of the page thumbnails. */
@@ -70,28 +72,28 @@ export const pageItems = (context: PdfMenuContext, off: boolean): MenuItem[][] =
   const run = (action: (p: PageCommands) => void) => () => pages && action(pages);
   return [
     [
-      { label: "Nach rechts drehen", disabled: off, onSelect: run((p) => p.rotate("right")) },
-      { label: "Nach links drehen", disabled: off, onSelect: run((p) => p.rotate("left")) },
+      { label: m.pdf_menus_rotate_right(), disabled: off, onSelect: run((p) => p.rotate("right")) },
+      { label: m.pdf_menus_rotate_left(), disabled: off, onSelect: run((p) => p.rotate("left")) },
     ],
     [
-      { label: "Leere Seite davor", disabled: off, onSelect: run((p) => p.addBlank("before")) },
-      { label: "Leere Seite danach", disabled: off, onSelect: run((p) => p.addBlank("after")) },
+      { label: m.pdf_menus_blank_before(), disabled: off, onSelect: run((p) => p.addBlank("before")) },
+      { label: m.pdf_menus_blank_after(), disabled: off, onSelect: run((p) => p.addBlank("after")) },
     ],
     [
-      { label: "PDF anhängen …", disabled: off, onSelect: context.onAppendPdf },
+      { label: m.pdf_menus_append_pdf(), disabled: off, onSelect: context.onAppendPdf },
       {
-        label: "Als neues PDF speichern",
+        label: m.pdf_menus_save_as_new(),
         disabled: off || !context.onExtractPages,
         onSelect: () => context.onExtractPages?.(),
       },
     ],
     [
       {
-        label: "Seiten löschen",
+        label: m.pdf_menus_delete_pages(),
         danger: true,
         disabled: off || context.state.document.pages <= 1,
         onSelect: run((p) => {
-          if (!p.remove()) context.notify(LAST_PAGE_MESSAGE);
+          if (!p.remove()) context.notify(m.pdf_menus_last_page());
         }),
       },
     ],
@@ -110,18 +112,18 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
 
   return [
     {
-      label: "Bearbeiten",
+      label: m.common_edit(),
       groups: [
         [
           {
-            label: "Rückgängig",
-            shortcut: "Strg+Z",
+            label: m.common_undo(),
+            shortcut: keys("Ctrl+Z"),
             disabled: off || !document.canUndo,
             onSelect: run((c) => c.undo()),
           },
           {
-            label: "Wiederholen",
-            shortcut: "Strg+Y",
+            label: m.common_redo(),
+            shortcut: keys("Ctrl+Y"),
             disabled: off || !document.canRedo,
             onSelect: run((c) => c.redo()),
           },
@@ -130,17 +132,17 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Ansicht",
+      label: m.common_view(),
       groups: [
         [
           {
-            label: "Auswählen",
+            label: m.pdf_menus_select(),
             checked: tool === "select",
             disabled: off,
             onSelect: run((c) => c.setTool("select")),
           },
           {
-            label: "Verschieben (Hand)",
+            label: m.pdf_menus_hand(),
             checked: tool === "hand",
             disabled: off,
             onSelect: run((c) => c.setTool("hand")),
@@ -150,14 +152,14 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Kommentieren",
+      label: m.pdf_menus_annotate(),
       groups: [
         [
-          { label: "Notiz", disabled: off, onSelect: context.onAddNote },
-          { label: "Textfeld", disabled: off, onSelect: run((c) => c.addTextBox()) },
-          { label: "Unterschreiben …", disabled: off || !context.onSign, onSelect: () => context.onSign?.() },
+          { label: m.pdf_menus_note(), disabled: off, onSelect: context.onAddNote },
+          { label: m.pdf_menus_text_box(), disabled: off, onSelect: run((c) => c.addTextBox()) },
+          { label: m.pdf_menus_sign(), disabled: off || !context.onSign, onSelect: () => context.onSign?.() },
           {
-            label: "Digital signieren …",
+            label: m.pdf_menus_sign_digitally(),
             disabled: off || !context.onSignDigitally,
             onSelect: () => context.onSignDigitally?.(),
           },
@@ -171,12 +173,12 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Seiten",
+      label: m.pdf_menus_pages(),
       groups: [
         ...pageItems(context, off),
         [
           {
-            label: "Text erkennen (OCR) …",
+            label: m.pdf_menus_recognize_text(),
             disabled: off || !context.onRecognizeText,
             onSelect: () => context.onRecognizeText?.(),
           },
@@ -184,21 +186,21 @@ export const pdfMenus = (context: PdfMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Schwärzen",
+      label: m.pdf_menus_redact(),
       groups: [
         [
           {
-            label: "Bereiche markieren",
+            label: m.pdf_menus_mark_areas(),
             checked: tool === "redact",
             disabled: off,
             onSelect: run((c) => toggleTool(c, tool, "redact")),
           },
           {
-            label: "Schwärzungen anwenden",
+            label: m.pdf_menus_apply_redactions(),
             danger: true,
             disabled: off,
             onSelect: run((c) => {
-              if (!c.hasRedactions()) return context.notify("Es sind keine Bereiche zum Schwärzen markiert.");
+              if (!c.hasRedactions()) return context.notify(m.pdf_menus_no_redactions());
               c.applyRedactions();
               c.setTool("select");
             }),
@@ -215,6 +217,6 @@ export const pdfContextMenu = (context: PdfMenuContext, area: ContextMenuArea): 
   if (area === "thumbnails") return pageItems(context, off);
   return [
     clipboardItems(context.view, context.onClipboardRefused),
-    [{ label: "Notiz hinzufügen", disabled: off, onSelect: context.onAddNote }],
+    [{ label: m.pdf_menus_add_note(), disabled: off, onSelect: context.onAddNote }],
   ];
 };

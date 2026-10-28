@@ -7,6 +7,7 @@ import { isOfficeFile, kindOf } from "../lib/format";
  * document, spreadsheet and presentation in it is offered beside the built-in ones; nothing else
  * needs setting up, here as on a Schreibzeug server or on the computer.
  */
+// i18n-ignore: a folder name the files are looked up by, not a text
 export const TEMPLATE_FOLDER = "Vorlagen";
 
 /** A template to start from: one of ours, or a file of the user's "Vorlagen" folder. */

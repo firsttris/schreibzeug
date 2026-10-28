@@ -1,6 +1,7 @@
 import type { EmbeddedInvoice } from "@schreibzeug/einvoice";
 import { ChevronDown, ChevronUp, Download, ReceiptText } from "lucide-react";
 import { useEffect, useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { invoiceFacts, invoiceTitle, lineText, loadEinvoice, syntaxLabel } from "./invoice";
 import { downloadBytes } from "./opened-file";
@@ -24,8 +25,8 @@ export const useEmbeddedInvoice = (bytes: Uint8Array): EmbeddedInvoice | null =>
   return embedded;
 };
 
-/** In the collapsed card: who, how much, until when. */
-const SUMMARY = new Set(["Von", "Gesamt", "Zu zahlen"]);
+/** In the collapsed card: who, how much, until when (the facts' labels, in the page's language). */
+const summary = () => new Set<string>([m.invoice_from(), m.invoice_total(), m.invoice_due()]);
 
 /**
  * Above a ZUGFeRD or Factur-X PDF: what its invoice XML says, the machine-readable invoice beside
@@ -36,16 +37,18 @@ export const InvoiceCard = ({ embedded }: { embedded: EmbeddedInvoice }) => {
   const download = () =>
     downloadBytes(
       new TextEncoder().encode(embedded.xml),
+      // i18n-ignore: a file name, as the e-invoice standards name the attachment
       embedded.filename || "rechnung.xml",
       "application/xml",
     );
   const { invoice } = embedded;
   const facts = invoice.ok ? invoiceFacts(invoice.value) : [];
-  const shown = open ? facts : facts.filter((fact) => SUMMARY.has(fact.label));
+  const inSummary = summary();
+  const shown = open ? facts : facts.filter((fact) => inSummary.has(fact.label));
 
   return (
     <section
-      aria-label="E-Rechnung"
+      aria-label={m.invoice_card_label()}
       data-testid="invoice-card"
       className="flex flex-col gap-2 border-b border-[var(--border)] px-4 py-2 text-xs"
     >
@@ -61,18 +64,18 @@ export const InvoiceCard = ({ embedded }: { embedded: EmbeddedInvoice }) => {
           {invoice.ok && (
             <Button variant="ghost" aria-expanded={open} onClick={() => setOpen(!open)}>
               {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {open ? "Weniger" : "Details"}
+              {open ? m.invoice_card_less() : m.invoice_card_details()}
             </Button>
           )}
           <Button variant="ghost" onClick={download}>
             <Download size={14} />
-            XML herunterladen
+            {m.invoice_card_download_xml()}
           </Button>
         </span>
       </div>
       {!invoice.ok && (
         <p role="alert" className="m-0 text-red-600 dark:text-red-400">
-          Die Rechnungsdaten lassen sich nicht lesen: {invoice.error}
+          {m.invoice_card_unreadable({ error: invoice.error })}
         </p>
       )}
       {shown.length > 0 && (
@@ -96,9 +99,7 @@ export const InvoiceCard = ({ embedded }: { embedded: EmbeddedInvoice }) => {
               ))}
             </ul>
           )}
-          <p className="m-0 text-[var(--muted-foreground)]">
-            Die Rechnungsdaten stehen in der angehängten XML. Was im PDF geändert wird, ändert sie nicht.
-          </p>
+          <p className="m-0 text-[var(--muted-foreground)]">{m.invoice_card_xml_note()}</p>
         </>
       )}
     </section>

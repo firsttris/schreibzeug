@@ -1,5 +1,6 @@
 import type { LinkDraft } from "@schreibzeug/editor-core";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -16,7 +17,7 @@ const inputClass =
 export const LinkDialog = ({ draft, onClose }: LinkDialogProps) => (
   <Dialog
     open={draft !== null}
-    title={draft?.existing ? "Link bearbeiten" : "Link einfügen"}
+    title={draft?.existing ? m.link_dialog_edit_title() : m.link_dialog_insert_title()}
     onClose={onClose}
   >
     {draft && <LinkForm draft={draft} onClose={onClose} />}
@@ -36,27 +37,28 @@ const LinkForm = ({ draft, onClose }: { draft: LinkDraft; onClose: () => void })
       }}
     >
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Adresse</span>
+        <span className="font-medium">{m.link_dialog_address()}</span>
         <input
           // biome-ignore lint/a11y/noAutofocus: the dialog exists to type this address
           autoFocus
           required
           value={url}
+          // i18n-ignore: a URL scheme, the same in every language
           placeholder="https://"
           onChange={(event) => setUrl(event.target.value)}
           className={inputClass}
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Angezeigter Text</span>
+        <span className="font-medium">{m.link_dialog_text()}</span>
         <input value={text} onChange={(event) => setText(event.target.value)} className={inputClass} />
       </label>
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" type="submit" disabled={!url.trim()}>
-          {draft.existing ? "Ändern" : "Einfügen"}
+          {draft.existing ? m.link_dialog_change() : m.common_insert()}
         </Button>
       </div>
     </form>

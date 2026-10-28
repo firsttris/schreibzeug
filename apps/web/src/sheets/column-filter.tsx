@@ -2,10 +2,11 @@ import type { FilterRequest, SheetEditor, SortOrder } from "@schreibzeug/editor-
 import { ArrowDownAZ, ArrowDownZA } from "lucide-react";
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { frameToWindow } from "../editor/use-editor-chrome";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 
 /** An empty cell's value, as Excel lists it. */
-const EMPTY = "(Leer)";
+const EMPTY = m.column_filter_empty;
 
 type ColumnFilterProps = {
   request: FilterRequest;
@@ -68,7 +69,7 @@ export const ColumnFilter = ({ request, x, y, onClose }: ColumnFilterProps) => {
     <div
       ref={ref}
       role="dialog"
-      aria-label="Filter"
+      aria-label={m.column_filter_label()}
       style={{ left: place.left, top: place.top }}
       className="fixed z-30 flex w-64 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] p-2 text-sm shadow-lg"
     >
@@ -80,7 +81,7 @@ export const ColumnFilter = ({ request, x, y, onClose }: ColumnFilterProps) => {
           onClick={() => sort("ascending")}
         >
           <ArrowDownAZ size={15} />
-          Aufsteigend sortieren
+          {m.column_filter_sort_ascending()}
         </Button>
         <Button
           variant="ghost"
@@ -89,11 +90,14 @@ export const ColumnFilter = ({ request, x, y, onClose }: ColumnFilterProps) => {
           onClick={() => sort("descending")}
         >
           <ArrowDownZA size={15} />
-          Absteigend sortieren
+          {m.column_filter_sort_descending()}
         </Button>
       </div>
       <div className="h-px bg-[var(--border)]" />
-      <fieldset aria-label="Werte" className="m-0 flex max-h-60 flex-col overflow-auto border-0 p-0">
+      <fieldset
+        aria-label={m.column_filter_values()}
+        className="m-0 flex max-h-60 flex-col overflow-auto border-0 p-0"
+      >
         <label className="flex h-8 items-center gap-2 rounded-md px-2 hover:bg-[var(--muted)]">
           <input
             type="checkbox"
@@ -103,7 +107,7 @@ export const ColumnFilter = ({ request, x, y, onClose }: ColumnFilterProps) => {
             }}
             onChange={() => setShown(shown.map(() => !all))}
           />
-          (Alle auswählen)
+          {m.column_filter_select_all()}
         </label>
         {request.values.map((value, index) => (
           <label
@@ -117,14 +121,14 @@ export const ColumnFilter = ({ request, x, y, onClose }: ColumnFilterProps) => {
               checked={shown[index] ?? true}
               onChange={() => setShown(shown.map((on, other) => (other === index ? !on : on)))}
             />
-            <span className="truncate">{value.text || EMPTY}</span>
+            <span className="truncate">{value.text || EMPTY()}</span>
           </label>
         ))}
       </fieldset>
       <div className="flex justify-end gap-2">
-        <Button onClick={onClose}>Abbrechen</Button>
+        <Button onClick={onClose}>{m.common_cancel()}</Button>
         <Button variant="primary" disabled={none} onClick={apply}>
-          OK
+          {m.common_ok()}
         </Button>
       </div>
     </div>

@@ -119,8 +119,11 @@ describe("the toolbar's Markdown", () => {
   });
 
   it("inserts a table on lines of its own, with the first cell selected", () => {
-    expect(run(insertTable(2, 2), "Text|")).toBe(
-      "Text\n\n| «Spalte 1» | Spalte 2 |\n| --- | --- |\n|     |     |\n",
-    );
+    expect(
+      run(
+        insertTable(2, 2, (column) => `Spalte ${column}`),
+        "Text|",
+      ),
+    ).toBe("Text\n\n| «Spalte 1» | Spalte 2 |\n| --- | --- |\n|     |     |\n");
   });
 });

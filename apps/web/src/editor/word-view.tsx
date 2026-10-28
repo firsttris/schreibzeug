@@ -1,5 +1,6 @@
 import { initialEditorState, openWordDocument } from "@schreibzeug/editor-core";
 import { useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 import { SizeGrid } from "../toolbar/table-menu";
 import { Toolbar } from "../toolbar/toolbar";
 import { ContextMenu } from "../ui/context-menu";
@@ -171,13 +172,13 @@ export const WordView = ({
         <ContextMenu
           x={chrome.menuAt.x}
           y={chrome.menuAt.y}
-          label="Kontextmenü"
+          label={m.word_view_context_menu()}
           groups={wordContextMenu(context)}
           onClose={chrome.closeMenu}
         />
       )}
       <LinkDialog draft={links.draft} onClose={links.close} />
-      <Dialog open={tableDialog} title="Tabelle einfügen" onClose={() => setTableDialog(false)}>
+      <Dialog open={tableDialog} title={m.word_view_insert_table()} onClose={() => setTableDialog(false)}>
         <SizeGrid
           onPick={({ columns, rows }) => {
             editor?.commands.insertTable(columns, rows);

@@ -1,5 +1,6 @@
 import { ScanText } from "lucide-react";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import type { OcrStep } from "./ocr";
@@ -12,11 +13,11 @@ export type OcrDialogProps = {
 };
 
 const stepText = ({ page, of, fraction }: OcrStep) =>
-  page === 0 ? "Texterkennung wird geladen …" : `Seite ${page} von ${of}: ${Math.round(fraction * 100)} %`;
+  page === 0 ? m.ocr_dialog_loading() : m.ocr_dialog_step({ page, of, percent: Math.round(fraction * 100) });
 
 /** "Text erkennen": what it does, then its progress page by page. */
 export const OcrDialog = ({ open, onClose, onRun }: OcrDialogProps) => (
-  <Dialog open={open} title="Text erkennen" onClose={onClose}>
+  <Dialog open={open} title={m.ocr_dialog_title()} onClose={onClose}>
     {open && <OcrForm onClose={onClose} onRun={onRun} />}
   </Dialog>
 );
@@ -36,11 +37,7 @@ const OcrForm = ({ onClose, onRun }: Omit<OcrDialogProps, "open">) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">
-        Erkennt den Text gescannter Seiten (Deutsch und Englisch), hier auf dem Rechner. Danach lässt sich das
-        PDF durchsuchen und Text daraus kopieren; es sieht aus wie vorher. Seiten, die schon Text haben,
-        bleiben, wie sie sind. Das Ergebnis wird als neue Version gespeichert.
-      </p>
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.ocr_dialog_intro()}</p>
       {step && (
         <p role="status" className="m-0 text-sm">
           {stepText(step)}
@@ -53,10 +50,10 @@ const OcrForm = ({ onClose, onRun }: Omit<OcrDialogProps, "open">) => {
       )}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" type="button" onClick={onClose} disabled={step !== null}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" type="button" onClick={() => void run()} disabled={step !== null}>
-          {step ? "Erkennt …" : "Text erkennen"}
+          {step ? m.ocr_dialog_running() : m.ocr_dialog_title()}
         </Button>
       </div>
     </div>
@@ -70,10 +67,10 @@ export const ScanNotice = ({ onRecognize }: { onRecognize: (() => void) | null }
     className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2 text-xs"
   >
     <ScanText size={14} />
-    <span>Dieses PDF besteht nur aus Bildern: Sein Text lässt sich weder suchen noch kopieren.</span>
+    <span>{m.ocr_dialog_scan_notice()}</span>
     {onRecognize && (
       <Button variant="ghost" type="button" onClick={onRecognize}>
-        Text erkennen
+        {m.ocr_dialog_title()}
       </Button>
     )}
   </div>

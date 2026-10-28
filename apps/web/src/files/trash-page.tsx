@@ -4,6 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { NodeTable } from "./node-table";
 import { PageHeader, PageMessage } from "./page";
@@ -20,7 +21,7 @@ const RestoreButton = ({ node }: { node: FileNode }) => {
       )}
       <Button
         variant="ghost"
-        aria-label={`${node.name} wiederherstellen`}
+        aria-label={m.trash_page_restore({ name: node.name })}
         disabled={restore.isPending}
         onClick={() => restore.mutate([])}
       >
@@ -35,16 +36,16 @@ export const TrashPage = () => {
   const { queries } = useFiles();
   const trash = useQuery(queries.trash());
   return (
-    <section className="flex flex-col gap-4" aria-label="Papierkorb">
-      <PageHeader title="Papierkorb" />
-      {trash.isPending && <PageMessage>Lädt …</PageMessage>}
+    <section className="flex flex-col gap-4" aria-label={m.trash_page_title()}>
+      <PageHeader title={m.trash_page_title()} />
+      {trash.isPending && <PageMessage>{m.trash_page_loading()}</PageMessage>}
       {trash.isError && <PageMessage tone="error">{messageOf(trash.error)}</PageMessage>}
       {trash.data && (
         <NodeTable
           nodes={trash.data}
           openable={false}
           actions={(node) => <RestoreButton node={node} />}
-          empty="Der Papierkorb ist leer."
+          empty={m.trash_page_empty()}
         />
       )}
     </section>

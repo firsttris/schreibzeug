@@ -1,4 +1,5 @@
 import type { SpellingCommands, SpellingState } from "@schreibzeug/editor-core";
+import { m } from "../paraglide/messages";
 import { writeSpellCheck } from "../settings/spell-check";
 import type { MenuItem } from "../ui/menu";
 
@@ -11,7 +12,7 @@ export const spellCheckItem = (
   commands: SpellingCommands | null,
   off: boolean,
 ): MenuItem => ({
-  label: "Rechtschreibprüfung",
+  label: m.spelling_menus_spell_check(),
   checked: spelling.enabled,
   disabled: off || !commands,
   onSelect: () => {
@@ -38,10 +39,10 @@ export const suggestionGroups = (
   return [
     suggestions.length > 0
       ? suggestions
-      : [{ label: "Keine Vorschläge", disabled: true, onSelect: () => {} }],
+      : [{ label: m.spelling_menus_no_suggestions(), disabled: true, onSelect: () => {} }],
     [
-      { label: "Ignorieren", onSelect: () => commands.ignore(false) },
-      { label: "Alle ignorieren", onSelect: () => commands.ignore(true) },
+      { label: m.spelling_menus_ignore(), onSelect: () => commands.ignore(false) },
+      { label: m.spelling_menus_ignore_all(), onSelect: () => commands.ignore(true) },
     ],
   ];
 };

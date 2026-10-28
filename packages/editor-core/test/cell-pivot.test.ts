@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createPivotCommands, newSheetName, readPivot, VALUES_FIELD, valueName } from "../src/cell-pivot";
+import { createPivotCommands, newSheetName, readPivot, VALUES_FIELD } from "../src/cell-pivot";
+import { ENGLISH_TEXTS } from "../src/engine-texts";
 import type { CellEngineApi, EngineCellInfo, EnginePivotTable, EnginePivotValue } from "../src/engine-types";
 
 const Asc = {
@@ -10,6 +11,11 @@ const Asc = {
     return dataValue(-1, null, null);
   } as unknown as new () => EnginePivotValue,
 };
+
+/** The names the app gives in German (apps/web engine-texts.ts), as German Excel has them. */
+const GERMAN_SUMMARIES = { sum: "Summe", count: "Anzahl", average: "Mittelwert", max: "Max", min: "Min" };
+const valueName = (summary: keyof typeof GERMAN_SUMMARIES, field: string) =>
+  `${GERMAN_SUMMARIES[summary]} von ${field}`;
 
 const calls: unknown[][] = [];
 const record =
@@ -114,9 +120,14 @@ describe("the pivot commands", () => {
   it("make a table of the range on a new sheet with a free name", () => {
     calls.length = 0;
     let changed = 0;
-    const commands = createPivotCommands(fakeApi(pivotTable()), Asc, () => {
-      changed += 1;
-    });
+    const commands = createPivotCommands(
+      fakeApi(pivotTable()),
+      Asc,
+      () => {
+        changed += 1;
+      },
+      valueName,
+    );
     expect(commands.sourceRange()).toBe("Preise!$A$1:$D$4");
     expect(commands.insert("Preise!$A$1:$D$4")).toBeNull();
     expect(calls).toEqual([["insert", "Preise!$A$1:$D$4", "Pivot2"]]);
@@ -125,14 +136,16 @@ describe("the pivot commands", () => {
   });
 
   it("refuse a range that is not one", () => {
-    expect(createPivotCommands(fakeApi(null, "", -75), Asc, () => {}).insert("Quatsch")).toBe("invalidRange");
-    expect(createPivotCommands(fakeApi(null), Asc, () => {}).insert("A1:B2")).toBe("invalidRange");
+    expect(createPivotCommands(fakeApi(null, "", -75), Asc, () => {}, valueName).insert("Quatsch")).toBe(
+      "invalidRange",
+    );
+    expect(createPivotCommands(fakeApi(null), Asc, () => {}, valueName).insert("A1:B2")).toBe("invalidRange");
   });
 
   it("put fields in and out and name a new value in German", () => {
     calls.length = 0;
     const values = [dataValue(2, "Sum von Betrag", 9)];
-    const commands = createPivotCommands(fakeApi(pivotTable(values)), Asc, () => {});
+    const commands = createPivotCommands(fakeApi(pivotTable(values)), Asc, () => {}, valueName);
     commands.toggleField(2, true);
     commands.toggleField(1, false);
     expect(calls).toEqual([
@@ -146,7 +159,7 @@ describe("the pivot commands", () => {
   it("move a field to another area, a value with its place among the values", () => {
     calls.length = 0;
     const pivot = pivotTable();
-    const commands = createPivotCommands(fakeApi(pivot), Asc, () => {});
+    const commands = createPivotCommands(fakeApi(pivot), Asc, () => {}, valueName);
     const [filter, row, value] = readPivot(info(pivot), Asc)?.items ?? [];
     if (!filter || !row || !value) throw new Error("no items");
     commands.move(filter, "columns");
@@ -162,12 +175,15 @@ describe("the pivot commands", () => {
   it("sum a value up another way, named after it", () => {
     calls.length = 0;
     const pivot = pivotTable();
-    const commands = createPivotCommands(fakeApi(pivot), Asc, () => {});
+    const commands = createPivotCommands(fakeApi(pivot), Asc, () => {}, valueName);
     const value = readPivot(info(pivot), Asc)?.items.at(-1);
     if (!value) throw new Error("no value");
     commands.setSummary(value, "average");
     commands.refresh();
     expect(calls).toEqual([["set", 0, "Mittelwert von Betrag", 1], ["refresh"]]);
-    expect(valueName("count", "Kunde")).toBe("Anzahl von Kunde");
+  });
+
+  it("name a value as English Excel does without the app's texts", () => {
+    expect(ENGLISH_TEXTS.pivotValueName("count", "Customer")).toBe("Count of Customer");
   });
 });

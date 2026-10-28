@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { FileBadge } from "./file-badge";
@@ -87,7 +88,7 @@ export const TemplateDialog = ({ open, folderId, onCreated, onClose }: TemplateD
   const create = async () => {
     if (!choice) return;
     const parsed = nodeNameSchema.safeParse(fileNameFor(name, formatOf(choice)));
-    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Ungültiger Name.");
+    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? m.template_dialog_invalid());
     setBusy(true);
     try {
       const bytes =
@@ -116,7 +117,7 @@ export const TemplateDialog = ({ open, folderId, onCreated, onClose }: TemplateD
   );
 
   return (
-    <Dialog open={open} title="Neu aus Vorlage" wide onClose={close}>
+    <Dialog open={open} title={m.template_dialog_title()} wide onClose={close}>
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {
@@ -124,20 +125,19 @@ export const TemplateDialog = ({ open, folderId, onCreated, onClose }: TemplateD
           void create();
         }}
       >
-        {list("Vorlagen", BUILT_IN)}
+        {list(m.template_dialog_templates(), BUILT_IN)}
         <section className="flex flex-col gap-2">
-          <h3 className="m-0 text-sm font-medium">Eigene Vorlagen</h3>
+          <h3 className="m-0 text-sm font-medium">{m.template_dialog_own()}</h3>
           {own.length > 0 ? (
-            list("Eigene Vorlagen", own)
+            list(m.template_dialog_own(), own)
           ) : (
             <p className="m-0 text-sm text-[var(--muted-foreground)]">
-              Lege Dokumente, Tabellen oder Präsentationen in den Ordner „{TEMPLATE_FOLDER}“, um sie hier als
-              Vorlage zu nutzen.
+              {m.template_dialog_own_hint({ folder: TEMPLATE_FOLDER })}
             </p>
           )}
         </section>
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium">Name der neuen Datei</span>
+          <span className="font-medium">{m.template_dialog_name()}</span>
           <input
             value={name}
             disabled={!choice}
@@ -155,9 +155,9 @@ export const TemplateDialog = ({ open, folderId, onCreated, onClose }: TemplateD
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <Button onClick={close}>Abbrechen</Button>
+          <Button onClick={close}>{m.common_cancel()}</Button>
           <Button type="submit" variant="primary" disabled={!choice || busy}>
-            Anlegen und öffnen
+            {m.template_dialog_create_open()}
           </Button>
         </div>
       </form>

@@ -1,5 +1,6 @@
 import type { InvoiceDraft } from "@schreibzeug/einvoice/draft";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import {
   eInvoiceNameFor,
   formFromDraft,
@@ -38,7 +39,7 @@ export const useEInvoice = (
       const form = formFromDraft(draft);
       setStart({ form: { ...form, seller: withRemembered(form.seller, rememberedSeller()) }, statedTotal });
     } catch (error) {
-      notify(`Die Rechnung ließ sich nicht lesen: ${message(error)}`);
+      notify(m.use_e_invoice_unreadable({ error: message(error) }));
     }
   };
 
@@ -48,7 +49,7 @@ export const useEInvoice = (
     remember: boolean,
   ): Promise<string | null> => {
     const exportPdf = editor?.exportPdf;
-    if (!exportPdf) return "Dieser Editor macht kein PDF.";
+    if (!exportPdf) return m.use_e_invoice_no_pdf();
     try {
       const writer = await loadEinvoiceWriter();
       const made = await writer.zugferdPdf(await exportPdf(true), writer.facturXml(draft));
@@ -57,12 +58,12 @@ export const useEInvoice = (
       downloadBytes(made.value, eInvoiceNameFor(name), "application/pdf");
       return null;
     } catch (error) {
-      return `Die E-Rechnung konnte nicht erstellt werden: ${message(error)}`;
+      return m.use_e_invoice_failed({ error: message(error) });
     }
   };
 
   return {
-    item: { label: "Als E-Rechnung (ZUGFeRD) …", onSelect: () => void open() },
+    item: { label: m.use_e_invoice_menu(), onSelect: () => void open() },
     dialog: <EInvoiceDialog start={start} onClose={() => setStart(null)} onCreate={create} />,
   };
 };

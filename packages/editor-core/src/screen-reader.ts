@@ -5,33 +5,10 @@
  * picture's alternative text. Off, it listens to nothing (EditorActionSpeaker.run and .stop register
  * and remove its callbacks), so it costs nothing for those who do not need it. web-apps offers it as
  * a setting; Strg+Alt+Z switches it in the engine itself (word/Editor/Shortcuts.js SpeechWorker).
+ * The words it says around the text come from the API's `translate` map by their English key
+ * (workerspeech.js `translateManager.getValue`; EngineTexts in engine-texts.ts).
  */
 import type { CommonEventArgs, EngineApiBase, EngineWindow } from "./engine-types";
-
-/**
- * The words it says around the text, looked up in the API's `translate` map by their English key
- * (workerspeech.js `translateManager.getValue`); without them a German document is read out with
- * English words in between.
- */
-export const SPEECH_TEXTS: Record<string, string> = {
-  space: "Leerzeichen",
-  select: "ausgewählt",
-  unselected: "Auswahl aufgehoben",
-  selected: "ausgewählt",
-  slide: "Folie",
-  "slides added to selection": "Folien ausgewählt",
-  "slides unselected": "Folien nicht mehr ausgewählt",
-  "drawing select": "Objekt ausgewählt",
-  "empty cell": "leere Zelle",
-  empty: "leer",
-  "selected range select": "Bereich ausgewählt",
-  "unselected range select": "Bereich nicht mehr ausgewählt",
-  areas: "Bereiche",
-  "empty sheet": "leeres Tabellenblatt",
-  "end of sheet": "Ende des Tabellenblatts",
-  cells: "Zellen",
-  objects: "Objekte",
-};
 
 export type ScreenReaderEvent = { type: "screenReader"; value: boolean };
 

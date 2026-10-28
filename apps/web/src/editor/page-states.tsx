@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
+import { m } from "../paraglide/messages";
 
 /** While an editor page loads its file. */
 export const Loading = () => (
   <p role="status" className="m-0 p-8 text-sm text-[var(--muted-foreground)]">
-    Lädt …
+    {m.page_states_loading()}
   </p>
 );
 
@@ -11,6 +12,6 @@ export const Loading = () => (
 export const Failure = ({ message }: { message: string }) => (
   <div role="alert" className="flex flex-col items-start gap-3 p-8 text-sm">
     <p className="m-0">{message}</p>
-    <Link to="/">Zu meinen Dateien</Link>
+    <Link to="/">{m.page_states_back_to_files()}</Link>
   </div>
 );

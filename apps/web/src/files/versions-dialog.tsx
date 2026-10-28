@@ -5,6 +5,7 @@ import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
 import { formatChanged, formatSize } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -21,7 +22,7 @@ export type VersionsDialogProps = {
  * one so that thinning out the older versions never drops it.
  */
 export const VersionsDialog = ({ file, open, onClose, onRestored }: VersionsDialogProps) => (
-  <Dialog open={open} title={`Versionen von ${file.name}`} onClose={onClose}>
+  <Dialog open={open} title={m.versions_dialog_title({ name: file.name })} onClose={onClose}>
     {open && <VersionList file={file} onClose={onClose} {...(onRestored ? { onRestored } : {})} />}
   </Dialog>
 );
@@ -36,7 +37,8 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
     onSettled: () => client.invalidateQueries({ queryKey: queries.versions(file.id).queryKey }),
   });
 
-  if (versions.isPending) return <p className="m-0 text-sm text-[var(--muted-foreground)]">Lädt …</p>;
+  if (versions.isPending)
+    return <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.versions_dialog_loading()}</p>;
   if (versions.isError)
     return (
       <p role="alert" className="m-0 text-sm text-red-600">
@@ -46,7 +48,10 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
 
   return (
     <div className="flex flex-col gap-3">
-      <ol className="m-0 flex max-h-80 list-none flex-col overflow-y-auto p-0" aria-label="Versionen">
+      <ol
+        className="m-0 flex max-h-80 list-none flex-col overflow-y-auto p-0"
+        aria-label={m.versions_dialog_list()}
+      >
         {versions.data.map((version) => {
           const current = version.number === file.version;
           return (
@@ -57,12 +62,16 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
             >
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-sm font-medium">
-                  Version {version.number}
+                  {m.versions_dialog_version({ number: String(version.number) })}
                   {current && (
-                    <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">aktuell</span>
+                    <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+                      {m.versions_dialog_current()}
+                    </span>
                   )}
                   {version.kept && (
-                    <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">behalten</span>
+                    <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+                      {m.versions_dialog_kept()}
+                    </span>
                   )}
                 </span>
                 <span className="text-xs text-[var(--muted-foreground)]">
@@ -72,7 +81,7 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
               <a
                 href={commands.contentUrl(file.id, version.number)}
                 download={file.name}
-                aria-label={`Version ${version.number} herunterladen`}
+                aria-label={m.versions_dialog_download({ number: String(version.number) })}
                 className="inline-flex h-8 min-w-8 items-center justify-center rounded-md text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
               >
                 <Download size={15} />
@@ -82,8 +91,8 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
                   variant="ghost"
                   aria-label={
                     version.kept
-                      ? `Version ${version.number} nicht mehr behalten`
-                      : `Version ${version.number} behalten`
+                      ? m.versions_dialog_unkeep({ number: String(version.number) })
+                      : m.versions_dialog_keep({ number: String(version.number) })
                   }
                   aria-pressed={version.kept}
                   disabled={keep.isPending}
@@ -95,7 +104,7 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
               {!current && file.role !== "view" && (
                 <Button
                   variant="ghost"
-                  aria-label={`Version ${version.number} wiederherstellen`}
+                  aria-label={m.versions_dialog_restore({ number: String(version.number) })}
                   disabled={restore.isPending}
                   onClick={async () => {
                     const restored = await restore.mutateAsync([version.number]);
@@ -116,11 +125,7 @@ const VersionList = ({ file, onClose, onRestored }: Omit<VersionsDialogProps, "o
         </p>
       )}
       {file.role !== "view" && (
-        <p className="m-0 text-xs text-[var(--muted-foreground)]">
-          Wiederherstellen legt eine neue Version mit dem alten Inhalt an. Ältere Versionen werden ausgedünnt
-          (ab einem Tag eine pro Stunde, ab einem Monat eine pro Tag, ab einem Jahr eine pro Woche); behaltene
-          Versionen bleiben immer.
-        </p>
+        <p className="m-0 text-xs text-[var(--muted-foreground)]">{m.versions_dialog_hint()}</p>
       )}
     </div>
   );

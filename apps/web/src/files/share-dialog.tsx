@@ -6,6 +6,7 @@ import { initialsOf } from "../account/initials";
 import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { fileKeys } from "../api/files";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { InviteLinks } from "./invite-links";
@@ -15,18 +16,15 @@ export type ShareDialogProps = { node: FileNode; open: boolean; onClose: () => v
 
 /** Who else may open a node and how; the owner adds people by the e-mail of their account. */
 export const ShareDialog = ({ node, open, onClose }: ShareDialogProps) => (
-  <Dialog open={open} title={`${node.name} teilen`} onClose={onClose} wide>
+  <Dialog open={open} title={m.share_dialog_title({ name: node.name })} onClose={onClose} wide>
     {open && <ShareForm node={node} onClose={onClose} />}
   </Dialog>
 );
 
-const UNVERIFIED_HINT =
-  "Dieses Konto wurde mit Passwort angelegt; niemand hat bestätigt, dass die Adresse der Person gehört.";
-
 /** The line under a name: the address, and what is not settled about it. */
 export const detailOf = ({ email, pending, unverified }: Share): string => {
-  if (pending) return "Noch ohne Konto: gilt ab der ersten Anmeldung über Kontext";
-  return unverified ? `${email} · Adresse nicht bestätigt` : email;
+  if (pending) return m.share_dialog_pending();
+  return unverified ? m.share_dialog_unverified({ email }) : email;
 };
 
 /** The writes answer with the new list, which replaces the cached one. */
@@ -54,7 +52,7 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
 
   const submit = async () => {
     const parsed = putShareSchema.safeParse({ email, role });
-    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Ungültige Eingabe.");
+    if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? m.share_dialog_invalid());
     try {
       await share.mutateAsync([parsed.data.email, parsed.data.role]);
       setEmail("");
@@ -73,12 +71,13 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
         }}
       >
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium">E-Mail des Kontos</span>
+          <span className="font-medium">{m.share_dialog_email()}</span>
           <input
             type="email"
             // biome-ignore lint/a11y/noAutofocus: the dialog exists to type this address
             autoFocus
             value={email}
+            // i18n-ignore: an example address, the same in every language
             placeholder="name@example.org"
             onChange={(event) => {
               setEmail(event.target.value);
@@ -90,9 +89,9 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
           />
         </label>
         <div className="flex gap-2">
-          <RoleSelect value={role} label="Recht" onChange={setRole} />
+          <RoleSelect value={role} label={m.share_dialog_role()} onChange={setRole} />
           <Button variant="primary" type="submit" className="ml-auto" disabled={share.isPending}>
-            Teilen
+            {m.share_dialog_share()}
           </Button>
         </div>
         {error && (
@@ -108,10 +107,10 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
         </p>
       )}
       {shares.data && shares.data.length === 0 && (
-        <p className="m-0 text-sm text-[var(--muted-foreground)]">Noch mit niemandem geteilt.</p>
+        <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.share_dialog_nobody()}</p>
       )}
       {shares.data && shares.data.length > 0 && (
-        <ul aria-label="Geteilt mit" className="m-0 flex list-none flex-col p-0">
+        <ul aria-label={m.share_dialog_shared_with()} className="m-0 flex list-none flex-col p-0">
           {shares.data.map((entry) => (
             <li
               key={entry.userId}
@@ -128,19 +127,19 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
                 <span className="truncate text-sm font-medium">{entry.name}</span>
                 <span
                   className="truncate text-xs text-[var(--muted-foreground)]"
-                  title={entry.unverified ? UNVERIFIED_HINT : undefined}
+                  title={entry.unverified ? m.share_dialog_unverified_hint() : undefined}
                 >
                   {detailOf(entry)}
                 </span>
               </span>
               <RoleSelect
                 value={entry.role}
-                label={`Recht von ${entry.name}`}
+                label={m.share_dialog_role_of({ name: entry.name })}
                 onChange={(next) => share.mutate([entry.email, next])}
               />
               <Button
                 variant="ghost"
-                aria-label={`Freigabe für ${entry.name} entfernen`}
+                aria-label={m.share_dialog_remove({ name: entry.name })}
                 disabled={unshare.isPending}
                 onClick={() => unshare.mutate([entry.userId])}
               >
@@ -155,7 +154,7 @@ const ShareForm = ({ node, onClose }: { node: FileNode; onClose: () => void }) =
 
       <div className="flex justify-end">
         <Button variant="outline" onClick={onClose}>
-          Fertig
+          {m.common_done()}
         </Button>
       </div>
     </div>

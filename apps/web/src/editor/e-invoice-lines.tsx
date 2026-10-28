@@ -1,5 +1,6 @@
 import { UNITS as UNIT_LABELS, type UnitCode } from "@schreibzeug/einvoice/draft";
 import { Plus, Trash2 } from "lucide-react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import type { LineForm } from "./e-invoice";
 import { inputClass } from "./e-invoice-fields";
@@ -25,25 +26,27 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
       <table className="w-full border-collapse text-xs">
         <thead className="text-left text-[var(--muted-foreground)]">
           <tr>
-            <th className={`${cell} w-[36%] font-normal`}>Beschreibung</th>
-            <th className={`${cell} font-normal`}>Menge</th>
-            <th className={`${cell} font-normal`}>Einheit</th>
-            <th className={`${cell} font-normal`}>Einzelpreis netto</th>
-            {showRate && <th className={`${cell} font-normal`}>USt. %</th>}
-            <th className={`${cell} whitespace-nowrap text-right font-normal`}>Gesamt netto</th>
+            <th className={`${cell} w-[36%] font-normal`}>{m.e_invoice_lines_description()}</th>
+            <th className={`${cell} font-normal`}>{m.e_invoice_lines_quantity()}</th>
+            <th className={`${cell} font-normal`}>{m.e_invoice_lines_unit()}</th>
+            <th className={`${cell} font-normal`}>{m.e_invoice_lines_unit_price_net()}</th>
+            {showRate && <th className={`${cell} font-normal`}>{m.e_invoice_lines_vat_percent()}</th>}
+            <th className={`${cell} whitespace-nowrap text-right font-normal`}>
+              {m.e_invoice_lines_total_net()}
+            </th>
             <th className={cell} />
           </tr>
         </thead>
         <tbody>
           {lines.map((line, index) => {
-            const position = `Position ${index + 1}`;
+            const position = { number: index + 1 };
             return (
               // Lines have no identity of their own; their place is it.
               // biome-ignore lint/suspicious/noArrayIndexKey: see above
               <tr key={index}>
                 <td className={cell}>
                   <input
-                    aria-label={`Beschreibung, ${position}`}
+                    aria-label={m.e_invoice_lines_description_of(position)}
                     className={inputClass}
                     value={line.description}
                     onChange={(event) => update(index, { description: event.target.value })}
@@ -51,7 +54,7 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
                 </td>
                 <td className={cell}>
                   <input
-                    aria-label={`Menge, ${position}`}
+                    aria-label={m.e_invoice_lines_quantity_of(position)}
                     className={`${inputClass} w-16 text-right`}
                     inputMode="decimal"
                     value={line.quantity}
@@ -60,7 +63,7 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
                 </td>
                 <td className={cell}>
                   <select
-                    aria-label={`Einheit, ${position}`}
+                    aria-label={m.e_invoice_lines_unit_of(position)}
                     className={`${inputClass} w-28`}
                     value={line.unit}
                     onChange={(event) => update(index, { unit: event.target.value as UnitCode })}
@@ -74,7 +77,7 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
                 </td>
                 <td className={cell}>
                   <input
-                    aria-label={`Einzelpreis, ${position}`}
+                    aria-label={m.e_invoice_lines_unit_price_of(position)}
                     className={`${inputClass} w-24 text-right`}
                     inputMode="decimal"
                     value={line.unitPrice}
@@ -84,7 +87,7 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
                 {showRate && (
                   <td className={cell}>
                     <input
-                      aria-label={`Umsatzsteuer, ${position}`}
+                      aria-label={m.e_invoice_lines_vat_of(position)}
                       className={`${inputClass} w-14 text-right`}
                       inputMode="decimal"
                       value={line.taxRate}
@@ -94,7 +97,11 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
                 )}
                 <td className={`${cell} pt-2 text-right tabular-nums`}>{totals[index]}</td>
                 <td className={cell}>
-                  <Button variant="ghost" aria-label={`${position} entfernen`} onClick={() => remove(index)}>
+                  <Button
+                    variant="ghost"
+                    aria-label={m.e_invoice_lines_remove(position)}
+                    onClick={() => remove(index)}
+                  >
                     <Trash2 size={14} />
                   </Button>
                 </td>
@@ -106,7 +113,7 @@ export const LinesTable = ({ lines, totals, showRate, onChange, onAdd }: LinesPr
       <div>
         <Button variant="ghost" onClick={onAdd}>
           <Plus size={14} />
-          Position
+          {m.e_invoice_lines_add()}
         </Button>
       </div>
     </div>

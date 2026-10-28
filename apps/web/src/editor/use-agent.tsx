@@ -11,6 +11,7 @@ import { type AgentCommand as AgentJobCommand, agentJobSchema } from "@schreibze
 import { Bot } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFiles } from "../api/context";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -73,12 +74,15 @@ export const useAgent = ({ fileId, editor, kind, state, readOnly, save, onCreate
 
   const execute = useCallback(
     async (command: AgentJobCommand): Promise<AgentOutcome> => {
+      // i18n-ignore: replies to the agent are data for the MCP client, not interface texts
       if (!editor) return { ok: false, text: "Der Editor ist nicht bereit." };
       if (command.type === "exportPdf") {
         if (!editor.exportPdf || !onCreateFile)
+          // i18n-ignore: a reply to the agent (data, see above)
           return { ok: false, text: "Dieses Dokument lässt sich hier nicht als PDF ablegen." };
         const pdf = await editor.exportPdf(command.pdfa);
         const stored = await onCreateFile(`${baseName(name)}.pdf`, pdf, "application/pdf");
+        // i18n-ignore: a reply to the agent (data, see above)
         return { ok: true, text: `Als „${stored}“ abgelegt.` };
       }
       const outcome = await runAgentCommand(
@@ -112,9 +116,11 @@ export const useAgent = ({ fileId, editor, kind, state, readOnly, save, onCreate
         reply({
           ok: false,
           text:
+            // i18n-ignore: replies to the agent (data, see above)
             consentRef.current === "stopped"
               ? "Die Person hat Claude in diesem Dokument angehalten."
-              : "Die Person hat das Bearbeiten durch Claude in diesem Dokument abgelehnt.",
+              : // i18n-ignore: a reply to the agent (data, see above)
+                "Die Person hat das Bearbeiten durch Claude in diesem Dokument abgelehnt.",
         });
         return;
       }
@@ -133,23 +139,24 @@ export const useAgent = ({ fileId, editor, kind, state, readOnly, save, onCreate
   const bar =
     consent === "allowed" || consent === "stopped" ? (
       <section
+        // i18n-ignore: the assistant's name
         aria-label="Claude"
         className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--muted)] px-4 py-1.5 text-xs"
       >
         <Bot size={14} aria-hidden />
         <span role="status">
           {consent === "stopped"
-            ? "Claude ist in diesem Dokument angehalten."
+            ? m.use_agent_stopped()
             : working
-              ? "Claude bearbeitet dieses Dokument …"
-              : "Claude darf dieses Dokument bearbeiten."}
+              ? m.use_agent_working()
+              : m.use_agent_allowed()}
         </span>
         <Button
           variant="ghost"
           className="ml-auto"
           onClick={() => decide(consent === "stopped" ? "allowed" : "stopped")}
         >
-          {consent === "stopped" ? "Wieder zulassen" : "Anhalten"}
+          {consent === "stopped" ? m.use_agent_resume() : m.use_agent_stop()}
         </Button>
       </section>
     ) : null;
@@ -157,22 +164,19 @@ export const useAgent = ({ fileId, editor, kind, state, readOnly, save, onCreate
   const dialog = (
     <Dialog
       open={consent === "asking"}
-      title="Claude möchte dieses Dokument bearbeiten"
+      title={m.use_agent_consent_title()}
       onClose={() => {
         // The dialog also closes after a choice; only closing it while asking declines.
         if (consentRef.current === "asking") decide("declined");
       }}
     >
-      <p className="m-0 text-sm">
-        Ein Programm mit deinem Zugangsschlüssel möchte „{name}“ ändern. Du siehst jede Änderung, kannst sie
-        rückgängig machen, und jede wird als neue Version gespeichert.
-      </p>
+      <p className="m-0 text-sm">{m.use_agent_consent_text({ name })}</p>
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={() => decide("declined")}>
-          Ablehnen
+          {m.use_agent_decline()}
         </Button>
         <Button variant="primary" onClick={() => decide("allowed")}>
-          Erlauben
+          {m.use_agent_allow()}
         </Button>
       </div>
     </Dialog>

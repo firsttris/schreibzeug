@@ -8,6 +8,7 @@ import { NameDialog } from "../files/name-dialog";
 import { NEW_FILES } from "../files/new-files";
 import { ShareDialog } from "../files/share-dialog";
 import { VersionsDialog } from "../files/versions-dialog";
+import { m } from "../paraglide/messages";
 import type { FileActions } from "./file-menu";
 
 /** Opens a file in a new tab, so the open document stays where it is. */
@@ -86,7 +87,7 @@ export const useFileActions = ({
           title={NEW_FILES[format].title}
           label={NEW_FILES[format].label}
           initialName={NEW_FILES[format].name}
-          confirm="Anlegen und öffnen"
+          confirm={m.use_file_actions_create_open()}
           onSubmit={(name) => createNew(format, name)}
           onClose={close}
         />

@@ -1,26 +1,28 @@
 import { queryOptions } from "@tanstack/react-query";
 import { createAuthClient } from "better-auth/client";
+import { m } from "../paraglide/messages";
 
 /** The signed-in person, as the editor and the shell need them. */
 export type User = { id: string; name: string; email: string };
 
 /** Better Auth's error codes (better-auth core error codes) in the words the app uses. */
-const MESSAGES: Record<string, string> = {
-  INVALID_EMAIL_OR_PASSWORD: "E-Mail oder Passwort stimmen nicht.",
-  INVALID_EMAIL: "Das ist keine gültige E-Mail-Adresse.",
-  PASSWORD_TOO_SHORT: "Das Passwort braucht mindestens 8 Zeichen.",
-  PASSWORD_TOO_LONG: "Das Passwort ist zu lang.",
-  USER_ALREADY_EXISTS: "Mit dieser E-Mail gibt es schon ein Konto.",
-  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Mit dieser E-Mail gibt es schon ein Konto.",
+const MESSAGES: Record<string, () => string> = {
+  INVALID_EMAIL_OR_PASSWORD: m.account_invalid_credentials,
+  INVALID_EMAIL: m.account_invalid_email,
+  PASSWORD_TOO_SHORT: m.account_password_too_short,
+  PASSWORD_TOO_LONG: m.account_password_too_long,
+  USER_ALREADY_EXISTS: m.account_user_exists,
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: m.account_user_exists,
 };
 
 type AuthError = { code?: string | undefined; message?: string | undefined; status: number };
 
-/** A failed sign-in or sign-up in German; our own server messages are German already. */
+/**
+ * A failed sign-in or sign-up in the interface's language; a 403 carries our own server's message
+ * (apps/server src/auth), which passes through as it is.
+ */
 export const accountMessage = (error: AuthError): string =>
-  (error.code && MESSAGES[error.code]) ||
-  (error.status === 403 && error.message) ||
-  "Das hat nicht geklappt. Bitte versuche es noch einmal.";
+  (error.code && MESSAGES[error.code]?.()) || (error.status === 403 && error.message) || m.account_failed();
 
 /** Thrown for a failed account request, with the message to show. */
 const fail = (error: AuthError): never => {

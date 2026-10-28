@@ -8,7 +8,7 @@ import { collectErrors, openDocument, openOwnFolder, upload } from "./app";
 const rechnung = join(import.meta.dirname, "../test-files/rechnung.docx");
 
 const openDialog = async (page: Page) => {
-  await page.getByRole("menubar").getByRole("button", { name: "Datei", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Datei", exact: true }).click();
   await page.getByRole("menuitem", { name: "Als E-Rechnung (ZUGFeRD) …" }).click();
   return page.getByRole("dialog", { name: "Als E-Rechnung (ZUGFeRD)" });
 };

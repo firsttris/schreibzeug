@@ -7,6 +7,13 @@ installers: the [releases](https://github.com/firsttris/schreibzeug/releases). H
 
 ## Unreleased
 
+- **Screen reader support**: *Hilfe → Unterstützung für Screenreader*, or Strg+Alt+Z in the
+  document, lets the engine read out the text the cursor passes, a selection, a cell with its
+  address, a slide's number and a picture's alternative text, in German. Off unless switched on,
+  and then it costs nothing; remembered in the browser
+  ([accessibility](https://firsttris.github.io/schreibzeug/accessibility.html)).
+- The menu bar works with the arrow keys, Home, End and Escape, as the ARIA menu bar pattern has
+  it. Every page and editor is checked against WCAG 2.2 AA with axe-core.
 - **Installing with Docker Compose**: `deploy/` holds `compose.yaml` (Schreibzeug and Caddy for
   HTTPS), `.env.example` and the `Caddyfile`; `git clone`, fill in `deploy/.env`, `docker compose
   up -d`, as with Kontext

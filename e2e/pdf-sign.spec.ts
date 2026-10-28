@@ -21,7 +21,7 @@ test("signs a PDF with a certificate, shows the signature checked and warns befo
   const fileId = openFileId(page);
   await expect(page.getByTestId("signature-notice")).toHaveCount(0);
 
-  await page.getByRole("menubar").getByRole("button", { name: "Kommentieren", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Kommentieren", exact: true }).click();
   await page.getByRole("menuitem", { name: "Digital signieren …" }).click();
   const dialog = page.getByRole("dialog", { name: "Digital signieren" });
   await dialog.getByLabel("Zertifikat (.p12 oder .pfx)").setInputFiles(certificate);

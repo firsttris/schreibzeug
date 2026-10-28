@@ -29,6 +29,7 @@ A tour in pictures for customers and colleagues is the [start page](index.md).
 | [Markdown and text files](text.md) | notes with a live preview, kept in their own encoding and line endings |
 | [E-invoices](e-invoice.md) | ZUGFeRD and Factur-X: reading them, making them from an invoice |
 | [MCP server](mcp.md) | Claude Code and other AI assistants in your files |
+| [Accessibility](accessibility.md) | WCAG 2.2 AA as the goal, the menu bar by keyboard, the engine's screen reader support (Strg+Alt+Z) |
 
 ## How it is built
 

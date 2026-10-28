@@ -37,6 +37,7 @@ import { withoutCustomFunctions } from "./document-scripts";
 import { CELL_TEXTS } from "./engine-texts";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
 import { uniqueSorted } from "./events";
+import { SPEECH_TEXTS } from "./screen-reader";
 import type { SearchCommands } from "./search";
 import {
   type ContextMenuListener,
@@ -145,7 +146,7 @@ const cellBinding: EditorBinding<
     const api = new win.Asc.spreadsheet_api({
       "id-view": "editor_sdk",
       "id-input": FORMULA_INPUT_ID,
-      translate: CELL_TEXTS,
+      translate: { ...CELL_TEXTS, ...SPEECH_TEXTS },
     });
     api.asc_setFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     // Stored until the full API has loaded (cell/api.js asc_setLocale, tmpLCID).

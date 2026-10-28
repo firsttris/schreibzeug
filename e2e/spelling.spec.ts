@@ -22,7 +22,7 @@ test.describe("spell checking", () => {
     await save(page);
     expect(await storedXml(page, fileId)).toContain("Das Angebot");
 
-    await page.getByRole("menubar").getByRole("button", { name: "Überprüfen" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Überprüfen", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: "Rechtschreibprüfung" })).toHaveAttribute(
       "aria-checked",
       "true",

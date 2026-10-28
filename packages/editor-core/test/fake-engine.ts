@@ -144,7 +144,11 @@ export const createFakeEngine = (): FakeEngine => {
   let current: FakeApi | null = null;
   const events = new EventTarget();
   let focusCount = 0;
-  const input = { focus: () => (focusCount += 1) } as unknown as HTMLElement;
+  // A real element: the document labels it (screen-reader.ts labelEngineInput).
+  const input = document.createElement("textarea");
+  input.focus = () => {
+    focusCount += 1;
+  };
 
   // A plain function, called with `new` by the code under test: returning an object from it gives
   // that object to the caller, just like the engine constructor returns its API.
@@ -337,6 +341,7 @@ export const createFakeEngine = (): FakeEngine => {
         }),
         asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
         getFocusElement: () => input,
+        setSpeechEnabled: record(calls, "setSpeechEnabled"),
         isDocumentModified: () => api.modified,
         asc_setSpellCheck: record(calls, "asc_setSpellCheck"),
         asc_replaceMisspelledWord: record(calls, "asc_replaceMisspelledWord"),

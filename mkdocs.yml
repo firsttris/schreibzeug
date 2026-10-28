@@ -34,6 +34,7 @@ nav:
       - Markdown and text files: text.md
       - E-invoices: e-invoice.md
       - MCP server (AI assistants): mcp.md
+      - Accessibility: accessibility.md
   - Behind it:
       - Architecture: architecture.md
       - The editing engine: engine.md

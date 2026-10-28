@@ -264,6 +264,11 @@ export interface EngineApiBase<Events extends CommonEventArgs> {
   callCommand(code: string, isRecalculate: boolean, callback: (value: unknown) => void): void;
   /** common/apiBase.js: the hidden input that takes the keys (g_inputContext.HtmlArea). */
   getFocusElement(): HTMLElement;
+  /**
+   * common/apiBase.js: the screen reader support (common/workerspeech.js) on or off; before the
+   * editor exists, it is kept for when it does.
+   */
+  setSpeechEnabled(isEnabled: boolean): void;
   /** Whether there are changes not yet saved or, in co-editing, not yet sent. */
   isDocumentModified(): boolean;
   /** Send changes as they happen, instead of when the user saves. */
@@ -431,6 +436,11 @@ export interface EngineWindow extends Window {
     spellcheckGetLanguages?: () => SpellLanguages;
     /** common/editorscommon.js: the URLs of the document's images by their path ("media/…"). */
     g_oDocumentUrls: DocumentUrls;
+    /**
+     * common/workerspeech.js: what reads the editor out to a screen reader; `isLanched` (sic)
+     * while it runs, also after Strg+Alt+Z, which the engine handles itself.
+     */
+    EditorActionSpeaker?: { isLanched: boolean };
   };
 }
 

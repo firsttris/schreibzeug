@@ -26,6 +26,7 @@
     "fidelity:update": "playwright test -c e2e/playwright.config.ts --project=fidelity --update-snapshots"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "2.6.2",
     "@playwright/test": "1.64.1",
     "@schreibzeug/einvoice": "workspace:*",

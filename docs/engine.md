@@ -303,7 +303,8 @@ was in a header or footer. `editor-core` adds the view element's place in the fr
 app adds the frame's place in the window and shows its own menu there, as web-apps does
 (`DocumentHolder.js` `showPopupMenu`). Someone who may only look gets no context menu.
 
-"Hilfe" has the keyboard shortcuts of the editor and "Über Schreibzeug" with the license and the
+"Hilfe" has the keyboard shortcuts of the editor, the switch for the engine's screen reader
+support ([accessibility](accessibility.md)) and "Über Schreibzeug" with the license and the
 link to the running source code, which the AGPL asks for (`src/editor/help-dialogs.tsx`).
 
 Cut, copy and paste from a menu go through the engine (`common/clipboard_base.js` `Button_Copy`,
@@ -513,6 +514,20 @@ engine's input (`api.getFocusElement()`, `common/apiBase.js`); the engine's own 
 then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`). It checks again when the
 main button is released: a click into the presentation's notes leaves the focus on the page's body
 afterwards. A right click is left alone there, since the app's context menu then has the focus.
+
+## Screen reader
+
+The engine's screen reader support (`common/workerspeech.js`) writes what the cursor passed and what
+got selected into `div#area_id_screen_reader` (`role="region"`, `aria-live="assertive"`) beside its
+input. `src/screen-reader.ts` switches it with `setSpeechEnabled` (`common/apiBase.js`), from the
+start when `OpenOptions.screenReader` says so; off, `EditorActionSpeaker.stop` has removed its
+callbacks. Strg+Alt+Z switches it in the engine itself (`word/Editor/Shortcuts.js` `SpeechWorker`,
+`cell/view/EventsController.js`, `slide/Editor/Format/Presentation.js`); a `keyup` listener reads
+`EditorActionSpeaker.isLanched` afterwards, so the store's `screenReader` and the menu follow. Its
+words come from the `translate` map of the API (`SPEECH_TEXTS`, looked up by
+`translateManager.getValue`). Right after the content is ready the engine makes its input
+(`word/api.js` OpenDocument → `InitControl`); a microtask then names it after the file and replaces
+its `autocomplete="extremely_off"` (`common/text_input2.js`), which is no valid value.
 
 ## Spreadsheets
 

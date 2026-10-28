@@ -16,7 +16,7 @@ import { Button } from "../ui/button";
 import type { MenuItem } from "../ui/menu";
 import { type Menu, MenuBar } from "../ui/menu-bar";
 import { useNotice } from "../ui/use-notice";
-import { type FileActions, fileMenu, helpMenu, type PdfActions } from "./file-menu";
+import { type FileActions, fileMenu, helpMenu, type PdfActions, type ScreenReaderSwitch } from "./file-menu";
 import { FileTitle } from "./file-title";
 import { AboutDialog, type Shortcut, ShortcutsDialog } from "./help-dialogs";
 import { type DocumentStatus, SaveStatus } from "./save-status";
@@ -44,6 +44,8 @@ export type EditorHeaderProps = {
   /** The editor's own menus between "Datei" and "Hilfe": Bearbeiten, Ansicht, Einfügen, Format. */
   menus: Menu[];
   shortcuts: Shortcut[];
+  /** The engine's screen reader support, in "Hilfe"; none in editors without it. */
+  screenReader?: ScreenReaderSwitch | null;
   /** A short message for the person, e.g. when the browser refused the clipboard. */
   notice?: string | null;
   /** Buttons of this editor before the shared ones (e.g. the comments toggle). */
@@ -119,6 +121,7 @@ export const EditorHeader = ({
   downloads = [],
   menus,
   shortcuts,
+  screenReader = null,
   notice,
   actions,
   toolbar,
@@ -130,7 +133,7 @@ export const EditorHeader = ({
   const menuBar = (
     <MenuBar
       label="Menü"
-      menus={[fileMenu(file, onDownload, pdf, ready, downloads), ...menus, helpMenu(setDialog)]}
+      menus={[fileMenu(file, onDownload, pdf, ready, downloads), ...menus, helpMenu(setDialog, screenReader)]}
     />
   );
 

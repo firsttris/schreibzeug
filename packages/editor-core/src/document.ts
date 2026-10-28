@@ -19,6 +19,7 @@ import { type EditorKind, keepFocusOnClick } from "./frame";
 import { createFrameSocketIO } from "./frame-socket";
 import { addImage, collectMedia, type ImageStore, provideMedia } from "./media";
 import { fontsForPdf } from "./print";
+import { followScreenReader, labelEngineInput } from "./screen-reader";
 import { createStore, type Store } from "./store";
 import { type AppShortcut, createListeners, shortcutOf } from "./view";
 
@@ -47,6 +48,8 @@ export type OpenOptions = {
   openDocument?: boolean;
   /** Red underlines for misspelled words (spelling.ts); on unless switched off. */
   spellCheck?: boolean;
+  /** The engine reads the document out to a screen reader (screen-reader.ts); off unless asked. */
+  screenReader?: boolean;
   /**
    * A phone's screen: the presentation's slide list goes under the slide and its notes start
    * hidden, as in web-apps' mobile editor (presentationeditor/mobile Main.jsx).
@@ -112,6 +115,8 @@ export type OpenedDocument<S extends CoreState> = {
    * resolves with what it returned; for jobs an assistant gives the open document.
    */
   runBuilder: (script: string) => Promise<unknown>;
+  /** The screen reader support on or off (screen-reader.ts); the store's `screenReader` follows. */
+  setScreenReader: (on: boolean) => void;
 };
 
 /** The formats the editors open: the Office formats and PDF. */
@@ -442,6 +447,7 @@ export const openDocument = <
       subscribe(base, coreEvents(win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
       subscribe(api, binding.events(win), dispatch);
       keepFocusOnClick(win, () => api.getFocusElement());
+      const screenReader = followScreenReader(win, base, options.screenReader === true, dispatch);
       const shortcuts = createListeners<AppShortcut>();
       const onKey = (event: KeyboardEvent) => {
         const shortcut = shortcutOf(event);
@@ -486,8 +492,10 @@ export const openDocument = <
             : pdfExport(win, api, binding.printCommands, options.renderPdf, snapshot),
         insertImage: insertImage(urls, base, options.images),
         runBuilder: (script) => runBuilder(base, script),
+        setScreenReader: screenReader.set,
         close: () => {
           win.removeEventListener("keydown", onKey, true);
+          screenReader.stop();
           stopProgress();
           api.asc_CloseFile?.();
         },
@@ -502,6 +510,9 @@ export const openDocument = <
       });
       base.asc_registerCallback("asc_onDocumentContentReady", () => {
         if (options.collaboration) startCoEditing(base);
+        // The engine makes its input right after telling that the content is ready (word/api.js
+        // OpenDocument: onDocumentContentReady, then WordControl.InitControl).
+        queueMicrotask(() => labelEngineInput(api.getFocusElement(), options.title));
         binding.contentReady(api, win, {
           shared: Boolean(options.collaboration),
           spellCheck: options.spellCheck !== false && options.mode !== "view",

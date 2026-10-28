@@ -7,6 +7,7 @@ import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { ButtonLabel, EditorHeader } from "./editor-header";
+import { screenReaderSwitch } from "./file-menu";
 import { SLIDE_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
@@ -86,6 +87,7 @@ export const SlideView = ({
         pdf={chrome.pdf}
         menus={file.readOnly ? [] : slideMenus(context)}
         shortcuts={SLIDE_SHORTCUTS}
+        screenReader={screenReaderSwitch(editor, state)}
         notice={chrome.notice}
         actions={
           <>

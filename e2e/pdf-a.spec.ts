@@ -7,7 +7,7 @@ import { collectErrors, openDocument, openOwnFolder, upload } from "./app";
 /** An item of the "Datei" menu that downloads a file, and the file that arrives. */
 const download = async (page: Page, item: string) => {
   const download = page.waitForEvent("download", { timeout: 60_000 });
-  await page.getByRole("menubar").getByRole("button", { name: "Datei", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Datei", exact: true }).click();
   await page.getByRole("menuitem", { name: item }).click();
   const file = await download;
   return {

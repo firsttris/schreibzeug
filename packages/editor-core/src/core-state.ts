@@ -1,3 +1,4 @@
+import type { ScreenReaderEvent } from "./screen-reader";
 import { initialProgress, isAhead, readProgress, type SessionProgress } from "./session-progress";
 import { initialSpellingState, type SpellingEvent, type SpellingState } from "./spelling";
 
@@ -30,6 +31,8 @@ export type CoreState = {
   search: SearchState;
   /** Spell checking, in the text and the presentation editor (spelling.ts). */
   spelling: SpellingState;
+  /** Whether the engine reads the document out to a screen reader (screen-reader.ts). */
+  screenReader: boolean;
 };
 
 /** What every engine tells, translated (events.ts). */
@@ -46,7 +49,8 @@ export type CoreEvent =
   | { type: "message"; json: string }
   | { type: "ready" }
   | { type: "error"; message: string }
-  | SpellingEvent;
+  | SpellingEvent
+  | ScreenReaderEvent;
 
 export const initialCoreState: CoreState = {
   status: "loading",
@@ -55,6 +59,7 @@ export const initialCoreState: CoreState = {
   session: initialProgress,
   search: { current: -1, total: 0, replaced: null },
   spelling: initialSpellingState,
+  screenReader: false,
 };
 
 const CORE_TYPES: ReadonlySet<string> = new Set([
@@ -71,6 +76,7 @@ const CORE_TYPES: ReadonlySet<string> = new Set([
   "error",
   "spellCheck",
   "misspelled",
+  "screenReader",
 ]);
 
 export const isCoreEvent = (event: { type: string }): event is CoreEvent => CORE_TYPES.has(event.type);
@@ -111,6 +117,8 @@ export const reduceCore = <S extends CoreState>(state: S, event: CoreEvent): S =
       return { ...state, spelling: { ...state.spelling, enabled: event.value } };
     case "misspelled":
       return { ...state, spelling: { ...state.spelling, misspelled: event.value } };
+    case "screenReader":
+      return state.screenReader === event.value ? state : { ...state, screenReader: event.value };
   }
 };
 

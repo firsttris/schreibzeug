@@ -6,7 +6,7 @@ import { collectErrors, openDocument, openOwnFolder, row, upload } from "./app";
 const testFile = (name: string) => join(import.meta.dirname, "../test-files", name);
 
 const menu = async (page: Page, item: string) => {
-  await page.getByRole("menubar").getByRole("button", { name: "Serienbrief", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Serienbrief", exact: true }).click();
   await page.getByRole("menuitem", { name: item }).click();
 };
 

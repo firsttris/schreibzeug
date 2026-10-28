@@ -13,7 +13,7 @@ const insertPivot = async (page: Page, testInfo: TestInfo) => {
   await upload(page, umsatz, "umsatz.xlsx");
   await openDocument(page, "umsatz.xlsx", errors);
   await goTo(page, "B3");
-  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Einfügen", exact: true }).click();
   await page.getByRole("menuitem", { name: "Pivot-Tabelle …" }).click();
   const dialog = page.getByRole("dialog", { name: "Pivot-Tabelle einfügen" });
   await expect(dialog.getByLabel("Datenbereich mit Überschriften")).toHaveValue("Umsatz!$A$1:$D$7");
@@ -78,7 +78,7 @@ test("refreshes the pivot table after its data changed", async ({ page }, testIn
   await page.getByRole("tab", { name: "Pivot1" }).click();
   await goTo(page, "B6");
   await expect(formulaBar(page)).toHaveValue("4150");
-  await page.getByRole("menubar").getByRole("button", { name: "Daten", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Daten", exact: true }).click();
   await page.getByRole("menuitem", { name: "Pivot-Tabelle aktualisieren" }).click();
   await goTo(page, "B6");
   await expect(formulaBar(page)).toHaveValue("5150");

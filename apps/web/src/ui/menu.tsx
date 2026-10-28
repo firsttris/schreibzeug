@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { Button, type ButtonProps } from "./button";
+import { moveFocus } from "./menu-keys";
 import { popoverPanel, usePopover } from "./use-popover";
 
 export type MenuItem = {
@@ -54,19 +55,52 @@ const Item = ({ item, marks, onDone }: { item: MenuItem; marks: boolean; onDone:
   );
 };
 
-/** Menu entries in groups, with a line between groups. */
+const SIDEWAYS: Record<string, -1 | 1> = { ArrowLeft: -1, ArrowRight: 1 };
+
+const entriesOf = (menu: HTMLElement) =>
+  [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]')].filter(
+    (entry) => !(entry as HTMLButtonElement).disabled,
+  );
+
+/**
+ * Menu entries in groups, with a line between groups; the arrow keys go from entry to entry.
+ * `focusFirst` puts the focus on the first entry, for a menu opened with the keyboard. In a menu
+ * bar, `onSideways` gets left (-1) and right (1), which switch to the neighbouring menu.
+ */
 export const MenuList = ({
   label,
   groups,
   onDone,
+  focusFirst = false,
+  onSideways,
 }: {
   label: string;
   groups: MenuItem[][];
   onDone: () => void;
+  focusFirst?: boolean;
+  onSideways?: (step: -1 | 1) => void;
 }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focusFirst && ref.current) entriesOf(ref.current)[0]?.focus();
+  }, [focusFirst]);
   const marks = groups.some((group) => group.some((item) => item.checked !== undefined || item.icon));
   return (
-    <div role="menu" aria-label={label} className="flex min-w-52 flex-col">
+    <div
+      ref={ref}
+      role="menu"
+      aria-label={label}
+      className="flex min-w-52 flex-col"
+      onKeyDown={(event) => {
+        const step = SIDEWAYS[event.key];
+        if (onSideways && step) {
+          event.preventDefault();
+          onSideways(step);
+          return;
+        }
+        if (ref.current && moveFocus(event.key, entriesOf(ref.current), "vertical")) event.preventDefault();
+      }}
+    >
       {groups
         .filter((group) => group.length > 0)
         .map((group, index) => (

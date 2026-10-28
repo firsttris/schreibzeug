@@ -138,7 +138,7 @@ test("adds, renames and deletes sheets", async ({ page }, testInfo) => {
 test.describe("menus of the spreadsheet", () => {
   /** Opens a menu of the menu bar and picks an entry. */
   const pick = async (page: Page, menu: string, entry: string) => {
-    await page.getByRole("menubar").getByRole("button", { name: menu, exact: true }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: menu, exact: true }).click();
     const list = page.getByRole("menu", { name: menu });
     await list
       .getByRole("menuitem", { name: entry })
@@ -164,7 +164,7 @@ test.describe("menus of the spreadsheet", () => {
       "true",
     );
     await pick(page, "Ansicht", "150 %");
-    await page.getByRole("menubar").getByRole("button", { name: "Ansicht" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Ansicht", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: "150 %" })).toHaveAttribute(
       "aria-checked",
       "true",
@@ -176,7 +176,7 @@ test.describe("menus of the spreadsheet", () => {
 
   test("finds and replaces in the sheet", async ({ page }, testInfo) => {
     const fileId = await openPreise(page, testInfo);
-    await page.getByRole("menubar").getByRole("button", { name: "Bearbeiten" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Bearbeiten", exact: true }).click();
     await page.getByRole("menuitem", { name: "Suchen und ersetzen" }).click();
     const bar = page.getByRole("search", { name: "Suchen und ersetzen" });
     await bar.getByLabel("Suchen", { exact: true }).fill("drucker");
@@ -211,7 +211,7 @@ test.describe("menus of the spreadsheet", () => {
     await expect(formulaBar(page)).toHaveValue("500");
 
     await pick(page, "Ansicht", "Oberste Zeile fixieren");
-    await page.getByRole("menubar").getByRole("button", { name: "Ansicht" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Ansicht", exact: true }).click();
     await expect(page.getByRole("menuitem", { name: "Fixierung aufheben" })).toBeVisible();
     await page.keyboard.press("Escape");
     await save(page);
@@ -240,7 +240,7 @@ test.describe("menus of the spreadsheet", () => {
     await dialog.getByRole("checkbox", { name: "Barcode-Scanner" }).uncheck();
     await dialog.getByRole("button", { name: "OK" }).click();
     await expect(dialog).toHaveCount(0);
-    await page.getByRole("menubar").getByRole("button", { name: "Daten" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Daten", exact: true }).click();
     await expect(page.getByRole("menuitem", { name: "Filter löschen" })).toBeEnabled();
     await page.keyboard.press("Escape");
     await save(page);
@@ -258,7 +258,7 @@ test.describe("menus of the spreadsheet", () => {
     await goTo(page, "A1:B4");
     await pick(page, "Einfügen", "Diagramm: Säulen");
     // The new chart is selected: the menu now shows its kind and changes it.
-    await page.getByRole("menubar").getByRole("button", { name: "Einfügen" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Einfügen", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: "Diagramm: Säulen" })).toHaveAttribute(
       "aria-checked",
       "true",

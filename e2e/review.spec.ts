@@ -23,7 +23,7 @@ const openHello = async (page: Page, testInfo: TestInfo) => {
 };
 
 const review = async (page: Page, entry: string) => {
-  await page.getByRole("menubar").getByRole("button", { name: "Überprüfen", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Überprüfen", exact: true }).click();
   const menu = page.getByRole("menu", { name: "Überprüfen" });
   await menu
     .getByRole("menuitem", { name: entry, exact: true })
@@ -45,7 +45,7 @@ test.describe("tracked changes", () => {
   }, testInfo) => {
     const fileId = await openHello(page, testInfo);
     await review(page, "Änderungen nachverfolgen");
-    await page.getByRole("menubar").getByRole("button", { name: "Überprüfen" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Überprüfen", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: "Änderungen nachverfolgen" })).toHaveAttribute(
       "aria-checked",
       "true",

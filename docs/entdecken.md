@@ -21,16 +21,16 @@ hide:
 im Browser oder als App auf dem PC. Deine Dateien bleiben bei dir, und sie bleiben, was sie sind:
 .docx, .xlsx, .pptx.</p>
 
-[Rundgang starten](#word-im-browser-ohne-word){ .md-button .md-button--primary } [Alle Funktionen im Detail](index.md){ .md-button }
+[Rundgang starten](#rundgang){ .md-button .md-button--primary } [Alle Funktionen im Detail](index.md){ .md-button }
 
 </div>
 
 <div class="showcase-shot" markdown>
-![Schreibzeug im Browser: ein Word-Dokument mit Werkzeugleiste](screenshots/editor-light.png#only-light)
-![Schreibzeug im Browser: ein Word-Dokument mit Werkzeugleiste](screenshots/editor-dark.png#only-dark)
+![Schreibzeug im Browser: ein Word-Dokument mit Werkzeugleiste](screenshots/editor-light.png#only-light){ width="1280" height="800" }
+![Schreibzeug im Browser: ein Word-Dokument mit Werkzeugleiste](screenshots/editor-dark.png#only-dark){ width="1280" height="800" }
 </div>
 
-<div class="showcase-feature" markdown>
+<div class="showcase-feature" id="rundgang" markdown>
 <div markdown>
 <span class="showcase-kicker">Dokumente · .docx · hell und dunkel</span>
 
@@ -41,8 +41,8 @@ Fußzeilen, Inhaltsverzeichnis, Rechtschreibprüfung auf Deutsch. Serienbriefe u
 inklusive. Hell oder dunkel, wie es dir gefällt.
 </div>
 <div class="showcase-shot" markdown>
-![Ein Word-Dokument im Browser im dunklen Design](screenshots/editor-dark.png#only-light)
-![Ein Word-Dokument im Browser im hellen Design](screenshots/editor-light.png#only-dark)
+![Ein Word-Dokument im Browser im dunklen Design](screenshots/editor-dark.png#only-light){ width="1280" height="800" loading="lazy" }
+![Ein Word-Dokument im Browser im hellen Design](screenshots/editor-light.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -56,8 +56,8 @@ Jeder sieht die Cursor der anderen, Kommentare kommen live an, Änderungen lasse
 und annehmen. Schluss mit „Angebot_final_v3_wirklich_final.docx“.
 </div>
 <div class="showcase-shot" markdown>
-![Ein Angebot mit dem Kommentar einer Kollegin und dem Feld zum Antworten](screenshots/comments-light.png#only-light)
-![Ein Angebot mit dem Kommentar einer Kollegin und dem Feld zum Antworten](screenshots/comments-dark.png#only-dark)
+![Ein Angebot mit dem Kommentar einer Kollegin und dem Feld zum Antworten](screenshots/comments-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Ein Angebot mit dem Kommentar einer Kollegin und dem Feld zum Antworten](screenshots/comments-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -71,8 +71,8 @@ Formeln, Zahlenformate, Filter, Diagramme, Pivot-Tabellen und bedingte Formatier
 bleibt eine echte .xlsx – der Steuerberater öffnet sie in Excel wie immer.
 </div>
 <div class="showcase-shot" markdown>
-![Eine Preisliste als Tabelle mit Summenformel](screenshots/spreadsheet-light.png#only-light)
-![Eine Preisliste als Tabelle mit Summenformel](screenshots/spreadsheet-dark.png#only-dark)
+![Eine Preisliste als Tabelle mit Summenformel](screenshots/spreadsheet-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Eine Preisliste als Tabelle mit Summenformel](screenshots/spreadsheet-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -86,8 +86,8 @@ Folien, Layouts, Designs und Übergänge, Sprechernotizen und eine Bildschirmpr�
 aus dem Browser. PowerPoint-Dateien bleiben PowerPoint-Dateien.
 </div>
 <div class="showcase-shot" markdown>
-![Eine Präsentation mit Folienliste und Titelfolie](screenshots/presentation-light.png#only-light)
-![Eine Präsentation mit Folienliste und Titelfolie](screenshots/presentation-dark.png#only-dark)
+![Eine Präsentation mit Folienliste und Titelfolie](screenshots/presentation-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Eine Präsentation mit Folienliste und Titelfolie](screenshots/presentation-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -101,8 +101,8 @@ Formulare ausfüllen und unterschreiben, markieren und kommentieren, Seiten einf
 entfernen, Vertrauliches schwärzen. Eingescannte Briefe werden per Texterkennung durchsuchbar.
 </div>
 <div class="showcase-shot" markdown>
-![Ein Auftragsformular als PDF wird im Browser ausgefüllt](screenshots/pdf-light.png#only-light)
-![Ein Auftragsformular als PDF wird im Browser ausgefüllt](screenshots/pdf-dark.png#only-dark)
+![Ein Auftragsformular als PDF wird im Browser ausgefüllt](screenshots/pdf-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Ein Auftragsformular als PDF wird im Browser ausgefüllt](screenshots/pdf-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -116,8 +116,8 @@ Markdown mit Live-Vorschau, Checklisten und Tabellen – für Protokolle, To-dos
 Projektnotizen. Die Datei bleibt Text, Byte für Byte.
 </div>
 <div class="showcase-shot" markdown>
-![Projektnotizen als Markdown mit Checkliste und Tabelle](screenshots/text-light.png#only-light)
-![Projektnotizen als Markdown mit Checkliste und Tabelle](screenshots/text-dark.png#only-dark)
+![Projektnotizen als Markdown mit Checkliste und Tabelle](screenshots/text-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Projektnotizen als Markdown mit Checkliste und Tabelle](screenshots/text-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -131,8 +131,8 @@ Ordner, Hochladen, zuletzt geöffnet, Papierkorb. Jede gespeicherte Version läs
 zurückholen – auch die von letzter Woche, bevor jemand den halben Vertrag gelöscht hat.
 </div>
 <div class="showcase-shot" markdown>
-![Meine Dateien: Ordner, Word-, Excel-, PDF-, Markdown- und PowerPoint-Dateien](screenshots/files-light.png#only-light)
-![Meine Dateien: Ordner, Word-, Excel-, PDF-, Markdown- und PowerPoint-Dateien](screenshots/files-dark.png#only-dark)
+![Meine Dateien: Ordner, Word-, Excel-, PDF-, Markdown- und PowerPoint-Dateien](screenshots/files-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Meine Dateien: Ordner, Word-, Excel-, PDF-, Markdown- und PowerPoint-Dateien](screenshots/files-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -147,8 +147,8 @@ mit Ablaufdatum. Gäste legen mit einem Klick ein Konto an – ohne Installation
 Microsoft-Konto. Kein Anhang-Pingpong mehr.
 </div>
 <div class="showcase-shot" markdown>
-![Einen Ordner mit einem Kollegen und per Link teilen](screenshots/share-light.png#only-light)
-![Einen Ordner mit einem Kollegen und per Link teilen](screenshots/share-dark.png#only-dark)
+![Einen Ordner mit einem Kollegen und per Link teilen](screenshots/share-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Einen Ordner mit einem Kollegen und per Link teilen](screenshots/share-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 
@@ -162,8 +162,8 @@ Neu, Name eintippen, los. Word, Excel, PowerPoint oder eine Notiz – direkt im 
 Ordner.
 </div>
 <div class="showcase-shot" markdown>
-![Ein neues Dokument anlegen](screenshots/new-document-light.png#only-light)
-![Ein neues Dokument anlegen](screenshots/new-document-dark.png#only-dark)
+![Ein neues Dokument anlegen](screenshots/new-document-light.png#only-light){ width="1280" height="800" loading="lazy" }
+![Ein neues Dokument anlegen](screenshots/new-document-dark.png#only-dark){ width="1280" height="800" loading="lazy" }
 </div>
 </div>
 

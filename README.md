@@ -172,6 +172,21 @@ ZUGFeRD yes: an invoice written in the text editor becomes a ZUGFeRD PDF/A-3 wit
 (EN 16931). XRechnung is read and shown, but not created yet. See [E-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html).
 </details>
 
+<details>
+<summary><b>Can an AI assistant set it up for me?</b></summary>
+
+Yes. Give Claude Code or another coding agent this repository and SSH access to your server and
+say: "Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
+</details>
+
+<details>
+<summary><b>Is it secure?</b></summary>
+
+Check it yourself, the code is open: let your AI agent run Cloudflare's [Security Audit Skill](https://github.com/cloudflare/security-audit-skill) or
+Claude Code's `/security-review` on this repository.
+Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+</details>
+
 ## 📚 Documentation
 
 The documentation opens with a tour in pictures, made to send to customers: **[in English](https://firsttris.github.io/schreibzeug/)** and **[in German](https://firsttris.github.io/schreibzeug/de/)**.
@@ -195,6 +210,11 @@ bun run dev              # http://localhost:5173, with the API on http://localho
 A React SPA with TanStack Router and Query, Tailwind and shadcn-style components; Euro-Office
 `sdkjs` as the editing engine; a Bun server with Hono, Drizzle and SQLite; Tauri 3 (alpha) for the desktop
 app. Checks, tests and architecture: [Development](https://firsttris.github.io/schreibzeug/development.html).
+
+## 🧩 More from us
+
+- Looking for a replacement for Gmail or Google Workspace? **[Kontext](https://github.com/firsttris/kontext)**: mail, calendar, contacts, chat and calls for your team, on your own server.
+- Doing your own books in Germany? **[Haben](https://github.com/firsttris/haben)**: invoices with e-invoicing, receipts, bank reconciliation and VAT returns via ELSTER.
 
 ## 🤝 Contributing
 

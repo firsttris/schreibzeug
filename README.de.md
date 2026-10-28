@@ -1,9 +1,10 @@
 <div align="center">
 
-<h1>Schreibzeug: Word, Excel, PowerPoint und PDF gemeinsam bearbeiten – selbst gehostet und Open Source</h1>
+<h1>Alles, was dein Team von Word und Excel kennt. Ohne dass Microsoft deine Dokumente kennt.</h1>
 
-Die selbst gehostete Alternative zu Google Docs und Microsoft 365: gemeinsam in Echtzeit, im Browser oder als Desktop-App.<br>
-Open Source, ohne Dokumentenserver und ohne Tracking. Made in Europe.
+**Schreibzeug: Word, Excel, PowerPoint und PDF gemeinsam bearbeiten – selbst gehostet und Open Source**
+
+Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver und ohne Tracking. Made in Europe.
 
 [English](README.md) · **Deutsch**
 

@@ -1,9 +1,10 @@
 <div align="center">
 
-<h1>Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source</h1>
+<h1>Everything your team knows from Google Docs. Without Google knowing your documents.</h1>
 
-The self-hosted alternative to Google Docs and Microsoft 365: editing together in real time, in the browser or as a desktop app.<br>
-Open source, no document server, no tracking. Made in Europe.
+**Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source**
+
+Editing together in real time, in the browser or as a desktop app. No document server, no tracking. Made in Europe.
 
 **English** · [Deutsch](README.de.md)
 

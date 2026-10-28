@@ -6,6 +6,7 @@ import type {
 } from "@schreibzeug/editor-core";
 import { type RefObject, useEffect, useState } from "react";
 import { useNotice } from "../ui/use-notice";
+import { moveRegion } from "./regions";
 import { useInsertImage } from "./use-insert-image";
 import { usePdf } from "./use-pdf";
 import { useSearchBar } from "./use-search-bar";
@@ -17,6 +18,7 @@ export type ChromeSource = {
   onShortcut: (listener: (shortcut: AppShortcut) => void) => () => void;
   onContextMenu: (listener: ContextMenuListener) => () => void;
   insertImage: ((bytes: Uint8Array) => Promise<void>) | null;
+  focus: () => void;
 };
 
 /** Where the engine's frame sits in the window: the engine's points come in frame coordinates. */
@@ -32,7 +34,7 @@ const toWindow = (container: HTMLElement | null, request: ContextMenuRequest) =>
 
 /**
  * The parts every editor has around its document: short messages, the search bar, PDF and print,
- * inserting an image, the keys Strg+F/H/P, and where a right click asks for the context menu. Someone who may only
+ * inserting an image, the keys Strg+F/H/P and F6, and where a right click asks for the context menu. Someone who may only
  * look gets no context menu and cannot replace.
  */
 export const useEditorChrome = (
@@ -53,6 +55,12 @@ export const useEditorChrome = (
     replace: () => searchBar.open("replace"),
     ...(pdf ? { print: pdf.print } : {}),
     ...(readOnly ? {} : { save }),
+    ...(editor
+      ? {
+          nextRegion: () => moveRegion(document, 1, editor.focus),
+          previousRegion: () => moveRegion(document, -1, editor.focus),
+        }
+      : {}),
   });
 
   useEffect(() => {

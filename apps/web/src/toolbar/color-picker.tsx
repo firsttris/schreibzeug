@@ -89,7 +89,7 @@ export const ColorPicker = ({ color, disabled, onPick, target = "text" }: ColorP
         />
       </Button>
       {open && (
-        <fieldset className={popoverPanel}>
+        <fieldset data-panel className={popoverPanel}>
           <legend className="sr-only">{palette}</legend>
           <button
             type="button"

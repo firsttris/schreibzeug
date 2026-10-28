@@ -146,7 +146,7 @@ export const MenuButton = ({
         {children}
       </Button>
       {open && (
-        <div className={`${popoverPanel} ${position}`}>
+        <div data-panel className={`${popoverPanel} ${position}`}>
           <MenuList label={label} groups={groups} onDone={close} />
         </div>
       )}

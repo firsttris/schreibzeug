@@ -129,3 +129,84 @@ test("the screen reader support reads the document out, in German, and is rememb
   await page.keyboard.press("Control+Alt+KeyZ");
   await expect.poll(checked).toBe("false");
 });
+
+test("F6 leads out of the document to the menus and the toolbar, and back", async ({ page }, testInfo) => {
+  await openOwnFolder(page, testInfo);
+  const errors = collectErrors(page);
+  await createDocument(page, "Ausweg");
+  await expectEditorReady(page, errors);
+  const input = page.frameLocator('[data-testid="engine-frame"]').locator("#area_id");
+  await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+  await page.keyboard.type("Hallo");
+  // Tab stays in the document, as a tab; F6 is the way out.
+  await page.keyboard.press("Tab");
+  await expect(input).toBeFocused();
+  await page.keyboard.press("F6");
+  await expect(page.getByRole("menubar").getByRole("menuitem", { name: "Datei", exact: true })).toBeFocused();
+  // The toolbar's stop for Tab: its first button that can be used, "Rückgängig" after typing.
+  const undo = page.getByRole("toolbar").getByRole("button", { name: "Rückgängig", exact: true });
+  await page.keyboard.press("F6");
+  await expect(undo).toBeFocused();
+  await page.keyboard.press("F6");
+  await expect(input).toBeFocused();
+  await page.keyboard.press("Shift+F6");
+  await expect(undo).toBeFocused();
+  // Back into the document, where typing goes on.
+  await page.keyboard.press("F6");
+  await page.keyboard.type(" Welt");
+  await expect(input).toBeFocused();
+});
+
+test("F6 also leads out of a spreadsheet", async ({ page }, testInfo) => {
+  await openOwnFolder(page, testInfo);
+  const errors = collectErrors(page);
+  await createFile(page, "Tabelle", "Ausweg");
+  await expectEditorReady(page, errors);
+  await page.getByTestId("engine-frame").click({ position: { x: 300, y: 300 } });
+  await page.keyboard.press("F6");
+  await expect(page.getByRole("menubar").getByRole("menuitem", { name: "Datei", exact: true })).toBeFocused();
+});
+
+test("the toolbar is one stop for Tab, with the arrow keys inside", async ({ page }, testInfo) => {
+  await openOwnFolder(page, testInfo);
+  const errors = collectErrors(page);
+  await createDocument(page, "Leiste");
+  await expectEditorReady(page, errors);
+  const toolbar = page.getByRole("toolbar").first();
+  const stops = () =>
+    toolbar.locator("button").evaluateAll(
+      (buttons) =>
+        buttons.filter(
+          // A disabled button is no stop for Tab, whatever its tabIndex.
+          (button) =>
+            !(button as HTMLButtonElement).disabled &&
+            (button as HTMLButtonElement).tabIndex === 0 &&
+            !button.closest("[data-panel]"),
+        ).length,
+    );
+  // Buttons turn usable once the document is there; the toolbar follows them.
+  await expect.poll(stops).toBe(1);
+  const bold = toolbar.getByRole("button", { name: "Fett", exact: true });
+  await bold.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(toolbar.getByRole("button", { name: "Kursiv", exact: true })).toBeFocused();
+  await expect.poll(stops).toBe(1);
+  // Tab leaves the toolbar from any of its buttons.
+  await page.keyboard.press("Tab");
+  await expect(toolbar.locator("button:focus")).toHaveCount(0);
+});
+
+test("F6 reaches the toolbar after everything typed was undone", async ({ page }, testInfo) => {
+  await openOwnFolder(page, testInfo);
+  const errors = collectErrors(page);
+  await createDocument(page, "Rueckgaengig");
+  await expectEditorReady(page, errors);
+  await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+  const undo = page.getByRole("toolbar").getByRole("button", { name: "Rückgängig", exact: true });
+  await page.keyboard.type("a");
+  await expect(undo).toBeEnabled();
+  await page.keyboard.press("Control+KeyZ");
+  await expect(undo).toBeDisabled();
+  await page.keyboard.press("Shift+F6");
+  await expect(page.getByRole("toolbar").locator("button:focus")).toHaveCount(1);
+});

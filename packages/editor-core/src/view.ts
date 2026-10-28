@@ -84,7 +84,7 @@ export const contextMenuSource = (
  * Keys the engine leaves to its UI (word/Editor/Shortcuts.js OpenFindDialog, OpenFindAndReplaceMenu,
  * PrintPreviewAndPrint): Strg+F searches, Strg+H replaces, Strg+P prints.
  */
-export type AppShortcut = "find" | "replace" | "print" | "save";
+export type AppShortcut = "find" | "replace" | "print" | "save" | "nextRegion" | "previousRegion";
 
 /** Strg+S saves through the app: the engine's own save (asc_Save) talks to the Document Server. */
 const SHORTCUT_KEYS: Record<string, AppShortcut> = { f: "find", h: "replace", p: "print", s: "save" };
@@ -97,6 +97,10 @@ export const shortcutOf = (event: {
   altKey: boolean;
   shiftKey: boolean;
 }): AppShortcut | null => {
+  // F6 and Umschalt+F6 move between the document, the menus and the toolbar, as in Word and
+  // LibreOffice: the way out of the document, where Tab is a tab or the next cell.
+  if (event.key === "F6" && !(event.ctrlKey || event.metaKey || event.altKey))
+    return event.shiftKey ? "previousRegion" : "nextRegion";
   if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return null;
   return SHORTCUT_KEYS[event.key.toLowerCase()] ?? null;
 };

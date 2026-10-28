@@ -8,13 +8,14 @@ import {
   Save,
   Share2,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useEmbed } from "../embed/bridge";
 import { FileBadge } from "../files/file-badge";
 import type { FileKind } from "../lib/format";
 import { Button } from "../ui/button";
 import type { MenuItem } from "../ui/menu";
 import { type Menu, MenuBar } from "../ui/menu-bar";
+import { attachRovingToolbars } from "../ui/roving-toolbar";
 import { useNotice } from "../ui/use-notice";
 import { type FileActions, fileMenu, helpMenu, type PdfActions, type ScreenReaderSwitch } from "./file-menu";
 import { FileTitle } from "./file-title";
@@ -130,6 +131,9 @@ export const EditorHeader = ({
   const [renameError, setRenameError] = useNotice();
   const message = notice ?? renameError;
   const [toolsOpen, setToolsOpen] = useState(false);
+  // Every toolbar of the editor one stop for Tab, with the arrow keys inside (roving-toolbar.ts).
+  const header = useRef<HTMLElement>(null);
+  useEffect(() => (header.current ? attachRovingToolbars(header.current) : undefined), []);
   const menuBar = (
     <MenuBar
       label="Menü"
@@ -138,7 +142,10 @@ export const EditorHeader = ({
   );
 
   return (
-    <header className="flex flex-col gap-2 border-b border-[var(--border)] px-2 pt-1.5 pb-1.5 sm:px-4 sm:pt-2 sm:pb-2">
+    <header
+      ref={header}
+      className="flex flex-col gap-2 border-b border-[var(--border)] px-2 pt-1.5 pb-1.5 sm:px-4 sm:pt-2 sm:pb-2"
+    >
       <div className="flex items-center gap-x-2 sm:flex-wrap sm:gap-x-3 sm:gap-y-2">
         <Button variant="ghost" aria-label="Zurück" onClick={file.onClose}>
           <ArrowLeft size={18} />

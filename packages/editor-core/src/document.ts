@@ -117,6 +117,8 @@ export type OpenedDocument<S extends CoreState> = {
   runBuilder: (script: string) => Promise<unknown>;
   /** The screen reader support on or off (screen-reader.ts); the store's `screenReader` follows. */
   setScreenReader: (on: boolean) => void;
+  /** Puts the keyboard into the document, at its cursor (the engine's input). */
+  focus: () => void;
 };
 
 /** The formats the editors open: the Office formats and PDF. */
@@ -493,6 +495,7 @@ export const openDocument = <
         insertImage: insertImage(urls, base, options.images),
         runBuilder: (script) => runBuilder(base, script),
         setScreenReader: screenReader.set,
+        focus: () => api.getFocusElement().focus(),
         close: () => {
           win.removeEventListener("keydown", onKey, true);
           screenReader.stop();

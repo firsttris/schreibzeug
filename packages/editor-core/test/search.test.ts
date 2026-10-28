@@ -96,4 +96,11 @@ describe("shortcutOf", () => {
     expect(shortcutOf(key("f"))).toBeNull();
     expect(shortcutOf(key("f", { ctrlKey: true, shiftKey: true }))).toBeNull();
   });
+
+  it("knows F6 and Umschalt+F6, the way out of the document", () => {
+    expect(shortcutOf(key("F6"))).toBe("nextRegion");
+    expect(shortcutOf(key("F6", { shiftKey: true }))).toBe("previousRegion");
+    expect(shortcutOf(key("F6", { ctrlKey: true }))).toBeNull();
+    expect(shortcutOf(key("F6", { altKey: true }))).toBeNull();
+  });
 });

@@ -34,10 +34,6 @@ Editing together in real time, in the browser or as a desktop app. No document s
 
 </div>
 
-> [!TIP]
-> **Let an AI set it up for you.** Give Claude Code or another coding agent this repository and SSH access to
-> your server and say: "Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
-
 ## 💡 Why Schreibzeug?
 
 Google Docs and Microsoft 365 keep your documents in someone else's cloud and charge per user.
@@ -63,6 +59,13 @@ Runs on any Linux server or VPS with Docker or Podman (amd64), on a home server,
 server as the desktop app for Windows, macOS and Linux.
 
 ## 🚀 Install
+
+### 1. Let an AI set it up
+
+Give Claude Code or another coding agent this repository and SSH access to your server and say:
+"Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
+
+### 2. Manually
 
 On a server with Docker (or Podman), a domain pointing to it and open ports 80 and 443:
 

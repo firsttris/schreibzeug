@@ -34,10 +34,6 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 
 </div>
 
-> [!TIP]
-> **Lass es dir von einer KI aufsetzen.** Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und
-> SSH-Zugang zu deinem Server und sag: „Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
-
 ## 💡 Warum Schreibzeug?
 
 Google Docs und Microsoft 365 halten deine Dokumente in fremder Cloud und kosten pro Benutzer.
@@ -66,6 +62,13 @@ Läuft auf jedem Linux-Server oder VPS mit Docker oder Podman (amd64), auf einem
 ohne Server als Desktop-App für Windows, macOS und Linux.
 
 ## 🚀 Installation
+
+### 1. Von einer KI aufsetzen lassen
+
+Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und SSH-Zugang zu deinem Server und sag:
+„Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
+
+### 2. Manuell
 
 Auf einem Server mit Docker (oder Podman), einer Domain, die auf ihn zeigt, und offenen Ports 80
 und 443:

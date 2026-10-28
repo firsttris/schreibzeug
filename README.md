@@ -60,7 +60,7 @@ server as the desktop app for Windows, macOS and Linux.
 
 ## 🚀 Install
 
-### 1. Let an AI set it up
+### 1. Let an agent set it up
 
 Give Claude Code or another coding agent this repository and SSH access to your server and say:
 "Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
@@ -182,7 +182,7 @@ ZUGFeRD yes: an invoice written in the text editor becomes a ZUGFeRD PDF/A-3 wit
 <details>
 <summary><b>Is it secure?</b></summary>
 
-Check it yourself, the code is open: let your AI agent run Cloudflare's [Security Audit Skill](https://github.com/cloudflare/security-audit-skill) or
+Check it yourself, the code is open: let your agent run Cloudflare's [Security Audit Skill](https://github.com/cloudflare/security-audit-skill) or
 Claude Code's `/security-review` on this repository.
 Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 </details>

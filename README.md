@@ -60,6 +60,13 @@ server as the desktop app for Windows, macOS and Linux.
 
 ## 🚀 Install
 
+### 1. Let an AI set it up
+
+Give Claude Code or another coding agent this repository and SSH access to your server and say:
+"Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
+
+### 2. Manually
+
 On a server with Docker (or Podman), a domain pointing to it and open ports 80 and 443:
 
 ```bash
@@ -170,13 +177,6 @@ undone. See [MCP server](https://firsttris.github.io/schreibzeug/mcp.html).
 
 ZUGFeRD yes: an invoice written in the text editor becomes a ZUGFeRD PDF/A-3 with Factur-X XML
 (EN 16931). XRechnung is read and shown, but not created yet. See [E-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html).
-</details>
-
-<details>
-<summary><b>Can an AI assistant set it up for me?</b></summary>
-
-Yes. Give Claude Code or another coding agent this repository and SSH access to your server and
-say: "Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
 </details>
 
 <details>

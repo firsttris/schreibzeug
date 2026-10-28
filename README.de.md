@@ -63,6 +63,13 @@ ohne Server als Desktop-App für Windows, macOS und Linux.
 
 ## 🚀 Installation
 
+### 1. Von einer KI aufsetzen lassen
+
+Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und SSH-Zugang zu deinem Server und sag:
+„Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
+
+### 2. Manuell
+
 Auf einem Server mit Docker (oder Podman), einer Domain, die auf ihn zeigt, und offenen Ports 80
 und 443:
 
@@ -174,13 +181,6 @@ offenen Dokument brauchen deine Zustimmung und lassen sich rückgängig machen. 
 
 ZUGFeRD ja: Eine Rechnung aus dem Texteditor wird ein ZUGFeRD-PDF/A-3 mit Factur-X-XML (EN 16931).
 XRechnung wird gelesen und angezeigt, aber noch nicht erstellt. Siehe [E-Rechnungen](https://firsttris.github.io/schreibzeug/e-invoice.html).
-</details>
-
-<details>
-<summary><b>Kann eine KI das für mich aufsetzen?</b></summary>
-
-Ja. Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und SSH-Zugang zu deinem
-Server und sag: „Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
 </details>
 
 <details>

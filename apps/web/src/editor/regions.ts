@@ -11,8 +11,9 @@ const isShown: Shown = (element) => element.getClientRects().length > 0;
 /** Focuses the part's stop for Tab (a roving toolbar's current button), else its first button. */
 const focusPart = (part: HTMLElement | null, shown: Shown): boolean => {
   if (!part || !shown(part)) return false;
+  // A button that was the stop and turned disabled keeps its tabindex="0" (roving-toolbar.ts).
   const target =
-    part.querySelector<HTMLElement>('button[tabindex="0"]') ??
+    part.querySelector<HTMLElement>('button[tabindex="0"]:not(:disabled)') ??
     part.querySelector<HTMLElement>("button:not(:disabled)");
   if (!target) return false;
   target.focus();

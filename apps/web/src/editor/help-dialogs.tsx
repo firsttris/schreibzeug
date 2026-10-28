@@ -22,6 +22,7 @@ export const WORD_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "Strg+Alt+Z", label: "Unterstützung für Screenreader ein oder aus" },
 ];
 
 /** Keys of the spreadsheet, as its engine handles them (cell/view/WorkbookView.js, CellEditor). */
@@ -37,6 +38,7 @@ export const SHEET_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+F", label: "Suchen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "Strg+Alt+Z", label: "Unterstützung für Screenreader ein oder aus" },
 ];
 
 /** Keys of the presentation, as its engine handles them (slide/api.js, common shortcuts). */
@@ -52,6 +54,7 @@ export const SLIDE_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "Strg+Alt+Z", label: "Unterstützung für Screenreader ein oder aus" },
 ];
 
 export const PDF_SHORTCUTS: Shortcut[] = [

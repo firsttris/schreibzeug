@@ -16,6 +16,7 @@ import { createLinkCommands, type HyperlinkProps, type LinkCommands, readLink } 
 import { readListKind } from "./lists";
 import { createMarkingCommands, type MarkingCommands, readHighlight } from "./marking";
 import { createReviewCommands, type ReviewCommands, readRevision, trackingOf } from "./review";
+import { SPEECH_TEXTS } from "./screen-reader";
 import { createSearchCommands, type SearchCommands } from "./search";
 import {
   connectSpelling,
@@ -137,7 +138,7 @@ const wordBinding: EditorBinding<
   createApi: (win) => {
     limitSpellLanguages(win.AscCommon);
     useDedicatedSpellWorker(win);
-    const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: {} });
+    const api = new win.Asc.asc_docs_api({ "id-view": "editor_sdk", translate: SPEECH_TEXTS });
     api.SetFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     return api;
   },

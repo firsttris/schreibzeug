@@ -81,7 +81,7 @@ test("recognises the text of a scanned PDF and stores it searchable", async ({ p
       .getByRole("toolbar", { name: "PDF-Werkzeuge" })
       .getByRole("button", { name: "Seite nach rechts drehen" }),
   ).toBeEnabled({ timeout: 60_000 });
-  await page.getByRole("menubar").getByRole("button", { name: "Seiten", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Seiten", exact: true }).click();
   await page.getByRole("menuitem", { name: "Text erkennen (OCR) …" }).click();
   await dialog.getByRole("button", { name: "Text erkennen" }).click();
   await expect(dialog.getByRole("alert")).toHaveText("Jede Seite des PDFs enthält schon Text.");

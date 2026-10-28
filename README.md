@@ -97,6 +97,7 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 | 📁 **Files & teamwork** | Folders, upload, recent files and trash, **versions** to go back to, **sharing** with accounts or by link, **real-time co-editing** with live cursors · [more →](https://firsttris.github.io/schreibzeug/files.html) |
 | 🤖 **AI & Kontext** | **MCP server** for Claude Code and other MCP clients, with your rights, asking before it edits a document you have open; **sign in with [Kontext](https://github.com/firsttris/kontext)** and use Schreibzeug as its documents module · [more →](https://firsttris.github.io/schreibzeug/mcp.html) |
 | 🖥️ **Desktop app** | **Windows, macOS and Linux** (Tauri): the files in your documents folder without any server, or a window onto a Schreibzeug server (builds not signed yet) · [more →](https://firsttris.github.io/schreibzeug/desktop.html) |
+| ♿ **Accessibility** | Menus and toolbars by **keyboard**, **screen reader support** in documents, spreadsheets and presentations (off unless switched on, Strg+Alt+Z), checked automatically against WCAG 2.2 AA · [more →](https://firsttris.github.io/schreibzeug/accessibility.html) |
 
 ## 📸 Screenshots
 

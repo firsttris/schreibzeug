@@ -124,7 +124,7 @@ test("fills in a form field and keeps the PDF a form", async ({ page }, testInfo
 test("removes a page, but never the last one", async ({ page }, testInfo) => {
   const { errors, fileId } = await openFormular(page, testInfo);
 
-  await page.getByRole("menubar").getByRole("button", { name: "Seiten", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Seiten", exact: true }).click();
   await page.getByRole("menuitem", { name: "Seiten löschen" }).click();
   await expect(page.getByTestId("pdf-position")).toHaveText("Seite 1 von 1");
   await expect(tool(page, "Seite löschen")).toBeDisabled();
@@ -251,7 +251,7 @@ test("appends the pages of another PDF", async ({ page }, testInfo) => {
 test("saves a page as a PDF of its own beside the file", async ({ page }, testInfo) => {
   const { errors } = await openFormular(page, testInfo);
 
-  await page.getByRole("menubar").getByRole("button", { name: "Seiten", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Seiten", exact: true }).click();
   await page.getByRole("menuitem", { name: "Als neues PDF speichern" }).click();
   await expect(page.getByTestId("editor-notice")).toHaveText(
     "Seite 1 als „formular – Seite 1.pdf“ gespeichert.",

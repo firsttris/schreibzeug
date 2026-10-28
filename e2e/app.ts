@@ -144,7 +144,7 @@ export const storedXml = async (page: Page, fileId: string): Promise<string> =>
 /** Einfügen → Bild … in the menu bar, with the image given to the browser's file dialog. */
 export const insertImageFromMenu = async (page: Page, png: Uint8Array) => {
   const chooser = page.waitForEvent("filechooser");
-  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Einfügen", exact: true }).click();
   await page.getByRole("menu", { name: "Einfügen" }).getByRole("menuitem", { name: "Bild …" }).click();
   await (await chooser).setFiles({ name: "logo.png", mimeType: "image/png", buffer: Buffer.from(png) });
   await expect(page.getByTestId("editor-status")).toHaveAttribute("data-modified", "true");

@@ -337,6 +337,7 @@ export const createFakeEngine = (): FakeEngine => {
         }),
         asc_EditSelectAll: record(calls, "asc_EditSelectAll"),
         getFocusElement: () => input,
+        setSpeechEnabled: record(calls, "setSpeechEnabled"),
         isDocumentModified: () => api.modified,
         asc_setSpellCheck: record(calls, "asc_setSpellCheck"),
         asc_replaceMisspelledWord: record(calls, "asc_replaceMisspelledWord"),

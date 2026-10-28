@@ -29,7 +29,7 @@ const openHello = async (page: Page, testInfo: TestInfo): Promise<{ fileId: stri
 
 /** Opens a menu of the menu bar and picks an entry. */
 const pick = async (page: Page, menu: string, entry: string) => {
-  await page.getByRole("menubar").getByRole("button", { name: menu, exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: menu, exact: true }).click();
   await page
     .getByRole("menu", { name: menu })
     .getByRole("menuitem", { name: entry })
@@ -49,7 +49,7 @@ test.describe("menus of the text editor", () => {
     );
     await pick(page, "Format", "Hochgestellt");
 
-    await page.getByRole("menubar").getByRole("button", { name: "Format" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Format", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: /^Fett/ })).toHaveAttribute(
       "aria-checked",
       "true",
@@ -70,7 +70,7 @@ test.describe("menus of the text editor", () => {
     await pick(page, "Layout", "Ränder schmal");
     await pick(page, "Format", "Zeilenabstand 1,5");
 
-    await page.getByRole("menubar").getByRole("button", { name: "Layout" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Layout", exact: true }).click();
     for (const entry of ["Querformat", "A5", "Ränder schmal"]) {
       await expect(page.getByRole("menuitemcheckbox", { name: entry })).toHaveAttribute(
         "aria-checked",
@@ -95,7 +95,7 @@ test.describe("menus of the text editor", () => {
     await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
     await pick(page, "Einfügen", "Kopfzeile bearbeiten");
     await page.keyboard.type("Muster GmbH");
-    await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Einfügen", exact: true }).click();
     await expect(page.getByRole("menuitem", { name: "Kopf- und Fußzeile schließen" })).toBeVisible();
     await page.keyboard.press("Escape");
     await pick(page, "Einfügen", "Kopf- und Fußzeile schließen");
@@ -219,7 +219,7 @@ test.describe("menus of the text editor", () => {
   test("zooms from the view menu", async ({ page }, testInfo) => {
     await openHello(page, testInfo);
     await pick(page, "Ansicht", "150 %");
-    await page.getByRole("menubar").getByRole("button", { name: "Ansicht" }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Ansicht", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: "150 %" })).toHaveAttribute(
       "aria-checked",
       "true",

@@ -12,6 +12,7 @@ import { simplifyMergeFields } from "@schreibzeug/ooxml";
 import { type RefObject, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useUser } from "../account/context";
 import { kindOf } from "../lib/format";
+import { readScreenReader, writeScreenReader } from "../settings/screen-reader";
 import { readSpellCheck } from "../settings/spell-check";
 import { ENGINE_PATH, newConverter } from "./engine";
 import type { OpenedFile } from "./opened-file";
@@ -79,6 +80,7 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
           writePdfA: converter.writePdfA,
           mode: file.readOnly ? "view" : "edit",
           spellCheck: readSpellCheck(),
+          screenReader: readScreenReader(),
           phone: isPhone(),
           ...(file.collaboration ? { collaboration: file.collaboration } : {}),
           ...(file.images ? { images: file.images } : {}),
@@ -106,6 +108,18 @@ export const useEngineEditor = <E extends OpenedDocument<S>, S extends CoreState
     const onResize = () => editor.resize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
+  }, [editor]);
+
+  // Switched in the menu or with Strg+Alt+Z in the document: kept for the next document.
+  useEffect(() => {
+    if (!editor) return;
+    let kept = editor.store.get().screenReader;
+    return editor.store.subscribe(() => {
+      const { screenReader } = editor.store.get();
+      if (screenReader === kept) return;
+      kept = screenReader;
+      writeScreenReader(screenReader);
+    });
   }, [editor]);
 
   const idle = useMemo<Pick<Store<S>, "get" | "subscribe">>(

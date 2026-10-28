@@ -55,7 +55,7 @@ const inMobileView = async (page: Page): Promise<boolean> => {
 
 /** "Als PDF herunterladen", without what changes from one PDF to the next (its time and id). */
 const downloadPdf = async (page: Page): Promise<string> => {
-  await page.getByRole("menubar").getByRole("button", { name: "Datei", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Datei", exact: true }).click();
   const download = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: "Als PDF herunterladen" }).click();
   const pdf = (await readFile((await (await download).path()) as string)).toString("latin1");
@@ -77,7 +77,7 @@ test("a text document opens in the mobile view and its PDF keeps the pages", asy
   expect(await inMobileView(page)).toBe(true);
 
   // "Ansicht" switches back to the pages.
-  await page.getByRole("menubar").getByRole("button", { name: "Ansicht", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Ansicht", exact: true }).click();
   await page.getByRole("menuitemcheckbox", { name: "Mobilansicht" }).click();
   await expect.poll(() => inMobileView(page)).toBe(false);
   expect(fromMobileView).toEqual(await downloadPdf(page));
@@ -105,7 +105,7 @@ test("a presentation keeps its slide list under the slide and its notes hidden",
   expect(position).toBe(true);
 
   await page.getByRole("button", { name: "Werkzeuge" }).click();
-  await page.getByRole("menubar").getByRole("button", { name: "Ansicht", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Ansicht", exact: true }).click();
   await expect(page.getByRole("menuitemcheckbox", { name: "Notizen" })).toHaveAttribute(
     "aria-checked",
     "false",
@@ -121,10 +121,10 @@ test("the menus stay on a phone's screen", async ({ page }, testInfo) => {
   await expectEditorReady(page, errors);
 
   await page.getByRole("button", { name: "Werkzeuge" }).click();
-  const menus = await page.getByRole("menubar").getByRole("button").allTextContents();
+  const menus = await page.getByRole("menubar").getByRole("menuitem").allTextContents();
   const offScreen: string[] = [];
   for (const name of menus) {
-    await page.getByRole("menubar").getByRole("button", { name, exact: true }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name, exact: true }).click();
     const box = await page.getByRole("menu", { name }).boundingBox();
     if (!box || box.x < 0 || box.x + box.width > PHONE_WIDTH) offScreen.push(name);
     await page.keyboard.press("Escape");

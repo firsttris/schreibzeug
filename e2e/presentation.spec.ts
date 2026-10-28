@@ -102,7 +102,7 @@ test.describe("menus of the presentation", () => {
   };
 
   const pick = async (page: Page, menu: string, entry: string) => {
-    await page.getByRole("menubar").getByRole("button", { name: menu, exact: true }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: menu, exact: true }).click();
     const list = page.getByRole("menu", { name: menu });
     await list
       .getByRole("menuitem", { name: entry })
@@ -171,7 +171,7 @@ test.describe("menus of the presentation", () => {
     await page.keyboard.type("Nicht vergessen");
     await save(page);
     await pick(page, "Ansicht", "Notizen");
-    await page.getByRole("menubar").getByRole("button", { name: "Ansicht", exact: true }).click();
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Ansicht", exact: true }).click();
     await expect(page.getByRole("menuitemcheckbox", { name: "Notizen" })).toHaveAttribute(
       "aria-checked",
       "false",

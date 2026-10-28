@@ -10,6 +10,7 @@ import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
+import { screenReaderSwitch } from "./file-menu";
 import { SHEET_SHORTCUTS } from "./help-dialogs";
 import { downloadBytes, fileNameFor, MIME, savedFormatOf } from "./opened-file";
 import type { EditorViewProps } from "./props";
@@ -130,6 +131,7 @@ export const SheetView = ({
         }
         menus={file.readOnly ? [] : sheetMenus(context)}
         shortcuts={SHEET_SHORTCUTS}
+        screenReader={screenReaderSwitch(editor, state)}
         notice={chrome.notice}
         actions={comments.button}
         toolbar={

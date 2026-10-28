@@ -12,6 +12,7 @@ import {
 import { SLIDE_TEXTS } from "./engine-texts";
 import type { EngineWindow, SlideEngineApi, SlideEventArgs, SlideWindow } from "./engine-types";
 import { textEvents } from "./events";
+import { SPEECH_TEXTS } from "./screen-reader";
 import { createSearchCommands, type SearchCommands } from "./search";
 import { createDesignCommands, type DesignCommands, readThemes, readTransition } from "./slide-design";
 import { createSlideShow, hideShowElement, SLIDE_SHOW_ELEMENT, type SlideShow } from "./slide-show";
@@ -103,7 +104,7 @@ const slideBinding: EditorBinding<
     useDedicatedSpellWorker(win);
     const api = new win.Asc.asc_docs_api({
       "id-view": "editor_sdk",
-      translate: SLIDE_TEXTS,
+      translate: { ...SLIDE_TEXTS, ...SPEECH_TEXTS },
       // The slide list under the slide on a phone (slide/api.js thumbnailsPosition).
       ...(options.phone ? { "thumbnails-position": "bottom" } : {}),
     });

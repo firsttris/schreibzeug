@@ -101,6 +101,7 @@ Die Desktop-App beschreibt [Desktop-App](https://firsttris.github.io/schreibzeug
 | 📁 **Dateien & Teamarbeit** | Ordner, Hochladen, zuletzt geöffnete Dateien und Papierkorb, **Versionen** zum Zurückholen, **Teilen** mit Konten oder per Link, **gemeinsam in Echtzeit** mit Cursorn · [mehr →](https://firsttris.github.io/schreibzeug/files.html) |
 | 🤖 **KI & Kontext** | **MCP-Server** für Claude Code und andere MCP-Clients, mit deinen Rechten und mit Rückfrage, bevor er ein offenes Dokument ändert; **Anmeldung über [Kontext](https://github.com/firsttris/kontext)** und Schreibzeug als dessen Dokumente-Modul · [mehr →](https://firsttris.github.io/schreibzeug/mcp.html) |
 | 🖥️ **Desktop-App** | **Windows, macOS und Linux** (Tauri): die Dateien in deinem Dokumente-Ordner ganz ohne Server, oder ein Fenster auf einen Schreibzeug-Server (noch nicht signiert) · [mehr →](https://firsttris.github.io/schreibzeug/desktop.html) |
+| ♿ **Barrierefreiheit** | Menüs und Werkzeugleisten per **Tastatur**, **Unterstützung für Screenreader** in Dokumenten, Tabellen und Präsentationen (nur wenn eingeschaltet, Strg+Alt+Z), automatisch gegen WCAG 2.2 AA geprüft · [mehr →](https://firsttris.github.io/schreibzeug/accessibility.html) |
 
 ## 📸 Screenshots
 

@@ -1,3 +1,4 @@
+import type { CoreState, OpenedDocument } from "@schreibzeug/editor-core";
 import type { BlankFormat } from "@schreibzeug/files-api";
 import { NEW_FILE_GROUPS, NEW_FILES } from "../files/new-files";
 import type { MenuItem } from "../ui/menu";
@@ -58,12 +59,33 @@ export const fileMenu = (
   ],
 });
 
-/** The "Hilfe" menu. */
-export const helpMenu = (open: (dialog: "shortcuts" | "about") => void): Menu => ({
+/** The engine reading the document out to a screen reader, where the editor has it. */
+export type ScreenReaderSwitch = { on: boolean; set: (on: boolean) => void };
+
+export const screenReaderSwitch = (
+  editor: Pick<OpenedDocument<CoreState>, "setScreenReader"> | null,
+  state: Pick<CoreState, "screenReader">,
+): ScreenReaderSwitch | null => (editor ? { on: state.screenReader, set: editor.setScreenReader } : null);
+
+/** The "Hilfe" menu, with the screen reader switch where the editor has one (also Strg+Alt+Z). */
+export const helpMenu = (
+  open: (dialog: "shortcuts" | "about") => void,
+  screenReader: ScreenReaderSwitch | null = null,
+): Menu => ({
   label: "Hilfe",
   groups: [
     [
       { label: "Tastenkürzel", onSelect: () => open("shortcuts") },
+      ...(screenReader
+        ? [
+            {
+              label: "Unterstützung für Screenreader",
+              shortcut: "Strg+Alt+Z",
+              checked: screenReader.on,
+              onSelect: () => screenReader.set(!screenReader.on),
+            },
+          ]
+        : []),
       { label: "Über Schreibzeug", onSelect: () => open("about") },
     ],
   ],

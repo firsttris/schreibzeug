@@ -50,7 +50,7 @@ test("comments on a slide and keeps the comment in the .pptx", async ({ page }, 
   await openDocument(page, "vortrag.pptx", errors);
   const fileId = openFileId(page);
 
-  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Einfügen", exact: true }).click();
   await page.getByRole("menu", { name: "Einfügen" }).getByRole("menuitem", { name: "Kommentar" }).click();
   await page.getByRole("textbox", { name: "Kommentar zur Folie" }).fill("Titel kürzer?");
   await page.getByRole("button", { name: "Kommentieren", exact: true }).click();
@@ -75,7 +75,7 @@ test("comments on a cell, answers it and keeps it in the .xlsx", async ({ page }
   await nameBox.fill("B2");
   await nameBox.press("Enter");
 
-  await page.getByRole("menubar").getByRole("button", { name: "Einfügen", exact: true }).click();
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Einfügen", exact: true }).click();
   await page.getByRole("menu", { name: "Einfügen" }).getByRole("menuitem", { name: "Kommentar" }).click();
   await page.getByRole("textbox", { name: "Kommentar zur Zelle" }).fill("Preis von 2025?");
   await page.getByRole("button", { name: "Kommentieren", exact: true }).click();

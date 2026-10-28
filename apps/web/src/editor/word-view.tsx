@@ -7,6 +7,7 @@ import { Dialog } from "../ui/dialog";
 import { clipboardHint } from "./common-menus";
 import { DocumentArea } from "./document-area";
 import { EditorHeader } from "./editor-header";
+import { screenReaderSwitch } from "./file-menu";
 import { WORD_SHORTCUTS } from "./help-dialogs";
 import { LinkDialog } from "./link-dialog";
 import { MailMergeBar } from "./mail-merge-bar";
@@ -122,6 +123,7 @@ export const WordView = ({
         downloads={chrome.pdf ? [eInvoice.item] : []}
         menus={file.readOnly ? [] : wordMenus(context)}
         shortcuts={WORD_SHORTCUTS}
+        screenReader={screenReaderSwitch(editor, state)}
         notice={chrome.notice}
         actions={comments.button}
         toolbar={

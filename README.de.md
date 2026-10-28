@@ -41,7 +41,6 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 ## 🇪🇺 Deine Dateien bleiben in Europa – mit KI
 
 - **DSGVO**: Dokumente liegen auf deinem Server oder mit der Desktop-App auf deinem eigenen Rechner. Der Editor läuft in deinem Browser: keine US-Cloud, kein fremder Dokumentenserver, keine Telemetrie.
-- **Versionen und Archiv**: Auf einem Schreibzeug-Server werden ältere Versionen mit dem Alter ausgedünnt, wie bei Google Docs, und Versionen, die du behältst – die verschickte Rechnung, der unterschriebene Vertrag –, bleiben für immer; Dateien werden in der App nie endgültig gelöscht (der Papierkorb behält sie). PDF/A zum Archivieren.
 - **E-Rechnungen**: ZUGFeRD / Factur-X (EN 16931) aus einem Rechnungsdokument, E-Rechnungen in PDFs werden gelesen und angezeigt – für die E-Rechnungspflicht.
 - **KI nach deinen Regeln**: Claude Code und andere MCP-Clients arbeiten mit deinen Rechten über einen persönlichen Zugangsschlüssel, auf Wunsch „Nur lesen“; Änderungen an einem Dokument, das in der App offen ist, brauchen deine Zustimmung und lassen sich rückgängig machen.
 - **Kein Lock-in**: Eine .docx bleibt eine .docx, eine .odt bleibt eine .odt.

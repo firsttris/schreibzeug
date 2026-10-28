@@ -41,7 +41,6 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 ## 🇪🇺 Your files stay in Europe – with AI
 
 - **GDPR**: documents live on your server, or on your own computer with the desktop app. The editor runs in your browser: no US cloud, no third-party document server, no telemetry.
-- **Versions and archiving**: on a Schreibzeug server older versions are thinned out with age, as in Google Docs, and the versions you keep – the sent invoice, the signed contract – stay for good; files are never deleted for good from the app (the trash keeps them). PDF/A for archiving.
 - **E-invoices**: ZUGFeRD / Factur-X (EN 16931) from an invoice document, and e-invoices in PDFs read and shown – for the German e-invoice obligation.
 - **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to a document open in the app need your consent and can be undone.
 - **No lock-in**: a .docx stays a .docx, an .odt stays an .odt.

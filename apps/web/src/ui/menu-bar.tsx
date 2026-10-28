@@ -13,7 +13,17 @@ export const shiftIntoView = (left: number, width: number, windowWidth: number):
   Math.min(0, Math.max(EDGE - left, windowWidth - EDGE - (left + width)));
 
 /** A menu's panel under its button, moved left where it would run past the window's edge. */
-const MenuPanel = ({ menu, onDone, focusFirst }: { menu: Menu; onDone: () => void; focusFirst: boolean }) => {
+const MenuPanel = ({
+  menu,
+  onDone,
+  focusFirst,
+  onSideways,
+}: {
+  menu: Menu;
+  onDone: () => void;
+  focusFirst: boolean;
+  onSideways: (step: -1 | 1) => void;
+}) => {
   const ref = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
   useLayoutEffect(() => {
@@ -23,7 +33,13 @@ const MenuPanel = ({ menu, onDone, focusFirst }: { menu: Menu; onDone: () => voi
   }, []);
   return (
     <div ref={ref} className={`${popoverPanel} top-8 z-20`} style={{ transform: `translateX(${shift}px)` }}>
-      <MenuList label={menu.label} groups={menu.groups} onDone={onDone} focusFirst={focusFirst} />
+      <MenuList
+        label={menu.label}
+        groups={menu.groups}
+        onDone={onDone}
+        focusFirst={focusFirst}
+        onSideways={onSideways}
+      />
     </div>
   );
 };
@@ -70,7 +86,7 @@ export const MenuBar = ({ label, menus }: { label: string; menus: Menu[] }) => {
 
   return (
     <div ref={ref} role="menubar" aria-label={label} className="flex flex-wrap items-center">
-      {menus.map((menu) => (
+      {menus.map((menu, index) => (
         <div key={menu.label} role="none" className="relative">
           <button
             type="button"
@@ -97,7 +113,15 @@ export const MenuBar = ({ label, menus }: { label: string; menus: Menu[] }) => {
             {menu.label}
           </button>
           {open === menu.label && (
-            <MenuPanel menu={menu} onDone={() => setOpen(null)} focusFirst={byKeyboard} />
+            <MenuPanel
+              menu={menu}
+              onDone={() => setOpen(null)}
+              focusFirst={byKeyboard}
+              onSideways={(step) => {
+                const next = menus[(index + step + menus.length) % menus.length];
+                if (next) openMenu(next.label, true);
+              }}
+            />
           )}
         </div>
       ))}

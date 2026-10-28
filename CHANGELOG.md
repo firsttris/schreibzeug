@@ -7,6 +7,10 @@ installers: the [releases](https://github.com/firsttris/schreibzeug/releases). H
 
 ## Unreleased
 
+- **Keyboard**: F6 and Umschalt+F6 lead out of the document to the menu bar and the toolbar and
+  back, as in Word and LibreOffice (Tab stays a tab in the document); each toolbar is one stop for
+  Tab, with the arrow keys along its buttons
+  ([accessibility](https://firsttris.github.io/schreibzeug/accessibility.html)).
 - **Screen reader support**: *Hilfe → Unterstützung für Screenreader*, or Strg+Alt+Z in the
   document, lets the engine read out the text the cursor passes, a selection, a cell with its
   address, a slide's number and a picture's alternative text, in German. Off unless switched on,

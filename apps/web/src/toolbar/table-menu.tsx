@@ -86,7 +86,7 @@ export const TableMenu = ({ inTable, disabled, commands }: TableMenuProps) => {
         <Table size={16} />
       </Button>
       {open && (
-        <div className={popoverPanel}>
+        <div data-panel className={popoverPanel}>
           {inTable ? (
             <MenuList
               label="Tabelle bearbeiten"

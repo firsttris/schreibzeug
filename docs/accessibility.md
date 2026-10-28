@@ -21,6 +21,13 @@ document itself is drawn on a canvas by the engine, which sets limits described 
   has it: left and right go along the menus (and switch an open one), Enter, Space or down open a
   menu at its first entry, up and down go through it, Home and End to the first and last, Escape
   back to the menu bar (`src/ui/menu-bar.tsx`, `src/ui/menu-keys.ts`).
+- **F6 and Umschalt+F6** move between the document, the menu bar and the toolbar, as in Word and
+  LibreOffice. In the document Tab is a tab (a cell, a form field), so F6 is the way out; it comes
+  back to the cursor where it was.
+- **Toolbars** are one stop for Tab each, as the
+  [ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/) has it: Tab reaches the
+  button last used, the arrow keys, Home and End go along the buttons; lists such as the font keep
+  their own stop and arrow keys (`src/ui/roving-toolbar.ts`).
 - **Keyboard shortcuts** of each editor are under *Hilfe → Tastenkürzel*.
 - The engine's input has the file's name, so a screen reader says which document has the focus.
 
@@ -51,7 +58,8 @@ The words around the text ("ausgewählt", "leere Zelle", "Folie") are German
 spreadsheet, presentation, note) with [axe-core](https://github.com/dequelabs/axe-core) against the
 rules of WCAG 2.2 AA, in light and dark; a single violation fails it. It also goes through the menu
 bar with the keyboard and checks that the screen reader support reads a selection out in German,
-is remembered and follows Strg+Alt+Z. The other end-to-end tests find elements as a screen reader
+is remembered and follows Strg+Alt+Z, that F6 leads out of a document and a spreadsheet and back,
+and that a toolbar is one stop for Tab. The other end-to-end tests find elements as a screen reader
 does, by role and name.
 
 A machine finds only part of the problems: whether a label makes sense and a task can be done with

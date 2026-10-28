@@ -22,6 +22,7 @@ export const WORD_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "F6 / Umschalt+F6", label: "Zwischen Dokument, Menüs und Werkzeugleiste wechseln" },
   { keys: "Strg+Alt+Z", label: "Unterstützung für Screenreader ein oder aus" },
 ];
 
@@ -38,6 +39,7 @@ export const SHEET_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+F", label: "Suchen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "F6 / Umschalt+F6", label: "Zwischen Dokument, Menüs und Werkzeugleiste wechseln" },
   { keys: "Strg+Alt+Z", label: "Unterstützung für Screenreader ein oder aus" },
 ];
 
@@ -54,6 +56,7 @@ export const SLIDE_SHORTCUTS: Shortcut[] = [
   { keys: "Strg+F / H", label: "Suchen, Ersetzen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "F6 / Umschalt+F6", label: "Zwischen Dokument, Menüs und Werkzeugleiste wechseln" },
   { keys: "Strg+Alt+Z", label: "Unterstützung für Screenreader ein oder aus" },
 ];
 
@@ -64,6 +67,7 @@ export const PDF_SHORTCUTS: Shortcut[] = [
   { keys: "Entf", label: "Markierte Anmerkung löschen" },
   { keys: "Strg+P", label: "Drucken" },
   { keys: "Strg+S", label: "Speichern" },
+  { keys: "F6 / Umschalt+F6", label: "Zwischen Dokument, Menüs und Werkzeugleiste wechseln" },
 ];
 
 export const ShortcutsDialog = ({

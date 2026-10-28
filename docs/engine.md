@@ -515,6 +515,11 @@ then turns its key events back on (`keepFocusOnClick` in `src/frame.ts`). It che
 main button is released: a click into the presentation's notes leaves the focus on the page's body
 afterwards. A right click is left alone there, since the app's context menu then has the focus.
 
+The way out again is F6: in the document Tab is the engine's (a tab, the next cell, the next form
+field), and Escape and Umschalt+Tab stay there too. `shortcutOf` (`src/view.ts`) takes F6 and
+Umschalt+F6 in the frame, before the engine, as it takes Strg+F; the web app moves to the menu bar,
+the toolbar or back into the document (`focus()`, the engine's input again; `src/editor/regions.ts`).
+
 ## Screen reader
 
 The engine's screen reader support (`common/workerspeech.js`) writes what the cursor passed and what

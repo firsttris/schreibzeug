@@ -15,7 +15,6 @@ AGPL, on the European Euro-Office engine, no document server, no cloud account, 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
 [![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-your-files-stay-in-europe--with-ai)
-[![GoBD](https://img.shields.io/badge/GoBD-kept%20versions%20stay-15803d)](#-your-files-stay-in-europe--with-ai)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
@@ -23,7 +22,7 @@ AGPL, on the European Euro-Office engine, no document server, no cloud account, 
 docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-[Privacy & GoBD](#-your-files-stay-in-europe--with-ai) •
+[Privacy](#-your-files-stay-in-europe--with-ai) •
 [Why](#-why-schreibzeug) •
 [Install](#-install) •
 [Features](#-features) •
@@ -42,7 +41,7 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 ## 🇪🇺 Your files stay in Europe – with AI
 
 - **GDPR**: documents live on your server, or on your own computer with the desktop app. The editor runs in your browser: no US cloud, no third-party document server, no telemetry.
-- **GoBD**: on a Schreibzeug server older versions are thinned out with age, as in Google Docs, and the versions you keep – the sent invoice, the signed contract – stay for good; files are never deleted for good from the app (the trash keeps them). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
+- **Versions and archiving**: on a Schreibzeug server older versions are thinned out with age, as in Google Docs, and the versions you keep – the sent invoice, the signed contract – stay for good; files are never deleted for good from the app (the trash keeps them). PDF/A for archiving.
 - **E-invoices**: ZUGFeRD / Factur-X (EN 16931) from an invoice document, and e-invoices in PDFs read and shown – for the German e-invoice obligation.
 - **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to a document open in the app need your consent and can be undone.
 - **No lock-in**: a .docx stays a .docx, an .odt stays an .odt.

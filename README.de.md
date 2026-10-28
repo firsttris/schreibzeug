@@ -15,7 +15,6 @@ AGPL, auf der europäischen Engine Euro-Office, ohne Dokumentenserver, ohne Clou
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
 [![DSGVO](https://img.shields.io/badge/DSGVO-Dateien%20auf%20deinem%20Server-15803d)](#-deine-dateien-bleiben-in-europa--mit-ki)
-[![GoBD](https://img.shields.io/badge/GoBD-behaltene%20Versionen%20bleiben-15803d)](#-deine-dateien-bleiben-in-europa--mit-ki)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
@@ -23,7 +22,7 @@ AGPL, auf der europäischen Engine Euro-Office, ohne Dokumentenserver, ohne Clou
 docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-[Datenschutz & GoBD](#-deine-dateien-bleiben-in-europa--mit-ki) •
+[Datenschutz](#-deine-dateien-bleiben-in-europa--mit-ki) •
 [Warum](#-warum-schreibzeug) •
 [Installation](#-installation) •
 [Funktionen](#-funktionen) •
@@ -42,7 +41,7 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 ## 🇪🇺 Deine Dateien bleiben in Europa – mit KI
 
 - **DSGVO**: Dokumente liegen auf deinem Server oder mit der Desktop-App auf deinem eigenen Rechner. Der Editor läuft in deinem Browser: keine US-Cloud, kein fremder Dokumentenserver, keine Telemetrie.
-- **GoBD**: Auf einem Schreibzeug-Server werden ältere Versionen mit dem Alter ausgedünnt, wie bei Google Docs, und Versionen, die du behältst – die verschickte Rechnung, der unterschriebene Vertrag –, bleiben für immer; Dateien werden in der App nie endgültig gelöscht (der Papierkorb behält sie). PDF/A zum Archivieren. Die Software ist ein Baustein; dazu gehören die Abläufe im Betrieb und eine Verfahrensdokumentation.
+- **Versionen und Archiv**: Auf einem Schreibzeug-Server werden ältere Versionen mit dem Alter ausgedünnt, wie bei Google Docs, und Versionen, die du behältst – die verschickte Rechnung, der unterschriebene Vertrag –, bleiben für immer; Dateien werden in der App nie endgültig gelöscht (der Papierkorb behält sie). PDF/A zum Archivieren.
 - **E-Rechnungen**: ZUGFeRD / Factur-X (EN 16931) aus einem Rechnungsdokument, E-Rechnungen in PDFs werden gelesen und angezeigt – für die E-Rechnungspflicht.
 - **KI nach deinen Regeln**: Claude Code und andere MCP-Clients arbeiten mit deinen Rechten über einen persönlichen Zugangsschlüssel, auf Wunsch „Nur lesen“; Änderungen an einem Dokument, das in der App offen ist, brauchen deine Zustimmung und lassen sich rückgängig machen.
 - **Kein Lock-in**: Eine .docx bleibt eine .docx, eine .odt bleibt eine .odt.

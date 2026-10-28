@@ -20,8 +20,8 @@ docs_dir: docs
 use_directory_urls: false
 
 nav:
-  - Overview: index.md
-  - Entdecken (Deutsch): entdecken.md
+  - Home: index.md
+  - Overview: overview.md
   - Running it:
       - Installation: installation.md
       - Accounts and sharing: accounts.md
@@ -60,12 +60,47 @@ theme:
         icon: material/weather-sunny
         name: Light mode
   features:
-    - navigation.instant
     - navigation.sections
     - navigation.top
     - navigation.footer
     - search.highlight
     - content.code.copy
+
+plugins:
+  - search
+  # English at /, German at /de/. A page is translated by a file next to it with .de.md
+  # (index.de.md); a page without one shows the English text in the German site too.
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+        - locale: de
+          name: Deutsch
+          site_description: >-
+            Schreibzeug, das selbst gehostete Open-Source-Office: Word-, Excel-, PowerPoint- und
+            PDF-Dateien gemeinsam im Browser oder als Desktop-App bearbeiten, ohne
+            Dokumentenserver. Eine Alternative zu Google Docs und Microsoft 365 auf dem eigenen
+            Server.
+          nav_translations:
+            Home: Start
+            Overview: Überblick
+            Running it: Betrieb
+            Accounts and sharing: Konten und Teilen
+            Sign-in through Kontext: Anmeldung über Kontext
+            Desktop app: Desktop-App
+            Working with it: Arbeiten damit
+            Files and versions: Dateien und Versionen
+            Collaboration: Zusammenarbeit
+            Markdown and text files: Markdown und Textdateien
+            E-invoices: E-Rechnungen
+            MCP server (AI assistants): MCP-Server (KI-Assistenten)
+            Behind it: Technik
+            Architecture: Architektur
+            The editing engine: Die Engine
+            Development: Entwicklung
 
 extra_css:
   - assets/entdecken.css

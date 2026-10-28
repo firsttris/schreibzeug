@@ -1,2 +1,3 @@
 # Documentation site (mkdocs.yml, .github/workflows/docs.yml)
 mkdocs-material==9.7.7
+mkdocs-static-i18n==1.3.1

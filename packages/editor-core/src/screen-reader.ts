@@ -45,6 +45,9 @@ export const labelEngineInput = (input: HTMLElement, label: string): void => {
   input.setAttribute("autocomplete", "off");
 };
 
+/** keyCodes.KeyZ in common/commonDefines.js. */
+const Z_KEY_CODE = 90;
+
 const isRunning = (win: EngineWindow): boolean => win.AscCommon.EditorActionSpeaker?.isLanched === true;
 
 /**
@@ -60,8 +63,10 @@ export const followScreenReader = (
   api.setSpeechEnabled(on);
   dispatch({ type: "screenReader", value: on });
   // The engine switches on keydown (Strg+Alt+Z, on a Mac also Strg+Umschalt+Z); by keyup it has.
+  // It matches the key code of the layout (common/apiBase.js Shortcuts.Get(e.KeyCode, …)), so on
+  // a German keyboard the Z key has code "KeyY" but keyCode 90.
   const onKeyUp = (event: KeyboardEvent) => {
-    if (event.code === "KeyZ") dispatch({ type: "screenReader", value: isRunning(win) });
+    if (event.keyCode === Z_KEY_CODE || event.code === "KeyZ") dispatch({ type: "screenReader", value: isRunning(win) });
   };
   win.addEventListener("keyup", onKeyUp, true);
   return {

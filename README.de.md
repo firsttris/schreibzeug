@@ -34,6 +34,10 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 
 </div>
 
+> [!TIP]
+> **Lass es dir von einer KI aufsetzen.** Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und
+> SSH-Zugang zu deinem Server und sag: „Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
+
 ## 💡 Warum Schreibzeug?
 
 Google Docs und Microsoft 365 halten deine Dokumente in fremder Cloud und kosten pro Benutzer.
@@ -174,13 +178,6 @@ offenen Dokument brauchen deine Zustimmung und lassen sich rückgängig machen. 
 
 ZUGFeRD ja: Eine Rechnung aus dem Texteditor wird ein ZUGFeRD-PDF/A-3 mit Factur-X-XML (EN 16931).
 XRechnung wird gelesen und angezeigt, aber noch nicht erstellt. Siehe [E-Rechnungen](https://firsttris.github.io/schreibzeug/e-invoice.html).
-</details>
-
-<details>
-<summary><b>Kann eine KI das für mich aufsetzen?</b></summary>
-
-Ja. Gib Claude Code oder einem anderen Coding-Agenten dieses Repository und SSH-Zugang zu deinem
-Server und sag: „Setz Schreibzeug auf meinem Server auf, nach der [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).“
 </details>
 
 <details>

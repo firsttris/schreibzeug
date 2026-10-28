@@ -34,6 +34,10 @@ Editing together in real time, in the browser or as a desktop app. No document s
 
 </div>
 
+> [!TIP]
+> **Let an AI set it up for you.** Give Claude Code or another coding agent this repository and SSH access to
+> your server and say: "Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
+
 ## 💡 Why Schreibzeug?
 
 Google Docs and Microsoft 365 keep your documents in someone else's cloud and charge per user.
@@ -170,13 +174,6 @@ undone. See [MCP server](https://firsttris.github.io/schreibzeug/mcp.html).
 
 ZUGFeRD yes: an invoice written in the text editor becomes a ZUGFeRD PDF/A-3 with Factur-X XML
 (EN 16931). XRechnung is read and shown, but not created yet. See [E-invoices](https://firsttris.github.io/schreibzeug/e-invoice.html).
-</details>
-
-<details>
-<summary><b>Can an AI assistant set it up for me?</b></summary>
-
-Yes. Give Claude Code or another coding agent this repository and SSH access to your server and
-say: "Set up Schreibzeug on my server following the [installation guide](https://firsttris.github.io/schreibzeug/installation.html)."
 </details>
 
 <details>

@@ -53,6 +53,25 @@ describe("followScreenReader", () => {
     expect(events.at(-1)).toEqual({ type: "screenReader", value: false });
   });
 
+  it("tells the store when Strg+Alt+Z switched it on a German keyboard", () => {
+    // On QWERTZ the key labelled Z sits where QWERTY has Y: code "KeyY", but keyCode 90, which
+    // is what the engine's shortcut compares (common/apiBase.js Shortcuts.Get(e.KeyCode, …)).
+    const target = new EventTarget();
+    const speaker = { isLanched: false };
+    const win = {
+      addEventListener: target.addEventListener.bind(target),
+      removeEventListener: target.removeEventListener.bind(target),
+      AscCommon: { EditorActionSpeaker: speaker },
+    } as unknown as EngineWindow;
+    const events: ScreenReaderEvent[] = [];
+    followScreenReader(win, { setSpeechEnabled: () => {} }, false, (event) => events.push(event));
+    speaker.isLanched = true;
+    target.dispatchEvent(
+      new KeyboardEvent("keyup", { code: "KeyY", key: "z", keyCode: 90, ctrlKey: true, altKey: true }),
+    );
+    expect(events.at(-1)).toEqual({ type: "screenReader", value: true });
+  });
+
   it("switches it from the menu, and stops following the keys when the document closes", () => {
     const { screenReader, enabled, events, pressStrgAltZ } = follow(false);
     screenReader.set(true);

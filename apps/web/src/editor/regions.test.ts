@@ -5,8 +5,7 @@ import { moveRegion } from "./regions";
 const page = () => {
   document.body.innerHTML = `
     <div role="menubar"><button>Datei</button><button>Hilfe</button></div>
-    <div role="toolbar"><button tabindex="-1">Fett</button><button tabindex="0">Kursiv</button></div>
-    <iframe></iframe>`;
+    <div role="toolbar"><button tabindex="-1">Fett</button><button tabindex="0">Kursiv</button></div>`;
   let inDocument = 0;
   const focusDocument = () => {
     inDocument += 1;

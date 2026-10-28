@@ -70,7 +70,8 @@ mkdocs build --strict    # when docs/ or mkdocs.yml changed
 - Commands as root (`sudo`, `pkexec`) are run by the user; don't work around that.
 - The user's running processes are not stopped; use other ports for tests.
 - Language: code, comments, docs and commits in English; the app's interface in
-  German first (Paraglide), English later.
+  German first, English later. The texts are in the components for now (there is no Paraglide
+  yet); with English they move into message files.
 
 ## Code style
 
@@ -86,7 +87,7 @@ Technology choices follow `tech-stack.md` in firsttris/workflows. Deviations of 
 - **`sdkjs` is vendored, not rewritten.** It is not React and keeps its own canvas; Tailwind applies
   to the UI around it only.
 - **`packages/editor-core` is framework-free TypeScript.** It is the only code that calls `sdkjs`;
-  it turns engine events into a store. React lives in `packages/editors` and `apps/*`. This keeps an
+  it turns engine events into a store. React lives in `apps/web` only. This keeps an
   engine update in one place and a later UI framework change out of the engine binding.
 
 Clean Code, written functionally: clear names, small functions that do one thing, dependencies

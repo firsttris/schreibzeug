@@ -1,9 +1,10 @@
 <div align="center">
 
-<h1>Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source</h1>
+<h1>Everything your team knows from Google Docs. Without Google knowing your documents.</h1>
 
-The self-hosted Google Docs and Microsoft 365 alternative: in real time, in the browser or as a desktop app.<br>
-AGPL, on the European Euro-Office engine, no document server, no cloud account, no tracking. Made in Europe.
+**Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source**
+
+Editing together in real time, in the browser or as a desktop app. No document server, no tracking. Made in Europe.
 
 **English** · [Deutsch](README.de.md)
 
@@ -14,8 +15,7 @@ AGPL, on the European Euro-Office engine, no document server, no cloud account, 
 [![Docs](https://img.shields.io/badge/docs-firsttris.github.io%2Fschreibzeug-4f46e5?logo=materialformkdocs&logoColor=white)](https://firsttris.github.io/schreibzeug/)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Desktop](https://img.shields.io/badge/desktop-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](https://github.com/firsttris/schreibzeug/releases/latest)
-[![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-your-files-stay-in-europe--with-ai)
-[![GoBD](https://img.shields.io/badge/GoBD-kept%20versions%20stay-15803d)](#-your-files-stay-in-europe--with-ai)
+[![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-why-schreibzeug)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
 
@@ -23,7 +23,6 @@ AGPL, on the European Euro-Office engine, no document server, no cloud account, 
 docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-[Privacy & GoBD](#-your-files-stay-in-europe--with-ai) •
 [Why](#-why-schreibzeug) •
 [Install](#-install) •
 [Features](#-features) •
@@ -39,36 +38,29 @@ docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/dat
 
 </div>
 
-## 🇪🇺 Your files stay in Europe – with AI
-
-- **GDPR**: documents live on your server, or on your own computer with the desktop app. The editor runs in your browser: no US cloud, no third-party document server, no telemetry.
-- **GoBD**: on a Schreibzeug server older versions are thinned out with age, as in Google Docs, and the versions you keep – the sent invoice, the signed contract – stay for good; files are never deleted for good from the app (the trash keeps them). PDF/A for archiving. The software is one part; the company's processes and its procedure documentation are the other.
-- **E-invoices**: ZUGFeRD / Factur-X (EN 16931) from an invoice document, and e-invoices in PDFs read and shown – for the German e-invoice obligation.
-- **AI on your terms**: Claude Code and other MCP clients work with your rights through a personal token, "read only" if you like; edits to a document open in the app need your consent and can be undone.
-- **No lock-in**: a .docx stays a .docx, an .odt stays an .odt.
-
 ## 💡 Why Schreibzeug?
 
 Google Docs and Microsoft 365 keep your documents in someone else's cloud and charge per user.
 Self-hosted office suites usually need a separate document server next to Nextcloud and look like
 the office programs of 2010. Schreibzeug is one small server with a modern interface.
 
-- **Real Office files**: documents are saved as .docx, .xlsx and .pptx (and .odt, .ods, .odp as
-  themselves), never converted into a format of its own. Word, Excel and LibreOffice open them as before.
-- **Mature compatibility**: the editing engine is Euro-Office (the open-source fork of ONLYOFFICE),
-  so tables, tracked changes, comments, charts and pivot tables come through intact.
-- **Real-time collaboration without a document server**: several people edit the same file, with
-  live cursors and comments; the editor runs in the browser, the server only relays the changes.
-- **Your server, your data**: one container with a SQLite database and a data folder; backing up
-  that folder backs up everything. No tracking, no telemetry.
-- **Browser, desktop and AI assistants**: the same editors in the browser and as a desktop app for
-  Windows, macOS and Linux that works offline with the files on your computer; Claude Code and other MCP clients work in your
-  files with your rights.
-- **On the phone too**: a text document flows in the width of the screen at a size to read, with
-  the menus and the toolbar one tap away.
+- **Your files stay with you (GDPR)**: documents live on your server, or with the desktop app on
+  your own computer. No US cloud, no third-party document server, no telemetry.
+- **Real Office files**: a .docx stays a .docx, an .xlsx an .xlsx, an .odt an .odt – Word, Excel
+  and LibreOffice open them as before.
+- **Mature compatibility**: the editing engine is Euro-Office, the European open-source fork of
+  ONLYOFFICE, so tables, tracked changes, comments, charts and pivot tables come through intact.
+- **Editing together in real time**: several people in the same file with live cursors and
+  comments, without a document server.
+- **E-invoices**: ZUGFeRD invoices straight from an invoice document, and e-invoices in PDFs read
+  and shown.
+- **AI if you want it**: Claude Code and other assistants find, read and write your files with your
+  rights; changes to a document you have open need your consent and can be undone.
+- **Simple to run**: one container with a SQLite database and a data folder; backing up the folder
+  backs up everything.
 
 Runs on any Linux server or VPS with Docker or Podman (amd64), on a home server, or without any
-server as the desktop app on your computer.
+server as the desktop app for Windows, macOS and Linux.
 
 ## 🚀 Install
 
@@ -76,7 +68,8 @@ server as the desktop app on your computer.
 docker run -d --name schreibzeug -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data tristanteu/schreibzeug
 ```
 
-Open http://localhost:3000 and create the first account (on a server through an SSH tunnel; the port stays on 127.0.0.1 so plain HTTP never reaches the internet).
+Open http://localhost:3000 and create the first account. On a server, a reverse proxy with HTTPS
+goes in front ([installation guide](https://firsttris.github.io/schreibzeug/installation.html)).
 More accounts are created through invitation links, or by anyone when `SCHREIBZEUG_OPEN_SIGNUP=true`.
 Behind a domain, set `SCHREIBZEUG_URL=https://office.example.org`.
 
@@ -87,12 +80,12 @@ The desktop app is described under [Desktop app](https://firsttris.github.io/sch
 
 | | |
 |---|---|
-| 📝 **Documents** (.docx) | Styles, fonts, lists, tables, images, page layout, **headers, footers, table of contents and footnotes**, **comments and tracked changes**, spell checking in German and English, templates, **mail merge**, **e-invoices** (ZUGFeRD), export as PDF and PDF/A · [more →](https://firsttris.github.io/schreibzeug/engine.html#mail-merge) |
+| 📝 **Documents** (.docx) | **Comments and tracked changes**, headers, footers and table of contents, spell checking in German and English, templates, **mail merge**, **e-invoices** (ZUGFeRD), PDF and PDF/A · [more →](https://firsttris.github.io/schreibzeug/engine.html#mail-merge) |
 | 📊 **Spreadsheets** (.xlsx) | Formulas, number formats, sorting and filters, frozen rows, **charts**, **pivot tables**, dropdown lists, conditional formats, CSV · [more →](https://firsttris.github.io/schreibzeug/engine.html#spreadsheets) |
 | 📽️ **Presentations** (.pptx) | Slide layouts, shapes, designs, transitions, speaker notes and a full-screen **slide show** · [more →](https://firsttris.github.io/schreibzeug/engine.html#presentations) |
-| 📄 **PDFs** | **Fill in forms and sign**, by hand or **digitally** with your certificate (PKCS#12, not a qualified signature), notes, highlighting, **black out** (older versions keep the original: share a fresh copy), turn, add and remove pages, **OCR** for scans, the e-invoice inside a ZUGFeRD PDF · [more →](https://firsttris.github.io/schreibzeug/pdf.html) |
+| 📄 **PDFs** | **Fill in forms and sign**, by hand or **digitally** with your certificate (not qualified), notes and highlighting, **black out**, add and remove pages, **OCR** for scans · [more →](https://firsttris.github.io/schreibzeug/pdf.html) |
 | 🗒️ **Markdown & text** (.md, .txt) | A **live view** that keeps the text Markdown, or source and preview side by side; encoding and line endings kept byte for byte · [more →](https://firsttris.github.io/schreibzeug/text.html) |
-| 📁 **Files & teamwork** | File browser with folders, upload, recent files and trash, **versions** thinned out with age, the ones you keep stay, storage at a glance, **sharing** with accounts or by link, **real-time co-editing** with live cursors, OpenDocument edited as it is · [more →](https://firsttris.github.io/schreibzeug/files.html) |
+| 📁 **Files & teamwork** | Folders, upload, recent files and trash, **versions** to go back to, **sharing** with accounts or by link, **real-time co-editing** with live cursors · [more →](https://firsttris.github.io/schreibzeug/files.html) |
 | 🤖 **AI & Kontext** | **MCP server** for Claude Code and other MCP clients, with your rights, asking before it edits a document you have open; **sign in with [Kontext](https://github.com/firsttris/kontext)** and use Schreibzeug as its documents module · [more →](https://firsttris.github.io/schreibzeug/mcp.html) |
 | 🖥️ **Desktop app** | **Windows, macOS and Linux** (Tauri): the files in your documents folder without any server, or a window onto a Schreibzeug server (builds not signed yet) · [more →](https://firsttris.github.io/schreibzeug/desktop.html) |
 

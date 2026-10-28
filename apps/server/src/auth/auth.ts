@@ -175,7 +175,9 @@ export const createAuth = ({
             const invited = token ? findInvitation(db, token).ok : false;
             const throughProvider = context?.path === OAUTH_CALLBACK_PATH;
             if (!openSignup && !invited && !throughProvider && userCount(db) > 0) {
-              throw new APIError("FORBIDDEN", { message: "Neue Konten legt hier nur die Verwaltung an." });
+              throw new APIError("FORBIDDEN", {
+                message: "Neue Konten gibt es hier nur über einen Einladungslink.",
+              });
             }
           },
           // The first account takes over the files from before there were accounts. An address

@@ -1,5 +1,6 @@
 import type { BlankFormat, FileNode } from "@schreibzeug/files-api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { isApiFailure } from "../api/client";
 import { useFiles } from "../api/context";
@@ -13,6 +14,17 @@ import type { FileActions } from "./file-menu";
 
 /** Opens a file in a new tab, so the open document stays where it is. */
 const openInNewTab = (id: string) => window.open(`/edit/${id}`, "_blank", "noopener");
+
+/**
+ * Where a new file or a copy opens. In the demo its files live in this tab only (src/demo), and the
+ * route lives after the "#" under the path it is served at: so the file opens here.
+ */
+const useOpenCreated = () => {
+  const navigate = useNavigate();
+  return import.meta.env.MODE === "demo"
+    ? (id: string) => void navigate({ to: "/edit/$fileId", params: { fileId: id } })
+    : openInNewTab;
+};
 
 type Dialog = "versions" | "share" | BlankFormat | null;
 
@@ -41,6 +53,7 @@ export const useFileActions = ({
   // Files on this computer have no one to share with and no versions to go back to.
   const server = info.mode === "server";
   const queryClient = useQueryClient();
+  const openCreated = useOpenCreated();
   const [dialog, setDialog] = useState<Dialog>(null);
   const close = () => setDialog(null);
 
@@ -53,7 +66,7 @@ export const useFileActions = ({
       throw error;
     });
     await refreshFiles(queryClient);
-    openInNewTab(created.id);
+    openCreated(created.id);
   };
 
   const actions: FileActions = {
@@ -62,7 +75,7 @@ export const useFileActions = ({
       if (!node) return;
       void commands.copy(node.id).then(async (copy) => {
         await refreshFiles(queryClient);
-        openInNewTab(copy.id);
+        openCreated(copy.id);
       });
     },
     onShare: server && node?.role === "owner" ? () => setDialog("share") : undefined,

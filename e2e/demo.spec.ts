@@ -110,6 +110,22 @@ test.describe("the demo without a server", () => {
     expect(errors).toEqual([]);
   });
 
+  test("opens a copy made from the file menu in the demo, where its files are", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("");
+    await openDocument(page, "Angebot.docx", errors);
+    await page.getByRole("menubar").getByRole("menuitem", { name: "Datei", exact: true }).click();
+    // A new tab would start a demo of its own, without the copy: the copy opens where it was made.
+    const popup = page.waitForEvent("popup", { timeout: 5_000 }).catch(() => null);
+    await page
+      .getByRole("menu", { name: "Datei" })
+      .getByRole("menuitem", { name: "Kopie erstellen" })
+      .click();
+    const opened = (await popup) ?? page;
+    await expectEditorReady(opened, collectErrors(opened));
+    await expect(opened.getByLabel("Dateiname")).toHaveValue("Angebot (Kopie)");
+  });
+
   test("starts over on reload", async ({ page }) => {
     await page.goto("");
     await createFolder(page, "Entwürfe");

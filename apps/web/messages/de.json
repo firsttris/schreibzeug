@@ -981,5 +981,9 @@
   "engine_texts_text_placeholder": "Schreib los …",
   "engine_texts_text_markdown_placeholder": "Schreib los … Markdown wie **fett** oder # Überschrift geht auch.",
   "engine_texts_text_label": "Text",
-  "engine_texts_text_table_column": "Spalte {number}"
+  "engine_texts_text_table_column": "Spalte {number}",
+  "shell_demo": "Demo, ohne Server",
+  "demo_notice_title": "Demo",
+  "demo_notice_text": "Die Dateien liegen nur in diesem Tab: Neu laden fängt von vorn an. Gemeinsam bearbeiten, Teilen und Versionen gibt es auf einem Schreibzeug-Server.",
+  "demo_notice_install": "Schreibzeug installieren"
 }

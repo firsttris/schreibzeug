@@ -15,30 +15,36 @@ import {
 import { blankDocx, blankPptx, blankXlsx } from "@schreibzeug/ooxml";
 import type { AuthEnv } from "@schreibzeug/server/auth/middleware";
 import type { BlobStore } from "@schreibzeug/server/blobs";
-import type { Hub } from "@schreibzeug/server/collab/hub";
+import type { Hub, HubDeps } from "@schreibzeug/server/collab/hub";
 import { collabRoutes } from "@schreibzeug/server/collab/routes";
 import type { Disk } from "@schreibzeug/server/disk";
 import { imageTypeOf, mediaNameOf, parseMediaName } from "@schreibzeug/server/files/media";
 import { contentDisposition } from "@schreibzeug/server/files/serialize";
 import { fail, type Result, statusOf } from "@schreibzeug/server/result";
-import { type Context, Hono } from "hono";
+import { type Context, type Handler, Hono, type MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { createMiddleware } from "hono/factory";
 import type { UpgradeWebSocket } from "hono/ws";
 import { z } from "zod";
 import type { Folder } from "./folder";
-import { requireToken, unlock } from "./gate";
 import { createSessionBases } from "./session-bases";
 
 /** The one person using the computer, in place of an account. */
 export type LocalUser = { id: string; name: string };
+
+/**
+ * Who may use the API: `/local/unlock` and the check before every other route. On the computer
+ * that is the desktop app's key (gate.ts `tokenGate`); the demo in the browser lets everyone in,
+ * as the page itself is the server there (apps/web src/demo).
+ */
+export type LocalGate = { unlock: Handler; require: MiddlewareHandler };
 
 export type LocalDeps = {
   folder: Folder;
   /** What the root is called in the app, e.g. "Dokumente". */
   rootName: string;
   user: LocalUser;
-  token: string;
+  gate: LocalGate;
   /** Images added while editing; they are part of the file once it is saved. */
   media: BlobStore;
   maxUploadBytes: number;
@@ -47,6 +53,17 @@ export type LocalDeps = {
   collab?: { hub: Hub; upgradeWebSocket: UpgradeWebSocket };
   log?: (message: string, error: unknown) => void;
 };
+
+/**
+ * The hub's access check (server collab/hub.ts `HubDeps.access`) for one person's own files: a
+ * file there is theirs, at the version it has now.
+ */
+export const ownerAccess =
+  (folder: Folder): HubDeps["access"] =>
+  async (fileId) => {
+    const file = await folder.findFile(fileId);
+    return file.ok && file.value.version !== null ? { version: file.value.version, role: "owner" } : null;
+  };
 
 const validate = <T extends "json" | "query" | "param" | "form", S extends z.ZodType>(target: T, schema: S) =>
   zValidator(target, schema, (result, c) => {
@@ -96,7 +113,7 @@ export const createLocalApp = ({
   folder,
   rootName,
   user,
-  token,
+  gate,
   media,
   maxUploadBytes,
   disk,
@@ -124,8 +141,8 @@ export const createLocalApp = ({
     new Hono<AuthEnv>()
       .basePath("/api")
       .get("/health", (c) => c.json({ ok: true }))
-      .get("/local/unlock", unlock(token))
-      .use(requireToken(token))
+      .get("/local/unlock", gate.unlock)
+      .use(gate.require)
       .use(asUser)
       .get("/info", (c) => c.json({ mode: "local", rootName } satisfies ServerInfo))
       // Better Auth's session reply (better-auth api/routes/session.ts getSession), for the app's

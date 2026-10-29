@@ -5,9 +5,10 @@ import { diskSpace } from "@schreibzeug/server/disk";
 import { webRoutes } from "@schreibzeug/server/web";
 import { Hono } from "hono";
 import { createBunWebSocket } from "hono/bun";
-import { createLocalApp } from "./app";
+import { createLocalApp, ownerAccess } from "./app";
 import { readConfig } from "./config";
 import { createFolder } from "./folder";
+import { tokenGate } from "./gate";
 import { createIds } from "./ids";
 import { localMcpRoutes } from "./mcp";
 import { createTrash } from "./trash";
@@ -30,18 +31,13 @@ await mkdir(cacheDir, { recursive: true });
 
 const folder = createFolder({ root, ids: createIds(), trash: createTrash() });
 const user = { id: "local", name: userName };
-const hub = createHub({
-  access: async (fileId) => {
-    const file = await folder.findFile(fileId);
-    return file.ok && file.value.version !== null ? { version: file.value.version, role: "owner" } : null;
-  },
-});
+const hub = createHub({ access: ownerAccess(folder) });
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 const app = createLocalApp({
   folder,
   rootName,
   user,
-  token,
+  gate: tokenGate(token),
   media: createBlobStore(cacheDir),
   maxUploadBytes,
   disk: diskSpace(root),

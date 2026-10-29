@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { engineId, resolveEnginePath, withoutEngineId } from "./engine-plugin";
+import { engineId, resolveEnginePath, underBase, withoutEngineId } from "./engine-plugin";
 
 const root = "/srv/engine";
 
@@ -43,6 +43,16 @@ describe("withoutEngineId", () => {
     );
     expect(withoutEngineId("/frame/editor/pdf/main/index.html", "1d401c83dd0c")).toBe(
       "/frame/editor/pdf/main/index.html",
+    );
+  });
+});
+
+describe("underBase", () => {
+  it("puts a path of the app under Vite's base, as the demo on GitHub Pages is served", () => {
+    expect(underBase("/", "/engine/1d401c83dd0c")).toBe("/engine/1d401c83dd0c");
+    expect(underBase(undefined, "/engine")).toBe("/engine");
+    expect(underBase("/schreibzeug/demo/", "/engine/1d401c83dd0c")).toBe(
+      "/schreibzeug/demo/engine/1d401c83dd0c",
     );
   });
 });

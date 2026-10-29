@@ -87,3 +87,6 @@ export const unlock = (token: string) => (c: Context) => {
   const to = c.req.query("to") ?? "/";
   return c.redirect(to.startsWith("/") && !to.startsWith("//") ? to : "/");
 };
+
+/** The desktop app's key as the local API's gate (app.ts `LocalGate`). */
+export const tokenGate = (token: string) => ({ unlock: unlock(token), require: requireToken(token) });

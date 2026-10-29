@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { useAccount, useUser } from "./account/context";
 import { initialsOf } from "./account/initials";
 import { rootLabel, useFiles } from "./api/context";
+import { DemoNotice } from "./demo/demo-notice";
 import { inDesktopApp, runDesktopCommand } from "./desktop";
 import { useEmbed } from "./embed/bridge";
 import { m } from "./paraglide/messages";
@@ -89,7 +90,7 @@ const AccountBox = () => {
           {user.name}
         </span>
         <span className="truncate text-xs text-[var(--muted-foreground)]">
-          {local ? m.shell_this_computer() : user.email}
+          {import.meta.env.MODE === "demo" ? m.shell_demo() : local ? m.shell_this_computer() : user.email}
         </span>
       </span>
       {inDesktopApp() && <DesktopMenu local={local} />}
@@ -156,6 +157,7 @@ export const Shell = () => {
           </NavLink>
         </nav>
         <div className="mt-auto flex flex-col gap-2">
+          {import.meta.env.MODE === "demo" && <DemoNotice />}
           {!local && <StorageMeter />}
           {!embedded && <AccountBox />}
         </div>

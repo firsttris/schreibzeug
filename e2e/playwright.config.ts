@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_DEMO_URL, E2E_DEMO_WEB_PORT } from "./demo";
 import { E2E_EMBEDDED_PORT, E2E_EMBEDDED_WEB_PORT, E2E_KONTEXT_PORT } from "./kontext";
 import { E2E_LOCAL_PORT as localPort, E2E_LOCAL_WEB_PORT as localWebPort } from "./local";
 
@@ -110,6 +111,14 @@ export default defineConfig({
       cwd: "../apps/web",
       url: `http://localhost:${E2E_EMBEDDED_WEB_PORT}`,
       env: { SCHREIBZEUG_API_URL: `http://localhost:${E2E_EMBEDDED_PORT}` },
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      // The demo: the app with its server in the page, under the path GitHub Pages serves it at (demo.spec.ts).
+      command: `bunx vite --mode demo --port ${E2E_DEMO_WEB_PORT} --strictPort`,
+      cwd: "../apps/web",
+      url: E2E_DEMO_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

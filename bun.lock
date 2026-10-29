@@ -22,7 +22,7 @@
     },
     "apps/desktop": {
       "name": "@schreibzeug/desktop",
-      "version": "0.1.11",
+      "version": "0.1.12",
       "devDependencies": {
         "@tauri-apps/api": "3.0.0-alpha.3",
         "@tauri-apps/cli": "3.0.0-alpha.5",
@@ -95,6 +95,7 @@
         "@babel/parser": "8.0.8",
         "@inlang/paraglide-js": "2.29.3",
         "@inlang/plugin-message-format": "4.5.5",
+        "@schreibzeug/local": "workspace:*",
         "@schreibzeug/server": "workspace:*",
         "@tailwindcss/vite": "4.3.3",
         "@types/react": "19.3.0",

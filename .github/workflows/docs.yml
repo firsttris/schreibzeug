@@ -1,5 +1,7 @@
-# Builds docs/ with MkDocs Material and publishes it on GitHub Pages:
-# https://firsttris.github.io/schreibzeug/
+# Builds docs/ with MkDocs Material and the demo (apps/web src/demo, `bun run build:demo`) and
+# publishes both on GitHub Pages: https://firsttris.github.io/schreibzeug/ and …/schreibzeug/demo/
+# On a push to main it runs for every change, as the demo is the app; on a pull request it only
+# builds the docs (--strict), so broken links show up before the merge – CI builds the app.
 # Once: Settings → Pages → Source "GitHub Actions" (configure-pages with enablement switches it on
 # in the first run, where the token may).
 name: Docs
@@ -7,12 +9,6 @@ name: Docs
 on:
   push:
     branches: [main]
-    paths:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "overrides/**"
-      - "requirements-docs.txt"
-      - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
@@ -31,8 +27,19 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  BUN_VERSION: 1.4.4
+
 jobs:
+  # The demo carries the engine (sdkjs, fonts, x2t), restored from the cache CI fills.
+  engine:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/engine.yml
+
   build:
+    needs: engine
+    # On a pull request the engine is skipped, and only the docs are built.
+    if: ${{ !cancelled() && needs.engine.result != 'failure' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +50,18 @@ jobs:
           cache-dependency-path: requirements-docs.txt
       - run: pip install -r requirements-docs.txt
       - run: mkdocs build --strict
+      - if: github.event_name != 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: engine/dist
+          key: ${{ needs.engine.outputs.key }}
+          fail-on-cache-miss: true
+      - if: github.event_name != 'pull_request'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - if: github.event_name != 'pull_request'
+        run: bun install --frozen-lockfile && bun run build:demo && cp -r apps/web/dist-demo site/demo
       - if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
         with:

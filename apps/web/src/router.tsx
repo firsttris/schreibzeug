@@ -5,6 +5,7 @@ import {
   createRouter,
   Link,
   Outlet,
+  type RouterHistory,
   redirect,
 } from "@tanstack/react-router";
 import { z } from "zod";
@@ -174,8 +175,9 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const createAppRouter = (context: RouterContext) =>
-  createRouter({ routeTree, context, defaultPreload: "intent" });
+/** `history`: where the route lives; the browser's path by default, after the "#" in the demo. */
+export const createAppRouter = (context: RouterContext, history?: RouterHistory) =>
+  createRouter({ routeTree, context, defaultPreload: "intent", ...(history ? { history } : {}) });
 
 declare module "@tanstack/react-router" {
   interface Register {

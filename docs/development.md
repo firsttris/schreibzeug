@@ -47,6 +47,7 @@ All scripts of the root `package.json`:
 | `server` | The server alone, restarting on changes |
 | `engine:prepare` | The engine in `engine/dist` (`--force` to prepare it again) |
 | `build` | The web app in `apps/web/dist`, the prepared engine copied in |
+| `build:demo` | The [demo](#the-demo) in `apps/web/dist-demo`, for GitHub Pages under `/schreibzeug/demo/` |
 | `preview` | The built web app on http://localhost:4173, with `/api` and `/mcp` forwarded like `dev` |
 | `typecheck`, `lint` | The interface texts compiled, then `tsc -b`; Biome |
 | `i18n`, `i18n:check` | Compiles the interface texts (`apps/web/messages`) with Paraglide; the same, then checks that every text is in German and English and none is left in the code (a step of its own in CI) ([interface texts](architecture.md#interface-texts)) |
@@ -56,6 +57,40 @@ All scripts of the root `package.json`:
 | `test:fidelity`, `fidelity:update` | Only the format-fidelity project; the same, taking new reference pictures |
 | `screenshots` | The pictures in `docs/screenshots` (`e2e/screenshots.shot.ts`) |
 | `test-files` | Writes the test documents in `test-files/` again (`test-files/make.ts`) |
+
+## The demo
+
+The [demo](https://firsttris.github.io/schreibzeug/demo/) is the web app without a server: a build
+of its own (`bun run build:demo`, Vite mode `demo`, into `apps/web/dist-demo`) answers the app's
+requests to `/api` in the page itself (`apps/web/src/demo/`). The engine runs in the browser anyway;
+the server only stores the files and relays the editing sessions, and both run in the page here:
+
+- **The API** is the desktop app's local API (`apps/local` `createLocalApp`, [desktop
+  app](desktop.md#files-on-this-computer)) over files held in memory (`src/demo/folder.ts`) instead
+  of a folder on disk, with a gate that lets everyone in (the page is the server). So the app sees
+  `/api/info` answer `local` and leaves out what only a server has, as on the computer: accounts,
+  sharing, versions, the trash, access tokens.
+- **The editing session** is the server's own hub (`apps/server/src/collab/hub.ts`) behind the same
+  collaboration route. `src/demo/page-socket.ts` is the WebSocket between them: Hono's WebSocket
+  helper on the API's side, what `joinSession` (`packages/editor-core/src/collab.ts`) expects of a
+  browser WebSocket on the app's side. The editors open, save and autosave exactly as on a server.
+- **Images** put into a document are shown from blob URLs (`src/demo/media.ts`): the engine loads
+  them from an `<img>` in its frame, which no swapped `fetch` reaches.
+- **Start:** `src/main.tsx` imports `src/demo/install.ts` before the first request. It seeds the
+  folder with test files (`test-files/angebot.docx`, `preise.xlsx`, `vortrag.pptx`, `notiz.md`,
+  `formular.pdf`), swaps `window.fetch` and `window.WebSocket` for those to `/api`, and hands the
+  app the blob URLs for images. `import.meta.env.MODE === "demo"` is written out at every check, so
+  Vite leaves the demo out of every other build.
+- **What it cannot do:** the files are gone when the tab is reloaded; nobody else can join an
+  editing session; uploads and new files live in the same memory.
+- **Paths:** the routes live after the `#` (`createHashHistory`), as GitHub Pages has no fallback to
+  `index.html`; the app, the engine (`engine-plugin.ts` `underBase`) and the text recognition sit
+  under Vite's `base`, `/schreibzeug/demo/` (another one with `DEMO_BASE=/ bun run build:demo`). The
+  build carries the whole engine, about 350 MB, of which the browser loads what it opens.
+- **Publishing:** `docs.yml` builds it on every push to `main` with the engine from CI's cache and
+  puts it into the site at `/demo/`.
+- **Tests:** `apps/web/src/demo/*.test.ts` (the folder, the API with its WebSocket),
+  `e2e/demo.spec.ts` on the dev server in demo mode under the same path (`bunx vite --mode demo`).
 
 ## Releases
 
@@ -79,7 +114,7 @@ GitHub release. The shared workflows come from
 | `release.yml` | On a tag `vX.Y.Z`: the checks (unless `main` ran them), the desktop app, the Docker image (`docker/Dockerfile`, amd64) and the GitHub release |
 | `desktop.yml` | **Actions → Desktop app** builds the desktop app for Windows, macOS and Linux, unsigned for now; also part of every release |
 | `screenshots.yml` | **Actions → Update screenshots** takes the README and documentation pictures and the format-fidelity references |
-| `docs.yml` | Publishes this documentation on GitHub Pages when `docs/` changes on `main`: English at `/`, German at `/de/` (mkdocs-static-i18n). A page is translated by a file next to it (`index.de.md` for `index.md`); without one the German site shows the English text. The start page is the tour in pictures, `overview.md` the overview |
+| `docs.yml` | Publishes this documentation and the [demo](#the-demo) on GitHub Pages on every push to `main` (a pull request that changes `docs/` only builds the documentation): English at `/`, German at `/de/` (mkdocs-static-i18n). A page is translated by a file next to it (`index.de.md` for `index.md`); without one the German site shows the English text. The start page is the tour in pictures, `overview.md` the overview |
 
 ## Stack
 

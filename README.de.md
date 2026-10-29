@@ -27,6 +27,8 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 [FAQ](#-faq) •
 [Dokumentation](https://firsttris.github.io/schreibzeug/)
 
+🖱️ **[Demo ausprobieren](https://firsttris.github.io/schreibzeug/demo/)** – die Editoren mit Beispieldateien, im Browser, ohne Installation
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
   <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, ein selbst gehosteter Word-Editor im Browser: ein .docx-Dokument mit Werkzeugleiste für Absatzformat, Schrift, Größe, fett, kursiv, Farben, Listen und Ausrichtung" width="900">

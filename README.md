@@ -27,6 +27,8 @@ Editing together in real time, in the browser or as a desktop app. No document s
 [FAQ](#-faq) •
 [Documentation](https://firsttris.github.io/schreibzeug/)
 
+🖱️ **[Try the demo](https://firsttris.github.io/schreibzeug/demo/)** – the editors with sample files, in your browser, nothing to install
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
   <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, a self-hosted Word editor in the browser: a .docx document open with toolbar for paragraph style, font, size, bold, italic, colours, lists and alignment" width="900">

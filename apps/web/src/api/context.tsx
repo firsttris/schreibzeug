@@ -24,7 +24,13 @@ export type Files = {
 
 const FilesContext = createContext<Files | null>(null);
 
-export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): Files => ({
+/** `overrides`: the demo shows images from the page itself (src/demo/media.ts). */
+export const createFiles = (
+  api: ApiClient,
+  baseUrl: string,
+  info: ServerInfo,
+  overrides: Partial<Pick<Files, "mediaUrl">> = {},
+): Files => ({
   queries: fileQueries(api),
   commands: fileCommands(api),
   collabUrl: (fileId) => `${baseUrl.replace(/^http/, "ws")}/api/collab/${fileId}`,
@@ -33,6 +39,7 @@ export const createFiles = (api: ApiClient, baseUrl: string, info: ServerInfo): 
   info,
   tokens: tokenApi(api),
   mcpUrl: `${baseUrl}/mcp`,
+  ...overrides,
 });
 
 /**

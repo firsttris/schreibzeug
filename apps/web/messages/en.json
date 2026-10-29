@@ -981,5 +981,9 @@
   "engine_texts_text_placeholder": "Start writing…",
   "engine_texts_text_markdown_placeholder": "Start writing… Markdown such as **bold** or # Heading works too.",
   "engine_texts_text_label": "Text",
-  "engine_texts_text_table_column": "Column {number}"
+  "engine_texts_text_table_column": "Column {number}",
+  "shell_demo": "Demo, without a server",
+  "demo_notice_title": "Demo",
+  "demo_notice_text": "The files live in this tab only: reloading starts over. Editing together, sharing and versions come with a Schreibzeug server.",
+  "demo_notice_install": "Install Schreibzeug"
 }

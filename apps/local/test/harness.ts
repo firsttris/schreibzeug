@@ -6,7 +6,7 @@ import { diskSpace } from "@schreibzeug/server/disk";
 import { ok } from "@schreibzeug/server/result";
 import { createLocalApp } from "../src/app";
 import { createFolder } from "../src/folder";
-import { COOKIE } from "../src/gate";
+import { COOKIE, tokenGate } from "../src/gate";
 import { createIds } from "../src/ids";
 
 export const TOKEN = "a-token-for-the-tests-only";
@@ -32,7 +32,7 @@ export const startLocal = async () => {
     folder,
     rootName: "Dokumente",
     user: { id: "local", name: "Tristan" },
-    token: TOKEN,
+    gate: tokenGate(TOKEN),
     media: createBlobStore(join(base, "media")),
     maxUploadBytes: 64 * 1024,
     disk: diskSpace(base),

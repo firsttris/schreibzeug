@@ -85,6 +85,16 @@ test.describe("files on this computer", () => {
     expect(new TextDecoder().decode(document)).toContain("Hallo vom Computer");
   });
 
+  test("reaches the settings to choose the language", async ({ page }, testInfo) => {
+    await openOwnFolder(page, folderName(testInfo.title));
+    await page
+      .getByRole("navigation", { name: "Bereiche" })
+      .getByRole("link", { name: "Einstellungen", exact: true })
+      .click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Einstellungen");
+    await expect(page.getByRole("combobox", { name: "Sprache" })).toBeVisible();
+  });
+
   test("renames a file on disk", async ({ page }, testInfo) => {
     const name = folderName(testInfo.title);
     await mkdir(join(E2E_LOCAL_ROOT, name), { recursive: true });

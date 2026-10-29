@@ -150,11 +150,10 @@ export const Shell = () => {
               {m.shell_trash()}
             </NavLink>
           )}
-          {!local && (
-            <NavLink to="/settings" icon={<Settings size={16} />}>
-              {m.shell_settings()}
-            </NavLink>
-          )}
+          {/* Also on this computer: the settings hold the language there (settings-page.tsx). */}
+          <NavLink to="/settings" icon={<Settings size={16} />}>
+            {m.shell_settings()}
+          </NavLink>
         </nav>
         <div className="mt-auto flex flex-col gap-2">
           {!local && <StorageMeter />}

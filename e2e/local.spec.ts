@@ -32,7 +32,7 @@ test.describe("files on this computer", () => {
     await openOwnFolder(page, name);
 
     const areas = page.getByRole("navigation", { name: "Bereiche" });
-    await expect(areas.getByRole("link")).toHaveText(["Dokumente", "Zuletzt"]);
+    await expect(areas.getByRole("link")).toHaveText(["Dokumente", "Zuletzt", "Einstellungen"]);
     await expect(page.getByTestId("user-name")).toBeVisible();
     await expect(page.getByRole("button", { name: "Abmelden" })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Pfad" })).toContainText(`Dokumente${name}`);

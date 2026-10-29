@@ -8,6 +8,7 @@
     "i18n": "paraglide-js compile --project ./project.inlang",
     "dev": "vite",
     "build": "vite build",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "@babel/parser": "8.0.8",
     "@inlang/paraglide-js": "2.29.3",
     "@inlang/plugin-message-format": "4.5.5",
+    "@schreibzeug/local": "workspace:*",
     "@schreibzeug/server": "workspace:*",
     "@tailwindcss/vite": "4.3.3",
     "@types/react": "19.3.0",

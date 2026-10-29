@@ -9,7 +9,7 @@ import type { UpgradeWebSocket } from "hono/ws";
 import { afterEach, describe, expect, it } from "vitest";
 import { createLocalApp } from "../src/app";
 import { createFolder } from "../src/folder";
-import { COOKIE } from "../src/gate";
+import { COOKIE, tokenGate } from "../src/gate";
 import { createIds } from "../src/ids";
 
 const TOKEN = "a-token-for-the-tests-only";
@@ -44,7 +44,7 @@ const start = async () => {
     folder,
     rootName: "Dokumente",
     user: { id: "local", name: "T" },
-    token: TOKEN,
+    gate: tokenGate(TOKEN),
     media: createBlobStore(join(base, "media")),
     maxUploadBytes: 64 * 1024,
     disk: async () => null,

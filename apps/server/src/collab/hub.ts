@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { SessionSave } from "@schreibzeug/files-api";
 import { dropMessage, ENGINE_CLOSE, SOCKET_CLOSE } from "./limits";
 import {
@@ -272,7 +271,7 @@ export const createHub = ({
       // Another connection may have started the session while we looked the version up.
       const session = sessions.get(fileId) ?? startSession(fileId, version);
       sessions.set(fileId, session);
-      const connectionId = randomUUID();
+      const connectionId = crypto.randomUUID();
       connections.set(connectionId, { fileId, user, viewer: allowed.role === "view", send, close });
       send({ type: "schreibzeug:session", baseVersion: session.baseVersion });
       send(licenseMessage());

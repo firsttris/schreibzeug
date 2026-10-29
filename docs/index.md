@@ -22,7 +22,7 @@ hide:
 in the browser or as an app on your computer. Your files stay with you, and they stay what they
 are: .docx, .xlsx, .pptx.</p>
 
-[Take the tour](#rundgang){ .md-button .md-button--primary } [Every feature in detail](overview.md){ .md-button }
+[Take the tour](#rundgang){ .md-button .md-button--primary } [Try the demo](https://firsttris.github.io/schreibzeug/demo/){ .md-button } [Every feature in detail](overview.md){ .md-button }
 
 </div>
 

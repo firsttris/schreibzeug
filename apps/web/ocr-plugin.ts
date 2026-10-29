@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
+import { underBase } from "./engine-plugin";
 
 const require = createRequire(import.meta.url);
 const packageDir = (name: string) => dirname(require.resolve(`${name}/package.json`));
@@ -55,10 +56,10 @@ export const ocrPlugin = (base = "/ocr"): Plugin => {
       outDir = resolve(config.root, config.build.outDir);
     },
     configureServer: (server) => {
-      server.middlewares.use(base, serve(files));
+      server.middlewares.use(underBase(server.config.base, base), serve(files));
     },
     configurePreviewServer: (server) => {
-      server.middlewares.use(base, serve(files));
+      server.middlewares.use(underBase(server.config.base, base), serve(files));
     },
     closeBundle: async () => {
       const target = join(outDir, base);

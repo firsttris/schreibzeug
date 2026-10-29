@@ -13,6 +13,7 @@
     "test-files": "bun test-files/make.ts",
     "dev": "bun run engine:prepare && bun run --filter '@schreibzeug/{web,server}' dev",
     "build": "bun run --filter @schreibzeug/web build",
+    "build:demo": "bun run --filter @schreibzeug/web build:demo",
     "preview": "bun run --filter @schreibzeug/web preview",
     "i18n": "bun run --filter @schreibzeug/web i18n",
     "i18n:check": "bun run i18n && bun --bun vitest run --project web apps/web/i18n.test.ts",

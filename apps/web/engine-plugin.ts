@@ -49,6 +49,10 @@ const serve =
     createReadStream(file).pipe(res);
   };
 
+/** A path of the app under Vite's `base` ("/" or "/schreibzeug/demo/"): "/engine" → "/schreibzeug/demo/engine". */
+export const underBase = (viteBase: string | undefined, path: string): string =>
+  `${(viteBase ?? "/").replace(/\/$/, "")}${path}`;
+
 /**
  * Serves engine/dist at /engine in dev and preview and copies it into the build. The engine is
  * prepared by `bun run engine:prepare`; it is far too large for the module graph.
@@ -63,15 +67,17 @@ export const enginePlugin = (engineDist: string, base = "/engine"): Plugin => {
   let outDir = "dist";
   return {
     name: "schreibzeug-engine",
-    config: () => ({ define: { "import.meta.env.ENGINE_PATH": JSON.stringify(`${base}/${id}`) } }),
+    config: (config) => ({
+      define: { "import.meta.env.ENGINE_PATH": JSON.stringify(underBase(config.base, `${base}/${id}`)) },
+    }),
     configResolved: (config) => {
       outDir = resolve(config.root, config.build.outDir);
     },
     configureServer: (server) => {
-      server.middlewares.use(base, serve(root, id));
+      server.middlewares.use(underBase(server.config.base, base), serve(root, id));
     },
     configurePreviewServer: (server) => {
-      server.middlewares.use(base, serve(root, id));
+      server.middlewares.use(underBase(server.config.base, base), serve(root, id));
     },
     closeBundle: async () => {
       if (existsSync(root)) await cp(root, join(outDir, base, id), { recursive: true });

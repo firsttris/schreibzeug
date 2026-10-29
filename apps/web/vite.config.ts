@@ -10,7 +10,9 @@ import { ocrPlugin } from "./ocr-plugin";
 /** The Schreibzeug server the dev server forwards /api to (apps/server, `bun run server`). */
 const apiUrl = process.env.SCHREIBZEUG_API_URL ?? "http://localhost:3000";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // The demo (src/demo) is served from GitHub Pages next to the docs; DEMO_BASE=/ serves it at the root.
+  base: mode === "demo" ? (process.env.DEMO_BASE ?? "/schreibzeug/demo/") : "/",
   plugins: [
     react(),
     tailwindcss(),
@@ -33,10 +35,11 @@ export default defineConfig({
     strictPort: true,
     proxy: { "/api": { target: apiUrl, ws: true }, "/mcp": { target: apiUrl } },
   },
+  build: { outDir: mode === "demo" ? "dist-demo" : "dist" },
   test: {
     name: "web",
     environment: "happy-dom",
     include: ["src/**/*.test.{ts,tsx}", "*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
   },
-});
+}));

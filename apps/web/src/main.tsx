@@ -1,5 +1,5 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RouterProvider } from "@tanstack/react-router";
+import { createHashHistory, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AccountProvider } from "./account/context";
@@ -14,6 +14,10 @@ import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./styles.css";
 
+// The demo answers /api in the page (src/demo), before the first request. Written out, not as a
+// shared constant: Vite replaces it, so other builds leave the demo out entirely.
+const demo = import.meta.env.MODE === "demo" ? await import("./demo/install") : null;
+
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
 // The page in the language of its texts (index.html says German), for screen readers and hyphenation.
@@ -23,7 +27,7 @@ document.documentElement.lang = getLocale();
 const origin = window.location.origin;
 const account = createAccount(origin);
 const info = await fetchServerInfo(origin);
-const files = createFiles(createApiClient(origin), origin, info);
+const files = createFiles(createApiClient(origin), origin, info, demo ? { mediaUrl: demo.mediaUrl } : {});
 const embed = createEmbed(info.mode === "server" ? info.embedOrigin : undefined);
 const oidc = info.mode === "server" && Boolean(info.oidc);
 
@@ -38,7 +42,11 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({ onError: onRequestError }),
   mutationCache: new MutationCache({ onError: onRequestError }),
 });
-const router = createAppRouter({ queryClient, account, embed, oidc });
+const router = createAppRouter(
+  { queryClient, account, embed, oidc },
+  // The demo is static files under a path of GitHub Pages: the route lives after the "#".
+  import.meta.env.MODE === "demo" ? createHashHistory() : undefined,
+);
 
 createRoot(root).render(
   <StrictMode>

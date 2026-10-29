@@ -21,7 +21,7 @@ hide:
 im Browser oder als App auf dem PC. Deine Dateien bleiben bei dir, und sie bleiben, was sie sind:
 .docx, .xlsx, .pptx.</p>
 
-[Rundgang starten](#rundgang){ .md-button .md-button--primary } [Alle Funktionen im Detail](overview.md){ .md-button }
+[Rundgang starten](#rundgang){ .md-button .md-button--primary } [Demo ausprobieren](https://firsttris.github.io/schreibzeug/demo/){ .md-button } [Alle Funktionen im Detail](overview.md){ .md-button }
 
 </div>
 

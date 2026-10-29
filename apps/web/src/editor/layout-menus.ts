@@ -8,19 +8,21 @@ import {
   type PageLayout,
   paperSizeOf,
 } from "@schreibzeug/editor-core";
+import { m } from "../paraglide/messages";
+import { getLocale } from "../paraglide/runtime";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 
-const MARGIN_LABELS: Record<MarginPreset["id"], string> = {
-  normal: "Ränder normal",
-  narrow: "Ränder schmal",
-  moderate: "Ränder mittel",
-  wide: "Ränder breit",
+const MARGIN_LABELS: Record<MarginPreset["id"], () => string> = {
+  normal: m.layout_menus_margins_normal,
+  narrow: m.layout_menus_margins_narrow,
+  moderate: m.layout_menus_margins_moderate,
+  wide: m.layout_menus_margins_wide,
 };
 
-/** 1.15 → "1,15": German decimals, as the rest of the interface writes them. */
+/** 1.15 → "1,15" in German, "1.15" in English: the decimals of the interface language. */
 export const formatSpacing = (multiple: number): string =>
-  multiple.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  multiple.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
 /**
  * "Layout": orientation, paper size and margins of the section at the cursor, as web-apps' layout
@@ -31,17 +33,17 @@ export const layoutMenu = (page: PageLayout | null, layout: LayoutCommands | nul
   const size = page && paperSizeOf(page);
   const margins = page && marginPresetOf(page.margins);
   return {
-    label: "Layout",
+    label: m.layout_menus_layout(),
     groups: [
       [
         {
-          label: "Hochformat",
+          label: m.layout_menus_portrait(),
           checked: page?.portrait === true,
           disabled,
           onSelect: () => layout?.setOrientation(true),
         },
         {
-          label: "Querformat",
+          label: m.layout_menus_landscape(),
           checked: page?.portrait === false,
           disabled,
           onSelect: () => layout?.setOrientation(false),
@@ -54,7 +56,7 @@ export const layoutMenu = (page: PageLayout | null, layout: LayoutCommands | nul
         onSelect: () => layout?.setPaperSize(paper),
       })),
       MARGIN_PRESETS.map((preset) => ({
-        label: MARGIN_LABELS[preset.id],
+        label: MARGIN_LABELS[preset.id](),
         checked: margins === preset.id,
         disabled,
         onSelect: () => layout?.setMargins(preset.margins),
@@ -68,7 +70,8 @@ export const lineSpacingItems = (
   lineSpacing: number | null,
   layout: LayoutCommands | null,
   disabled: boolean,
-  label: (multiple: number) => string = (multiple) => `Zeilenabstand ${formatSpacing(multiple)}`,
+  label: (multiple: number) => string = (multiple) =>
+    m.layout_menus_line_spacing({ spacing: formatSpacing(multiple) }),
 ): MenuItem[] =>
   LINE_SPACINGS.map((multiple) => ({
     label: label(multiple),
@@ -87,8 +90,8 @@ export const paragraphSpacingGroups = (
   return [
     lineSpacingItems(lineSpacing, layout, disabled),
     [
-      { label: "Einzug vergrößern", disabled, onSelect: () => layout?.indent("more") },
-      { label: "Einzug verkleinern", disabled, onSelect: () => layout?.indent("less") },
+      { label: m.layout_menus_indent_more(), disabled, onSelect: () => layout?.indent("more") },
+      { label: m.layout_menus_indent_less(), disabled, onSelect: () => layout?.indent("less") },
     ],
   ];
 };

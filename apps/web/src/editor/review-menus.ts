@@ -1,12 +1,13 @@
 import type { ReviewCommands, ReviewDisplay, ReviewState } from "@schreibzeug/editor-core";
+import { m } from "../paraglide/messages";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
 
 /** The display modes in the words of Word. */
-export const REVIEW_DISPLAYS: Record<ReviewDisplay, string> = {
-  markup: "Mit Markierungen",
-  final: "Endgültig",
-  original: "Original",
+export const REVIEW_DISPLAYS: Record<ReviewDisplay, () => string> = {
+  markup: m.review_menus_display_markup,
+  final: m.review_menus_display_final,
+  original: m.review_menus_display_original,
 };
 
 /**
@@ -22,18 +23,18 @@ export const reviewMenu = (
   const disabled = off || !commands;
   const run = (action: (c: ReviewCommands) => void) => () => commands && action(commands);
   const atChanges: MenuItem[] = [
-    { label: "Annehmen und weiter", disabled, onSelect: run((c) => c.accept()) },
-    { label: "Ablehnen und weiter", disabled, onSelect: run((c) => c.reject()) },
-    { label: "Vorherige Änderung", disabled, onSelect: run((c) => c.previous()) },
-    { label: "Nächste Änderung", disabled, onSelect: run((c) => c.next()) },
+    { label: m.review_menus_accept_next(), disabled, onSelect: run((c) => c.accept()) },
+    { label: m.review_menus_reject_next(), disabled, onSelect: run((c) => c.reject()) },
+    { label: m.review_menus_previous(), disabled, onSelect: run((c) => c.previous()) },
+    { label: m.review_menus_next(), disabled, onSelect: run((c) => c.next()) },
   ];
   return {
-    label: "Überprüfen",
+    label: m.review_menus_title(),
     groups: [
       ...(spelling.length > 0 ? [spelling] : []),
       [
         {
-          label: "Änderungen nachverfolgen",
+          label: m.review_menus_track_changes(),
           checked: review.tracking,
           disabled,
           onSelect: run((c) => c.setTracking(!review.tracking)),
@@ -41,11 +42,11 @@ export const reviewMenu = (
       ],
       atChanges,
       [
-        { label: "Alle Änderungen annehmen", disabled, onSelect: run((c) => c.acceptAll()) },
-        { label: "Alle Änderungen ablehnen", danger: true, disabled, onSelect: run((c) => c.rejectAll()) },
+        { label: m.review_menus_accept_all(), disabled, onSelect: run((c) => c.acceptAll()) },
+        { label: m.review_menus_reject_all(), danger: true, disabled, onSelect: run((c) => c.rejectAll()) },
       ],
       (Object.keys(REVIEW_DISPLAYS) as ReviewDisplay[]).map((display) => ({
-        label: `Anzeige: ${REVIEW_DISPLAYS[display]}`,
+        label: m.review_menus_display({ mode: REVIEW_DISPLAYS[display]() }),
         checked: review.display === display,
         disabled,
         onSelect: run((c) => c.setDisplay(display)),

@@ -6,6 +6,7 @@ import {
   type SavedDocument,
 } from "@schreibzeug/editor-core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 
 export type DocumentSave = {
   save: () => Promise<void>;
@@ -40,7 +41,9 @@ export const useDocumentSave = <S extends CoreState>(
       await store(saved.bytes, saved.session);
       editor.markSaved(saved);
     } catch (error) {
-      setFailure(`Nicht gespeichert: ${error instanceof Error ? error.message : String(error)}`);
+      setFailure(
+        m.use_document_save_not_saved({ reason: error instanceof Error ? error.message : String(error) }),
+      );
     }
   }, [editor, store]);
 

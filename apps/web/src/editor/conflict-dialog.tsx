@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -19,11 +20,8 @@ export const ConflictDialog = ({ open, onReload, onSaveCopy, onClose }: Conflict
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   return (
-    <Dialog open={open} title="Inzwischen geändert" onClose={onClose}>
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">
-        Diese Datei wurde gespeichert, nachdem du sie geöffnet hast. Speichern würde diese Änderung
-        überschreiben. Lade die neue Fassung, oder behalte deinen Text als Kopie.
-      </p>
+    <Dialog open={open} title={m.conflict_dialog_title()} onClose={onClose}>
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.conflict_dialog_text()}</p>
       {failure && (
         <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">
           {failure}
@@ -42,10 +40,10 @@ export const ConflictDialog = ({ open, onReload, onSaveCopy, onClose }: Conflict
             setBusy(false);
           }}
         >
-          Als Kopie speichern
+          {m.conflict_dialog_save_copy()}
         </Button>
         <Button variant="primary" disabled={busy} onClick={onReload}>
-          Neue Fassung laden
+          {m.conflict_dialog_reload()}
         </Button>
       </div>
     </Dialog>

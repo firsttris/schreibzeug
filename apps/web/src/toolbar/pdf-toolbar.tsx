@@ -21,6 +21,7 @@ import {
   Underline,
   Undo2,
 } from "lucide-react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 
 const Separator = () => <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-[var(--border)]" />;
@@ -28,19 +29,19 @@ const Separator = () => <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-[
 /** The tools of the toolbar, grouped as web-apps' PDF editor groups them (pdfeditor Toolbar.js). */
 const TOOL_GROUPS: Array<Array<{ tool: PdfTool; label: string; icon: LucideIcon }>> = [
   [
-    { tool: "select", label: "Auswählen", icon: MousePointer2 },
-    { tool: "hand", label: "Verschieben", icon: Hand },
+    { tool: "select", label: m.pdf_toolbar_select(), icon: MousePointer2 },
+    { tool: "hand", label: m.pdf_toolbar_hand(), icon: Hand },
   ],
   [
-    { tool: "highlight", label: "Text hervorheben", icon: Highlighter },
-    { tool: "underline", label: "Text unterstreichen", icon: Underline },
-    { tool: "strikeout", label: "Text durchstreichen", icon: Strikethrough },
+    { tool: "highlight", label: m.pdf_toolbar_highlight(), icon: Highlighter },
+    { tool: "underline", label: m.pdf_toolbar_underline(), icon: Underline },
+    { tool: "strikeout", label: m.pdf_toolbar_strikeout(), icon: Strikethrough },
   ],
   [
-    { tool: "draw", label: "Freihand zeichnen", icon: PenLine },
-    { tool: "square", label: "Rechteck", icon: Square },
-    { tool: "circle", label: "Ellipse", icon: Circle },
-    { tool: "line", label: "Linie", icon: Slash },
+    { tool: "draw", label: m.pdf_toolbar_draw(), icon: PenLine },
+    { tool: "square", label: m.pdf_toolbar_rectangle(), icon: Square },
+    { tool: "circle", label: m.pdf_toolbar_ellipse(), icon: Circle },
+    { tool: "line", label: m.pdf_toolbar_line(), icon: Slash },
   ],
 ];
 
@@ -62,10 +63,10 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
   const pick = (next: PdfTool) => commands?.setTool(tool === next && next !== "select" ? "select" : next);
 
   return (
-    <div role="toolbar" aria-label="PDF-Werkzeuge" className="flex flex-wrap items-center gap-0.5">
+    <div role="toolbar" aria-label={m.pdf_toolbar_label()} className="flex flex-wrap items-center gap-0.5">
       <Button
         variant="ghost"
-        aria-label="Rückgängig"
+        aria-label={m.common_undo()}
         disabled={off || !document.canUndo}
         onClick={() => commands?.undo()}
       >
@@ -73,7 +74,7 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
       </Button>
       <Button
         variant="ghost"
-        aria-label="Wiederholen"
+        aria-label={m.common_redo()}
         disabled={off || !document.canRedo}
         onClick={() => commands?.redo()}
       >
@@ -97,15 +98,20 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
         </span>
       ))}
       <Separator />
-      <Button variant="ghost" aria-label="Notiz" disabled={off} onClick={onAddNote}>
+      <Button variant="ghost" aria-label={m.pdf_toolbar_note()} disabled={off} onClick={onAddNote}>
         <MessageSquarePlus size={16} />
       </Button>
-      <Button variant="ghost" aria-label="Textfeld" disabled={off} onClick={() => commands?.addTextBox()}>
+      <Button
+        variant="ghost"
+        aria-label={m.pdf_toolbar_text_box()}
+        disabled={off}
+        onClick={() => commands?.addTextBox()}
+      >
         <Type size={16} />
       </Button>
       <Button
         variant="ghost"
-        aria-label="Unterschreiben"
+        aria-label={m.pdf_toolbar_sign()}
         disabled={off || !onSign}
         onClick={() => onSign?.()}
       >
@@ -114,7 +120,7 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
       <Separator />
       <Button
         variant="ghost"
-        aria-label="Seite nach links drehen"
+        aria-label={m.pdf_toolbar_rotate_left()}
         disabled={off}
         onClick={() => pages?.rotate("left")}
       >
@@ -122,7 +128,7 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
       </Button>
       <Button
         variant="ghost"
-        aria-label="Seite nach rechts drehen"
+        aria-label={m.pdf_toolbar_rotate_right()}
         disabled={off}
         onClick={() => pages?.rotate("right")}
       >
@@ -130,7 +136,7 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
       </Button>
       <Button
         variant="ghost"
-        aria-label="Leere Seite einfügen"
+        aria-label={m.pdf_toolbar_insert_blank()}
         disabled={off}
         onClick={() => pages?.addBlank("after")}
       >
@@ -138,10 +144,10 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
       </Button>
       <Button
         variant="ghost"
-        aria-label="Seite löschen"
+        aria-label={m.pdf_toolbar_delete_page()}
         disabled={off || document.pages <= 1}
         onClick={() => {
-          if (pages && !pages.remove()) notify("Die letzte Seite eines PDFs kann nicht gelöscht werden.");
+          if (pages && !pages.remove()) notify(m.pdf_toolbar_last_page());
         }}
       >
         <Trash2 size={16} />
@@ -149,7 +155,7 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
       <Separator />
       <Button
         variant="toggle"
-        aria-label="Schwärzen"
+        aria-label={m.pdf_toolbar_redact()}
         aria-pressed={tool === "redact"}
         disabled={off}
         onClick={() => pick("redact")}
@@ -161,12 +167,12 @@ export const PdfToolbar = ({ state, commands, pages, onAddNote, onSign, notify }
           variant="outline"
           disabled={off}
           onClick={() => {
-            if (!commands?.hasRedactions()) return notify("Es sind keine Bereiche zum Schwärzen markiert.");
+            if (!commands?.hasRedactions()) return notify(m.pdf_toolbar_no_redactions());
             commands.applyRedactions();
             commands.setTool("select");
           }}
         >
-          Schwärzungen anwenden
+          {m.pdf_toolbar_apply_redactions()}
         </Button>
       )}
     </div>

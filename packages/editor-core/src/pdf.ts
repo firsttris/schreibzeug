@@ -9,6 +9,7 @@ import {
   openDocument,
 } from "./document";
 import { beforeOpening, silencePdfScripts } from "./document-scripts";
+import { textsOf } from "./engine-texts";
 import type { EngineWindow } from "./engine-types";
 import { type PdfColor, rgbOf } from "./pdf-color";
 import { addInkSignature, type Stroke } from "./pdf-signature";
@@ -259,7 +260,8 @@ const pdfBinding: EditorBinding<PdfWindow, PdfEventArgs, PdfEngineApi, PdfState,
   setup: ({ win, api, store, dispatch, options }) => ({
     commands: createPdfCommands(win, api, store.get, dispatch),
     signature: {
-      insert: (strokes, color = DEFAULT_TOOL_COLORS.draw) => addInkSignature(win, api, strokes, color),
+      insert: (strokes, color = DEFAULT_TOOL_COLORS.draw) =>
+        addInkSignature(win, api, strokes, color, textsOf(options)),
     },
     pages: createPageCommands(win, api),
     view: createViewCommands(api),

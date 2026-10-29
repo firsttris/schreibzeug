@@ -1,4 +1,5 @@
 import type { EmbeddedInvoice, Invoice } from "@schreibzeug/einvoice";
+import { m } from "../paraglide/messages";
 
 /** The e-invoice code (fast-xml-parser, pdf-lib) loads when a PDF is opened, not with the app. */
 export const loadEinvoice = () => import("@schreibzeug/einvoice");
@@ -23,13 +24,19 @@ export const money = (cents: number, currency: string): string => {
 export const groupedIban = (iban: string): string => iban.replace(/(.{4})(?=.)/g, "$1 ");
 
 /** The kind of the document and the standard it follows, for the card's heading. */
-export const invoiceTitle = (invoice: Invoice): string =>
-  `${invoice.isCreditNote ? "Gutschrift" : "Rechnung"} ${invoice.number} vom ${germanDate(invoice.issueDate)}`;
+export const invoiceTitle = (invoice: Invoice): string => {
+  const title = invoice.isCreditNote ? m.invoice_title_credit_note : m.invoice_title;
+  return title({ number: invoice.number, date: germanDate(invoice.issueDate) });
+};
 
 export const syntaxLabel = (embedded: EmbeddedInvoice): string => {
-  if (!embedded.invoice.ok) return "E-Rechnung";
-  return embedded.invoice.value.syntax === "ubl" ? "E-Rechnung (UBL)" : "E-Rechnung (ZUGFeRD / Factur-X)";
+  if (!embedded.invoice.ok) return m.invoice_syntax();
+  return embedded.invoice.value.syntax === "ubl" ? m.invoice_syntax_ubl() : m.invoice_syntax_cii();
 };
+
+/** "1.125,74 € bis 06.11.2026", or the amount alone without a due date. */
+const dueText = (amount: string, dueDate: string | undefined): string =>
+  dueDate ? m.invoice_due_until({ amount, date: germanDate(dueDate) }) : amount;
 
 /** What the card shows of the invoice, label and value, the ones the invoice has. */
 export const invoiceFacts = (invoice: Invoice): Array<{ label: string; value: string }> => {
@@ -41,23 +48,23 @@ export const invoiceFacts = (invoice: Invoice): Array<{ label: string; value: st
     .filter(Boolean)
     .join(", ");
   const facts: Array<{ label: string; value: string | undefined }> = [
-    { label: "Von", value: seller },
-    { label: "An", value: invoice.buyer },
-    { label: "Netto", value: money(invoice.net, currency) },
-    { label: "Umsatzsteuer", value: money(invoice.tax, currency) },
-    { label: "Gesamt", value: money(invoice.gross, currency) },
+    { label: m.invoice_from(), value: seller },
+    { label: m.invoice_to(), value: invoice.buyer },
+    { label: m.invoice_net(), value: money(invoice.net, currency) },
+    { label: m.invoice_vat(), value: money(invoice.tax, currency) },
+    { label: m.invoice_total(), value: money(invoice.gross, currency) },
     {
-      label: "Zu zahlen",
+      label: m.invoice_due(),
       value:
         invoice.duePayable !== invoice.gross || invoice.dueDate
-          ? `${money(invoice.duePayable, currency)}${invoice.dueDate ? ` bis ${germanDate(invoice.dueDate)}` : ""}`
+          ? dueText(money(invoice.duePayable, currency), invoice.dueDate)
           : undefined,
     },
-    { label: "IBAN", value: invoice.iban && groupedIban(invoice.iban) },
-    { label: "Verwendungszweck", value: invoice.paymentReference },
-    { label: "USt-IdNr.", value: invoice.seller.vatId },
+    { label: m.invoice_iban(), value: invoice.iban && groupedIban(invoice.iban) },
+    { label: m.invoice_payment_reference(), value: invoice.paymentReference },
+    { label: m.invoice_vat_id(), value: invoice.seller.vatId },
     {
-      label: "Leistung",
+      label: m.invoice_service(),
       value:
         invoice.serviceFrom &&
         (invoice.serviceTo && invoice.serviceTo !== invoice.serviceFrom

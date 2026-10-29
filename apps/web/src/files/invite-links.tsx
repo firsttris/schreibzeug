@@ -6,13 +6,18 @@ import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { fileKeys } from "../api/files";
 import { formatDay } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { RoleSelect, selectClass } from "./role-select";
 
 type Days = (typeof INVITE_DAYS)[number];
 
-const DAYS_LABEL: Record<Days, string> = { 1: "1 Tag", 7: "7 Tage", 30: "30 Tage" };
-const ROLE_TEXT: Record<ShareRole, string> = { edit: "Bearbeiten", view: "Ansehen" };
+const daysLabel = (days: Days): string =>
+  days === 1 ? m.invite_links_days_one() : m.invite_links_days_other({ count: String(days) });
+const ROLE_TEXT: Record<ShareRole, () => string> = {
+  edit: m.invite_links_role_edit,
+  view: m.invite_links_role_view,
+};
 
 /** Where a link leads: the invitation page of this web app (router.tsx /invite/$token). */
 export const inviteUrl = (token: string): string => `${window.location.origin}/invite/${token}`;
@@ -23,7 +28,7 @@ const CopyButton = ({ url }: { url: string }) => {
   return (
     <Button
       variant="ghost"
-      aria-label="Link kopieren"
+      aria-label={m.invite_links_copy()}
       onClick={async () => {
         await navigator.clipboard.writeText(url);
         setCopied(true);
@@ -57,19 +62,22 @@ export const InviteLinks = ({ node }: { node: FileNode }) => {
   const failure = create.error ?? remove.error ?? links.error;
 
   return (
-    <section aria-label="Links" className="flex flex-col gap-2 border-t border-[var(--border)] pt-4">
-      <span className="text-sm font-medium">Mit Link einladen</span>
+    <section
+      aria-label={m.invite_links_label()}
+      className="flex flex-col gap-2 border-t border-[var(--border)] pt-4"
+    >
+      <span className="text-sm font-medium">{m.invite_links_title()}</span>
       <div className="flex gap-2">
-        <RoleSelect value={role} label="Recht des Links" onChange={setRole} />
+        <RoleSelect value={role} label={m.invite_links_role()} onChange={setRole} />
         <select
-          aria-label="Gültig"
+          aria-label={m.invite_links_valid()}
           value={days}
           onChange={(event) => setDays(Number(event.target.value) as Days)}
           className={selectClass}
         >
           {INVITE_DAYS.map((value) => (
             <option key={value} value={value}>
-              {DAYS_LABEL[value]}
+              {daysLabel(value)}
             </option>
           ))}
         </select>
@@ -80,7 +88,7 @@ export const InviteLinks = ({ node }: { node: FileNode }) => {
           onClick={() => create.mutate()}
         >
           <Link2 size={15} />
-          Link erstellen
+          {m.invite_links_create()}
         </Button>
       </div>
       {failure && (
@@ -89,25 +97,25 @@ export const InviteLinks = ({ node }: { node: FileNode }) => {
         </p>
       )}
       {links.data && links.data.length > 0 && (
-        <ul aria-label="Aktive Links" className="m-0 flex list-none flex-col gap-1 p-0">
+        <ul aria-label={m.invite_links_active()} className="m-0 flex list-none flex-col gap-1 p-0">
           {links.data.map((link) => (
             <li key={link.token} data-invite={link.token} className="flex items-center gap-2">
               <span className="flex min-w-0 flex-1 flex-col">
                 <input
                   readOnly
-                  aria-label="Link"
+                  aria-label={m.invite_links_link()}
                   value={inviteUrl(link.token)}
                   onFocus={(event) => event.currentTarget.select()}
                   className="h-8 min-w-0 rounded-md border border-[var(--border)] bg-[var(--muted)] px-2 font-mono text-xs outline-none"
                 />
                 <span className="text-xs text-[var(--muted-foreground)]">
-                  {ROLE_TEXT[link.role]} · gilt bis {formatDay(link.expiresAt)}
+                  {m.invite_links_summary({ role: ROLE_TEXT[link.role](), date: formatDay(link.expiresAt) })}
                 </span>
               </span>
               <CopyButton url={inviteUrl(link.token)} />
               <Button
                 variant="ghost"
-                aria-label="Link löschen"
+                aria-label={m.invite_links_delete()}
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(link.token)}
               >

@@ -24,6 +24,7 @@ bun run engine:prepare   # once, and after a change in engine/: build and E2E ne
 bunx playwright install chromium   # once: Playwright's browser for the E2E tests
 bun run lint             # Biome
 bun run typecheck        # tsc in every workspace
+bun run i18n:check       # every interface text in German and English
 bun run test             # Vitest on Bun: unit and integration tests (SQLite)
 bun run test:e2e         # Playwright with the real engine: E2E and format fidelity
 bun run build            # the web app
@@ -47,9 +48,10 @@ All scripts of the root `package.json`:
 | `engine:prepare` | The engine in `engine/dist` (`--force` to prepare it again) |
 | `build` | The web app in `apps/web/dist`, the prepared engine copied in |
 | `preview` | The built web app on http://localhost:4173, with `/api` and `/mcp` forwarded like `dev` |
-| `typecheck`, `lint` | `tsc -b`; Biome |
+| `typecheck`, `lint` | The interface texts compiled, then `tsc -b`; Biome |
+| `i18n`, `i18n:check` | Compiles the interface texts (`apps/web/messages`) with Paraglide; the same, then checks that every text is in German and English and none is left in the code (a step of its own in CI) ([interface texts](architecture.md#interface-texts)) |
 | `format` | Biome with `--write`: fixes formatting and what else it can |
-| `test`, `test:watch` | Vitest once; Vitest watching the files |
+| `test`, `test:watch` | Vitest once, including the check that every interface text is in German and English; Vitest watching the files |
 | `test:e2e` | Playwright, projects `chromium` (the specs) and `fidelity`; a spec path after it runs only that spec |
 | `test:fidelity`, `fidelity:update` | Only the format-fidelity project; the same, taking new reference pictures |
 | `screenshots` | The pictures in `docs/screenshots` (`e2e/screenshots.shot.ts`) |

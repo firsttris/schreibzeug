@@ -32,7 +32,7 @@ test.describe("files on this computer", () => {
     await openOwnFolder(page, name);
 
     const areas = page.getByRole("navigation", { name: "Bereiche" });
-    await expect(areas.getByRole("link")).toHaveText(["Dokumente", "Zuletzt"]);
+    await expect(areas.getByRole("link")).toHaveText(["Dokumente", "Zuletzt", "Einstellungen"]);
     await expect(page.getByTestId("user-name")).toBeVisible();
     await expect(page.getByRole("button", { name: "Abmelden" })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Pfad" })).toContainText(`Dokumente${name}`);
@@ -83,6 +83,16 @@ test.describe("files on this computer", () => {
     await save(page);
     const document = unzipSync(new Uint8Array(await readFile(path)))["word/document.xml"];
     expect(new TextDecoder().decode(document)).toContain("Hallo vom Computer");
+  });
+
+  test("reaches the settings to choose the language", async ({ page }, testInfo) => {
+    await openOwnFolder(page, folderName(testInfo.title));
+    await page
+      .getByRole("navigation", { name: "Bereiche" })
+      .getByRole("link", { name: "Einstellungen", exact: true })
+      .click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Einstellungen");
+    await expect(page.getByRole("combobox", { name: "Sprache" })).toBeVisible();
   });
 
   test("renames a file on disk", async ({ page }, testInfo) => {

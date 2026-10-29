@@ -46,7 +46,7 @@ Hono's WebSocket upgrade, so access checks for files and editing sessions live i
 Routes are defined in code (`src/router.tsx`): `/login` signs in or creates an account; every
 other page needs a session ([accounts](accounts.md)). `/` and `/folders/:id` list a folder, `/recent`,
 `/shared` (what others shared, [sharing](accounts.md#sharing)) and `/trash` the other views,
-`/settings` the storage the files take and the access tokens for MCP clients ([files](files.md#storage), [MCP server](mcp.md); in local mode it has nothing to set), `/invite/:token` a link someone shared (readable before signing in), `/edit/:id` opens a file in its editor with the whole window
+`/settings` the language of the interface, the storage the files take and the access tokens for MCP clients ([files](files.md#storage), [MCP server](mcp.md); in local mode only the language), `/invite/:token` a link someone shared (readable before signing in), `/edit/:id` opens a file in its editor with the whole window
 (`src/editor/`: the word view for .docx, the sheet view for .xlsx, the slide view for .pptx, the PDF view for .pdf, the text view for .md and .txt, sharing
 the header with the editable name, the menu bar, status, versions, download and save). Reads go
 through TanStack Query with the keys in `src/api/files.ts`; every write refreshes all keys under
@@ -62,6 +62,38 @@ database (`e2e/server.ts`, port 3100) and the app on port 5174; beside them the 
 server with an app of its own (`e2e/local-server.ts`), and a stand-in for Kontext with a server
 signed in through it (`e2e/fake-kontext.ts`, `e2e/kontext-server.ts`; `e2e/playwright.config.ts`). Without Playwright's own browser download, an installed
 Chromium can be used: `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome bun run test:e2e`.
+
+## Interface texts
+
+The interface speaks German and English. Its texts are in `apps/web/messages/de.json` and
+`apps/web/messages/en.json` (the [inlang message format](https://inlang.com/m/reootnfj/plugin-inlang-messageFormat));
+[Paraglide JS](https://paraglidejs.com) compiles them into one typed function per message in
+`apps/web/src/paraglide` (generated, not committed): the code calls `m.share_dialog_title()` or
+`m.folder_page_deleted({ name })`, and a missing message or placeholder is a type error. The Vite
+plugin compiles on `dev` and `build`; `bun run i18n` does it alone, and `typecheck` and `test` run it
+first. `apps/web/project.inlang` holds the project: German is the base language, the format plugin
+comes from `node_modules` (not from a CDN, so the build works offline), and `paraglide.config.js`
+sets how the language is chosen: the one picked under **Settings → Language** (localStorage
+`schreibzeug.locale`), else the browser's, else German. Changing it loads the page anew.
+
+A key starts with the file that uses it (`word_menus_undo` in `word-menus.ts`); a few texts many
+files share are `common_*`. Shortcuts are written with English key names and shown in the
+interface's language (`apps/web/src/lib/keys.ts`: `keys("Ctrl+Z")` is "Strg+Z" in German).
+`packages/editor-core` stays without Paraglide: the texts the engine draws itself and the screen
+reader's words come from the app as data. Words read from documents stay German whatever the
+interface says (an invoice's "Rechnungsnummer"), as does what the agent tools say. Not translated
+yet: what the server answers (its error messages), the checks the server shares with the app
+(`packages/files-api` names, `packages/einvoice` and `packages/pdf-sign` problems) and the names of
+the built-in templates (`packages/ooxml`), which are German documents.
+
+`apps/web/i18n.test.ts` keeps it that way in `bun run test`, and with it in CI: both languages
+carry the same messages with the same placeholders, none is empty, every message is used, and no
+text is written in the code. That last check (`apps/web/i18n-check.ts`) finds JSX text, the
+attributes and fields that hold labels (`aria-label`, `title`, `placeholder`, `label`, …) and
+string literals with German letters or words; a literal that is data, not text, carries an
+`// i18n-ignore` comment saying why. `bun apps/web/i18n-check.ts [file …]` lists what it finds.
+Unit tests read the German texts (`apps/web/vitest.setup.ts`), the E2E specs run in a German browser
+(`locale: "de-DE"` in `e2e/playwright.config.ts`).
 
 ## Screenshots
 

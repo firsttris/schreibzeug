@@ -1,3 +1,4 @@
+import { m } from "../paraglide/messages";
 import type { PdfActions } from "./file-menu";
 import { downloadPdf, pdfaNameFor, printPdf } from "./pdf";
 
@@ -15,13 +16,11 @@ export const usePdf = (
   const exportPdf = editor?.exportPdf;
   if (!exportPdf) return null;
   const make = async (use: (bytes: Uint8Array) => void, pdfa = false) => {
-    notify(pdfa ? "PDF/A wird erstellt …" : "PDF wird erstellt …");
+    notify(pdfa ? m.use_pdf_making_pdfa() : m.use_pdf_making_pdf());
     try {
       use(await exportPdf(pdfa));
     } catch (error) {
-      notify(
-        `Das PDF konnte nicht erstellt werden: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      notify(m.use_pdf_failed({ error: error instanceof Error ? error.message : String(error) }));
     }
   };
   return {

@@ -1,5 +1,6 @@
 import type { PdfEditor } from "@schreibzeug/editor-core";
 import { useEffect, useState } from "react";
+import { m } from "../paraglide/messages";
 import { createRecognizer, loadPdfOcr, makeSearchable, OCR_DPI, type OcrStep } from "./ocr";
 import { OcrDialog } from "./ocr-dialog";
 
@@ -42,8 +43,8 @@ export const useOcr = ({ editor, bytes, readOnly, onReplace, signed }: UseOcr) =
   const scanned = useScanned(bytes);
 
   const run = async (onStep: (step: OcrStep) => void): Promise<string | null> => {
-    if (!editor || !onReplace) return "Hier lässt sich kein Text erkennen.";
-    if (signed) return "Das PDF ist digital signiert; eine Textebene würde die Signatur ungültig machen.";
+    if (!editor || !onReplace) return m.use_ocr_unavailable();
+    if (signed) return m.use_ocr_signed();
     try {
       const saved = await editor.save();
       const result = await makeSearchable({
@@ -56,7 +57,7 @@ export const useOcr = ({ editor, bytes, readOnly, onReplace, signed }: UseOcr) =
       await onReplace(result.pdf);
       return null;
     } catch (error) {
-      return `Der Text konnte nicht erkannt werden: ${error instanceof Error ? error.message : String(error)}`;
+      return m.use_ocr_failed({ error: error instanceof Error ? error.message : String(error) });
     }
   };
 

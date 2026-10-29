@@ -29,6 +29,7 @@ import {
   Underline,
   Undo2,
 } from "lucide-react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Choice } from "./choice";
 import { ColorPicker } from "./color-picker";
@@ -37,10 +38,10 @@ import { styleLabel } from "./style-labels";
 import { TableMenu } from "./table-menu";
 
 const aligns: Array<{ value: Align; label: string; icon: LucideIcon }> = [
-  { value: "left", label: "Linksbündig", icon: AlignLeft },
-  { value: "center", label: "Zentriert", icon: AlignCenter },
-  { value: "right", label: "Rechtsbündig", icon: AlignRight },
-  { value: "justify", label: "Blocksatz", icon: AlignJustify },
+  { value: "left", label: m.toolbar_align_left(), icon: AlignLeft },
+  { value: "center", label: m.toolbar_align_center(), icon: AlignCenter },
+  { value: "right", label: m.toolbar_align_right(), icon: AlignRight },
+  { value: "justify", label: m.toolbar_justify(), icon: AlignJustify },
 ];
 
 const Separator = () => <span aria-hidden="true" className="mx-1.5 h-5 w-px bg-[var(--border)]" />;
@@ -83,16 +84,16 @@ export const Toolbar = ({
   const run = (command: (commands: TextCommands) => void) => () => commands && command(commands);
 
   const marks: Toggle[] = [
-    { label: "Fett", icon: Bold, pressed: text.bold, run: run((c) => c.toggleBold()) },
-    { label: "Kursiv", icon: Italic, pressed: text.italic, run: run((c) => c.toggleItalic()) },
+    { label: m.common_bold(), icon: Bold, pressed: text.bold, run: run((c) => c.toggleBold()) },
+    { label: m.common_italic(), icon: Italic, pressed: text.italic, run: run((c) => c.toggleItalic()) },
     {
-      label: "Unterstrichen",
+      label: m.common_underline(),
       icon: Underline,
       pressed: text.underline,
       run: run((c) => c.toggleUnderline()),
     },
     {
-      label: "Durchgestrichen",
+      label: m.toolbar_strikethrough(),
       icon: Strikethrough,
       pressed: text.strikeout,
       run: run((c) => c.toggleStrikeout()),
@@ -100,13 +101,13 @@ export const Toolbar = ({
   ];
   const lists: Toggle[] = [
     {
-      label: "Aufzählung",
+      label: m.toolbar_bullets(),
       icon: List,
       pressed: paragraph.list === "bullet",
       run: run((c) => c.toggleList("bullet")),
     },
     {
-      label: "Nummerierung",
+      label: m.toolbar_numbering(),
       icon: ListOrdered,
       pressed: paragraph.list === "number",
       run: run((c) => c.toggleList("number")),
@@ -116,12 +117,12 @@ export const Toolbar = ({
   return (
     <div
       role="toolbar"
-      aria-label="Formatierung"
+      aria-label={m.toolbar_formatting()}
       className="flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-1"
     >
       <Button
         variant="ghost"
-        aria-label="Rückgängig"
+        aria-label={m.common_undo()}
         disabled={disabled || !document.canUndo}
         onClick={run((c) => c.undo())}
       >
@@ -129,7 +130,7 @@ export const Toolbar = ({
       </Button>
       <Button
         variant="ghost"
-        aria-label="Wiederholen"
+        aria-label={m.common_redo()}
         disabled={disabled || !document.canRedo}
         onClick={run((c) => c.redo())}
       >
@@ -137,7 +138,7 @@ export const Toolbar = ({
       </Button>
       <Separator />
       <Choice
-        label="Absatzvorlage"
+        label={m.toolbar_paragraph_style()}
         className="w-36"
         value={paragraph.style}
         options={catalog.styles.map((name) => ({ value: name, label: styleLabel(name) }))}
@@ -145,7 +146,7 @@ export const Toolbar = ({
         onChange={(name) => commands?.setStyle(name)}
       />
       <Choice
-        label="Schriftart"
+        label={m.toolbar_font()}
         className="ml-1 w-36"
         value={text.fontName}
         options={catalog.fonts.map((name) => ({ value: name, label: name }))}
@@ -155,7 +156,7 @@ export const Toolbar = ({
       <div className="ml-1 flex h-8 items-center rounded-md border border-[var(--border)] bg-[var(--background)]">
         <Button
           variant="ghost"
-          aria-label="Schrift verkleinern"
+          aria-label={m.toolbar_font_smaller()}
           disabled={disabled}
           onClick={run((c) => c.setFontSize(fontSize - 1))}
         >
@@ -166,7 +167,7 @@ export const Toolbar = ({
         </span>
         <Button
           variant="ghost"
-          aria-label="Schrift vergrößern"
+          aria-label={m.toolbar_font_larger()}
           disabled={disabled}
           onClick={run((c) => c.setFontSize(fontSize + 1))}
         >
@@ -186,7 +187,7 @@ export const Toolbar = ({
       />
       <Button
         variant="toggle"
-        aria-label="Format übertragen"
+        aria-label={m.toolbar_paint_format()}
         aria-pressed={state.marks.painting}
         disabled={disabled || !marking}
         onClick={() => marking?.togglePaintFormat(!state.marks.painting)}
@@ -201,16 +202,16 @@ export const Toolbar = ({
       <TableMenu inTable={paragraph.inTable} disabled={disabled} commands={commands} />
       <Button
         variant="ghost"
-        aria-label="Bild einfügen"
+        aria-label={m.toolbar_insert_image()}
         disabled={disabled || !onInsertImage}
         onClick={() => onInsertImage?.()}
       >
         <ImagePlus size={16} />
       </Button>
-      <Button variant="ghost" aria-label="Link einfügen" disabled={disabled} onClick={onInsertLink}>
+      <Button variant="ghost" aria-label={m.toolbar_insert_link()} disabled={disabled} onClick={onInsertLink}>
         <Link size={16} />
       </Button>
-      <Button variant="ghost" aria-label="Kommentar hinzufügen" disabled={disabled} onClick={onAddComment}>
+      <Button variant="ghost" aria-label={m.toolbar_add_comment()} disabled={disabled} onClick={onAddComment}>
         <MessageSquarePlus size={16} />
       </Button>
       <Separator />
@@ -227,14 +228,14 @@ export const Toolbar = ({
       <Separator />
       <Button
         variant="ghost"
-        aria-label="Alles auswählen"
+        aria-label={m.common_select_all()}
         disabled={disabled}
         onClick={run((c) => c.selectAll())}
       >
         <TextSelect size={16} />
       </Button>
       <ToggleButton
-        label="Änderungen nachverfolgen"
+        label={m.toolbar_track_changes()}
         icon={FilePenLine}
         pressed={state.review.tracking}
         run={() => review?.setTracking(!state.review.tracking)}

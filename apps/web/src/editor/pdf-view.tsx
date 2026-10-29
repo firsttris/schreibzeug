@@ -1,6 +1,7 @@
 import { initialPdfState, openPdfDocument } from "@schreibzeug/editor-core";
 import type { SignatureCheck } from "@schreibzeug/pdf-sign";
 import { useEffect, useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 import { PdfToolbar } from "../toolbar/pdf-toolbar";
 import { ContextMenu } from "../ui/context-menu";
 import { clipboardHint } from "./common-menus";
@@ -90,9 +91,8 @@ export const PdfView = ({
 
   /** Signs what is saved now, stores it as the newest version and opens that (the edit page). */
   const signDigitally = async (request: SigningRequest): Promise<string | null> => {
-    if (!editor || !onReplace) return "Das PDF kann hier nicht signiert werden.";
-    if (checks.length > 0)
-      return "Das PDF ist bereits digital signiert; eine zweite Signatur kann Schreibzeug noch nicht hinzufügen.";
+    if (!editor || !onReplace) return m.pdf_view_cannot_sign();
+    if (checks.length > 0) return m.pdf_view_already_signed();
     const { readIdentity, signPdf } = await loadPdfSign();
     const identity = await readIdentity(request.certificate, request.password);
     if (!identity.ok) return identity.error;
@@ -107,13 +107,13 @@ export const PdfView = ({
       await onReplace(signed.value);
       return null;
     } catch (error) {
-      return `Das signierte PDF konnte nicht gespeichert werden: ${error instanceof Error ? error.message : String(error)}`;
+      return m.pdf_view_sign_save_failed({ error: error instanceof Error ? error.message : String(error) });
     }
   };
 
   const appendPdf = async (picked: File) => {
     const bytes = new Uint8Array(await picked.arrayBuffer());
-    if (!isPdf(bytes)) return chrome.notify(`„${picked.name}“ ist keine PDF-Datei.`);
+    if (!isPdf(bytes)) return chrome.notify(m.pdf_view_not_pdf({ name: picked.name }));
     editor?.pages.append(bytes, "end");
   };
   const pages = editor?.pages;
@@ -123,10 +123,13 @@ export const PdfView = ({
           const label = pagesLabel(pages.selected());
           try {
             const saved = await onCreateFile(`${baseName(name)} – ${label}.pdf`, pages.extract(), MIME.pdf);
-            chrome.notify(`${label} als „${saved}“ gespeichert.`);
+            chrome.notify(m.pdf_view_pages_saved({ pages: label, name: saved }));
           } catch (error) {
             chrome.notify(
-              `${label} konnten nicht gespeichert werden: ${error instanceof Error ? error.message : String(error)}`,
+              m.pdf_view_pages_failed({
+                pages: label,
+                error: error instanceof Error ? error.message : String(error),
+              }),
             );
           }
         }
@@ -197,8 +200,10 @@ export const PdfView = ({
         data-testid="pdf-position"
         className="m-0 border-t border-[var(--border)] px-4 py-1.5 text-xs text-[var(--muted-foreground)]"
       >
-        Seite {Math.min(state.currentPage + 1, Math.max(state.document.pages, 1))} von{" "}
-        {Math.max(state.document.pages, 1)}
+        {m.pdf_view_position({
+          page: Math.min(state.currentPage + 1, Math.max(state.document.pages, 1)),
+          pages: Math.max(state.document.pages, 1),
+        })}
       </p>
       <input
         ref={appendInput}
@@ -225,7 +230,7 @@ export const PdfView = ({
         <ContextMenu
           x={chrome.menuAt.x}
           y={chrome.menuAt.y}
-          label="Kontextmenü"
+          label={m.pdf_view_context_menu()}
           groups={pdfContextMenu(context, chrome.menuAt.area)}
           onClose={chrome.closeMenu}
         />

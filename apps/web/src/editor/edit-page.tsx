@@ -5,6 +5,7 @@ import { messageOf } from "../api/client";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
 import { type EditorOf, editorOf, isLegacyFile, isTextFile, kindOf } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { ConvertPage } from "./convert-page";
 import type { OpenedFile } from "./opened-file";
 import { Failure, Loading } from "./page-states";
@@ -93,8 +94,7 @@ const OpenedPage = ({ fileId, file, node, onRestored }: OpenedPageProps) => {
     return <ConvertPage file={file} name={node?.name ?? file.name} onClose={() => void page.close()} />;
   }
   const editor = editorOf(kindOf({ kind: "file", name: file.name }));
-  if (!editor || editor === "text")
-    return <Failure message="Diese Datei kann Schreibzeug noch nicht bearbeiten." />;
+  if (!editor || editor === "text") return <Failure message={m.edit_page_unsupported()} />;
   const View = VIEWS[editor];
   return (
     <>

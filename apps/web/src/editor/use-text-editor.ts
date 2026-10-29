@@ -5,6 +5,7 @@ import {
   type TextViewMode,
 } from "@schreibzeug/text-editor";
 import { type RefObject, useEffect, useRef, useState } from "react";
+import { textEditorTexts } from "./engine-texts";
 
 const INITIAL_STATE: TextEditorState = {
   modified: false,
@@ -50,6 +51,7 @@ export const useTextEditor = (
       onChange: setState,
       onText: (next) => setCurrent((previous) => ({ text: next, revision: previous.revision + 1 })),
       onSave: () => save.current(),
+      texts: textEditorTexts(),
     });
     setEditor(created);
     setState(created.state());

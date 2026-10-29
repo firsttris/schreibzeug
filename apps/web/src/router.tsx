@@ -19,6 +19,7 @@ import { FolderPage } from "./files/folder-page";
 import { RecentPage } from "./files/recent-page";
 import { SharedPage } from "./files/shared-page";
 import { TrashPage } from "./files/trash-page";
+import { m } from "./paraglide/messages";
 import { SettingsPage } from "./settings/settings-page";
 import { Shell } from "./shell";
 
@@ -64,8 +65,8 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
   ),
   notFoundComponent: () => (
     <div className="flex flex-col items-start gap-3 p-8 text-sm">
-      <p className="m-0">Diese Seite gibt es nicht.</p>
-      <Link to="/">Zu meinen Dateien</Link>
+      <p className="m-0">{m.router_not_found()}</p>
+      <Link to="/">{m.router_to_my_files()}</Link>
     </div>
   ),
 });

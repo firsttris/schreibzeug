@@ -1,5 +1,6 @@
 import { initialSheetState, isOnSheet, openSheetDocument } from "@schreibzeug/editor-core";
 import { useEffect, useRef, useState } from "react";
+import { m } from "../paraglide/messages";
 import { ColumnFilter, useColumnFilter } from "../sheets/column-filter";
 import { DropdownDialog } from "../sheets/dropdown-dialog";
 import { PivotDialog } from "../sheets/pivot-dialog";
@@ -27,9 +28,6 @@ import { useCommentsPanel } from "./use-comments-panel";
 import { useDocumentSave } from "./use-document-save";
 import { useEditorChrome } from "./use-editor-chrome";
 import { useEngineEditor } from "./use-engine-editor";
-
-const CSV_NOTICE =
-  "CSV-Datei: Gespeichert werden nur die Werte des ersten Blatts, ohne Formatierung und Formeln.";
 
 /** A spreadsheet: title and menus, the toolbar above the grid (with the formula bar), the sheets below. */
 export const SheetView = ({
@@ -91,7 +89,7 @@ export const SheetView = ({
   // What a CSV keeps, said once it is open, as Excel warns when saving one.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per opened editor
   useEffect(() => {
-    if (editor && format === "csv" && !file.readOnly) chrome.notify(CSV_NOTICE);
+    if (editor && format === "csv" && !file.readOnly) chrome.notify(m.sheet_view_csv_notice());
   }, [editor]);
 
   const context: SheetMenuContext = {
@@ -127,7 +125,7 @@ export const SheetView = ({
         onDownload={download}
         pdf={chrome.pdf}
         downloads={
-          format !== "csv" ? [{ label: "Als CSV herunterladen", onSelect: () => void downloadCsv() }] : []
+          format !== "csv" ? [{ label: m.sheet_view_download_csv(), onSelect: () => void downloadCsv() }] : []
         }
         menus={file.readOnly ? [] : sheetMenus(context)}
         shortcuts={SHEET_SHORTCUTS}
@@ -179,7 +177,7 @@ export const SheetView = ({
         <ContextMenu
           x={chrome.menuAt.x}
           y={chrome.menuAt.y}
-          label="Kontextmenü"
+          label={m.sheet_view_context_menu()}
           groups={sheetContextMenu(context)}
           onClose={chrome.closeMenu}
         />

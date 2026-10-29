@@ -1,6 +1,7 @@
 import type { SheetCommands, SheetTab } from "@schreibzeug/editor-core";
 import { EllipsisVertical, Plus } from "lucide-react";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { MenuButton } from "../ui/menu";
@@ -20,19 +21,23 @@ export const SheetTabs = ({ sheets, active, commands }: SheetTabsProps) => {
 
   return (
     <nav
-      aria-label="Tabellenblätter"
+      aria-label={m.sheet_tabs_label()}
       className="flex h-10 shrink-0 items-center gap-1 border-t border-[var(--border)] bg-[var(--background)] px-2"
     >
       <Button
         variant="ghost"
-        aria-label="Blatt hinzufügen"
+        aria-label={m.sheet_tabs_add()}
         disabled={disabled}
         onClick={() => commands?.add()}
       >
         <Plus size={16} />
       </Button>
       {/* Only the tabs scroll: a scrolling box would cut off the menu next to them. */}
-      <div role="tablist" aria-label="Blätter" className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label={m.sheet_tabs_tabs()}
+        className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
+      >
         {visible.map(({ name, index }) => (
           <button
             key={`${index}-${name}`}
@@ -49,19 +54,18 @@ export const SheetTabs = ({ sheets, active, commands }: SheetTabsProps) => {
         ))}
       </div>
       <MenuButton
-        label="Blatt bearbeiten"
+        label={m.sheet_tabs_menu()}
         variant="ghost"
         up
         disabled={disabled}
         groups={[
-          [{ label: "Umbenennen", onSelect: () => setRenaming(true) }],
+          [{ label: m.common_rename(), onSelect: () => setRenaming(true) }],
           [
             {
-              label: "Löschen",
+              label: m.common_delete(),
               danger: true,
               onSelect: () => {
-                if (commands && !commands.remove())
-                  setProblem("Das letzte Blatt kann nicht gelöscht werden.");
+                if (commands && !commands.remove()) setProblem(m.sheet_tabs_last_sheet());
               },
             },
           ],
@@ -75,11 +79,11 @@ export const SheetTabs = ({ sheets, active, commands }: SheetTabsProps) => {
         onRename={(name) => commands?.rename(name) ?? false}
         onClose={() => setRenaming(false)}
       />
-      <Dialog open={problem !== null} title="Blatt löschen" onClose={() => setProblem(null)}>
+      <Dialog open={problem !== null} title={m.sheet_tabs_delete_title()} onClose={() => setProblem(null)}>
         <p className="m-0 text-sm">{problem}</p>
         <div className="flex justify-end">
           <Button variant="primary" onClick={() => setProblem(null)}>
-            OK
+            {m.common_ok()}
           </Button>
         </div>
       </Dialog>
@@ -98,7 +102,7 @@ const RenameDialog = ({
   onRename: (name: string) => boolean;
   onClose: () => void;
 }) => (
-  <Dialog open={open} title="Blatt umbenennen" onClose={onClose}>
+  <Dialog open={open} title={m.sheet_tabs_rename_title()} onClose={onClose}>
     <RenameForm key={name} name={name} onRename={onRename} onClose={onClose} />
   </Dialog>
 );
@@ -120,12 +124,11 @@ const RenameForm = ({
       onSubmit={(event) => {
         event.preventDefault();
         if (onRename(value)) onClose();
-        else
-          setError("Den Namen gibt es schon, oder er enthält : \\ / ? * [ ] oder ist länger als 31 Zeichen.");
+        else setError(m.sheet_tabs_rename_error());
       }}
     >
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Name des Blatts</span>
+        <span className="font-medium">{m.sheet_tabs_name()}</span>
         <input
           // biome-ignore lint/a11y/noAutofocus: the dialog exists to type this name
           autoFocus
@@ -146,10 +149,10 @@ const RenameForm = ({
       )}
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" type="submit">
-          Umbenennen
+          {m.common_rename()}
         </Button>
       </div>
     </form>

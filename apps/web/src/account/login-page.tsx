@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type InputHTMLAttributes, useState } from "react";
 import { useFiles } from "../api/context";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Brand } from "./brand";
 import { useAccount } from "./context";
@@ -54,7 +55,7 @@ const ProviderSignIn = ({ name, redirect }: { name: string; redirect: string | u
   return (
     <div className="flex flex-col gap-2">
       <Button disabled={busy} onClick={() => void signIn()}>
-        Anmelden mit {name}
+        {m.login_page_sign_in_with({ name })}
       </Button>
       {error && (
         <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">
@@ -63,7 +64,7 @@ const ProviderSignIn = ({ name, redirect }: { name: string; redirect: string | u
       )}
       <p className="m-0 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
         <span className="h-px flex-1 bg-[var(--border)]" />
-        oder mit E-Mail
+        {m.login_page_or_email()}
         <span className="h-px flex-1 bg-[var(--border)]" />
       </p>
     </div>
@@ -125,17 +126,16 @@ export const LoginPage = ({
       <div className="flex w-full max-w-sm flex-col gap-6">
         <Brand />
         <div className="flex flex-col gap-1">
-          <h1 className="m-0 text-xl font-semibold">{signingUp ? "Konto anlegen" : "Anmelden"}</h1>
+          <h1 className="m-0 text-xl font-semibold">
+            {signingUp ? m.login_page_sign_up() : m.login_page_sign_in()}
+          </h1>
           <p className="m-0 text-sm text-[var(--muted-foreground)]">
-            {signingUp
-              ? "Mit deinem Namen sehen dich die anderen beim Bearbeiten."
-              : "Melde dich mit deiner E-Mail an."}
+            {signingUp ? m.login_page_sign_up_hint() : m.login_page_sign_in_hint()}
           </p>
         </div>
         {connect && provider ? (
           <p role="status" className="m-0 rounded-md border border-[var(--border)] p-3 text-sm">
-            Für diese Adresse gibt es hier schon ein Konto mit Passwort. Melde dich damit an, dann wird es mit{" "}
-            {provider.name} verbunden.
+            {m.login_page_link_provider({ provider: provider.name })}
           </p>
         ) : (
           provider && !signingUp && <ProviderSignIn name={provider.name} redirect={redirect} />
@@ -148,10 +148,10 @@ export const LoginPage = ({
             void submit(new FormData(event.currentTarget));
           }}
         >
-          {signingUp && <Field label="Name" name="name" autoComplete="name" />}
-          <Field label="E-Mail" name="email" type="email" autoComplete="email" />
+          {signingUp && <Field label={m.login_page_name()} name="name" autoComplete="name" />}
+          <Field label={m.login_page_email()} name="email" type="email" autoComplete="email" />
           <Field
-            label="Passwort"
+            label={m.login_page_password()}
             name="password"
             type="password"
             minLength={signingUp ? 8 : undefined}
@@ -163,11 +163,11 @@ export const LoginPage = ({
             </p>
           )}
           <Button type="submit" variant="primary" disabled={busy}>
-            {signingUp ? "Konto anlegen" : "Anmelden"}
+            {signingUp ? m.login_page_sign_up() : m.login_page_sign_in()}
           </Button>
         </form>
         <p className="m-0 text-sm text-[var(--muted-foreground)]">
-          {signingUp ? "Schon ein Konto?" : "Noch kein Konto?"}{" "}
+          {signingUp ? m.login_page_have_account() : m.login_page_no_account()}{" "}
           <button
             type="button"
             className="cursor-pointer border-0 bg-transparent p-0 font-medium text-[var(--foreground)] underline"
@@ -176,7 +176,7 @@ export const LoginPage = ({
               setError(null);
             }}
           >
-            {signingUp ? "Anmelden" : "Konto anlegen"}
+            {signingUp ? m.login_page_sign_in() : m.login_page_sign_up()}
           </button>
         </p>
       </div>

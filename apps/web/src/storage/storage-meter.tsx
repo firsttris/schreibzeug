@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useFiles } from "../api/context";
 import { formatSize } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { DiskBar } from "./disk-bar";
 
 /**
@@ -20,11 +21,12 @@ export const StorageMeter = () => {
       data-testid="storage-meter"
       className="hidden flex-col gap-1.5 rounded-md px-2.5 py-2 text-xs text-[var(--muted-foreground)] no-underline hover:bg-[var(--muted)] md:flex"
     >
-      <span className="font-medium text-[var(--foreground)]">Speicher</span>
-      <DiskBar disk={data.disk} label="Belegter Platz auf dem Server" />
+      <span className="font-medium text-[var(--foreground)]">{m.storage_meter_title()}</span>
+      <DiskBar disk={data.disk} label={m.storage_meter_used()} />
       <span>
-        {used === null ? "" : `${formatSize(used)} deine Dateien · `}
-        {formatSize(data.disk.free)} frei
+        {used === null
+          ? m.storage_meter_free({ free: formatSize(data.disk.free) })
+          : m.storage_meter_used_free({ used: formatSize(used), free: formatSize(data.disk.free) })}
       </span>
     </Link>
   );

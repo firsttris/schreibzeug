@@ -1,6 +1,7 @@
 import type { TextCommands } from "@schreibzeug/editor-core";
 import { Table } from "lucide-react";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { type MenuItem, MenuList } from "../ui/menu";
 import { popoverPanel, usePopover } from "../ui/use-popover";
@@ -27,7 +28,7 @@ export const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
               <button
                 key={`${size.columns}x${size.rows}`}
                 type="button"
-                aria-label={`Tabelle ${size.columns} × ${size.rows}`}
+                aria-label={m.table_menu_cell(size)}
                 onPointerEnter={() => setHover(size)}
                 onFocus={() => setHover(size)}
                 onClick={() => onPick(size)}
@@ -38,7 +39,7 @@ export const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
         )}
       </div>
       <span className="text-center text-xs text-[var(--muted-foreground)] tabular-nums">
-        {hover.columns} × {hover.rows} Tabelle
+        {m.table_menu_size(hover)}
       </span>
     </div>
   );
@@ -47,15 +48,15 @@ export const SizeGrid = ({ onPick }: { onPick: (size: Size) => void }) => {
 /** Rows, columns and the table itself: for the toolbar button, the menus and the context menu. */
 export const tableActions = (run: (action: (commands: TextCommands) => void) => void): MenuItem[][] => [
   [
-    { label: "Zeile oberhalb einfügen", onSelect: () => run((c) => c.addRow("above")) },
-    { label: "Zeile unterhalb einfügen", onSelect: () => run((c) => c.addRow("below")) },
-    { label: "Spalte links einfügen", onSelect: () => run((c) => c.addColumn("left")) },
-    { label: "Spalte rechts einfügen", onSelect: () => run((c) => c.addColumn("right")) },
+    { label: m.table_menu_insert_row_above(), onSelect: () => run((c) => c.addRow("above")) },
+    { label: m.table_menu_insert_row_below(), onSelect: () => run((c) => c.addRow("below")) },
+    { label: m.table_menu_insert_column_left(), onSelect: () => run((c) => c.addColumn("left")) },
+    { label: m.table_menu_insert_column_right(), onSelect: () => run((c) => c.addColumn("right")) },
   ],
   [
-    { label: "Zeile löschen", onSelect: () => run((c) => c.deleteRow()), danger: true },
-    { label: "Spalte löschen", onSelect: () => run((c) => c.deleteColumn()), danger: true },
-    { label: "Tabelle löschen", onSelect: () => run((c) => c.deleteTable()), danger: true },
+    { label: m.table_menu_delete_row(), onSelect: () => run((c) => c.deleteRow()), danger: true },
+    { label: m.table_menu_delete_column(), onSelect: () => run((c) => c.deleteColumn()), danger: true },
+    { label: m.table_menu_delete_table(), onSelect: () => run((c) => c.deleteTable()), danger: true },
   ],
 ];
 
@@ -76,7 +77,7 @@ export const TableMenu = ({ inTable, disabled, commands }: TableMenuProps) => {
     <div ref={ref} className="relative">
       <Button
         variant="toggle"
-        aria-label="Tabelle"
+        aria-label={m.table_menu_table()}
         aria-haspopup="true"
         aria-expanded={open}
         aria-pressed={inTable}
@@ -89,7 +90,7 @@ export const TableMenu = ({ inTable, disabled, commands }: TableMenuProps) => {
         <div data-panel className={popoverPanel}>
           {inTable ? (
             <MenuList
-              label="Tabelle bearbeiten"
+              label={m.table_menu_edit_table()}
               groups={tableActions((action) => commands && action(commands))}
               onDone={close}
             />

@@ -1,6 +1,7 @@
 import type { SignatureCheck } from "@schreibzeug/pdf-sign";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -26,7 +27,7 @@ export type DigitalSignatureDialogProps = {
  * The certificate stays in the browser; only the signed PDF goes to the server.
  */
 export const DigitalSignatureDialog = ({ open, onClose, onSign }: DigitalSignatureDialogProps) => (
-  <Dialog open={open} title="Digital signieren" wide onClose={onClose}>
+  <Dialog open={open} title={m.digital_signature_title()} wide onClose={onClose}>
     {open && <SigningForm onClose={onClose} onSign={onSign} />}
   </Dialog>
 );
@@ -57,12 +58,9 @@ const SigningForm = ({ onClose, onSign }: Omit<DigitalSignatureDialogProps, "ope
 
   return (
     <form className="flex flex-col gap-4" onSubmit={(event) => void submit(event)}>
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">
-        Signiert wird der gespeicherte Stand. Das signierte PDF wird als neue Version gespeichert; jede
-        spätere Änderung macht die Signatur ungültig. Das Zertifikat verlässt den Browser nicht.
-      </p>
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.digital_signature_intro()}</p>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Zertifikat (.p12 oder .pfx)</span>
+        <span className="font-medium">{m.digital_signature_certificate()}</span>
         <input
           type="file"
           accept=".p12,.pfx,application/x-pkcs12"
@@ -71,7 +69,7 @@ const SigningForm = ({ onClose, onSign }: Omit<DigitalSignatureDialogProps, "ope
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Passwort des Zertifikats</span>
+        <span className="font-medium">{m.digital_signature_password()}</span>
         <input
           className={inputClass}
           type="password"
@@ -81,16 +79,16 @@ const SigningForm = ({ onClose, onSign }: Omit<DigitalSignatureDialogProps, "ope
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Grund</span>
+        <span className="font-medium">{m.digital_signature_reason()}</span>
         <input
           className={inputClass}
           value={reason}
-          placeholder="z. B. Auftrag bestätigt"
+          placeholder={m.digital_signature_reason_placeholder()}
           onChange={(event) => setReason(event.target.value)}
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Ort</span>
+        <span className="font-medium">{m.digital_signature_location()}</span>
         <input
           className={inputClass}
           value={location}
@@ -104,10 +102,10 @@ const SigningForm = ({ onClose, onSign }: Omit<DigitalSignatureDialogProps, "ope
       )}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" type="button" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button variant="primary" type="submit" disabled={!file || busy}>
-          {busy ? "Signiert …" : "Signieren"}
+          {busy ? m.digital_signature_signing() : m.digital_signature_sign()}
         </Button>
       </div>
     </form>
@@ -116,20 +114,19 @@ const SigningForm = ({ onClose, onSign }: Omit<DigitalSignatureDialogProps, "ope
 
 /** One line per signature: who, when, why, and whether it holds. */
 export const describeSignature = (check: SignatureCheck): { ok: boolean; text: string } => {
-  const when = check.signedAt ? ` am ${dateTime.format(check.signedAt)}` : "";
-  const why = check.reason ? ` · Grund: ${check.reason}` : "";
-  const head = `Digital signiert von ${check.signer}${when}${why}`;
-  if (!check.intact) return { ok: false, text: `${head} · Signatur ungültig: ${check.problem}` };
-  if (!check.coversWholeFile) {
-    return {
-      ok: false,
-      text: `${head} · Nach dem Signieren wurde das PDF ergänzt; die Signatur deckt das nicht ab.`,
-    };
-  }
-  const trust = check.selfSigned
-    ? "selbst ausgestelltes Zertifikat, niemand bestätigt den Namen"
-    : `Zertifikat von ${check.issuer}, die Vertrauenskette prüft Schreibzeug nicht`;
-  return { ok: true, text: `${head} · Signatur gültig (${trust})` };
+  const { signer } = check;
+  const who = check.signedAt
+    ? m.digital_signature_signed_by_at({ signer, date: dateTime.format(check.signedAt) })
+    : m.digital_signature_signed_by({ signer });
+  const head = check.reason ? `${who} · ${m.digital_signature_reason_of({ reason: check.reason })}` : who;
+  const line = (status: string) => `${head} · ${status}`;
+  if (!check.intact)
+    return { ok: false, text: line(m.digital_signature_invalid({ problem: check.problem ?? "" })) };
+  if (!check.coversWholeFile) return { ok: false, text: line(m.digital_signature_extended()) };
+  const valid = check.selfSigned
+    ? m.digital_signature_valid_self_signed()
+    : m.digital_signature_valid_issuer({ issuer: check.issuer });
+  return { ok: true, text: line(valid) };
 };
 
 export type SignatureNoticeProps = {
@@ -159,11 +156,7 @@ export const SignatureNotice = ({ checks, modified }: SignatureNoticeProps) => {
           </p>
         );
       })}
-      {modified && (
-        <p className="m-0 text-red-600 dark:text-red-400">
-          Das PDF wird geändert: Beim Speichern wird die Signatur ungültig.
-        </p>
-      )}
+      {modified && <p className="m-0 text-red-600 dark:text-red-400">{m.digital_signature_modified()}</p>}
     </div>
   );
 };

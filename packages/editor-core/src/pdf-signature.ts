@@ -1,3 +1,4 @@
+import type { EngineTexts } from "./engine-texts";
 import { type PdfColor, rgbOf } from "./pdf-color";
 import type { PdfEngineApi, PdfWindow } from "./pdf-types";
 
@@ -86,14 +87,15 @@ export const addInkSignature = (
   api: PdfEngineApi,
   strokes: Stroke[],
   color: PdfColor,
+  texts: Pick<EngineTexts, "signatureEmpty" | "signatureNoPage">,
 ): void => {
   const drawing = boundsOf(strokes);
-  if (!drawing) throw new Error("Die Unterschrift ist leer.");
+  if (!drawing) throw new Error(texts.signatureEmpty);
   const doc = api.getPDFDoc();
   const viewer = doc.Viewer;
   const page = viewer.currentPage;
   const native = viewer.file.pages[page];
-  if (!native) throw new Error("Keine Seite für die Unterschrift.");
+  if (!native) throw new Error(texts.signatureNoPage);
   const place = signaturePlace({ width: native.W, height: native.H }, viewer.getViewingRect(page), drawing);
   const pen = SIGNATURE_PEN / 2;
   const now = Date.now();

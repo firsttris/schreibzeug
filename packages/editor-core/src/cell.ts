@@ -34,10 +34,9 @@ import {
   openDocument,
 } from "./document";
 import { withoutCustomFunctions } from "./document-scripts";
-import { CELL_TEXTS } from "./engine-texts";
+import { textsOf } from "./engine-texts";
 import type { CellEngineApi, CellEventArgs, CellWindow, EngineWindow } from "./engine-types";
 import { uniqueSorted } from "./events";
-import { SPEECH_TEXTS } from "./screen-reader";
 import type { SearchCommands } from "./search";
 import {
   type ContextMenuListener,
@@ -141,12 +140,12 @@ const cellBinding: EditorBinding<
   >
 > = {
   format: EDITOR_FORMAT.cell,
-  createApi: (win) => {
+  createApi: (win, options) => {
     // The same options as web-apps (spreadsheeteditor/mobile Main.jsx), with our formula bar.
     const api = new win.Asc.spreadsheet_api({
       "id-view": "editor_sdk",
       "id-input": FORMULA_INPUT_ID,
-      translate: { ...CELL_TEXTS, ...SPEECH_TEXTS },
+      translate: textsOf(options).translate,
     });
     api.asc_setFontRenderingMode(fontRenderingMode(win.devicePixelRatio));
     // Stored until the full API has loaded (cell/api.js asc_setLocale, tmpLCID).
@@ -219,7 +218,7 @@ const cellBinding: EditorBinding<
       onFilter: filter.add,
       charts: createChartCommands(api, win.Asc),
       rules: createRuleCommands(api, win.Asc),
-      pivots: createPivotCommands(api, win.Asc, refreshData),
+      pivots: createPivotCommands(api, win.Asc, refreshData, textsOf(options).pivotValueName),
       data: createDataCommands(api, win.Asc, () => {
         for (const delay of DATA_REFRESH_DELAYS) win.setTimeout(refreshData, delay);
       }),

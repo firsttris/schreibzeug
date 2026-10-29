@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createSlideShow, END_MESSAGE, hideShowElement, SLIDE_SHOW_ELEMENT } from "../src/slide-show";
+import { createSlideShow, hideShowElement, SLIDE_SHOW_ELEMENT } from "../src/slide-show";
+
+const END_MESSAGE = "Ende der Bildschirmpräsentation. Zum Beenden klicken.";
 
 const recording = () => {
   const calls: unknown[][] = [];
@@ -21,6 +23,7 @@ const recording = () => {
       DemonstrationEndShowMessage: record("endMessage"),
     },
     page,
+    END_MESSAGE,
   );
   return { calls, element, page, show };
 };

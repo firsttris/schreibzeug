@@ -4,6 +4,7 @@ import { FileOutput } from "lucide-react";
 import { useState } from "react";
 import { useFiles } from "../api/context";
 import { refreshFiles } from "../api/files";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { copyNameFor, legacyPlanOf } from "./convert";
 import { newConverter } from "./engine";
@@ -47,24 +48,20 @@ export const ConvertPage = ({ file, name, onClose }: ConvertPageProps) => {
       await refreshFiles(queryClient);
       await navigate({ to: "/edit/$fileId", params: { fileId: created.id } });
     } catch (error) {
-      setFailure(
-        `Die Datei ließ sich nicht umwandeln: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      setFailure(m.convert_page_failed({ error: error instanceof Error ? error.message : String(error) }));
       setBusy(false);
     } finally {
       converter.terminate();
     }
   };
 
+  const explain = file.owned ? m.convert_page_explain_beside : m.convert_page_explain_yours;
+
   return (
     <div className="mx-auto flex max-w-xl flex-col items-start gap-4 p-8 text-sm">
       <FileOutput size={28} className="text-[var(--muted-foreground)]" aria-hidden />
       <h1 className="m-0 text-lg font-semibold">{name}</h1>
-      <p className="m-0">
-        Diese Datei ist im älteren Format {plan.label}. Schreibzeug bearbeitet sie als .{plan.to}: Es legt
-        eine Kopie als .{plan.to} {file.owned ? "daneben" : "in deinen Dateien"} an und öffnet sie. „{name}“
-        selbst bleibt, wie es ist.
-      </p>
+      <p className="m-0">{explain({ format: plan.label, to: plan.to, name })}</p>
       {failure && (
         <p role="alert" className="m-0 text-red-600 dark:text-red-400">
           {failure}
@@ -72,10 +69,10 @@ export const ConvertPage = ({ file, name, onClose }: ConvertPageProps) => {
       )}
       <div className="flex gap-2">
         <Button variant="primary" disabled={busy} onClick={() => void convert()}>
-          {busy ? "Wird umgewandelt …" : `Als .${plan.to} öffnen`}
+          {busy ? m.convert_page_converting() : m.convert_page_open_as({ to: plan.to })}
         </Button>
         <Button variant="ghost" onClick={onClose}>
-          Zurück
+          {m.common_back()}
         </Button>
       </div>
     </div>

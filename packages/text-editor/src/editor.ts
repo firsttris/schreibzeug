@@ -29,7 +29,6 @@ import {
   toggleLinePrefix,
 } from "./commands";
 import { livePreview } from "./live-preview";
-import { GERMAN_PHRASES } from "./phrases";
 
 /**
  * A Markdown or plain text file in CodeMirror 6, without a UI framework: the interface around it
@@ -68,6 +67,32 @@ export type TextEditorOptions = {
   onText?: (text: string) => void;
   /** Ctrl+S, before the browser's own "save page". */
   onSave?: () => void;
+  /** The words it shows, in the interface's language; English without them. */
+  texts?: TextEditorTexts;
+};
+
+/** What the editor puts in front of a person; the app gives them from its messages. */
+export type TextEditorTexts = {
+  /** CodeMirror's own words (search panel, announcements) by their English key; missing ones stay English. */
+  phrases: Record<string, string>;
+  /** Shown in an empty text: a plain one and a Markdown one. */
+  placeholder: string;
+  markdownPlaceholder: string;
+  /** The text's accessible name. */
+  label: string;
+  /** The language the browser checks the spelling in. */
+  lang: string;
+};
+
+/** CodeMirror's own language, where the app gives no texts. */
+const ENGLISH_TEXTS: TextEditorTexts = {
+  phrases: {},
+  // i18n-ignore: the package's English default; the app passes its texts from its messages
+  placeholder: "Start writing…",
+  markdownPlaceholder: "Start writing… Markdown such as **bold** or # Heading works too.",
+  // i18n-ignore: as above
+  label: "Text",
+  lang: "en",
 };
 
 /** Styles the Markdown by its syntax; text-view.css gives the classes their look. */
@@ -96,6 +121,7 @@ export const createTextEditor = ({
   onChange = () => {},
   onText = () => {},
   onSave = () => {},
+  texts = ENGLISH_TEXTS,
 }: TextEditorOptions) => {
   let saved: Text | null = null;
   const presentation = new Compartment();
@@ -122,7 +148,7 @@ export const createTextEditor = ({
         history(),
         drawSelection(),
         EditorView.lineWrapping,
-        EditorState.phrases.of(GERMAN_PHRASES),
+        EditorState.phrases.of(texts.phrases),
         search({ top: true }),
         highlightSelectionMatches(),
         keymap.of([
@@ -147,15 +173,11 @@ export const createTextEditor = ({
           indentWithTab,
         ]),
         markdownFile ? [markdown({ base: markdownLanguage }), syntaxHighlighting(markdownStyle)] : [],
-        placeholder(
-          markdownFile
-            ? "Schreib los … Markdown wie **fett** oder # Überschrift geht auch."
-            : "Schreib los …",
-        ),
+        placeholder(markdownFile ? texts.markdownPlaceholder : texts.placeholder),
         presentation.of(modeExtension(markdownFile, mode)),
         EditorState.readOnly.of(readOnly),
         EditorView.editable.of(!readOnly),
-        EditorView.contentAttributes.of({ "aria-label": "Text", spellcheck: "true", lang: "de" }),
+        EditorView.contentAttributes.of({ "aria-label": texts.label, spellcheck: "true", lang: texts.lang }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onText(update.state.doc.toString());
           if (update.docChanged || update.selectionSet || update.focusChanged)

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { messageOf } from "../api/client";
 import { rootLabel, useFiles } from "../api/context";
 import { useFileMutation } from "../api/files";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -12,7 +13,7 @@ export type MoveDialogProps = { node: FileNode; open: boolean; onClose: () => vo
 
 /** Picks a target folder by walking the tree from where the node is, then moves it there. */
 export const MoveDialog = ({ node, open, onClose }: MoveDialogProps) => (
-  <Dialog open={open} title={`${node.name} verschieben`} onClose={onClose}>
+  <Dialog open={open} title={m.move_dialog_title({ name: node.name })} onClose={onClose}>
     {open && <FolderPicker node={node} onClose={onClose} />}
   </Dialog>
 );
@@ -34,7 +35,7 @@ const FolderPicker = ({ node, onClose }: { node: FileNode; onClose: () => void }
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-1 text-sm">
         {folderId !== null && (
-          <Button variant="ghost" aria-label="Eine Ebene höher" onClick={() => setFolderId(parentOfShown)}>
+          <Button variant="ghost" aria-label={m.move_dialog_up()} onClick={() => setFolderId(parentOfShown)}>
             <ChevronLeft size={16} />
           </Button>
         )}
@@ -43,15 +44,17 @@ const FolderPicker = ({ node, onClose }: { node: FileNode; onClose: () => void }
         </span>
       </div>
       <ul className="m-0 flex max-h-64 min-h-24 list-none flex-col overflow-y-auto rounded-md border border-[var(--border)] p-1">
-        {listing.isPending && <li className="p-2 text-sm text-[var(--muted-foreground)]">Lädt …</li>}
+        {listing.isPending && (
+          <li className="p-2 text-sm text-[var(--muted-foreground)]">{m.move_dialog_loading()}</li>
+        )}
         {listing.data && folders.length === 0 && (
-          <li className="p-2 text-sm text-[var(--muted-foreground)]">Keine Unterordner</li>
+          <li className="p-2 text-sm text-[var(--muted-foreground)]">{m.move_dialog_no_subfolders()}</li>
         )}
         {folders.map((folder) => (
           <li key={folder.id}>
             <button
               type="button"
-              aria-label={`Ordner ${folder.name} öffnen`}
+              aria-label={m.move_dialog_open_folder({ name: folder.name })}
               onClick={() => setFolderId(folder.id)}
               className="flex h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-[var(--muted)]"
             >
@@ -69,7 +72,7 @@ const FolderPicker = ({ node, onClose }: { node: FileNode; onClose: () => void }
       )}
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          Abbrechen
+          {m.common_cancel()}
         </Button>
         <Button
           variant="primary"
@@ -79,7 +82,7 @@ const FolderPicker = ({ node, onClose }: { node: FileNode; onClose: () => void }
             onClose();
           }}
         >
-          Hierher verschieben
+          {m.move_dialog_move_here()}
         </Button>
       </div>
     </div>

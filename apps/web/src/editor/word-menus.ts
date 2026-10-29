@@ -10,6 +10,8 @@ import type {
   TextCommands,
   ViewCommands,
 } from "@schreibzeug/editor-core";
+import { keys } from "../lib/keys";
+import { m } from "../paraglide/messages";
 import { tableActions } from "../toolbar/table-menu";
 import type { MenuItem } from "../ui/menu";
 import type { Menu } from "../ui/menu-bar";
@@ -65,18 +67,18 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
 
   return [
     {
-      label: "Bearbeiten",
+      label: m.common_edit(),
       groups: [
         [
           {
-            label: "Rückgängig",
-            shortcut: "Strg+Z",
+            label: m.common_undo(),
+            shortcut: keys("Ctrl+Z"),
             disabled: off || !document.canUndo,
             onSelect: run((c) => c.undo()),
           },
           {
-            label: "Wiederholen",
-            shortcut: "Strg+Y",
+            label: m.common_redo(),
+            shortcut: keys("Ctrl+Y"),
             disabled: off || !document.canRedo,
             onSelect: run((c) => c.redo()),
           },
@@ -84,8 +86,8 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         clipboardItems(view, context.onClipboardRefused),
         [
           {
-            label: "Alles auswählen",
-            shortcut: "Strg+A",
+            label: m.common_select_all(),
+            shortcut: keys("Ctrl+A"),
             disabled: off,
             onSelect: run((c) => c.selectAll()),
           },
@@ -94,32 +96,40 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
       ],
     },
     {
-      label: "Ansicht",
+      label: m.common_view(),
       groups: [
         ...zoomGroups(view, document.zoom),
         [
-          { label: "Mobilansicht", checked: context.mobileView.on, onSelect: context.mobileView.toggle },
-          { label: "Kommentare", checked: context.commentsOpen, onSelect: context.onToggleComments },
+          {
+            label: m.word_menus_mobile_view(),
+            checked: context.mobileView.on,
+            onSelect: context.mobileView.toggle,
+          },
+          {
+            label: m.word_menus_comments(),
+            checked: context.commentsOpen,
+            onSelect: context.onToggleComments,
+          },
         ],
       ],
     },
     {
-      label: "Einfügen",
+      label: m.common_insert(),
       groups: [
         [
-          { label: "Tabelle …", disabled: off, onSelect: context.onInsertTable },
-          { label: "Link …", shortcut: "Strg+K", disabled: off, onSelect: context.onLink },
+          { label: m.word_menus_table(), disabled: off, onSelect: context.onInsertTable },
+          { label: m.word_menus_link(), shortcut: keys("Ctrl+K"), disabled: off, onSelect: context.onLink },
           {
-            label: "Bild …",
+            label: m.word_menus_image(),
             disabled: off || !context.onInsertImage,
             onSelect: () => context.onInsertImage?.(),
           },
           {
-            label: "Textfeld",
+            label: m.word_menus_text_box(),
             disabled: off || !context.insert,
             onSelect: () => context.insert?.textBox(),
           },
-          { label: "Kommentar", disabled: off, onSelect: context.onAddComment },
+          { label: m.word_menus_comment(), disabled: off, onSelect: context.onAddComment },
         ],
         ...insertGroups(
           context.insert,
@@ -132,46 +142,46 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
     },
     layoutMenu(state.page, context.layout, off),
     {
-      label: "Format",
+      label: m.common_format(),
       groups: [
         [
           {
-            label: "Fett",
-            shortcut: "Strg+B",
+            label: m.common_bold(),
+            shortcut: keys("Ctrl+B"),
             checked: text.bold,
             disabled: off,
             onSelect: run((c) => c.toggleBold()),
           },
           {
-            label: "Kursiv",
-            shortcut: "Strg+I",
+            label: m.common_italic(),
+            shortcut: keys("Ctrl+I"),
             checked: text.italic,
             disabled: off,
             onSelect: run((c) => c.toggleItalic()),
           },
           {
-            label: "Unterstrichen",
-            shortcut: "Strg+U",
+            label: m.common_underline(),
+            shortcut: keys("Ctrl+U"),
             checked: text.underline,
             disabled: off,
             onSelect: run((c) => c.toggleUnderline()),
           },
           {
-            label: "Durchgestrichen",
+            label: m.word_menus_strikeout(),
             checked: text.strikeout,
             disabled: off,
             onSelect: run((c) => c.toggleStrikeout()),
           },
           {
-            label: "Hochgestellt",
-            shortcut: "Strg+,",
+            label: m.word_menus_superscript(),
+            shortcut: keys("Ctrl+,"),
             checked: text.baseline === "superscript",
             disabled: off,
             onSelect: run((c) => c.toggleBaseline("superscript")),
           },
           {
-            label: "Tiefgestellt",
-            shortcut: "Strg+.",
+            label: m.word_menus_subscript(),
+            shortcut: keys("Ctrl+."),
             checked: text.baseline === "subscript",
             disabled: off,
             onSelect: run((c) => c.toggleBaseline("subscript")),
@@ -179,29 +189,29 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ],
         [
           {
-            label: "Linksbündig",
-            shortcut: "Strg+L",
+            label: m.word_menus_align_left(),
+            shortcut: keys("Ctrl+L"),
             checked: text.align === "left",
             disabled: off,
             onSelect: run((c) => c.setAlign("left")),
           },
           {
-            label: "Zentriert",
-            shortcut: "Strg+E",
+            label: m.word_menus_align_center(),
+            shortcut: keys("Ctrl+E"),
             checked: text.align === "center",
             disabled: off,
             onSelect: run((c) => c.setAlign("center")),
           },
           {
-            label: "Rechtsbündig",
-            shortcut: "Strg+R",
+            label: m.word_menus_align_right(),
+            shortcut: keys("Ctrl+R"),
             checked: text.align === "right",
             disabled: off,
             onSelect: run((c) => c.setAlign("right")),
           },
           {
-            label: "Blocksatz",
-            shortcut: "Strg+J",
+            label: m.word_menus_justify(),
+            shortcut: keys("Ctrl+J"),
             checked: text.align === "justify",
             disabled: off,
             onSelect: run((c) => c.setAlign("justify")),
@@ -209,13 +219,13 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ],
         [
           {
-            label: "Aufzählung",
+            label: m.word_menus_bullets(),
             checked: state.paragraph.list === "bullet",
             disabled: off,
             onSelect: run((c) => void c.toggleList("bullet")),
           },
           {
-            label: "Nummerierung",
+            label: m.word_menus_numbering(),
             checked: state.paragraph.list === "number",
             disabled: off,
             onSelect: run((c) => void c.toggleList("number")),
@@ -224,8 +234,8 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
         ...paragraphSpacingGroups(state.paragraph.lineSpacing, context.layout, off),
         [
           {
-            label: "Formatierung löschen",
-            shortcut: "Strg+Leertaste",
+            label: m.word_menus_clear_formatting(),
+            shortcut: keys("Ctrl+Space"),
             disabled: off,
             onSelect: run((c) => c.clearFormatting()),
           },
@@ -240,11 +250,11 @@ export const wordMenus = (context: WordMenuContext): Menu[] => {
 /** Inside a link: edit, open or remove it; elsewhere: make one (DocumentHolder hyperlinkMenu). */
 const linkItems = ({ state, links, onLink, onOpenLink }: WordMenuContext): MenuItem[] => {
   const { link } = state.paragraph;
-  if (!link) return [{ label: "Link …", onSelect: onLink }];
+  if (!link) return [{ label: m.word_menus_link(), onSelect: onLink }];
   return [
-    { label: "Link bearbeiten …", onSelect: onLink },
-    { label: "Link öffnen", onSelect: () => onOpenLink(link.url) },
-    { label: "Link entfernen", onSelect: () => links?.remove() },
+    { label: m.word_menus_edit_link(), onSelect: onLink },
+    { label: m.word_menus_open_link(), onSelect: () => onOpenLink(link.url) },
+    { label: m.word_menus_remove_link(), onSelect: () => links?.remove() },
   ];
 };
 
@@ -259,13 +269,13 @@ export const wordContextMenu = (context: WordMenuContext): MenuItem[][] => {
     ...suggestionGroups(state.spelling, context.spelling),
     clipboardItems(view, context.onClipboardRefused),
     state.paragraph.inHeaderFooter
-      ? [{ label: "Kopf- und Fußzeile schließen", onSelect: () => context.headerFooter?.close() }]
-      : [{ label: "Kommentar hinzufügen", onSelect: context.onAddComment }],
+      ? [{ label: m.header_footer_menus_close(), onSelect: () => context.headerFooter?.close() }]
+      : [{ label: m.word_menus_add_comment(), onSelect: context.onAddComment }],
     linkItems(context),
     ...(state.paragraph.inTable ? tableActions(run) : []),
     [
-      { label: "Formatierung löschen", onSelect: () => run((c) => c.clearFormatting()) },
-      { label: "Alles auswählen", onSelect: () => run((c) => c.selectAll()) },
+      { label: m.word_menus_clear_formatting(), onSelect: () => run((c) => c.clearFormatting()) },
+      { label: m.common_select_all(), onSelect: () => run((c) => c.selectAll()) },
     ],
   ];
 };

@@ -22,6 +22,28 @@ const open = (text: string, markdown = true) => {
 };
 
 describe("the text editor", () => {
+  it("names the text and speaks the language of the texts it is given", () => {
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    editor = createTextEditor({
+      parent,
+      text: "",
+      markdown: false,
+      readOnly: false,
+      texts: {
+        phrases: {},
+        placeholder: "Schreib los …",
+        markdownPlaceholder: "",
+        label: "Notiz",
+        lang: "de",
+      },
+    });
+    const content = parent.querySelector(".cm-content");
+    expect(content?.getAttribute("aria-label")).toBe("Notiz");
+    expect(content?.getAttribute("lang")).toBe("de");
+    expect(parent.querySelector(".cm-placeholder")?.textContent).toBe("Schreib los …");
+  });
+
   it("counts as modified after a change, and not once that text is saved", () => {
     const { editor, changes } = open("# Notiz\n");
     expect(editor.state().modified).toBe(false);

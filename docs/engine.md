@@ -529,8 +529,8 @@ start when `OpenOptions.screenReader` says so; off, `EditorActionSpeaker.stop` h
 callbacks. Strg+Alt+Z switches it in the engine itself (`word/Editor/Shortcuts.js` `SpeechWorker`,
 `cell/view/EventsController.js`, `slide/Editor/Format/Presentation.js`); a `keyup` listener reads
 `EditorActionSpeaker.isLanched` afterwards, so the store's `screenReader` and the menu follow. Its
-words come from the `translate` map of the API (`SPEECH_TEXTS`, looked up by
-`translateManager.getValue`). Right after the content is ready the engine makes its input
+words come from the `translate` map of the API (`OpenOptions.texts`, which the app fills from its
+messages in `apps/web/src/editor/engine-texts.ts`; looked up by `translateManager.getValue`). Right after the content is ready the engine makes its input
 (`word/api.js` OpenDocument → `InitControl`); a microtask then names it after the file and replaces
 its `autocomplete="extremely_off"` (`common/text_input2.js`), which is no valid value.
 
@@ -672,9 +672,10 @@ cache (`xl/pivotTables/`, `xl/pivotCache/`).
   English function name, so the app renames each new value at once.
 - **Refreshing** after the source changed: `asc_refresh(api)` on the table, from "Daten", the context
   menu or the field list.
-- **German captions**: "Gesamtergebnis", "Zeilenbeschriftungen", "Spaltenbeschriftungen", "Werte",
-  "(Alle)", "(Leer)" through the `translate` map the API is created with (`CELL_TEXTS` in
-  `src/engine-texts.ts`; the keys are `PivotTables.js`'s captions, as web-apps' `Main.js` passes them).
+- **Captions in the interface's language**: "Gesamtergebnis", "Zeilenbeschriftungen",
+  "Spaltenbeschriftungen", "Werte", "(Alle)", "(Leer)" in German, through the `translate` map the API
+  is created with (`OpenOptions.texts`, filled by `apps/web/src/editor/engine-texts.ts`; the keys are
+  `PivotTables.js`'s captions, as web-apps' `Main.js` passes them).
 - The engine changes the table without a selection change, so each command reads the state again.
 
 ### CSV files
@@ -706,8 +707,9 @@ list and the notes field inside its frame; the notes show once the document is s
 (`asc_ShowNotes(true)`, as web-apps' desktop editor does unless they were hidden), and "Ansicht →
 Notizen" hides and shows them. The engine does not report whether they show, so the command keeps
 that in the state. Its own texts (empty placeholders, "click to add
-notes") come from the `translate` map the API is created with; `src/engine-texts.ts` has them in
-German.
+notes") come from the `translate` map the API is created with (`OpenOptions.texts`): the app passes
+them in the interface's language (`apps/web/src/editor/engine-texts.ts`); without it the engine shows
+its own English (`common/editorscommon.js` `CTranslateManager.getValue` returns the key).
 
 Character formatting is named and reported the same as in the text editor, so both share
 `createCharacterCommands` and `textEvents` (`put_TextPrBold`, `asc_onBold`, …).

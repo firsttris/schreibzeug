@@ -2,6 +2,7 @@ import type { Comment, CommentCommands } from "@schreibzeug/editor-core";
 import { MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommentsPanel, type CommentTarget } from "../comments/comments-panel";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 
 type CommentsSource = { comments: CommentCommands; resize: () => void };
@@ -32,7 +33,7 @@ export const useCommentsPanel = (
   const button = (
     <Button
       variant="toggle"
-      aria-label="Kommentare"
+      aria-label={m.use_comments_panel_label()}
       aria-pressed={mode !== "closed"}
       disabled={!editor}
       onClick={toggle}

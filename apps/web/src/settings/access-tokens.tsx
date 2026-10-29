@@ -12,12 +12,17 @@ import { useFiles } from "../api/context";
 import { claudeCommand, tokenKeys } from "../api/tokens";
 import { selectClass } from "../files/role-select";
 import { formatDay } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 
 type Days = (typeof TOKEN_DAYS)[number] | null;
 
-const SCOPE_TEXT: Record<TokenScope, string> = { read: "Nur lesen", write: "Lesen und schreiben" };
-const DAYS_TEXT = (days: Days) => (days === null ? "Unbegrenzt" : `${days} Tage`);
+const SCOPE_TEXT: Record<TokenScope, () => string> = {
+  read: m.access_tokens_read,
+  write: m.access_tokens_write,
+};
+const DAYS_TEXT = (days: Days) =>
+  days === null ? m.access_tokens_unlimited() : m.access_tokens_days({ count: String(days) });
 const inputClass =
   "h-9 min-w-0 rounded-md border border-[var(--border)] bg-[var(--background)] px-2 text-sm outline-none focus:border-[var(--foreground)]";
 
@@ -49,7 +54,7 @@ const CopyLine = ({ label, value }: { label: string; value: string }) => (
       onFocus={(event) => event.currentTarget.select()}
       className="h-8 min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--muted)] px-2 font-mono text-xs outline-none"
     />
-    <CopyButton text={value} label={`${label} kopieren`} />
+    <CopyButton text={value} label={m.access_tokens_copy({ label })} />
   </div>
 );
 
@@ -59,17 +64,15 @@ const NewToken = ({ created, onClose }: { created: CreatedAccessToken; onClose: 
   return (
     <div
       role="status"
-      aria-label="Neuer Zugangsschlüssel"
+      aria-label={m.access_tokens_new()}
       className="flex flex-col gap-2 rounded-md border border-[var(--border)] bg-[var(--muted)]/40 p-3"
     >
-      <p className="m-0 text-sm">
-        Der Schlüssel „{created.name}“ ist angelegt. Kopiere ihn jetzt: Er wird nur dieses eine Mal angezeigt.
-      </p>
-      <CopyLine label="Zugangsschlüssel" value={created.token} />
-      <p className="m-0 text-sm text-[var(--muted-foreground)]">Claude Code verbinden:</p>
-      <CopyLine label="Befehl für Claude Code" value={claudeCommand(mcpUrl, created.token)} />
+      <p className="m-0 text-sm">{m.access_tokens_created({ name: created.name })}</p>
+      <CopyLine label={m.access_tokens_token()} value={created.token} />
+      <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.access_tokens_connect()}</p>
+      <CopyLine label={m.access_tokens_command()} value={claudeCommand(mcpUrl, created.token)} />
       <Button variant="ghost" className="self-end" onClick={onClose}>
-        Fertig
+        {m.common_done()}
       </Button>
     </div>
   );
@@ -78,6 +81,7 @@ const NewToken = ({ created, onClose }: { created: CreatedAccessToken; onClose: 
 const CreateForm = ({ onCreated }: { onCreated: (created: CreatedAccessToken) => void }) => {
   const { tokens } = useFiles();
   const queryClient = useQueryClient();
+  // i18n-ignore: the program the token is for, a name
   const [name, setName] = useState("Claude Code");
   const [scope, setScope] = useState<TokenScope>("write");
   const [days, setDays] = useState<Days>(90);
@@ -96,25 +100,25 @@ const CreateForm = ({ onCreated }: { onCreated: (created: CreatedAccessToken) =>
     <form onSubmit={submit} className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
         <input
-          aria-label="Name des Schlüssels"
+          aria-label={m.access_tokens_name()}
           value={name}
           onChange={(event) => setName(event.target.value)}
           className={`${inputClass} flex-1`}
         />
         <select
-          aria-label="Umfang"
+          aria-label={m.access_tokens_scope()}
           value={scope}
           onChange={(event) => setScope(event.target.value as TokenScope)}
           className={selectClass}
         >
           {(Object.keys(SCOPE_TEXT) as TokenScope[]).map((value) => (
             <option key={value} value={value}>
-              {SCOPE_TEXT[value]}
+              {SCOPE_TEXT[value]()}
             </option>
           ))}
         </select>
         <select
-          aria-label="Gültig"
+          aria-label={m.access_tokens_valid()}
           value={days ?? "never"}
           onChange={(event) =>
             setDays(event.target.value === "never" ? null : (Number(event.target.value) as Days))
@@ -129,7 +133,7 @@ const CreateForm = ({ onCreated }: { onCreated: (created: CreatedAccessToken) =>
         </select>
         <Button type="submit" variant="primary" disabled={create.isPending}>
           <KeyRound size={15} />
-          Schlüssel anlegen
+          {m.access_tokens_create()}
         </Button>
       </div>
       {create.isError && (
@@ -143,10 +147,14 @@ const CreateForm = ({ onCreated }: { onCreated: (created: CreatedAccessToken) =>
 
 const summaryOf = (token: AccessToken): string =>
   [
-    SCOPE_TEXT[token.scope],
-    `angelegt ${formatDay(token.createdAt)}`,
-    token.lastUsedAt ? `zuletzt benutzt ${formatDay(token.lastUsedAt)}` : "noch nie benutzt",
-    token.expiresAt ? `gilt bis ${formatDay(token.expiresAt)}` : "unbegrenzt",
+    SCOPE_TEXT[token.scope](),
+    m.access_tokens_created_on({ date: formatDay(token.createdAt) }),
+    token.lastUsedAt
+      ? m.access_tokens_last_used({ date: formatDay(token.lastUsedAt) })
+      : m.access_tokens_never_used(),
+    token.expiresAt
+      ? m.access_tokens_valid_until({ date: formatDay(token.expiresAt) })
+      : m.access_tokens_no_expiry(),
   ].join(" · ");
 
 const TokenList = ({ list }: { list: AccessToken[] }) => {
@@ -157,10 +165,10 @@ const TokenList = ({ list }: { list: AccessToken[] }) => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: tokenKeys.all }),
   });
   if (list.length === 0) {
-    return <p className="m-0 text-sm text-[var(--muted-foreground)]">Noch keine Zugangsschlüssel.</p>;
+    return <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.access_tokens_none()}</p>;
   }
   return (
-    <ul aria-label="Deine Zugangsschlüssel" className="m-0 flex list-none flex-col gap-1 p-0">
+    <ul aria-label={m.access_tokens_yours()} className="m-0 flex list-none flex-col gap-1 p-0">
       {list.map((token) => (
         <li
           key={token.id}
@@ -173,8 +181,8 @@ const TokenList = ({ list }: { list: AccessToken[] }) => {
           </span>
           <Button
             variant="ghost"
-            aria-label={`${token.name} widerrufen`}
-            title="Widerrufen"
+            aria-label={m.access_tokens_revoke_name({ name: token.name })}
+            title={m.access_tokens_revoke()}
             disabled={revoke.isPending}
             onClick={() => revoke.mutate(token.id)}
           >
@@ -200,13 +208,10 @@ export const AccessTokens = () => {
   const list = useQuery(tokens.list());
   const [created, setCreated] = useState<CreatedAccessToken | null>(null);
   return (
-    <section aria-label="Zugangsschlüssel" className="flex flex-col gap-3">
+    <section aria-label={m.access_tokens_title()} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="m-0 text-base font-semibold">Zugangsschlüssel</h2>
-        <p className="m-0 text-sm text-[var(--muted-foreground)]">
-          Damit arbeiten Claude Code und andere MCP-Programme in Schreibzeug, mit deinen Rechten. Jede
-          Änderung wird eine neue Version; „Nur lesen“ erlaubt keine Änderungen.
-        </p>
+        <h2 className="m-0 text-base font-semibold">{m.access_tokens_title()}</h2>
+        <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.access_tokens_hint()}</p>
       </div>
       {created ? (
         <NewToken created={created} onClose={() => setCreated(null)} />

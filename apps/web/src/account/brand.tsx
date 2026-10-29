@@ -6,6 +6,7 @@ export const Brand = () => (
     <span className="flex size-8 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
       <PenLine size={18} />
     </span>
+    {/* i18n-ignore: the product name */}
     <span className="text-lg font-semibold tracking-tight">Schreibzeug</span>
   </div>
 );

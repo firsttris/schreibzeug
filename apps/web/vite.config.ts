@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { resolve } from "node:path";
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -13,6 +14,12 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // The interface texts (messages/de.json, messages/en.json) as functions in src/paraglide; the
+    // options are in project.inlang/paraglide.config.js.
+    paraglideVitePlugin({
+      project: resolve(import.meta.dirname, "project.inlang"),
+      outdir: resolve(import.meta.dirname, "src/paraglide"),
+    }),
     enginePlugin(resolve(import.meta.dirname, "../../engine/dist")),
     ocrPlugin(),
   ],
@@ -30,5 +37,6 @@ export default defineConfig({
     name: "web",
     environment: "happy-dom",
     include: ["src/**/*.test.{ts,tsx}", "*.test.ts"],
+    setupFiles: ["./vitest.setup.ts"],
   },
 });

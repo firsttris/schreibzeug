@@ -1,5 +1,6 @@
 import type { RuleCommands } from "@schreibzeug/editor-core";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -19,7 +20,7 @@ export const DropdownDialog = ({ values, rules, onClose }: DropdownDialogProps) 
   const entries = text.split("\n").filter((line) => line.trim());
 
   return (
-    <Dialog open title="Dropdown-Liste" onClose={onClose}>
+    <Dialog open title={m.dropdown_dialog_title()} onClose={onClose}>
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {
@@ -29,7 +30,7 @@ export const DropdownDialog = ({ values, rules, onClose }: DropdownDialogProps) 
         }}
       >
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium">Erlaubte Werte, einer pro Zeile</span>
+          <span className="font-medium">{m.dropdown_dialog_values()}</span>
           <textarea
             autoFocus
             rows={6}
@@ -47,12 +48,12 @@ export const DropdownDialog = ({ values, rules, onClose }: DropdownDialogProps) 
               onClose();
             }}
           >
-            Liste entfernen
+            {m.dropdown_dialog_remove()}
           </Button>
           <div className="flex gap-2">
-            <Button onClick={onClose}>Abbrechen</Button>
+            <Button onClick={onClose}>{m.common_cancel()}</Button>
             <Button type="submit" variant="primary" disabled={entries.length === 0}>
-              Übernehmen
+              {m.common_apply()}
             </Button>
           </div>
         </div>

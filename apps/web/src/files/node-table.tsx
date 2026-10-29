@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useFiles } from "../api/context";
 import { formatChanged, formatSize, isEditable, kindOf } from "../lib/format";
+import { m } from "../paraglide/messages";
 import { FileBadge } from "./file-badge";
 
 export type NodeTableProps<N extends FileNode> = {
@@ -55,11 +56,11 @@ export const NodeTable = <N extends FileNode>({
     <table className="w-full table-fixed border-collapse text-sm" data-testid="node-table">
       <thead>
         <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--muted-foreground)]">
-          <th className="py-2 pl-2 font-medium">Name</th>
-          <th className="hidden w-40 py-2 font-medium sm:table-cell">Geändert</th>
-          <th className="hidden w-24 py-2 text-right font-medium sm:table-cell">Größe</th>
+          <th className="py-2 pl-2 font-medium">{m.node_table_name()}</th>
+          <th className="hidden w-40 py-2 font-medium sm:table-cell">{m.node_table_changed()}</th>
+          <th className="hidden w-24 py-2 text-right font-medium sm:table-cell">{m.node_table_size()}</th>
           <th className="w-48 py-2">
-            <span className="sr-only">Aktionen</span>
+            <span className="sr-only">{m.node_table_actions()}</span>
           </th>
         </tr>
       </thead>

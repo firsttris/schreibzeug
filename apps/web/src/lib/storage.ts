@@ -1,4 +1,5 @@
 import type { Storage } from "@schreibzeug/files-api";
+import { m } from "../paraglide/messages";
 import { formatSize } from "./format";
 
 export type Tone = "normal" | "warn" | "full";
@@ -22,4 +23,4 @@ export const isLow = ({ disk, uploadLimit }: Storage): boolean =>
 
 /** "38,2 GB frei von 80 GB". */
 export const freeText = ({ free, total }: Disk): string =>
-  `${formatSize(free)} frei von ${formatSize(total)}`;
+  m.storage_free_of({ free: formatSize(free), total: formatSize(total) });

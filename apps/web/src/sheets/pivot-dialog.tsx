@@ -1,5 +1,6 @@
 import type { PivotCommands } from "@schreibzeug/editor-core";
 import { useState } from "react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
@@ -14,7 +15,7 @@ export const PivotDialog = ({ pivots, onClose }: PivotDialogProps) => {
   const [invalid, setInvalid] = useState(false);
 
   return (
-    <Dialog open title="Pivot-Tabelle einfügen" onClose={onClose}>
+    <Dialog open title={m.pivot_dialog_title()} onClose={onClose}>
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {
@@ -24,7 +25,7 @@ export const PivotDialog = ({ pivots, onClose }: PivotDialogProps) => {
         }}
       >
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="font-medium">Datenbereich mit Überschriften</span>
+          <span className="font-medium">{m.pivot_dialog_source()}</span>
           <input
             autoFocus
             value={source}
@@ -38,16 +39,14 @@ export const PivotDialog = ({ pivots, onClose }: PivotDialogProps) => {
         </label>
         {invalid && (
           <p role="alert" className="m-0 text-sm text-red-600 dark:text-red-400">
-            Der Bereich braucht eine Zeile mit Überschriften und Daten darunter, z. B. Tabelle1!A1:D20.
+            {m.pivot_dialog_invalid()}
           </p>
         )}
-        <p className="m-0 text-sm text-[var(--muted-foreground)]">
-          Die Pivot-Tabelle kommt auf ein neues Tabellenblatt.
-        </p>
+        <p className="m-0 text-sm text-[var(--muted-foreground)]">{m.pivot_dialog_new_sheet()}</p>
         <div className="flex justify-end gap-2">
-          <Button onClick={onClose}>Abbrechen</Button>
+          <Button onClick={onClose}>{m.common_cancel()}</Button>
           <Button type="submit" variant="primary" disabled={!source.trim()}>
-            Erstellen
+            {m.pivot_dialog_create()}
           </Button>
         </div>
       </form>

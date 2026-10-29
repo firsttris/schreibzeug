@@ -8,6 +8,7 @@ import { createApiClient, isApiFailure } from "./api/client";
 import { createFiles, FilesProvider, fetchServerInfo } from "./api/context";
 import { EmbedProvider } from "./embed/bridge";
 import { createEmbed } from "./embed/embed";
+import { getLocale } from "./paraglide/runtime";
 import { createAppRouter } from "./router";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
@@ -15,6 +16,8 @@ import "./styles.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
+// The page in the language of its texts (index.html says German), for screen readers and hyphenation.
+document.documentElement.lang = getLocale();
 
 // The web app talks to the server it was loaded from; the desktop app will pass a configured one.
 const origin = window.location.origin;

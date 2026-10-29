@@ -16,6 +16,7 @@ import { initialsOf } from "./account/initials";
 import { rootLabel, useFiles } from "./api/context";
 import { inDesktopApp, runDesktopCommand } from "./desktop";
 import { useEmbed } from "./embed/bridge";
+import { m } from "./paraglide/messages";
 import { LowSpaceNotice } from "./storage/low-space-notice";
 import { StorageMeter } from "./storage/storage-meter";
 import { Button } from "./ui/button";
@@ -25,7 +26,7 @@ import { MenuButton } from "./ui/menu";
 const DesktopMenu = ({ local }: { local: boolean }) => (
   <div className="ml-auto">
     <MenuButton
-      label="Arbeitsort"
+      label={m.shell_workplace()}
       variant="ghost"
       up
       align="right"
@@ -33,9 +34,9 @@ const DesktopMenu = ({ local }: { local: boolean }) => (
         [
           ...(local
             ? []
-            : [{ label: "Auf diesem Computer", onSelect: () => runDesktopCommand("work-locally") }]),
-          { label: "Ordner wählen …", onSelect: () => runDesktopCommand("choose-folder") },
-          { label: "Mit Server verbinden …", onSelect: () => runDesktopCommand("choose-server") },
+            : [{ label: m.shell_this_computer(), onSelect: () => runDesktopCommand("work-locally") }]),
+          { label: m.shell_choose_folder(), onSelect: () => runDesktopCommand("choose-folder") },
+          { label: m.shell_connect_server(), onSelect: () => runDesktopCommand("choose-server") },
         ],
       ]}
     >
@@ -88,7 +89,7 @@ const AccountBox = () => {
           {user.name}
         </span>
         <span className="truncate text-xs text-[var(--muted-foreground)]">
-          {local ? "Auf diesem Computer" : user.email}
+          {local ? m.shell_this_computer() : user.email}
         </span>
       </span>
       {inDesktopApp() && <DesktopMenu local={local} />}
@@ -96,8 +97,8 @@ const AccountBox = () => {
         <Button
           variant="ghost"
           className={inDesktopApp() ? "" : "ml-auto"}
-          aria-label="Abmelden"
-          title="Abmelden"
+          aria-label={m.shell_sign_out()}
+          title={m.shell_sign_out()}
           onClick={() => void signOut()}
         >
           <LogOut size={16} />
@@ -124,32 +125,35 @@ export const Shell = () => {
             <span className="flex size-7 items-center justify-center rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)]">
               <PenLine size={16} />
             </span>
+            {/* i18n-ignore: the product name */}
             <span className="text-[15px] font-semibold tracking-tight">Schreibzeug</span>
           </Link>
         )}
         {/* On a phone the areas are one row that scrolls sideways, not a page wider than the screen. */}
-        <nav aria-label="Bereiche" className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+        <nav
+          aria-label={m.shell_areas()}
+          className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible"
+        >
           <NavLink to="/" icon={<FolderClosed size={16} />}>
             {rootLabel(info)}
           </NavLink>
           <NavLink to="/recent" icon={<Clock size={16} />}>
-            Zuletzt
+            {m.shell_recent()}
           </NavLink>
           {!local && (
             <NavLink to="/shared" icon={<Users size={16} />}>
-              Für mich freigegeben
+              {m.shell_shared()}
             </NavLink>
           )}
           {!local && (
             <NavLink to="/trash" icon={<Trash2 size={16} />}>
-              Papierkorb
+              {m.shell_trash()}
             </NavLink>
           )}
-          {!local && (
-            <NavLink to="/settings" icon={<Settings size={16} />}>
-              Einstellungen
-            </NavLink>
-          )}
+          {/* Also on this computer: the settings hold the language there (settings-page.tsx). */}
+          <NavLink to="/settings" icon={<Settings size={16} />}>
+            {m.shell_settings()}
+          </NavLink>
         </nav>
         <div className="mt-auto flex flex-col gap-2">
           {!local && <StorageMeter />}

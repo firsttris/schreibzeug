@@ -1,5 +1,6 @@
 import type { LinkCommands, LinkDraft } from "@schreibzeug/editor-core";
 import { useEffect, useState } from "react";
+import { m } from "../paraglide/messages";
 
 type LinkSource = {
   links: LinkCommands;
@@ -26,7 +27,7 @@ export const useLinks = (editor: LinkSource | null, readOnly: boolean, notify: (
     if (!editor || readOnly) return;
     const next = editor.links.draft();
     if (next) setDraft(next);
-    else notify("Hier kann kein Link eingefügt werden.");
+    else notify(m.use_links_not_here());
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: subscribes once per editor; request reads the latest editor

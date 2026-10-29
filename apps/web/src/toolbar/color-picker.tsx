@@ -1,29 +1,30 @@
 import type { TextColor } from "@schreibzeug/editor-core";
 import { Baseline, Check, Highlighter, PaintBucket } from "lucide-react";
+import { m } from "../paraglide/messages";
 import { Button } from "../ui/button";
 import { popoverPanel, usePopover } from "../ui/use-popover";
 
 /** Word's ten standard colours, so a colour picked here is one Word users know. */
 const COLORS: Array<{ value: string; name: string }> = [
-  { value: "#c00000", name: "Dunkelrot" },
-  { value: "#ff0000", name: "Rot" },
-  { value: "#ffc000", name: "Orange" },
-  { value: "#ffff00", name: "Gelb" },
-  { value: "#92d050", name: "Hellgrün" },
-  { value: "#00b050", name: "Grün" },
-  { value: "#00b0f0", name: "Hellblau" },
-  { value: "#0070c0", name: "Blau" },
-  { value: "#002060", name: "Dunkelblau" },
-  { value: "#7030a0", name: "Lila" },
+  { value: "#c00000", name: m.color_picker_dark_red() },
+  { value: "#ff0000", name: m.color_picker_red() },
+  { value: "#ffc000", name: m.color_picker_orange() },
+  { value: "#ffff00", name: m.color_picker_yellow() },
+  { value: "#92d050", name: m.color_picker_light_green() },
+  { value: "#00b050", name: m.color_picker_green() },
+  { value: "#00b0f0", name: m.color_picker_light_blue() },
+  { value: "#0070c0", name: m.color_picker_blue() },
+  { value: "#002060", name: m.color_picker_dark_blue() },
+  { value: "#7030a0", name: m.color_picker_purple() },
 ];
 
 /** Word's highlight colours, the first of web-apps' palette (editor-core HIGHLIGHT_COLORS). */
 const HIGHLIGHTS: Array<{ value: string; name: string }> = [
-  { value: "#ffff00", name: "Gelb" },
-  { value: "#00ff00", name: "Hellgrün" },
-  { value: "#00ffff", name: "Türkis" },
-  { value: "#ff00ff", name: "Pink" },
-  { value: "#ff0000", name: "Rot" },
+  { value: "#ffff00", name: m.color_picker_yellow() },
+  { value: "#00ff00", name: m.color_picker_light_green() },
+  { value: "#00ffff", name: m.color_picker_turquoise() },
+  { value: "#ff00ff", name: m.color_picker_pink() },
+  { value: "#ff0000", name: m.color_picker_red() },
 ];
 
 export type ColorPickerProps = {
@@ -36,23 +37,23 @@ export type ColorPickerProps = {
 
 const TARGETS = {
   text: {
-    label: "Schriftfarbe",
-    palette: "Schriftfarben",
-    none: "Automatisch",
+    label: m.color_picker_text_label(),
+    palette: m.color_picker_text_palette(),
+    none: m.color_picker_text_none(),
     Icon: Baseline,
     colors: COLORS,
   },
   fill: {
-    label: "Füllfarbe",
-    palette: "Füllfarben",
-    none: "Keine Füllung",
+    label: m.color_picker_fill_label(),
+    palette: m.color_picker_fill_palette(),
+    none: m.color_picker_fill_none(),
     Icon: PaintBucket,
     colors: COLORS,
   },
   highlight: {
-    label: "Hervorheben",
-    palette: "Markierungsfarben",
-    none: "Keine Markierung",
+    label: m.color_picker_highlight_label(),
+    palette: m.color_picker_highlight_palette(),
+    none: m.color_picker_highlight_none(),
     Icon: Highlighter,
     colors: HIGHLIGHTS,
   },

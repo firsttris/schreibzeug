@@ -5,6 +5,7 @@
   "type": "module",
   "license": "AGPL-3.0-only",
   "scripts": {
+    "i18n": "paraglide-js compile --project ./project.inlang",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -33,6 +34,9 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@babel/parser": "8.0.8",
+    "@inlang/paraglide-js": "2.29.3",
+    "@inlang/plugin-message-format": "4.5.5",
     "@schreibzeug/server": "workspace:*",
     "@tailwindcss/vite": "4.3.3",
     "@types/react": "19.3.0",

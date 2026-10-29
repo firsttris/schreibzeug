@@ -2,6 +2,7 @@ import { type CoreState, hasUnsavedChanges } from "@schreibzeug/editor-core";
 import { Check, Dot, Eye, LoaderCircle, WifiOff } from "lucide-react";
 import { useEffect } from "react";
 import { useReportUnsaved } from "../embed/bridge";
+import { m } from "../paraglide/messages";
 
 type Status = "loading" | "ready" | "error";
 
@@ -16,12 +17,12 @@ type StatusFacts = {
 
 const statusText = ({ status, readOnly, modified, saving, connected, failure }: StatusFacts): string => {
   if (failure) return failure;
-  if (status === "loading") return "Öffnet …";
-  if (status === "error") return "Fehler beim Öffnen";
-  if (!connected) return "Verbindung unterbrochen, verbindet neu …";
-  if (readOnly) return "Nur ansehen";
-  if (saving) return "Speichert …";
-  return modified ? "Nicht gespeicherte Änderungen" : "Gespeichert";
+  if (status === "loading") return m.save_status_opening();
+  if (status === "error") return m.save_status_open_failed();
+  if (!connected) return m.save_status_reconnecting();
+  if (readOnly) return m.save_status_read_only();
+  if (saving) return m.save_status_saving();
+  return modified ? m.save_status_unsaved() : m.save_status_saved();
 };
 
 /** Asks before the tab closes while there are changes the server does not have yet. */

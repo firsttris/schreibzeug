@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { m } from "../paraglide/messages";
 
 /** "Angebot.docx" → ["Angebot", ".docx"]: people rename the part before the extension. */
 export const splitExtension = (name: string): [string, string] => {
@@ -37,7 +38,7 @@ export const FileTitle = ({ name, onRename, onError }: FileTitleProps) => {
   };
   return (
     <input
-      aria-label="Dateiname"
+      aria-label={m.file_title_label()}
       value={draft}
       size={Math.max(4, draft.length)}
       onChange={(event) => setDraft(event.target.value)}

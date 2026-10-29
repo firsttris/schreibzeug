@@ -1,3 +1,4 @@
+import { m } from "../paraglide/messages";
 import type { Menu } from "../ui/menu-bar";
 
 export type MailMergeMenuContext = {
@@ -12,17 +13,27 @@ export type MailMergeMenuContext = {
 
 /** "Serienbrief", after Word's "Sendungen": recipients, preview, the letters. */
 export const mailMergeMenu = (context: MailMergeMenuContext, off: boolean): Menu => ({
-  label: "Serienbrief",
+  label: m.mail_merge_menu_title(),
   groups: [
-    [{ label: "Empfänger wählen …", disabled: off || !context.ready, onSelect: context.onChoose }],
     [
       {
-        label: "Vorschau",
+        label: m.mail_merge_menu_choose_recipients(),
+        disabled: off || !context.ready,
+        onSelect: context.onChoose,
+      },
+    ],
+    [
+      {
+        label: m.mail_merge_menu_preview(),
         checked: context.previewing,
         disabled: off || !context.hasRecipients,
         onSelect: context.onTogglePreview,
       },
-      { label: "Serienbrief erstellen", disabled: off || !context.hasRecipients, onSelect: context.onCreate },
+      {
+        label: m.mail_merge_menu_create(),
+        disabled: off || !context.hasRecipients,
+        onSelect: context.onCreate,
+      },
     ],
   ],
 });

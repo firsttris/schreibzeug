@@ -13,6 +13,7 @@ import {
 } from "./converter";
 import { type CoreEvent, type CoreState, isCoreEvent, reduceCore } from "./core-state";
 import { CSV_DELIMITER_CODES, type CsvDelimiter, detectDelimiter, encodeCsv } from "./csv";
+import type { EngineTexts } from "./engine-texts";
 import type { CommonEventArgs, DocumentUrls, EngineApiBase, EngineWindow } from "./engine-types";
 import { coreEvents, type Translators } from "./events";
 import { type EditorKind, keepFocusOnClick } from "./frame";
@@ -39,6 +40,11 @@ export type OpenOptions = {
   /** Draws a PDF anew as PDF/A (converter.ts); a PDF has no PDF/A without it. */
   writePdfA?: WritePdfA;
   lang?: string;
+  /**
+   * The texts the engine and editor-core show, in the interface's language (engine-texts.ts);
+   * the engine's English without them.
+   */
+  texts?: EngineTexts;
   /** The file is a CSV, not an .xlsx: it is read and saved as one (csv.ts). Spreadsheets only. */
   csv?: boolean;
   /**

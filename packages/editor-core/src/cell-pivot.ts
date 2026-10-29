@@ -5,6 +5,7 @@
  * The engine keeps the table (cell/model/PivotTables.js CT_pivotTableDefinition): the cell info
  * names the one at the active cell, and its methods change it.
  */
+import type { EngineTexts } from "./engine-texts";
 import type { CellEngineApi, CellWindow, EngineCellInfo, EnginePivotTable } from "./engine-types";
 
 /** Where a field of the source sits in the table: Excel's four areas. */
@@ -48,18 +49,6 @@ const SUMMARY_CODES = (Asc: PivotConstants): Record<PivotSummary, number> => ({
   max: Asc.c_oAscDataConsolidateFunction.Max,
   min: Asc.c_oAscDataConsolidateFunction.Min,
 });
-
-/** Excel's German names of the summaries, as it names a value ("Summe von Betrag"). */
-export const SUMMARY_NAMES: Record<PivotSummary, string> = {
-  sum: "Summe",
-  count: "Anzahl",
-  average: "Mittelwert",
-  max: "Max",
-  min: "Min",
-};
-
-export const valueName = (summary: PivotSummary, field: string): string =>
-  `${SUMMARY_NAMES[summary]} von ${field}`;
 
 const summaryOf = (code: number | null, Asc: PivotConstants): PivotSummary | null => {
   const codes = SUMMARY_CODES(Asc);
@@ -139,12 +128,13 @@ type CommandConstants = PivotConstants &
 
 /**
  * `changed` reads the table again: the engine changes it without a selection change, which is
- * what the state follows otherwise.
+ * what the state follows otherwise. `valueName` names a value in the interface's language.
  */
 export const createPivotCommands = (
   api: CellEngineApi,
   Asc: CommandConstants,
   changed: () => void,
+  valueName: EngineTexts["pivotValueName"],
 ): PivotCommands => {
   const current = () => api.asc_getCellInfo().asc_getPivotTableInfo();
   const withPivot = (change: (pivot: EnginePivotTable) => void) => {
@@ -155,7 +145,7 @@ export const createPivotCommands = (
   };
   const sheetNames = () =>
     Array.from({ length: api.asc_getWorksheetsCount() }, (_, index) => api.asc_getWorksheetName(index));
-  /** A new value is named in German at once; the engine would call it "Sum of …". */
+  /** A new value is named in the interface's language at once; the engine would call it "Sum of …". */
   const nameValues = (pivot: EnginePivotTable) => {
     const names = fieldNames(pivot);
     (pivot.asc_getDataFields() ?? []).forEach((value, index) => {

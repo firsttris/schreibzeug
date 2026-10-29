@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Convert } from "../src/converter";
+import { ENGLISH_TEXTS } from "../src/engine-texts";
 import type { WordEngineApi, WordWindow } from "../src/engine-types";
 import { createMailMergeCommands } from "../src/word-mail-merge";
 
@@ -41,7 +42,7 @@ const fakes = (recipients = 2) => {
     conversions.push([new TextDecoder().decode(bytes), from, to, media]);
     return { bytes: new Uint8Array([80, 75]), media: {} };
   };
-  return { calls, conversions, commands: createMailMergeCommands(win, api, convert) };
+  return { calls, conversions, commands: createMailMergeCommands(win, api, convert, ENGLISH_TEXTS) };
 };
 
 describe("mail merge", () => {
@@ -82,6 +83,6 @@ describe("mail merge", () => {
   });
 
   it("refuses to merge without recipients", async () => {
-    await expect(fakes(0).commands.mergedDocx()).rejects.toThrow("Es sind keine Empfänger geladen.");
+    await expect(fakes(0).commands.mergedDocx()).rejects.toThrow(ENGLISH_TEXTS.mailMergeNoRecipients);
   });
 });

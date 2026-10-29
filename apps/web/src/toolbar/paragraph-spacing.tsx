@@ -1,6 +1,7 @@
 import type { LayoutCommands } from "@schreibzeug/editor-core";
 import { LineHeight } from "lucide-react";
 import { formatSpacing, lineSpacingItems } from "../editor/layout-menus";
+import { m } from "../paraglide/messages";
 import { MenuButton } from "../ui/menu";
 
 type ParagraphSpacingProps = {
@@ -13,14 +14,14 @@ type ParagraphSpacingProps = {
 export const ParagraphSpacing = ({ lineSpacing, layout, disabled }: ParagraphSpacingProps) => (
   <MenuButton
     variant="ghost"
-    label="Zeilenabstand und Einzug"
+    label={m.paragraph_spacing_label()}
     disabled={disabled}
     groups={[
       // Under the button the number says enough.
       lineSpacingItems(lineSpacing, layout, disabled, formatSpacing),
       [
-        { label: "Einzug vergrößern", onSelect: () => layout?.indent("more") },
-        { label: "Einzug verkleinern", onSelect: () => layout?.indent("less") },
+        { label: m.paragraph_spacing_indent_more(), onSelect: () => layout?.indent("more") },
+        { label: m.paragraph_spacing_indent_less(), onSelect: () => layout?.indent("less") },
       ],
     ]}
   >

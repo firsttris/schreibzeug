@@ -38,7 +38,7 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 
 ## 💡 Warum Schreibzeug?
 
-Google Docs und Microsoft 365 halten deine Dokumente in fremder Cloud und kosten pro Benutzer.
+Office-Pakete aus der Cloud halten deine Dokumente auf fremden Servern und kosten pro Benutzer.
 Selbst gehostete Office-Pakete brauchen meist einen eigenen Dokumentenserver neben Nextcloud und
 sehen aus wie die Office-Programme von 2010. Schreibzeug ist ein kleiner Server mit einer modernen
 Oberfläche.
@@ -140,12 +140,12 @@ Oberfläche wie bei heutigen Web-Apps wollen, auf dem eigenen Server.
 | [ONLYOFFICE Docs](https://github.com/ONLYOFFICE/DocumentServer) / [Euro-Office](https://github.com/Euro-Office) | Office-Engine fürs gemeinsame Arbeiten mit einer Oberfläche wie Microsoft Office, meist in Nextcloud eingebettet | Dieselbe Engine, eine neue Oberfläche, eigene Dateiverwaltung, kein Dokumentenserver |
 | [Collabora Online](https://github.com/CollaboraOnline/online) | LibreOffice im Browser, am stärksten mit OpenDocument | Schwerpunkt auf den Microsoft-Formaten und einer modernen Oberfläche |
 | [CryptPad](https://github.com/cryptpad/cryptpad) | Ende-zu-Ende verschlüsselte Suite fürs gemeinsame Arbeiten | Dateien bleiben einfache .docx, .xlsx und .pptx auf deinem Speicher |
-| Google Docs, Microsoft 365 | Office-Pakete in der Cloud | Selbst gehostet, Open Source, kein Preis pro Benutzer, deine Dateien unverändert |
+| Microsoft 365 und andere | Office-Pakete in der Cloud | Selbst gehostet, Open Source, kein Preis pro Benutzer, deine Dateien unverändert |
 
 ## ❓ FAQ
 
 <details>
-<summary><b>Gibt es eine selbst gehostete Alternative zu Google Docs und Microsoft 365?</b></summary>
+<summary><b>Gibt es eine selbst gehostete Alternative zu Microsoft 365?</b></summary>
 
 Ja. Schreibzeug läuft mit Docker auf deinem eigenen Server und bearbeitet Word-, Excel-, PowerPoint-
 und PDF-Dateien im Browser, mehrere Leute gleichzeitig. Siehe [Installationsanleitung](https://firsttris.github.io/schreibzeug/installation.html).

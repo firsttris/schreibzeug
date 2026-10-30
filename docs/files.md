@@ -43,7 +43,7 @@ Saving adds a version. Concurrent saves of one file lock its row and get consecu
 The editor saves a few seconds after each change (`AUTOSAVE_DELAY` in
 `packages/editor-core/src/session-progress.ts`), so a day's work makes hundreds of versions. After
 every save and restore the server thins out the file's older ones (`src/files/thinning.ts`), as
-Google Docs and Nextcloud do:
+Nextcloud does:
 
 | Age | What stays |
 |---|---|

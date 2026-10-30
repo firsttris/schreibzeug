@@ -4,26 +4,13 @@
 
 *Feels familiar. Belongs to you.*
 
-**Edit Word, Excel and PowerPoint files – .docx, .xlsx, .pptx and PDF, self-hosted and open source**
-
-Editing together in real time, in the browser or as a desktop app. No document server, no tracking. Made in Europe.
-
-**English** · [Deutsch](README.de.md)
-
-[Why](#-why-schreibzeug) •
-[Install](#-install) •
-[Features](#-features) •
-[Screenshots](#-screenshots) •
-[Alternatives](#-schreibzeug-and-the-alternatives) •
-[FAQ](#-faq) •
-[Documentation](https://firsttris.github.io/schreibzeug/)
-
-🖱️ **[Try the demo](https://firsttris.github.io/schreibzeug/demo/)** – the editors with sample files, in your browser, nothing to install
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
   <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, a self-hosted Word editor in the browser: a .docx document open with toolbar for paragraph style, font, size, bold, italic, colours, lists and alignment" width="900">
 </picture>
+
+**Edit Word, Excel and PowerPoint files – .docx, .xlsx, .pptx and PDF, open source**<br>
+Editing together in real time, in the browser or as a desktop app. No document server, no tracking. Made in Europe.
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)
@@ -35,7 +22,6 @@ Editing together in real time, in the browser or as a desktop app. No document s
 [![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-why-schreibzeug)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
-
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
 [![React](https://img.shields.io/badge/React-149eca?logo=react&logoColor=white)](https://react.dev)
@@ -45,6 +31,17 @@ Editing together in real time, in the browser or as a desktop app. No document s
 [![Hono](https://img.shields.io/badge/Hono-e36002?logo=hono&logoColor=white)](https://hono.dev)
 [![SQLite](https://img.shields.io/badge/SQLite-Drizzle-003b57?logo=sqlite&logoColor=white)](https://orm.drizzle.team)
 [![Tauri](https://img.shields.io/badge/Tauri-24c8db?logo=tauri&logoColor=white)](https://tauri.app)
+
+[Why](#-why-schreibzeug) •
+[Install](#-install) •
+[Features](#-features) •
+[Screenshots](#-screenshots) •
+[Alternatives](#-schreibzeug-and-the-alternatives) •
+[FAQ](#-faq) •
+[Documentation](https://firsttris.github.io/schreibzeug/) •
+[Deutsch](README.de.md)
+
+🖱️ **[Try the demo](https://firsttris.github.io/schreibzeug/demo/)** – the editors with sample files, in your browser, nothing to install
 
 </div>
 

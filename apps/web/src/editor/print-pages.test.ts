@@ -96,6 +96,15 @@ describe("printPages", () => {
     expect(document.querySelectorAll("#print-pages-style")).toHaveLength(1);
   });
 
+  it("takes the pages away again when a picture cannot be decoded", async () => {
+    vi.spyOn(HTMLImageElement.prototype, "decode").mockRejectedValue(new DOMException("decode", "EncodingError"));
+    const win = windowWith(() => {});
+    await expect(printPages(win, [page])).rejects.toThrow("decode");
+    expect(win.print).not.toHaveBeenCalled();
+    expect(document.querySelector("#print-pages")).toBeNull();
+    expect(document.querySelector("#print-pages-style")).toBeNull();
+  });
+
   it("prints nothing for a PDF without pages", async () => {
     const win = windowWith(() => {});
     await printPages(win, []);

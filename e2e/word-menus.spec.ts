@@ -313,10 +313,39 @@ test.describe("PDF", () => {
     expect(bytes.toString("latin1")).toMatch(/\/FontFile2?/);
   });
 
-  test("prints through the browser's dialog with Strg+P", async ({ page }, testInfo) => {
+  test("prints the PDF from a frame where the browser has a PDF viewer", async ({ page }, testInfo) => {
+    await page.addInitScript(() =>
+      Object.defineProperty(Navigator.prototype, "pdfViewerEnabled", { get: () => true }),
+    );
     await openHello(page, testInfo);
     await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
     await page.keyboard.press("Control+p");
     await expect(page.locator('iframe[title="Drucken"]')).toHaveCount(1);
+  });
+
+  test("prints drawn pages where the browser has no PDF viewer (Android)", async ({ page }, testInfo) => {
+    // As Chrome on Android, without a PDF viewer. The dialog is replaced by a note of what it would
+    // have printed: how many pages, and whether the first shows anything.
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, "pdfViewerEnabled", { get: () => false });
+      window.print = () => {
+        const images = [...document.querySelectorAll<HTMLImageElement>("#print-pages img")];
+        const first = images[0];
+        const canvas = Object.assign(document.createElement("canvas"), { width: 200, height: 283 });
+        const context = canvas.getContext("2d");
+        if (first && context) context.drawImage(first, 0, 0, canvas.width, canvas.height);
+        const pixels = context?.getImageData(0, 0, canvas.width, canvas.height).data ?? [];
+        const dark = pixels.filter((value, index) => index % 4 === 0 && value < 128).length;
+        document.body.dataset.printed = JSON.stringify({ pages: images.length, dark });
+      };
+    });
+    await openHello(page, testInfo);
+    await page.getByTestId("engine-frame").click({ position: { x: 640, y: 210 } });
+    await page.keyboard.press("Control+p");
+    await expect(page.locator("body[data-printed]")).toHaveCount(1, { timeout: 30_000 });
+    const printed = JSON.parse((await page.locator("body").getAttribute("data-printed")) ?? "{}");
+    expect(printed.pages).toBe(1);
+    expect(printed.dark).toBeGreaterThan(0);
+    await expect(page.locator('iframe[title="Drucken"]')).toHaveCount(0);
   });
 });

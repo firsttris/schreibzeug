@@ -20,7 +20,7 @@ PDF view (`apps/web/src/editor/pdf-view.tsx`). `packages/editor-core` `openPdfDo
 editor for its changes since the file was opened and lets x2t write them into that file
 (`savePdf`), so every save is a whole PDF and a new version on the server, as for Office files. A
 PDF without changes is saved as it is. "Datei → Herunterladen" downloads that PDF; "Drucken"
-prints it through the browser.
+prints it through the browser, as for Office files ([engine](engine.md#pdf-and-printing)).
 
 ## Commenting, not designing
 

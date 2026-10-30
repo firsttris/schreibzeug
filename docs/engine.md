@@ -480,7 +480,21 @@ the converter three things, the way CryptPad does (`www/common/outer/x2t.js`
 `X2tConverter/src/cextracttools.h` → `PdfFile.cpp` `CreatePdf(isPDFA)`): XMP metadata with
 `pdfaid:part` 2, an sRGB output intent, every font embedded. For a PDF itself see [PDFs](pdf.md#pdfa).
 
-"Drucken" prints that PDF through the browser's dialog from a hidden frame (`apps/web/src/editor/pdf.ts`).
+"Drucken" prints that PDF through the browser's dialog (`apps/web/src/editor/pdf.ts`), one of two
+ways (`apps/web/src/editor/print-pages.ts`):
+
+- Where the browser has a PDF viewer of its own (`navigator.pdfViewerEnabled`) and is not WebKit
+  (Chrome, Edge, Firefox on a computer), the PDF goes into a hidden frame, which prints once it has
+  loaded: sharp, and with its text.
+- Everywhere else pdf.js (loaded only then) draws every page at 300 dpi, the pictures go into the
+  page, hidden on screen, and the page itself prints once all of them are decoded; a print style
+  shows only them, one per sheet at the size of the first page. Chrome on Android and the browsers
+  built on it have no PDF viewer and hand a PDF in a frame to the system, so no print dialog would
+  come. Safari reports the frame as loaded before its viewer has drawn the pages; printing right
+  after a reload then gives blank pages, and nothing tells when they are drawn. All browsers on iOS
+  are WebKit. "Als PDF sichern" in the print dialog gives a PDF of pictures there; "Als PDF
+  herunterladen" gives the real one.
+
 Strg+P is another key the engine leaves to its UI; it goes to the same place as Strg+F
 (`onShortcut`), and so does Strg+S, which saves through the app (the engine's own `asc_Save` would
 talk to the Document Server). The document's images go along as `media/`, as below.

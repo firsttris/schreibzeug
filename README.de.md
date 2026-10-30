@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>Alles, was dein Team von Word und Excel kennt. Ohne dass Microsoft deine Dokumente kennt.</h1>
+<h1>Fühlt sich vertraut an. Gehört dir.</h1>
 
 **Schreibzeug: Word, Excel, PowerPoint und PDF gemeinsam bearbeiten – selbst gehostet und Open Source**
 

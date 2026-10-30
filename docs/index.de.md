@@ -1,6 +1,6 @@
 ---
 title: Word, Excel, PowerPoint und PDF auf dem eigenen Server
-og_title: "Schreibzeug: Alles, was dein Team von Word und Excel kennt. Ohne dass Microsoft deine Dokumente kennt."
+og_title: "Schreibzeug: Fühlt sich vertraut an. Gehört dir."
 description: >-
   Word, Excel, PowerPoint und PDF gemeinsam im Browser oder als Desktop-App bearbeiten – auf
   deinem eigenen Server, ohne Kosten pro Benutzer. Ein Rundgang in Bildern.
@@ -15,7 +15,7 @@ hide:
 
 <div class="showcase-hero" markdown>
 
-# Alles, was dein Team von Word und Excel kennt. Ohne dass Microsoft deine Dokumente kennt.
+# Fühlt sich vertraut an. Gehört dir.
 
 <p class="showcase-claim">Dokumente, Tabellen, Präsentationen und PDFs – gemeinsam in Echtzeit,
 im Browser oder als App auf dem PC. Deine Dateien bleiben bei dir, und sie bleiben, was sie sind:

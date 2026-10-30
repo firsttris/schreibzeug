@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>Everything your team knows from Google Docs. Without Google knowing your documents.</h1>
+<h1>Feels familiar. Belongs to you.</h1>
 
 **Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source**
 

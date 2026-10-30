@@ -15,10 +15,10 @@ export const usePdf = (
 ): PdfActions => {
   const exportPdf = editor?.exportPdf;
   if (!exportPdf) return null;
-  const make = async (use: (bytes: Uint8Array) => void, pdfa = false) => {
+  const make = async (use: (bytes: Uint8Array) => void | Promise<void>, pdfa = false) => {
     notify(pdfa ? m.use_pdf_making_pdfa() : m.use_pdf_making_pdf());
     try {
-      use(await exportPdf(pdfa));
+      await use(await exportPdf(pdfa));
     } catch (error) {
       notify(m.use_pdf_failed({ error: error instanceof Error ? error.message : String(error) }));
     }

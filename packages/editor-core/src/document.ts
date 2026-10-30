@@ -438,10 +438,11 @@ export const openDocument = <
       options.timeoutMs ?? 60_000,
     );
 
-    const start = ({ bytes: binary, media }: Converted) => {
+    const fail = (error: unknown) => onFailure(error instanceof Error ? error.message : String(error));
+
+    const start = (converted: Promise<Converted>) => {
       const api = binding.createApi(win, options);
       const urls = win.AscCommon.g_oDocumentUrls;
-      provideMedia(urls, media, (image) => win.URL.createObjectURL(new win.Blob([image as BlobPart])));
       // The document with the images it holds: those it came with and those added since, by
       // anyone (others' images arrive by name, and the relay says where they are; collab.ts).
       const documentMedia = () => collectMedia(urls, fetchBytes(win));
@@ -451,7 +452,6 @@ export const openDocument = <
       };
       const base = api as unknown as EngineApiBase<CommonEventArgs>;
       const stopProgress = followProgress(options.collaboration?.channel, dispatch);
-      const url = connectEngine(win, base, binary, options.collaboration);
       subscribe(base, coreEvents(win.Asc.c_oAscAsyncAction.Disconnect), dispatch);
       subscribe(api, binding.events(win), dispatch);
       keepFocusOnClick(win, () => api.getFocusElement());
@@ -536,12 +536,25 @@ export const openDocument = <
         if (level === CRITICAL_ERROR_LEVEL) onFailure(`The engine reported error ${id}.`);
       });
 
-      api.asc_setDocInfo(createDocInfo(win, options, binding.format, url));
-      api.asc_getEditorPermissions();
+      // The API loads the rest of the engine (sdk-all.js, 18 MB) as soon as it exists
+      // (common/apiBase.js _init → loadSdk), so that runs while x2t still converts. The document
+      // info follows once the file is converted, as web-apps sets it only after the API is made
+      // and its events are bound (documenteditor/mobile Main.jsx: new asc_docs_api, bindEvents,
+      // later loadDocument → asc_setDocInfo).
+      converted
+        .then(({ bytes: binary, media }) => {
+          provideMedia(urls, media, (image) => win.URL.createObjectURL(new win.Blob([image as BlobPart])));
+          const url = connectEngine(win, base, binary, options.collaboration);
+          api.asc_setDocInfo(createDocInfo(win, options, binding.format, url));
+          api.asc_getEditorPermissions();
+        })
+        .catch(fail);
     };
 
-    (options.converted ?? toBinary(options, file))
-      .then(start)
-      .catch((error: unknown) => onFailure(error instanceof Error ? error.message : String(error)));
+    try {
+      start(options.converted ?? toBinary(options, file));
+    } catch (error) {
+      fail(error);
+    }
   });
 };

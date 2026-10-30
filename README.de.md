@@ -2,8 +2,6 @@
 
 <h1>Schreibzeug – wie Google Docs, nur auf deinem eigenen Server</h1>
 
-*Fühlt sich vertraut an. Gehört dir.*
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
   <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, ein selbst gehosteter Word-Editor im Browser: ein .docx-Dokument mit Werkzeugleiste für Absatzformat, Schrift, Größe, fett, kursiv, Farben, Listen und Ausrichtung" width="900">

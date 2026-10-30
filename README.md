@@ -2,8 +2,6 @@
 
 <h1>Schreibzeug – like Google Docs, but on your own server</h1>
 
-*Feels familiar. Belongs to you.*
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
   <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, a self-hosted Word editor in the browser: a .docx document open with toolbar for paragraph style, font, size, bold, italic, colours, lists and alignment" width="900">

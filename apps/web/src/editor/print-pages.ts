@@ -109,7 +109,12 @@ export const printPages = async (
   container.append(...images);
   doc.head.append(style);
   doc.body.append(container);
-  await Promise.all(images.map((image) => image.decode()));
+  // A picture that cannot be decoded takes the pages away again: left behind, they would hold
+  // their memory and be all a later print from the browser's menu shows.
+  await Promise.all(images.map((image) => image.decode())).catch((error: unknown) => {
+    removePrintPages(doc);
+    throw error;
+  });
   win.addEventListener("afterprint", () => removePrintPages(doc), { once: true });
   win.print();
 };

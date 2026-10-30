@@ -7,6 +7,11 @@ turn, add and remove pages, append another PDF, save pages as a PDF of their own
 download. How the engine reads and writes the file is in
 [the engine](engine.md#pdfs).
 
+On a phone held upright the pages get the whole width of the screen: the page thumbnails beside
+them are left out (a media query in `engine/frame/editor/pdf/main/index.html`, below the width the
+app takes for a phone, `apps/web/src/editor/use-mobile-view.ts`), and turning or removing a page
+acts on the page in view.
+
 ## Opening and saving
 
 A PDF opens like any other file: from the file list into `/edit/:id`, where the edit page picks the

@@ -27,6 +27,17 @@
         position: absolute;
         inset: 0 0 0 180px;
       }
+      /* A phone held upright (the app's PHONE, apps/web src/editor/use-mobile-view.ts): the pages
+         get the screen's width. The page commands act on the page in view when no thumbnail is
+         selected (packages/editor-core pdf.ts selectedPages). */
+      @media (max-width: 639px) {
+        #thumbnails-list {
+          display: none;
+        }
+        #editor_sdk {
+          left: 0;
+        }
+      }
     </style>
   </head>
   <body>

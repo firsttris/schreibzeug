@@ -112,6 +112,26 @@ test("a presentation keeps its slide list under the slide and its notes hidden",
   );
 });
 
+test("a PDF gives its pages the width of the screen, without the page thumbnails beside them", async ({
+  page,
+}, testInfo) => {
+  const errors = collectErrors(page);
+  await signUp(page, credentialsFor(testInfo));
+  await page.goto("/");
+  await upload(page, join(import.meta.dirname, "../test-files/formular.pdf"), "formular.pdf");
+  await page.getByRole("link", { name: "formular.pdf", exact: true }).click();
+  await expectEditorReady(page, errors);
+  const frame = await (await page.getByTestId("engine-frame").elementHandle())?.contentFrame();
+  if (!frame) throw new Error("No engine frame.");
+  // The host page's elements (engine/frame/editor/pdf/main/index.html).
+  const layout = await frame.evaluate(() => ({
+    pages: document.getElementById("editor_sdk")?.getBoundingClientRect().left,
+    thumbnails: document.getElementById("thumbnails-list")?.getBoundingClientRect().width,
+  }));
+  expect(layout).toEqual({ pages: 0, thumbnails: 0 });
+  expect(errors).toEqual([]);
+});
+
 test("the menus stay on a phone's screen", async ({ page }, testInfo) => {
   const errors = collectErrors(page);
   await signUp(page, credentialsFor(testInfo));

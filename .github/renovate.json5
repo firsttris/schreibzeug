@@ -1,0 +1,60 @@
+// Renovate (GitHub App, https://github.com/apps/renovate): a pull request for each new release of
+// the editing engine, its converter, Bun and the images, plus the "Dependency Dashboard" issue
+// listing what is open. The npm packages and crates are left out. Check with
+// `bunx --package renovate renovate-config-validator .github/renovate.json5`.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+  enabledManagers: ["docker-compose", "dockerfile", "custom.regex"],
+  timezone: "Europe/Berlin",
+  labels: ["dependencies"],
+  customManagers: [
+    {
+      // The engine: Euro-Office's Document Server release (engine/engine.json, top level)
+      customType: "regex",
+      managerFilePatterns: ["/^engine/engine\\.json$/"],
+      matchStrings: [
+        '"source": "https://github\\.com/(?<depName>Euro-Office/DocumentServer)",\\s*"version": "(?<currentValue>[^"]+)"',
+      ],
+      datasourceTemplate: "github-releases",
+      // v9.3.4, v9.3.4-hotfix.1, v9.3.7-1; the -rc, -beta and -tp tags do not match and are skipped
+      versioningTemplate: "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-(?:hotfix\\.)?(?<build>\\d+))?$",
+    },
+    {
+      // The converter: CryptPad's x2t as WebAssembly (engine/engine.json, "converter"), v9.3.2+3
+      customType: "regex",
+      managerFilePatterns: ["/^engine/engine\\.json$/"],
+      matchStrings: [
+        '"source": "https://github\\.com/(?<depName>cryptpad/onlyoffice-x2t-wasm)",\\s*"version": "(?<currentValue>[^"]+)"',
+      ],
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?\\+(?<build>\\d+)$",
+    },
+    {
+      // The Bun the workflows install (env BUN_VERSION)
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      matchStrings: ["BUN_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      depNameTemplate: "bun",
+      datasourceTemplate: "npm",
+    },
+  ],
+  packageRules: [
+    {
+      // Schreibzeug's own image moves with its releases
+      matchPackageNames: ["docker.io/tristanteu/**"],
+      enabled: false,
+    },
+    {
+      matchPackageNames: ["Euro-Office/DocumentServer", "cryptpad/onlyoffice-x2t-wasm"],
+      prBodyNotes: [
+        "Renovate raises only the version. Before merging: `bun run engine:pin` fills in the release asset and its SHA-256 in `engine/engine.json`; commit that to this branch. The update passes only when the format-fidelity screenshots stay the same (CLAUDE.md, engine version).",
+      ],
+    },
+    {
+      // Bun in CI and the base images of docker/Dockerfile together
+      matchPackageNames: ["bun", "docker.io/oven/bun"],
+      groupName: "Bun",
+    },
+  ],
+}

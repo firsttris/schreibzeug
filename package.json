@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "engine:prepare": "bun engine/scripts/prepare.ts",
+    "engine:pin": "bun engine/scripts/pin.ts",
     "test-files": "bun test-files/make.ts",
     "dev": "bun run engine:prepare && bun run --filter '@schreibzeug/{web,server}' dev",
     "build": "bun run --filter @schreibzeug/web build",

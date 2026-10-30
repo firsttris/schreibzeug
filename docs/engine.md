@@ -26,6 +26,13 @@ progress:
 `allfontsgen` is a Linux x86_64 binary, so preparing the engine needs Linux (CI does it and caches
 the result by the hash of the spec, the scripts and the frame pages).
 
+New releases of the engine and of the converter arrive as pull requests from
+[Renovate](https://github.com/apps/renovate) (`.github/renovate.json5`), which raise the `version`
+in `engine.json` (release candidates and previews are skipped). Renovate cannot fill in the asset and
+its SHA-256; `bun run engine:pin` (`engine/scripts/pin.ts`) does, from the release on GitHub, and is
+committed to the pull request's branch. An engine update passes only when the format-fidelity
+screenshots stay the same.
+
 ## How it is loaded
 
 sdkjs resolves its own files relative to the page as `../../../../sdkjs/…` and `../../../../fonts/`

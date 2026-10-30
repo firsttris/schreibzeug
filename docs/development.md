@@ -46,6 +46,7 @@ All scripts of the root `package.json`:
 | `dev` | Prepares the engine, then the server and the web app's dev server together |
 | `server` | The server alone, restarting on changes |
 | `engine:prepare` | The engine in `engine/dist` (`--force` to prepare it again) |
+| `engine:pin` | Fills in the release asset and SHA-256 in `engine/engine.json` for its versions, after Renovate raised one ([engine](engine.md#where-it-comes-from)) |
 | `build` | The web app in `apps/web/dist`, the prepared engine copied in |
 | `build:demo` | The [demo](#the-demo) in `apps/web/dist-demo`, for GitHub Pages under `/schreibzeug/demo/` |
 | `preview` | The built web app on http://localhost:4173, with `/api` and `/mcp` forwarded like `dev` |
@@ -114,6 +115,7 @@ GitHub release. The shared workflows come from
 | `release.yml` | On a tag `vX.Y.Z`: the checks (unless `main` ran them), the desktop app, the Docker image (`docker/Dockerfile`, amd64) and the GitHub release |
 | `desktop.yml` | **Actions → Desktop app** builds the desktop app for Windows, macOS and Linux, unsigned for now; also part of every release |
 | `screenshots.yml` | **Actions → Update screenshots** takes the README and documentation pictures and the format-fidelity references |
+| `renovate.json5` | Not a workflow: the [Renovate app](https://github.com/apps/renovate) opens a pull request for each new release of the engine and converter ([how to take one](engine.md#where-it-comes-from)), Bun (CI and `docker/Dockerfile`) and Caddy, listed in the issue "Dependency Dashboard" |
 | `docs.yml` | Publishes this documentation and the [demo](#the-demo) on GitHub Pages on every push to `main` (a pull request that changes `docs/` only builds the documentation): English at `/`, German at `/de/` (mkdocs-static-i18n). A page is translated by a file next to it (`index.de.md` for `index.md`); without one the German site shows the English text. The start page is the tour in pictures, `overview.md` the overview |
 
 ## Stack

@@ -1,6 +1,6 @@
 ---
 title: Word, Excel, PowerPoint and PDF on your own server
-og_title: "Schreibzeug: Everything your team knows from Google Docs. Without Google knowing your documents."
+og_title: "Schreibzeug: Feels familiar. Belongs to you."
 description: >-
   Edit Word, Excel, PowerPoint and PDF together in the browser or as a desktop app – on your own
   server, with no per-user cost. A tour in pictures.
@@ -16,7 +16,7 @@ hide:
 
 <div class="showcase-hero" markdown>
 
-# Everything your team knows from Google Docs. Without Google knowing your documents.
+# Feels familiar. Belongs to you.
 
 <p class="showcase-claim">Documents, spreadsheets, presentations and PDFs – together in real time,
 in the browser or as an app on your computer. Your files stay with you, and they stay what they

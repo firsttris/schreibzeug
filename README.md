@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>Everything your team knows from Google Docs. Without Google knowing your documents.</h1>
+<h1>Feels familiar. Belongs to you.</h1>
 
 **Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source**
 
@@ -38,7 +38,7 @@ Editing together in real time, in the browser or as a desktop app. No document s
 
 ## 💡 Why Schreibzeug?
 
-Google Docs and Microsoft 365 keep your documents in someone else's cloud and charge per user.
+Cloud office suites keep your documents on someone else's servers and charge per user.
 Self-hosted office suites usually need a separate document server next to Nextcloud and look like
 the office programs of 2010. Schreibzeug is one small server with a modern interface.
 
@@ -136,12 +136,12 @@ interface that feels like today's web apps, on their own server.
 | [ONLYOFFICE Docs](https://github.com/ONLYOFFICE/DocumentServer) / [Euro-Office](https://github.com/Euro-Office) | Collaborative office engine with a Microsoft-Office-like interface, usually embedded in Nextcloud | Same engine, a new interface, its own file management, no document server |
 | [Collabora Online](https://github.com/CollaboraOnline/online) | LibreOffice in the browser, strongest with OpenDocument | Focus on Microsoft formats and a modern interface |
 | [CryptPad](https://github.com/cryptpad/cryptpad) | End-to-end encrypted collaboration suite | Files stay plain .docx, .xlsx and .pptx on your storage |
-| Google Docs, Microsoft 365 | Cloud office suites | Self-hosted, open source, no per-user price, your files unconverted |
+| Microsoft 365 and others | Cloud office suites | Self-hosted, open source, no per-user price, your files unconverted |
 
 ## ❓ FAQ
 
 <details>
-<summary><b>Is there a self-hosted alternative to Google Docs and Microsoft 365?</b></summary>
+<summary><b>Is there a self-hosted alternative to Microsoft 365?</b></summary>
 
 Yes. Schreibzeug runs on your own server with Docker and edits Word, Excel, PowerPoint and PDF
 files in the browser, several people at once. See the [installation guide](https://firsttris.github.io/schreibzeug/installation.html).

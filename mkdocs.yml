@@ -4,8 +4,8 @@
 site_name: Schreibzeug
 site_description: >-
   Schreibzeug, the self-hosted open-source office suite: edit Word, Excel, PowerPoint and PDF files
-  together in the browser or as a desktop app, without a document server. An alternative to Google
-  Docs and Microsoft 365 on your own server.
+  together in the browser or as a desktop app, without a document server. An alternative to Microsoft
+  365 on your own server.
 site_url: https://firsttris.github.io/schreibzeug/
 repo_url: https://github.com/firsttris/schreibzeug
 repo_name: firsttris/schreibzeug
@@ -83,7 +83,7 @@ plugins:
           site_description: >-
             Schreibzeug, das selbst gehostete Open-Source-Office: Word-, Excel-, PowerPoint- und
             PDF-Dateien gemeinsam im Browser oder als Desktop-App bearbeiten, ohne
-            Dokumentenserver. Eine Alternative zu Google Docs und Microsoft 365 auf dem eigenen
+            Dokumentenserver. Eine Alternative zu Microsoft 365 auf dem eigenen
             Server.
           nav_translations:
             Home: Start

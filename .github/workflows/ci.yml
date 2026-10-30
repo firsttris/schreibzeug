@@ -189,7 +189,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - run: curl -fsSL -o mustang.jar https://repo1.maven.org/maven2/org/mustangproject/Mustang-CLI/2.26.0/Mustang-CLI-2.26.0.jar
+      # Retried: Maven Central answered one run with a 404 for this jar, the next with 200.
+      - run: curl -fsSL --retry 5 --retry-all-errors -o mustang.jar https://repo1.maven.org/maven2/org/mustangproject/Mustang-CLI/2.26.0/Mustang-CLI-2.26.0.jar
       - name: Validate
         run: |
           files=$(find einvoices -name '*.zugferd.pdf')

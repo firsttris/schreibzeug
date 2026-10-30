@@ -1,12 +1,14 @@
 <div align="center">
 
-<h1>Feels familiar. Belongs to you.</h1>
+<h1>Schreibzeug – like Google Docs, but on your own server</h1>
 
-**Schreibzeug: Word, Excel, PowerPoint and PDF, edited together – self-hosted and open source**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
+  <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, a self-hosted Word editor in the browser: a .docx document open with toolbar for paragraph style, font, size, bold, italic, colours, lists and alignment" width="900">
+</picture>
 
+**Edit Word, Excel and PowerPoint files – .docx, .xlsx, .pptx and PDF, open source**<br>
 Editing together in real time, in the browser or as a desktop app. No document server, no tracking. Made in Europe.
-
-**English** · [Deutsch](README.de.md)
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)
@@ -18,6 +20,15 @@ Editing together in real time, in the browser or as a desktop app. No document s
 [![GDPR](https://img.shields.io/badge/GDPR-files%20on%20your%20server-15803d)](#-why-schreibzeug)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
+[![React](https://img.shields.io/badge/React-149eca?logo=react&logoColor=white)](https://react.dev)
+[![TanStack](https://img.shields.io/badge/TanStack-Router%20%7C%20Query-ff4154?logo=reactquery&logoColor=white)](https://tanstack.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)](https://vite.dev)
+[![Hono](https://img.shields.io/badge/Hono-e36002?logo=hono&logoColor=white)](https://hono.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-Drizzle-003b57?logo=sqlite&logoColor=white)](https://orm.drizzle.team)
+[![Tauri](https://img.shields.io/badge/Tauri-24c8db?logo=tauri&logoColor=white)](https://tauri.app)
 
 [Why](#-why-schreibzeug) •
 [Install](#-install) •
@@ -25,14 +36,10 @@ Editing together in real time, in the browser or as a desktop app. No document s
 [Screenshots](#-screenshots) •
 [Alternatives](#-schreibzeug-and-the-alternatives) •
 [FAQ](#-faq) •
-[Documentation](https://firsttris.github.io/schreibzeug/)
+[Documentation](https://firsttris.github.io/schreibzeug/) •
+[Deutsch](README.de.md)
 
 🖱️ **[Try the demo](https://firsttris.github.io/schreibzeug/demo/)** – the editors with sample files, in your browser, nothing to install
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
-  <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, a self-hosted Word editor in the browser: a .docx document open with toolbar for paragraph style, font, size, bold, italic, colours, lists and alignment" width="900">
-</picture>
 
 </div>
 
@@ -42,6 +49,9 @@ Cloud office suites keep your documents on someone else's servers and charge per
 Self-hosted office suites usually need a separate document server next to Nextcloud and look like
 the office programs of 2010. Schreibzeug is one small server with a modern interface.
 
+- **Made in Europe, for Europe**: developed in Europe, open source, on Euro-Office's European
+  engine and your server. No US provider in between, so no access to your files under the US
+  CLOUD Act.
 - **Your files stay with you (GDPR)**: documents live on your server, or with the desktop app on
   your own computer. No US cloud, no third-party document server, no telemetry.
 - **Real Office files**: a .docx stays a .docx, an .xlsx an .xlsx, an .odt an .odt – Word, Excel
@@ -52,6 +62,8 @@ the office programs of 2010. Schreibzeug is one small server with a modern inter
   comments, without a document server.
 - **E-invoices**: ZUGFeRD invoices straight from an invoice document, and e-invoices in PDFs read
   and shown.
+- **Accessible by keyboard**: menus and toolbars work without a mouse –
+  [more on accessibility](https://firsttris.github.io/schreibzeug/accessibility.html).
 - **AI if you want it**: Claude Code and other assistants find, read and write your files with your
   rights; changes to a document you have open need your consent and can be undone.
 - **Simple to run**: one container with a SQLite database and a data folder; backing up the folder

@@ -1,12 +1,14 @@
 <div align="center">
 
-<h1>Fühlt sich vertraut an. Gehört dir.</h1>
+<h1>Schreibzeug – wie Google Docs, nur auf deinem eigenen Server</h1>
 
-**Schreibzeug: Word, Excel, PowerPoint und PDF gemeinsam bearbeiten – selbst gehostet und Open Source**
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
+  <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, ein selbst gehosteter Word-Editor im Browser: ein .docx-Dokument mit Werkzeugleiste für Absatzformat, Schrift, Größe, fett, kursiv, Farben, Listen und Ausrichtung" width="900">
+</picture>
 
+**Word-, Excel- und PowerPoint-Dateien bearbeiten – .docx, .xlsx, .pptx und PDF, Open Source**<br>
 Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver und ohne Tracking. Made in Europe.
-
-[English](README.md) · **Deutsch**
 
 [![CI](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml/badge.svg)](https://github.com/firsttris/schreibzeug/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/firsttris/schreibzeug?logo=github&label=release)](https://github.com/firsttris/schreibzeug/releases/latest)
@@ -18,6 +20,15 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 [![DSGVO](https://img.shields.io/badge/DSGVO-Dateien%20auf%20deinem%20Server-15803d)](#-warum-schreibzeug)
 [![Made in Europe](https://img.shields.io/badge/made%20in-Europe-003399)](https://github.com/Euro-Office)
 [![MCP server](https://img.shields.io/badge/MCP-Claude%20Code-d97757)](https://firsttris.github.io/schreibzeug/mcp.html)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh)
+[![React](https://img.shields.io/badge/React-149eca?logo=react&logoColor=white)](https://react.dev)
+[![TanStack](https://img.shields.io/badge/TanStack-Router%20%7C%20Query-ff4154?logo=reactquery&logoColor=white)](https://tanstack.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)](https://vite.dev)
+[![Hono](https://img.shields.io/badge/Hono-e36002?logo=hono&logoColor=white)](https://hono.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-Drizzle-003b57?logo=sqlite&logoColor=white)](https://orm.drizzle.team)
+[![Tauri](https://img.shields.io/badge/Tauri-24c8db?logo=tauri&logoColor=white)](https://tauri.app)
 
 [Warum](#-warum-schreibzeug) •
 [Installation](#-installation) •
@@ -25,14 +36,10 @@ Gemeinsam in Echtzeit, im Browser oder als Desktop-App. Ohne Dokumentenserver un
 [Screenshots](#-screenshots) •
 [Alternativen](#-schreibzeug-und-die-alternativen) •
 [FAQ](#-faq) •
-[Dokumentation](https://firsttris.github.io/schreibzeug/)
+[Dokumentation](https://firsttris.github.io/schreibzeug/) •
+[English](README.md)
 
 🖱️ **[Demo ausprobieren](https://firsttris.github.io/schreibzeug/demo/)** – die Editoren mit Beispieldateien, im Browser, ohne Installation
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/editor-dark.png">
-  <img src="docs/screenshots/editor-light.png" alt="Schreibzeug, ein selbst gehosteter Word-Editor im Browser: ein .docx-Dokument mit Werkzeugleiste für Absatzformat, Schrift, Größe, fett, kursiv, Farben, Listen und Ausrichtung" width="900">
-</picture>
 
 </div>
 
@@ -43,6 +50,9 @@ Selbst gehostete Office-Pakete brauchen meist einen eigenen Dokumentenserver neb
 sehen aus wie die Office-Programme von 2010. Schreibzeug ist ein kleiner Server mit einer modernen
 Oberfläche.
 
+- **Aus Europa, für Europa**: in Europa entwickelt, Open Source, auf der europäischen Engine
+  Euro-Office und deinem Server. Kein US-Anbieter dazwischen, also auch kein Zugriff auf deine
+  Dateien über den US CLOUD Act.
 - **Deine Dateien bleiben bei dir (DSGVO)**: Dokumente liegen auf deinem Server oder mit der
   Desktop-App auf deinem eigenen Rechner. Keine US-Cloud, kein fremder Dokumentenserver, keine
   Telemetrie.
@@ -54,6 +64,8 @@ Oberfläche.
   ohne Dokumentenserver.
 - **E-Rechnungen**: ZUGFeRD-Rechnungen direkt aus einem Rechnungsdokument, E-Rechnungen in PDFs
   werden gelesen und angezeigt.
+- **Mit der Tastatur bedienbar**: Menüs und Werkzeugleisten gehen ohne Maus –
+  [mehr zur Barrierefreiheit](https://firsttris.github.io/schreibzeug/accessibility.html).
 - **KI, wenn du willst**: Claude Code und andere Assistenten finden, lesen und schreiben deine
   Dateien mit deinen Rechten; Änderungen an einem offenen Dokument brauchen deine Zustimmung und
   lassen sich rückgängig machen.

@@ -97,7 +97,9 @@ describe("printPages", () => {
   });
 
   it("takes the pages away again when a picture cannot be decoded", async () => {
-    vi.spyOn(HTMLImageElement.prototype, "decode").mockRejectedValue(new DOMException("decode", "EncodingError"));
+    vi.spyOn(HTMLImageElement.prototype, "decode").mockRejectedValue(
+      new DOMException("decode", "EncodingError"),
+    );
     const win = windowWith(() => {});
     await expect(printPages(win, [page])).rejects.toThrow("decode");
     expect(win.print).not.toHaveBeenCalled();

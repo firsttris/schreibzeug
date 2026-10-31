@@ -9,7 +9,7 @@
   "converter": {
     "$comment": "x2t (ONLYOFFICE core) compiled to WebAssembly by CryptPad; turns .docx/.xlsx/.pptx into the engine's binary format and back.",
     "source": "https://github.com/cryptpad/onlyoffice-x2t-wasm",
-    "version": "v9.3.0+0",
+    "version": "v9.3.2+3",
     "asset": "x2t.zip",
     "sha256": "c209894d10d96fe1c4912e21fe518dca1bcdc0b4bc40778b4e6886e7227ef001"
   }

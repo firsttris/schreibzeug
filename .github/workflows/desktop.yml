@@ -37,7 +37,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: apps/web/dist
@@ -100,7 +100,7 @@ jobs:
           path: apps/desktop/src-tauri/target/patched-cli
           key: ${{ steps.tauri-cli.outputs.key }}
       - run: bun install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: apps/web/dist
@@ -114,7 +114,7 @@ jobs:
           projectPath: apps/desktop
           tauriScript: bun run tauri
           args: ${{ matrix.args }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: schreibzeug-desktop-${{ matrix.name }}
           path: |
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/upload-artifact/merge@v4
+      - uses: actions/upload-artifact/merge@v7
         with:
           name: schreibzeug-desktop
           pattern: schreibzeug-desktop-*

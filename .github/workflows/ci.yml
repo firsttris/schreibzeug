@@ -158,14 +158,14 @@ jobs:
         env:
           HOME: /root
       # The ZUGFeRD invoice e2e/e-invoice.spec.ts makes, for the einvoice job to check.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: einvoice-${{ matrix.shard }}
           path: test-results/**/*.zugferd.pdf
           if-no-files-found: ignore
           retention-days: 7
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ matrix.shard }}
           path: |
@@ -180,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: einvoice-*
           merge-multiple: true

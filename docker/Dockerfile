@@ -10,9 +10,10 @@ RUN apt-get update \
 WORKDIR /app
 # The engine first, in a layer of its own: it changes only with engine/ (a pinned release), so the
 # release reuses it from the build cache instead of downloading 632 MB and generating the fonts
-# again. The download it unpacked is dropped, so the cache holds only engine/dist.
+# again. The download it unpacked is dropped, so the cache holds only engine/dist. The Brotli
+# copies at quality 11 the server sends (precompress.ts) take two minutes, so they are made here too.
 COPY engine engine
-RUN bun engine/scripts/prepare.ts && rm -rf engine/.cache
+RUN bun engine/scripts/prepare.ts && rm -rf engine/.cache && bun engine/scripts/precompress.ts
 # .dockerignore leaves out every dist/, so engine/dist stays as prepared.
 COPY . .
 RUN bun install --frozen-lockfile && bun run build

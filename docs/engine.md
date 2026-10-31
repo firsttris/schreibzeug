@@ -62,7 +62,10 @@ happening on every open, and from holding up the first:
 - **Compressed.** The server compresses what shrinks (scripts, JSON, WebAssembly, the engine's
   fonts) with Brotli where the browser takes it, else gzip, once per file, and keeps the result in
   memory (`apps/server/src/compression.ts`): about 15 MB instead of 68 on the first open. Brotli at
-  quality 5: x2t.wasm takes about a second, quality 11 would take two minutes. The desktop app's
+  quality 5: x2t.wasm takes about a second, quality 11 would take two minutes. So the Docker image
+  makes Brotli copies at quality 11 of the large scripts and WebAssembly modules once, in its engine
+  layer (`engine/scripts/precompress.ts`), and the server sends the copy beside a file where there is
+  one: x2t.wasm in 6.8 MB instead of 8.1, `word/sdk-all.js` in 2.4 instead of 2.9. The desktop app's
   local server sends files as they are; they never leave the computer.
 - **At the same time.** The file is converted while the frame loads: `convertForEngine` starts x2t
   as soon as the editor mounts, so x2t downloads, compiles and converts in its worker while the

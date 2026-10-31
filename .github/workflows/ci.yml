@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -71,7 +71,7 @@ jobs:
       run:
         working-directory: apps/desktop/src-tauri
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -124,7 +124,7 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: image
         uses: firsttris/workflows/actions/playwright-image@v1
         with:
@@ -144,7 +144,7 @@ jobs:
       image: ${{ needs.playwright-image.outputs.image }}
       options: --ipc=host
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/cache/restore@v4
         with:
           path: engine/dist

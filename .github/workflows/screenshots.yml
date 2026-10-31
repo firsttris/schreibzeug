@@ -24,7 +24,7 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: image
         uses: firsttris/workflows/actions/playwright-image@v1
         with:
@@ -44,7 +44,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/cache/restore@v4
         with:
           path: engine/dist

@@ -1,0 +1,117 @@
+// Renovate (GitHub App, https://github.com/apps/renovate): a pull request for each new release of
+// what Schreibzeug builds on, plus the "Dependency Dashboard" issue listing what is open.
+// Only those: the editing engine and its converter (engine/engine.json), Tauri 3 with the patched
+// CLI, Bun, the Caddy of deploy/ and the e-invoice validator. The other packages and the actions
+// are not tracked here. Check with
+// `bunx --package renovate renovate-config-validator .github/renovate.json5`.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+  enabledManagers: ["dockerfile", "docker-compose", "bun", "cargo", "custom.regex"],
+  timezone: "Europe/Berlin",
+  labels: ["dependencies"],
+  // Nothing merges itself: each of these needs the checks in its pull request read by a person
+  automerge: false,
+  customManagers: [
+    {
+      // The engine and the converter, one release each. Renovate changes "version" only; the
+      // workflow engine-pin.yml then sets "asset" and "sha256" for it on the Renovate branch.
+      customType: "regex",
+      managerFilePatterns: ["/^engine/engine\\.json$/"],
+      matchStrings: [
+        '"source": "https://github\\.com/(?<depName>[^"]+)",\\s*"version": "(?<currentValue>[^"]+)"',
+      ],
+      datasourceTemplate: "github-releases",
+    },
+    {
+      // BUN_VERSION in the workflows: the Bun of CI, the engine build and the screenshots
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      matchStrings: ["BUN_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      depNameTemplate: "oven-sh/bun",
+      datasourceTemplate: "github-releases",
+      extractVersionTemplate: "^bun-v(?<version>.+)$",
+    },
+    {
+      // Mustang-CLI, which checks the e-invoices of the E2E tests (ci.yml, job einvoice)
+      customType: "regex",
+      managerFilePatterns: ["/^\\.github/workflows/ci\\.yml$/"],
+      matchStrings: ["Mustang-CLI/(?<currentValue>[^/]+)/Mustang-CLI-"],
+      depNameTemplate: "org.mustangproject:Mustang-CLI",
+      datasourceTemplate: "maven",
+    },
+  ],
+  packageRules: [
+    {
+      // From the package managers only Tauri (below) and @types/bun (with Bun)
+      matchManagers: ["bun", "cargo"],
+      enabled: false,
+    },
+    {
+      // Schreibzeug's own image moves with its releases (release.yml)
+      matchPackageNames: ["docker.io/tristanteu/**"],
+      enabled: false,
+    },
+    {
+      // Tags like v9.3.4, v9.3.4-hotfix.1 and v9.3.7-1; a hotfix or "-1" counts after its release,
+      // release candidates (-rc.1) and technical previews (-tp.3) do not match and are left out
+      matchPackageNames: ["Euro-Office/DocumentServer"],
+      versioning: "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-(?:hotfix\\.)?(?<build>\\d+))?$",
+      groupName: "Euro-Office engine",
+      sourceUrl: "https://github.com/Euro-Office/DocumentServer",
+      commitMessageTopic: "Euro-Office engine",
+      prBodyNotes: [
+        "An engine update is its own pull request and passes only when the format-fidelity screenshots stay the same (CLAUDE.md, Project specifics). `engine-pin.yml` sets `asset` and `sha256` for the new release on this branch. Before merging: read the release notes and the sdkjs changes since the old tag; `prepare.ts` stops if `checkScriptHooks` or `patchSpellWorker` no longer find their place; run the fidelity project and look at the screenshots of the E2E run.",
+      ],
+    },
+    {
+      // Tags like v9.3.0+0 and v9.3.2+3: x2t of an ONLYOFFICE release and CryptPad's build number
+      matchPackageNames: ["cryptpad/onlyoffice-x2t-wasm"],
+      versioning: "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\+(?<build>\\d+)$",
+      groupName: "x2t converter",
+      sourceUrl: "https://github.com/cryptpad/onlyoffice-x2t-wasm",
+      commitMessageTopic: "x2t converter",
+      prBodyNotes: [
+        "The converter for .docx/.xlsx/.pptx. `engine-pin.yml` sets `sha256` for the new release on this branch. Its ONLYOFFICE version should not run ahead of the engine's; the format-fidelity screenshots must stay the same.",
+      ],
+    },
+    {
+      // Tauri 3 is an alpha, pinned exactly (=3.0.0-alpha.x), and the Linux packages are built
+      // with a patched CLI (apps/desktop/patches). One PR for the crates and the npm packages, so
+      // the CLI, the API and the runtime stay on matching alphas.
+      matchManagers: ["bun", "cargo"],
+      matchPackageNames: ["tauri", "tauri-build", "tauri-runtime-*", "tauri-plugin-*", "@tauri-apps/**"],
+      enabled: true,
+      ignoreUnstable: false,
+      respectLatest: false,
+      groupName: "Tauri",
+      sourceUrl: "https://github.com/tauri-apps/tauri",
+      prBodyNotes: [
+        "`apps/desktop/scripts/tauri.ts` builds the Linux CLI from the tag `tauri-cli-v<version>` with `apps/desktop/patches/*.patch`; it stops when a patch no longer applies, which usually means Tauri changed or fixed that code. Then check issue #12 and `apps/desktop/patches/README.md` (Remove it again). Watch the `desktop` job of CI and run `desktop.yml` for the packages.",
+      ],
+    },
+    {
+      // Bun: the images, BUN_VERSION in the workflows and its types, in one PR so they cannot
+      // drift apart
+      matchPackageNames: ["docker.io/oven/bun", "oven-sh/bun", "@types/bun"],
+      enabled: true,
+      groupName: "Bun",
+      sourceUrl: "https://github.com/oven-sh/bun",
+    },
+    {
+      // The reverse proxy of the self-hosted setup (deploy/compose.yaml)
+      matchPackageNames: ["docker.io/library/caddy"],
+      sourceUrl: "https://github.com/caddyserver/caddy",
+      prBodyNotes: [
+        "Before merging: check the release notes against `deploy/Caddyfile`; the setup in docs/installation.md gets the new image with the next `docker compose pull`.",
+      ],
+    },
+    {
+      matchPackageNames: ["org.mustangproject:Mustang-CLI"],
+      sourceUrl: "https://github.com/ZUGFeRD/mustangproject",
+      prBodyNotes: [
+        "A new Mustang may bring new EN 16931 / XRechnung rules: if the einvoice job turns red, the invoice from packages/einvoice is what needs fixing, not the validator.",
+      ],
+    },
+  ],
+}

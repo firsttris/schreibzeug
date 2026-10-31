@@ -23,6 +23,10 @@ progress:
 | `dictionaries/<lang>/` | Hunspell dictionaries for the spell checker, with their licenses ([below](#spell-checking)) |
 | `licenses/` | engine and font licenses |
 
+A new Euro-Office or x2t release arrives as a Renovate pull request that moves `version`; the
+workflow `engine-pin.yml` then sets `asset` and `sha256` of that release on its branch
+([Dependency updates](development.md#dependency-updates)).
+
 `allfontsgen` is a Linux x86_64 binary, so preparing the engine needs Linux (CI does it and caches
 the result by the hash of the spec, the scripts and the frame pages).
 

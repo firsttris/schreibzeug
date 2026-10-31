@@ -1,0 +1,74 @@
+name: Engine pin
+
+# On a Renovate branch that moves the engine or the converter (.github/renovate.json5): Renovate
+# changes only "version" in engine/engine.json, so this sets "asset" and "sha256" of that release,
+# commits them and starts CI on the new commit. prepare.ts checks the download against this hash,
+# so the hash stays pinned in the repository. A commit pushed with the workflow's token starts no
+# workflow by itself, hence the explicit CI run.
+on:
+  push:
+    branches: ["renovate/**"]
+    paths: ["engine/engine.json"]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: engine-pin-${{ github.ref }}
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set asset and sha256 of the pinned releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The release asset of each entry: the engine's package name carries its version, and
+          # some releases (v9.3.6, v9.3.7) ship no package at all
+          pin() {
+            local path=$1 pattern=$2
+            local source version asset sha
+            source=$(jq -r "$path.source" engine/engine.json | sed 's|^https://github.com/||')
+            version=$(jq -r "$path.version" engine/engine.json)
+            asset=$(gh api "repos/$source/releases/tags/$version" --jq ".assets[].name | select(test(\"$pattern\"))" | head -n 1)
+            if [ -z "$asset" ]; then
+              echo "::error::$source $version has no release asset matching $pattern"
+              exit 1
+            fi
+            gh release download "$version" --repo "$source" --pattern "$asset" --dir "$RUNNER_TEMP/$path"
+            sha=$(sha256sum "$RUNNER_TEMP/$path/$asset" | cut -d' ' -f1)
+            echo "$source $version: $asset $sha"
+            # Only the two values change, the file keeps its layout
+            python3 - "$path" "$asset" "$sha" <<'PY'
+          import re, sys
+          path, asset, sha = sys.argv[1:]
+          file = "engine/engine.json"
+          text = open(file).read()
+          # The converter's block is the one after "converter"; the engine's the first in the file
+          start = text.index('"converter"') if path == ".converter" else 0
+          head, tail = text[:start], text[start:]
+          tail = re.sub(r'"asset": "[^"]*"', f'"asset": "{asset}"', tail, count=1)
+          tail = re.sub(r'"sha256": "[^"]*"', f'"sha256": "{sha}"', tail, count=1)
+          open(file, "w").write(head + tail)
+          PY
+          }
+          pin "" '^euro-office-documentserver_.*_amd64\\.deb$'
+          pin ".converter" '^x2t\\.zip$'
+      - name: Commit and start CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "asset and sha256 already match"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Pin asset and sha256 of the engine release"
+          git push
+          gh workflow run ci.yml --ref "$GITHUB_REF_NAME"

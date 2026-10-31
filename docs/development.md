@@ -114,7 +114,25 @@ GitHub release. The shared workflows come from
 | `release.yml` | On a tag `vX.Y.Z`: the checks (unless `main` ran them), the desktop app, the Docker image (`docker/Dockerfile`, amd64) and the GitHub release |
 | `desktop.yml` | **Actions → Desktop app** builds the desktop app for Windows, macOS and Linux, unsigned for now; also part of every release |
 | `screenshots.yml` | **Actions → Update screenshots** takes the README and documentation pictures and the format-fidelity references |
+| `engine-pin.yml` | On a Renovate branch that moves the engine or the converter: sets `asset` and `sha256` of the new release in `engine/engine.json` and starts CI on that commit |
 | `docs.yml` | Publishes this documentation and the [demo](#the-demo) on GitHub Pages on every push to `main` (a pull request that changes `docs/` only builds the documentation): English at `/`, German at `/de/` (mkdocs-static-i18n). A page is translated by a file next to it (`index.de.md` for `index.md`); without one the German site shows the English text. The start page is the tour in pictures, `overview.md` the overview |
+
+## Dependency updates
+
+[Renovate](https://github.com/apps/renovate) (`.github/renovate.json5`) opens a pull request for each
+new release of what Schreibzeug builds on, and lists what is open in the "Dependency Dashboard"
+issue. Only these, nothing merges itself:
+
+| Pull request | What it moves |
+|---|---|
+| Euro-Office engine | `version` of the engine in `engine/engine.json` (Euro-Office Document Server releases; release candidates are left out); `engine-pin.yml` adds `asset` and `sha256`. Like every engine update it passes only when the format-fidelity screenshots stay the same |
+| x2t converter | `converter.version` in `engine/engine.json` (cryptpad/onlyoffice-x2t-wasm), the same way |
+| Tauri | the Tauri 3 alphas of `apps/desktop` (crates and npm packages together); `scripts/tauri.ts` stops when the CLI patch no longer applies ([Patched Tauri CLI](desktop.md#patched-tauri-cli)) |
+| Bun | the Bun images in `docker/Dockerfile`, `BUN_VERSION` in the workflows and `@types/bun` |
+| Caddy | the reverse proxy in `deploy/compose.yaml` |
+| Mustang-CLI | the validator of the `einvoice` job in `ci.yml` |
+
+The other packages and the actions are not tracked by Renovate.
 
 ## Stack
 

@@ -4280,7 +4280,7 @@ dependencies = [
 name = "schreibzeug-desktop"
 version = "0.1.16"
 dependencies = [
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "serde",
  "serde_json",
  "tauri",

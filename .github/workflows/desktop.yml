@@ -105,7 +105,7 @@ jobs:
           name: web-dist
           path: apps/web/dist
       # Builds only: the release is created by release.yml.
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
         env:
           SCHREIBZEUG_SIDECAR_TARGET: ${{ matrix.name == 'macos' && 'universal-apple-darwin' || '' }}
           # Where the Linux build downloads Chromium (CEF) to, and the cache above keeps it

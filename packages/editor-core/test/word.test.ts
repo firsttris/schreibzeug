@@ -159,6 +159,24 @@ describe("openWordDocument", () => {
     expect(call?.[1]).toBe(binary);
   });
 
+  it("makes the engine's API while the file is still converted, and gives it the document after", async () => {
+    const engine = createFakeEngine();
+    let finish: (converted: { bytes: Uint8Array; media: Record<string, Uint8Array> }) => void = () => {};
+    const converted = new Promise<{ bytes: Uint8Array; media: Record<string, Uint8Array> }>((resolve) => {
+      finish = resolve;
+    });
+    const opening = openWordDocument(engine.window, optionsWith(fakeConverter().convert, { converted }));
+    // The API exists at once, so sdkjs loads sdk-all.js during the conversion (apiBase.js _init).
+    expect(engine.api().docInfo).toEqual({});
+    finish({ bytes: binary, media: {} });
+    await flush();
+    expect(engine.api().docInfo).toMatchObject({ Url: "_offline_" });
+    engine.api().emit("asc_onDocumentContentReady");
+    await opening;
+    const call = engine.api().calls.find(([name]) => name === "asc_openDocumentFromBytes");
+    expect(call?.[1]).toBe(binary);
+  });
+
   it("opens in offline mode with the document info sdkjs needs", async () => {
     const { engine } = await openReady();
     expect(engine.window.io).toBeUndefined();

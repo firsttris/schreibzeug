@@ -51,6 +51,16 @@ const matches = (ifNoneMatch: string | undefined, etag: string): boolean =>
     .map((tag) => tag.trim().replace(/^W\//, ""))
     .some((tag) => tag === etag || tag === "*");
 
+/**
+ * The Brotli copy made ahead at quality 11 (engine/scripts/precompress.ts, in the Docker image's
+ * engine layer), beside the file: x2t.wasm in 6.8 MB instead of the 8.1 MB quality 5 gives here.
+ */
+const precompressedOf = async (file: string, encoding: Encoding | null): Promise<BunFile | null> => {
+  if (encoding !== "br") return null;
+  const copy = Bun.file(`${file}.br`);
+  return (await copy.exists()) ? copy : null;
+};
+
 /** Up to this much compressed output is kept in memory: the engines of all editors fit. */
 const COMPRESSION_BUDGET_BYTES = 192 * 1024 * 1024;
 
@@ -92,6 +102,8 @@ export const webRoutes = (folder: string, { embedOrigin, compress = true }: WebO
     if (matches(c.req.header("if-none-match"), etag)) return new Response(null, { status: 304, headers });
     headers["content-type"] = body.type;
     if (!encoding) return new Response(body, { headers });
+    const ahead = await precompressedOf(file, encoding);
+    if (ahead) return new Response(ahead, { headers: { ...headers, "content-encoding": encoding } });
     const bytes = await compressed(
       { path: file, size: body.size, lastModified: body.lastModified },
       encoding,

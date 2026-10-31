@@ -16,6 +16,7 @@ import { initialsOf } from "./account/initials";
 import { rootLabel, useFiles } from "./api/context";
 import { DemoNotice } from "./demo/demo-notice";
 import { inDesktopApp, runDesktopCommand } from "./desktop";
+import { usePrefetchEngine } from "./editor/prefetch-engine";
 import { useEmbed } from "./embed/bridge";
 import { m } from "./paraglide/messages";
 import { LowSpaceNotice } from "./storage/low-space-notice";
@@ -116,6 +117,7 @@ const AccountBox = () => {
 export const Shell = () => {
   const { info } = useFiles();
   const local = info.mode === "local";
+  usePrefetchEngine(local || inDesktopApp());
   // In Kontext's frame Kontext shows the name, the account and the way out.
   const { embedded } = useEmbed();
   return (

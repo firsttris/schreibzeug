@@ -132,6 +132,7 @@ export {
   SHAPE_TOOLS,
   type ShapeTool,
 } from "./pdf-state";
+export { type FetchToCache, prefetchedEngineFiles, prefetchFiles } from "./prefetch";
 export type {
   ReviewCommands,
   ReviewDisplay,

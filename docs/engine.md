@@ -47,8 +47,8 @@ an object made with the frame's own constructors (`new win.Asc.asc_CColor(…)`)
 ### Opening fast, on a phone too
 
 The engine is large: for a text document the browser loads about 68 MB (x2t.wasm 35 MB,
-`word/sdk-all.js` 18 MB, `fonts.wasm`, the fonts the document uses). Four things keep that from
-happening on every open:
+`word/sdk-all.js` 18 MB, `fonts.wasm`, the fonts the document uses). These things keep that from
+happening on every open, and from holding up the first:
 
 - **Kept for good.** The build puts the engine in a folder named after the prepared engine,
   `/engine/<id>/` (the start of the stamp `engine:prepare` writes to `engine/dist/.version`, a hash
@@ -62,15 +62,33 @@ happening on every open:
 - **Compressed.** The server compresses what shrinks (scripts, JSON, WebAssembly, the engine's
   fonts) with Brotli where the browser takes it, else gzip, once per file, and keeps the result in
   memory (`apps/server/src/compression.ts`): about 15 MB instead of 68 on the first open. Brotli at
-  quality 5: x2t.wasm takes about a second, quality 11 would take two minutes. The desktop app's
+  quality 5: x2t.wasm takes about a second, quality 11 would take two minutes. So the Docker image
+  makes Brotli copies at quality 11 of the large scripts and WebAssembly modules once, in its engine
+  layer (`engine/scripts/precompress.ts`), and the server sends the copy beside a file where there is
+  one: x2t.wasm in 6.8 MB instead of 8.1, `word/sdk-all.js` in 2.4 instead of 2.9. The desktop app's
   local server sends files as they are; they never leave the computer.
 - **At the same time.** The file is converted while the frame loads: `convertForEngine` starts x2t
   as soon as the editor mounts, so x2t downloads, compiles and converts in its worker while the
-  frame parses sdkjs, and the editor's open function takes the result as `converted`.
+  frame parses sdkjs, and the editor's open function takes the result as `converted`. The engine's
+  API is made as soon as the frame is there, not once the file is converted: making it loads the
+  rest of the engine (`sdk-all.js`, `common/apiBase.js` `_init` → `loadSdk`), and the document
+  info follows the conversion, as web-apps sets it only after the API exists and its events are
+  bound (`documenteditor/mobile` `Main.jsx`; `src/document.ts` `openDocument`).
+- **Before it is asked for.** While the file list is shown, the app fetches the files a text
+  document waits for into the browser's cache, one after the other and at low priority, x2t first
+  (`prefetchedEngineFiles` in `src/prefetch.ts`, `apps/web/src/editor/prefetch-engine.ts`). Leaving
+  the list lets the file on its way finish and fetches no other. Not in development (the engine is
+  sent anew there), for files on this computer (the desktop app, a local folder), or when the
+  browser asks to spare data (`navigator.connection.saveData`).
 - **Compiled while it downloads.** The worker hands x2t.wasm to emscripten through
   `instantiateWasm` with `WebAssembly.instantiateStreaming` (`engine/frame/x2t/worker.js`, the hook
   in x2t.js `createWasm`), not as bytes (`wasmBinary`): it compiles while it arrives, and Chromium
   keeps the compiled code beside the cached file, so the next open does not compile 35 MB again.
+
+Measured with a phone's viewport, 20 Mbit/s and 4× CPU throttling (a short text document, the
+production build): the first open after a few seconds on the file list takes 2.7 s instead of
+8.1 to 8.7 s. The second open in a new page takes 3.4 s and every later one about 1.1 s, when
+Chromium has the engine's compiled code too.
 
 ### Code in documents does not run
 

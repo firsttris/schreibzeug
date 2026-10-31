@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { brotliDecompressSync, gunzipSync } from "node:zlib";
+import { brotliCompressSync, brotliDecompressSync, gunzipSync } from "node:zlib";
 import { Hono } from "hono";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { cacheControlOf, frameAncestors, webRoutes } from "../src/web";
@@ -95,6 +95,23 @@ describe("the web app beside the API", () => {
     expect(await plain.text()).toBe(engineScript);
     const image = await site.request("/logo.png", { headers: { "accept-encoding": "br" } });
     expect(image.headers.get("content-encoding")).toBeNull();
+  });
+
+  it("sends the Brotli copy made ahead where there is one, and gzip from the file", async () => {
+    const dir = join(folder, "engine", "0123abcd", "x2t");
+    await mkdir(dir, { recursive: true });
+    const script = `${"x2t ".repeat(1000)}`;
+    await writeFile(join(dir, "x2t.js"), script);
+    // Marked, to tell the copy from what the server would compress itself.
+    await writeFile(join(dir, "x2t.js.br"), brotliCompressSync(`${script}// ahead`));
+    const path = "/engine/0123abcd/x2t/x2t.js";
+    const br = await site.request(path, { headers: { "accept-encoding": "br" } });
+    expect(br.headers.get("content-encoding")).toBe("br");
+    expect(br.headers.get("content-type")).toContain("javascript");
+    expect(br.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+    expect(brotliDecompressSync(new Uint8Array(await br.arrayBuffer())).toString()).toBe(`${script}// ahead`);
+    const gzip = await site.request(path, { headers: { "accept-encoding": "gzip" } });
+    expect(gunzipSync(new Uint8Array(await gzip.arrayBuffer())).toString()).toBe(script);
   });
 
   it("sends files as they are when compression is off (the desktop app's local server)", async () => {

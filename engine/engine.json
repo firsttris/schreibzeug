@@ -1,7 +1,7 @@
 {
   "$comment": "The editing engine and its converter. A change here is its own commit and must keep the format-fidelity screenshots unchanged.",
   "source": "https://github.com/Euro-Office/DocumentServer",
-  "version": "v9.3.4-hotfix.1",
+  "version": "v9.3.7",
   "asset": "euro-office-documentserver_9.3.4-hotfix.1_amd64.deb",
   "sha256": "167ecf4b82bfb28a3c541f134d1508b4072b668cada0786611d90079459f975e",
   "editors": ["word", "cell", "slide", "pdf"],

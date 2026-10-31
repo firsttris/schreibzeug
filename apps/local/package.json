@@ -18,10 +18,10 @@
     "@schreibzeug/mcp": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
     "@schreibzeug/server": "workspace:*",
-    "hono": "4.13.13",
+    "hono": "4.13.14",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1"
+    "@modelcontextprotocol/sdk": "1.32.2"
   }
 }

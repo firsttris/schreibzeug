@@ -10,7 +10,7 @@
     "./testing": "./test/identity.ts"
   },
   "dependencies": {
-    "node-forge": "1.4.0",
+    "node-forge": "1.4.2",
     "pdf-lib": "1.17.1"
   },
   "devDependencies": {

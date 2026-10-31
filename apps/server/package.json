@@ -29,14 +29,14 @@
     "@schreibzeug/files-api": "workspace:*",
     "@schreibzeug/mcp": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",
-    "better-auth": "1.7.12",
+    "better-auth": "1.7.14",
     "drizzle-orm": "0.45.4",
-    "hono": "4.13.13",
+    "hono": "4.13.14",
     "jose": "6.2.13",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "drizzle-kit": "0.31.11",
     "fflate": "0.8.3"
   }

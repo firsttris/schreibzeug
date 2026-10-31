@@ -51,7 +51,7 @@ jobs:
       - run: pip install -r requirements-docs.txt
       - run: mkdocs build --strict
       - if: github.event_name != 'pull_request'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: engine/dist
           key: ${{ needs.engine.outputs.key }}

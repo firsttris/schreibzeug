@@ -82,7 +82,7 @@ jobs:
       - uses: firsttris/workflows/actions/apt-install@v1
         with:
           packages: libgtk-4-dev librsvg2-dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .cef
           key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
@@ -96,7 +96,7 @@ jobs:
       - id: tauri-cli
         working-directory: .
         run: echo "key=patched-tauri-cli-$(jq -r '.devDependencies["@tauri-apps/cli"]' apps/desktop/package.json)-${{ hashFiles('apps/desktop/patches/*.patch') }}" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: apps/desktop/src-tauri/target/patched-cli
           key: ${{ steps.tauri-cli.outputs.key }}
@@ -145,7 +145,7 @@ jobs:
       options: --ipc=host
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: engine/dist
           key: ${{ needs.engine.outputs.key }}

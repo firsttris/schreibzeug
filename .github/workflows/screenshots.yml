@@ -45,7 +45,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         with:
           path: engine/dist
           key: ${{ needs.engine.outputs.key }}

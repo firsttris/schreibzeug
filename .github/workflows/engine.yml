@@ -26,7 +26,7 @@ jobs:
       - id: key
         run: echo "key=engine-${{ hashFiles('engine/engine.json', 'engine/scripts/**', 'engine/frame/**') }}" >> "$GITHUB_OUTPUT"
       - id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: engine/dist
           key: ${{ steps.key.outputs.key }}

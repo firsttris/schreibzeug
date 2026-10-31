@@ -62,7 +62,7 @@ jobs:
     # Draft pull requests do not build; "Ready for review" starts the run
     if: ${{ !github.event.pull_request.draft }}
     # GTK 4.14 or newer for the CEF runtime (tauri-winit-gtk4): Ubuntu 24.04
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
       # Chromium (CEF, about 1 GB) is downloaded here once and kept in the Actions cache

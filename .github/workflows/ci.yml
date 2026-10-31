@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -62,7 +62,7 @@ jobs:
     # Draft pull requests do not build; "Ready for review" starts the run
     if: ${{ !github.event.pull_request.draft }}
     # GTK 4.14 or newer for the CEF runtime (tauri-winit-gtk4): Ubuntu 24.04
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
       # Chromium (CEF, about 1 GB) is downloaded here once and kept in the Actions cache
@@ -71,7 +71,7 @@ jobs:
       run:
         working-directory: apps/desktop/src-tauri
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -82,7 +82,7 @@ jobs:
       - uses: firsttris/workflows/actions/apt-install@v1
         with:
           packages: libgtk-4-dev librsvg2-dev
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .cef
           key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
@@ -96,7 +96,7 @@ jobs:
       - id: tauri-cli
         working-directory: .
         run: echo "key=patched-tauri-cli-$(jq -r '.devDependencies["@tauri-apps/cli"]' apps/desktop/package.json)-${{ hashFiles('apps/desktop/patches/*.patch') }}" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: apps/desktop/src-tauri/target/patched-cli
           key: ${{ steps.tauri-cli.outputs.key }}
@@ -124,7 +124,7 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: image
         uses: firsttris/workflows/actions/playwright-image@v1
         with:
@@ -144,8 +144,8 @@ jobs:
       image: ${{ needs.playwright-image.outputs.image }}
       options: --ipc=host
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+      - uses: actions/checkout@v7
+      - uses: actions/cache/restore@v6
         with:
           path: engine/dist
           key: ${{ needs.engine.outputs.key }}
@@ -158,14 +158,14 @@ jobs:
         env:
           HOME: /root
       # The ZUGFeRD invoice e2e/e-invoice.spec.ts makes, for the einvoice job to check.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: einvoice-${{ matrix.shard }}
           path: test-results/**/*.zugferd.pdf
           if-no-files-found: ignore
           retention-days: 7
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ matrix.shard }}
           path: |
@@ -180,15 +180,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: einvoice-*
           merge-multiple: true
           path: einvoices
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
       - run: curl -fsSL -o mustang.jar https://repo1.maven.org/maven2/org/mustangproject/Mustang-CLI/2.26.0/Mustang-CLI-2.26.0.jar
       - name: Validate
         run: |

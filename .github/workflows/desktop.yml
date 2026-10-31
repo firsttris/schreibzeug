@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
+      - uses: actions/checkout@v7
+      - uses: actions/cache/restore@v6
         with:
           path: engine/dist
           key: ${{ needs.engine.outputs.key }}
@@ -37,7 +37,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: apps/web/dist
@@ -64,7 +64,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
@@ -82,7 +82,7 @@ jobs:
         with:
           packages: libgtk-4-dev librsvg2-dev patchelf
       - if: matrix.name == 'linux'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .cef
           key: cef-linux-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
@@ -95,17 +95,17 @@ jobs:
         id: tauri-cli
         run: echo "key=patched-tauri-cli-$(jq -r '.devDependencies["@tauri-apps/cli"]' apps/desktop/package.json)-${{ hashFiles('apps/desktop/patches/*.patch') }}" >> "$GITHUB_OUTPUT"
       - if: matrix.name == 'linux'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: apps/desktop/src-tauri/target/patched-cli
           key: ${{ steps.tauri-cli.outputs.key }}
       - run: bun install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: apps/web/dist
       # Builds only: the release is created by release.yml.
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@v1
         env:
           SCHREIBZEUG_SIDECAR_TARGET: ${{ matrix.name == 'macos' && 'universal-apple-darwin' || '' }}
           # Where the Linux build downloads Chromium (CEF) to, and the cache above keeps it
@@ -114,7 +114,7 @@ jobs:
           projectPath: apps/desktop
           tauriScript: bun run tauri
           args: ${{ matrix.args }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: schreibzeug-desktop-${{ matrix.name }}
           path: |
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/upload-artifact/merge@v4
+      - uses: actions/upload-artifact/merge@v7
         with:
           name: schreibzeug-desktop
           pattern: schreibzeug-desktop-*

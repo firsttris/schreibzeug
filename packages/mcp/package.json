@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@schreibzeug/einvoice": "workspace:*",
     "@schreibzeug/files-api": "workspace:*",
     "@schreibzeug/ooxml": "workspace:*",

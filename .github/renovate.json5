@@ -1,17 +1,14 @@
 // Renovate (GitHub App, https://github.com/apps/renovate): a pull request for each new release of
-// what Schreibzeug builds on, plus the "Dependency Dashboard" issue listing what is open.
-// Only those: the editing engine and its converter (engine/engine.json), Tauri 3 with the patched
-// CLI, Bun, the Caddy of deploy/ and the e-invoice validator. The other packages and the actions
-// are not tracked here. Check with
-// `bunx --package renovate renovate-config-validator .github/renovate.json5`.
+// what Schreibzeug builds on, plus the "Dependency Dashboard" issue listing what is open. Their own
+// pull requests: the editing engine and its converter (engine/engine.json), Tauri 3 with the
+// patched CLI, Bun, the Caddy of deploy/ and the e-invoice validator.
+// Everything else (the other packages, the actions, the images) comes with the shared settings of
+// firsttris/workflows (renovate/default.json5): minor and patch updates once a month in one pull
+// request that merges itself when CI is green, majors on request in the dashboard.
+// Check with `bunx --package renovate renovate-config-validator .github/renovate.json5`.
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  extends: ["config:recommended"],
-  enabledManagers: ["dockerfile", "docker-compose", "bun", "cargo", "custom.regex"],
-  timezone: "Europe/Berlin",
-  labels: ["dependencies"],
-  // Nothing merges itself: each of these needs the checks in its pull request read by a person
-  automerge: false,
+  extends: ["github>firsttris/workflows//renovate/default.json5"],
   customManagers: [
     {
       // The engine and the converter, one release each. Renovate changes "version" only; the
@@ -43,11 +40,6 @@
   ],
   packageRules: [
     {
-      // From the package managers only Tauri (below) and @types/bun (with Bun)
-      matchManagers: ["bun", "cargo"],
-      enabled: false,
-    },
-    {
       // Schreibzeug's own image moves with its releases (release.yml)
       matchPackageNames: ["docker.io/tristanteu/**"],
       enabled: false,
@@ -63,6 +55,9 @@
       prBodyNotes: [
         "An engine update is its own pull request and passes only when the format-fidelity screenshots stay the same (CLAUDE.md, Project specifics). `engine-pin.yml` sets `asset` and `sha256` for the new release on this branch. Before merging: read the release notes and the sdkjs changes since the old tag; `prepare.ts` stops if `checkScriptHooks` or `patchSpellWorker` no longer find their place; run the fidelity project and look at the screenshots of the E2E run.",
       ],
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
     },
     {
       // Tags like v9.3.0+0 and v9.3.2+3: x2t of an ONLYOFFICE release and CryptPad's build number
@@ -74,6 +69,9 @@
       prBodyNotes: [
         "The converter for .docx/.xlsx/.pptx. `engine-pin.yml` sets `sha256` for the new release on this branch. Its ONLYOFFICE version should not run ahead of the engine's; the format-fidelity screenshots must stay the same.",
       ],
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
     },
     {
       // Tauri 3 is an alpha, pinned exactly (=3.0.0-alpha.x), and the Linux packages are built
@@ -89,6 +87,9 @@
       prBodyNotes: [
         "`apps/desktop/scripts/tauri.ts` builds the Linux CLI from the tag `tauri-cli-v<version>` with `apps/desktop/patches/*.patch`; it stops when a patch no longer applies, which usually means Tauri changed or fixed that code. Then check issue #12 and `apps/desktop/patches/README.md` (Remove it again). Watch the `desktop` job of CI and run `desktop.yml` for the packages.",
       ],
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
     },
     {
       // Bun: the images, BUN_VERSION in the workflows and its types, in one PR so they cannot
@@ -97,6 +98,9 @@
       enabled: true,
       groupName: "Bun",
       sourceUrl: "https://github.com/oven-sh/bun",
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
     },
     {
       // The reverse proxy of the self-hosted setup (deploy/compose.yaml)
@@ -105,6 +109,10 @@
       prBodyNotes: [
         "Before merging: check the release notes against `deploy/Caddyfile`; the setup in docs/installation.md gets the new image with the next `docker compose pull`.",
       ],
+      groupName: "caddy",
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
     },
     {
       matchPackageNames: ["org.mustangproject:Mustang-CLI"],
@@ -112,6 +120,10 @@
       prBodyNotes: [
         "A new Mustang may bring new EN 16931 / XRechnung rules: if the einvoice job turns red, the invoice from packages/einvoice is what needs fixing, not the validator.",
       ],
+      groupName: "Mustang-CLI",
+      schedule: ["at any time"],
+      automerge: false,
+      dependencyDashboardApproval: false,
     },
   ],
 }

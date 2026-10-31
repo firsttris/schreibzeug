@@ -121,7 +121,7 @@ GitHub release. The shared workflows come from
 
 [Renovate](https://github.com/apps/renovate) (`.github/renovate.json5`) opens a pull request for each
 new release of what Schreibzeug builds on, and lists what is open in the "Dependency Dashboard"
-issue. Only these, nothing merges itself:
+issue. None of these merges itself:
 
 | Pull request | What it moves |
 |---|---|
@@ -132,7 +132,10 @@ issue. Only these, nothing merges itself:
 | Caddy | the reverse proxy in `deploy/compose.yaml` |
 | Mustang-CLI | the validator of the `einvoice` job in `ci.yml` |
 
-The other packages and the actions are not tracked by Renovate.
+Everything else (the other packages, the actions, the images) comes with the shared settings of
+[firsttris/workflows](https://github.com/firsttris/workflows#renovate-in-every-project): minor and
+patch updates on the 1st of the month in one pull request that Renovate merges itself when CI is
+green, majors only when ticked in the Dependency Dashboard, security fixes at once.
 
 ## Stack
 

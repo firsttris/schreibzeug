@@ -14,8 +14,14 @@ bun run dev              # http://localhost:5173, with the API on http://localho
 
 `bun run dev` prepares the engine first (`bun run engine:prepare`: downloads the pinned Euro-Office
 release and generates its fonts; a no-op once it is up to date), then starts the server (data:
-`SCHREIBZEUG_DATA_DIR`) and the web app together. `bun run server` starts the server alone. The
-Vite server forwards `/api` (WebSockets included) and `/mcp` to the API server.
+`SCHREIBZEUG_DATA_DIR`) and the web app together with `bun run --parallel dev:server dev:web`
+(not `bun run --filter`: it runs workspaces in dependency order, and as `apps/web` depends on
+`apps/server` it would wait for the server's endless `dev` before starting Vite). If
+one of them fails, the other is stopped too; Ctrl+C stops both. `bun run --parallel` pipes their
+output, so `dev` sets `FORCE_COLOR=1` when it runs in a terminal to keep the colours; Vite's
+keyboard shortcuts (`h`, `r`, `o`, `q`) only work when it runs alone: `bun run dev:web` in one
+terminal, `bun run dev:server` (or `bun run server`) in another. The Vite server forwards `/api`
+(WebSockets included) and `/mcp` to the API server.
 
 ## Checks
 

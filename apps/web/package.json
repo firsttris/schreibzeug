@@ -26,7 +26,7 @@
     "@tesseract.js-data/deu": "1.0.0",
     "@tesseract.js-data/eng": "1.0.0",
     "better-auth": "1.7.14",
-    "hono": "4.13.14",
+    "hono": "4.13.16",
     "lucide-react": "1.66.0",
     "pdfjs-dist": "6.4.299",
     "react": "19.3.1",

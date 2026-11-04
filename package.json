@@ -11,7 +11,9 @@
   "scripts": {
     "engine:prepare": "bun engine/scripts/prepare.ts",
     "test-files": "bun test-files/make.ts",
-    "dev": "bun run engine:prepare && bun run --filter '@schreibzeug/{web,server}' dev",
+    "dev": "bun run engine:prepare && if [ -t 1 ]; then export FORCE_COLOR=1; fi && bun run --parallel dev:server dev:web",
+    "dev:server": "bun run --cwd apps/server dev",
+    "dev:web": "bun run --cwd apps/web dev",
     "build": "bun run --filter @schreibzeug/web build",
     "build:demo": "bun run --filter @schreibzeug/web build:demo",
     "preview": "bun run --filter @schreibzeug/web preview",

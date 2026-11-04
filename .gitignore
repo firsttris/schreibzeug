@@ -28,3 +28,4 @@ site/
 
 # The settings of a deployment (deploy/.env for Compose)
 deploy/.env
+**/project.inlang/cache/

@@ -69,8 +69,9 @@ theme:
 
 plugins:
   - search
-  # English at /, German at /de/. A page is translated by a file next to it with .de.md
-  # (index.de.md); a page without one shows the English text in the German site too.
+  # English at /, German at /de/. Every page has its translation next to it with .de.md
+  # (index.de.md), headings with the same anchor ids. A first visit opens the browser's language
+  # (overrides/partials/language-redirect.html).
   - i18n:
       docs_structure: suffix
       fallback_to_default: true

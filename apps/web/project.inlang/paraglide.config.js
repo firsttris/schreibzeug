@@ -3,7 +3,6 @@
 // files let TypeScript check the message calls without allowJs.
 export default {
   outdir: "./src/paraglide",
-  outputStructure: "message-modules",
   strategy: ["localStorage", "preferredLanguage", "baseLocale"],
   localStorageKey: "schreibzeug.locale",
   emitTsDeclarations: true,

@@ -15,7 +15,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = "=3.0.0-alpha.4"
 
 [dependencies]
-tauri = "=3.0.0-alpha.5"
+tauri = "=3.0.0-alpha.6"
 tauri-plugin-opener = "=3.0.0-alpha.3"
 # GTK 3 by default, which cannot share a process with CEF's GTK 4; Linux uses the portal below.
 tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false }
@@ -28,12 +28,12 @@ getrandom = "0.4"
 # webview. Only one of the two may be in a Linux build: wry builds on GTK 3, CEF on GTK 4.
 # Depending on tauri-runtime-cef is also what makes tauri-build and the CLI ship CEF.
 [target.'cfg(target_os = "linux")'.dependencies]
-tauri-runtime-cef = "=3.0.0-alpha.6"
+tauri-runtime-cef = "=3.0.0-alpha.7"
 # The folder dialog through the XDG desktop portal (the desktop's own dialog), not GTK 3.
 tauri-plugin-dialog = { version = "=3.0.0-alpha.4", default-features = false, features = ["xdg-portal"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-tauri-runtime-wry = "=3.0.0-alpha.5"
+tauri-runtime-wry = "=3.0.0-alpha.6"
 
 [profile.release]
 codegen-units = 1

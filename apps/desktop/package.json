@@ -14,7 +14,7 @@
     "sidecar": "bun scripts/sidecar.ts"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "3.0.0-alpha.5",
+    "@tauri-apps/cli": "3.0.0-alpha.6",
     "vite": "8.3.5",
     "@tauri-apps/api": "3.0.0-alpha.3"
   }

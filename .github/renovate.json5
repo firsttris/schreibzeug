@@ -103,6 +103,15 @@
       dependencyDashboardApproval: false,
     },
     {
+      // The base of the image's runtime (docker/Dockerfile): Wolfi is rolling, the pinned digest
+      // brings the system packages. Every week instead of once a month, so security fixes do not
+      // wait; CI's image job builds and starts the image hardened, then Renovate merges by itself.
+      matchPackageNames: ["cgr.dev/chainguard/wolfi-base"],
+      groupName: "Wolfi",
+      schedule: ["* 0-5 * * 1"],
+      automerge: true,
+    },
+    {
       // The reverse proxy of the self-hosted setup (deploy/compose.yaml)
       matchPackageNames: ["docker.io/library/caddy"],
       sourceUrl: "https://github.com/caddyserver/caddy",

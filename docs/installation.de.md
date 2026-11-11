@@ -68,6 +68,9 @@ keine neuen Rechte bekommen (`--security-opt no-new-privileges:true`); mit Podma
 `ReadOnly=true`, `DropCapability=ALL` und `NoNewPrivileges=true`. Das Image enthält nur die
 Pakete, die der Server zur Laufzeit lädt, keine Build-Werkzeuge; die CI startet es so gehärtet und
 prüft, dass jeder Import des Servers auflöst (`docker/check-imports.ts`).
+Das Image läuft auf [Wolfi](https://github.com/wolfi-dev/os) statt
+Debian: aktuelle Systempakete und wenige bekannte Lücken; der Benutzer `bun` behält die uid 1000,
+bestehende Volumes bleiben lesbar.
 
 So baust du das Image selbst aus dem Repository:
 

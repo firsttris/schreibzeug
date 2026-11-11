@@ -14,6 +14,14 @@ services:
     # everyone else comes through Caddy.
     ports:
       - "127.0.0.1:3000:3000"
+    # Hardened: the file system read-only except the volume below and /tmp, no capabilities, no
+    # new privileges (docs/installation.md#hardening)
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     environment:
       SCHREIBZEUG_URL: https://${SCHREIBZEUG_DOMAIN:?SCHREIBZEUG_DOMAIN in deploy/.env}
       # Caddy and only Caddy (its fixed address below), so sign-ins count per client

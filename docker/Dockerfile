@@ -28,7 +28,10 @@ COPY apps/local/package.json apps/local/package.json
 COPY apps/desktop/package.json apps/desktop/package.json
 COPY packages packages
 COPY apps/server apps/server
-RUN bun install --frozen-lockfile --production --ignore-scripts
+# Without peer dependencies: through them build tools would come into the image (vite, vitest,
+# drizzle-kit, esbuild with a Go runtime of its own) that never run there and only add known
+# vulnerabilities. What the server imports is checked in the image by docker/check-imports.ts.
+RUN bun install --frozen-lockfile --production --ignore-scripts --omit=peer
 COPY --from=build /app/apps/web/dist ./web
 # The server runs as the image's unprivileged user `bun` (uid 1000), which may write only /data.
 # The folder is made and handed to it before VOLUME, so a new volume starts out owned by it; an

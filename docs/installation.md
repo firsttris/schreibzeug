@@ -57,6 +57,16 @@ Run one server per data folder: the collaboration sessions and the jobs for open
 the server's memory ([collaboration](collaboration.md#saving)), so a second instance on the
 same data would not see the first one's editors.
 
+### Hardening { #hardening }
+
+`deploy/compose.yaml` runs the server hardened, and the `docker run` examples below do the same:
+the container's file system is read-only except `/data` and `/tmp` (`--read-only --tmpfs /tmp`),
+the process has no capabilities (`--cap-drop ALL`) and cannot gain new privileges
+(`--security-opt no-new-privileges:true`); with Podman Quadlet `ReadOnly=true`,
+`DropCapability=ALL` and `NoNewPrivileges=true`. The image holds only the packages the server
+loads at runtime, no build tools; CI starts it hardened like this and checks that every import of
+the server resolves (`docker/check-imports.ts`).
+
 To build the image yourself from the repository:
 
 ```bash
@@ -74,6 +84,7 @@ One container, behind a reverse proxy of your own ([below](#behind-a-reverse-pro
 ```bash
 docker run -d --name schreibzeug --restart unless-stopped \
   -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data \
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   -e SCHREIBZEUG_URL=https://office.example.org \
   -e SCHREIBZEUG_TRUSTED_PROXIES=172.16.0.0/12 \
   tristanteu/schreibzeug:0.1
@@ -239,6 +250,7 @@ docker pull tristanteu/schreibzeug:0.1
 docker rm -f schreibzeug
 docker run -d --name schreibzeug --restart unless-stopped \
   -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data \
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   -e SCHREIBZEUG_URL=https://office.example.org \
   -e SCHREIBZEUG_TRUSTED_PROXIES=172.16.0.0/12 \
   tristanteu/schreibzeug:0.1

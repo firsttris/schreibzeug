@@ -7,6 +7,12 @@ installers: the [releases](https://github.com/firsttris/schreibzeug/releases). H
 
 ## Unreleased
 
+- **Container hardening**: `deploy/compose.yaml` and the `docker run` examples start the server
+  read-only except `/data` and `/tmp`, without capabilities and with `no-new-privileges`. The image
+  leaves out the peer dependencies and with them the build tools (vite, vitest, drizzle-kit,
+  esbuild): `node_modules` 314 instead of 432 MB. Your own `docker run` or compose file keeps
+  working; take over the new flags to harden it
+  ([installation](https://firsttris.github.io/schreibzeug/installation.html#hardening)).
 - **Keyboard**: F6 and Umschalt+F6 lead out of the document to the menu bar and the toolbar and
   back, as in Word and LibreOffice (Tab stays a tab in the document); each toolbar is one stop for
   Tab, with the arrow keys along its buttons

@@ -13,6 +13,8 @@ installers: the [releases](https://github.com/firsttris/schreibzeug/releases). H
   esbuild): `node_modules` 314 instead of 432 MB. Your own `docker run` or compose file keeps
   working; take over the new flags to harden it
   ([installation](https://firsttris.github.io/schreibzeug/installation.html#hardening)).
+- **Image on Wolfi** instead of Debian, as Kontext: current system packages and few known
+  vulnerabilities. The user `bun` keeps uid 1000; nothing to do on update.
 - **Keyboard**: F6 and Umschalt+F6 lead out of the document to the menu bar and the toolbar and
   back, as in Word and LibreOffice (Tab stays a tab in the document); each toolbar is one stop for
   Tab, with the arrow keys along its buttons

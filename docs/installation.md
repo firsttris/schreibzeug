@@ -66,6 +66,9 @@ the process has no capabilities (`--cap-drop ALL`) and cannot gain new privilege
 `DropCapability=ALL` and `NoNewPrivileges=true`. The image holds only the packages the server
 loads at runtime, no build tools; CI starts it hardened like this and checks that every import of
 the server resolves (`docker/check-imports.ts`).
+The image runs on [Wolfi](https://github.com/wolfi-dev/os) instead of
+Debian: current system packages and few known vulnerabilities; the user `bun` keeps uid 1000, so
+existing volumes stay readable.
 
 To build the image yourself from the repository:
 

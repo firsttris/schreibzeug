@@ -18,7 +18,15 @@ RUN bun engine/scripts/prepare.ts && rm -rf engine/.cache && bun engine/scripts/
 COPY . .
 RUN bun install --frozen-lockfile && bun run build
 
-FROM docker.io/oven/bun:1.4-slim
+# The runtime on Wolfi instead of Debian, as in Haben and Kontext (firsttris/kontext#248): current
+# system packages and few known vulnerabilities. Wolfi is rolling; the digest keeps the build
+# reproducible and Renovate raises it (group "Wolfi"). Nothing but Bun runs here, and Bun needs only
+# glibc (its NEEDED entries: libc, ld-linux, libpthread, libdl, libm), which wolfi-base has.
+FROM cgr.dev/chainguard/wolfi-base:latest@sha256:b7787f1d3f29dcfb48730372d3515391ac3b218723201a765c94949922676099
+# The same Bun as in the build stage (glibc build); Renovate raises oven/bun at both places.
+COPY --from=docker.io/oven/bun:1.4-slim /usr/local/bin/bun /usr/local/bin/bun
+# The user "bun" with UID 1000 as in oven/bun's image, so existing volumes stay readable.
+RUN addgroup -g 1000 bun && adduser -D -u 1000 -G bun -h /home/bun -s /bin/sh bun
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 SCHREIBZEUG_DATA_DIR=/data SCHREIBZEUG_WEB_DIR=/app/web
 # The server and the workspace packages it imports; the other workspaces only for the lockfile.

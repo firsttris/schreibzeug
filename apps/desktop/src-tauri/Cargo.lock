@@ -4268,7 +4268,7 @@ dependencies = [
 
 [[package]]
 name = "schreibzeug-desktop"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "getrandom 0.4.3",
  "serde",

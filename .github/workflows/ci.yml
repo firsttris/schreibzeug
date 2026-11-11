@@ -110,6 +110,30 @@ jobs:
       - run: cargo clippy -- -D warnings
       - run: cargo test
 
+  # The Docker image, started hardened as in deploy/compose.yaml: read-only except /tmp and the
+  # volume, no capabilities. Every import of the server must resolve without the peer dependencies
+  # the image leaves out (docker/Dockerfile).
+  image:
+    # Draft pull requests do not build; "Ready for review" starts the run
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -f docker/Dockerfile -t schreibzeug .
+      - run: |
+          docker run -d --name schreibzeug -p 3000:3000 \
+            --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
+            -v schreibzeug-data:/data -e SCHREIBZEUG_URL=http://localhost:3000 \
+            schreibzeug
+          for i in $(seq 1 30); do curl -fsS -o /dev/null http://localhost:3000/api/health && break; sleep 1; done
+          curl -fsS -o /dev/null http://localhost:3000/api/health
+          curl -fsS -o /dev/null http://localhost:3000/
+          docker exec schreibzeug test -f /data/schreibzeug.db
+          docker exec -i schreibzeug sh -c 'cat > /tmp/check-imports.ts && bun /tmp/check-imports.ts' < docker/check-imports.ts
+      - if: always()
+        run: docker logs schreibzeug || true
+
   # The engine (sdkjs, fonts) from the pinned Euro-Office release, cached by its spec
   engine:
     # Draft pull requests do not build; "Ready for review" starts the run

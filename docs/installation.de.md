@@ -59,6 +59,16 @@ Der Server im Image läuft als unprivilegierter Benutzer `bun` (uid 1000) und sc
 für offene Dokumente liegen im Speicher des Servers ([Zusammenarbeit](collaboration.md#saving)),
 eine zweite Instanz auf denselben Daten sähe also die Bearbeiter der ersten nicht.
 
+### Härtung { #hardening }
+
+`deploy/compose.yaml` startet den Server gehärtet, die `docker run`-Beispiele unten ebenso: Das
+Dateisystem des Containers ist schreibgeschützt bis auf `/data` und `/tmp`
+(`--read-only --tmpfs /tmp`), der Prozess hat keine Capabilities (`--cap-drop ALL`) und kann
+keine neuen Rechte bekommen (`--security-opt no-new-privileges:true`); mit Podman Quadlet
+`ReadOnly=true`, `DropCapability=ALL` und `NoNewPrivileges=true`. Das Image enthält nur die
+Pakete, die der Server zur Laufzeit lädt, keine Build-Werkzeuge; die CI startet es so gehärtet und
+prüft, dass jeder Import des Servers auflöst (`docker/check-imports.ts`).
+
 So baust du das Image selbst aus dem Repository:
 
 ```bash
@@ -77,6 +87,7 @@ Ein Container, hinter einem eigenen Reverse Proxy ([unten](#behind-a-reverse-pro
 ```bash
 docker run -d --name schreibzeug --restart unless-stopped \
   -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data \
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   -e SCHREIBZEUG_URL=https://office.example.org \
   -e SCHREIBZEUG_TRUSTED_PROXIES=172.16.0.0/12 \
   tristanteu/schreibzeug:0.1
@@ -247,6 +258,7 @@ docker pull tristanteu/schreibzeug:0.1
 docker rm -f schreibzeug
 docker run -d --name schreibzeug --restart unless-stopped \
   -p 127.0.0.1:3000:3000 -v schreibzeug-data:/data \
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   -e SCHREIBZEUG_URL=https://office.example.org \
   -e SCHREIBZEUG_TRUSTED_PROXIES=172.16.0.0/12 \
   tristanteu/schreibzeug:0.1
